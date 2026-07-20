@@ -10,6 +10,7 @@ const runtimeFormatVersion = "play-bundle-v1";
 const outputRoot = resolve(process.env.NICECHUNK_PLAY_RUNTIME_OUTPUT || resolve(root, ".play-runtime"));
 const playSource = resolve(root, "play");
 const playLoaderSource = resolve(playSource, "play-loader.js");
+const playOnboardingLoaderSource = resolve(playSource, "play-onboarding-loader.js");
 const chunkSource = resolve(root, "chunk.js");
 const playLocaleSource = resolve(root, "public/play/locales");
 const chainBundleSource = resolve(root, "dist/assets/nicechunkChain.js");
@@ -70,10 +71,15 @@ await viteBuild({
     name: "nicechunk-play-loader-placeholder",
     enforce: "pre",
     transformIndexHtml(html) {
-      return html.replace(
-        /<script\s+src="\/play\/play-loader\.js"[^>]*><\/script>/,
-        "<!-- nicechunk-play-loader -->",
-      );
+      return html
+        .replace(
+          /<script\b[^>]*\bsrc="\/play\/play-loader\.js"[^>]*><\/script>/,
+          "<!-- nicechunk-play-loader -->",
+        )
+        .replace(
+          /<script\b[^>]*\bsrc="\/play\/play-onboarding-loader\.js"[^>]*><\/script>/,
+          "<!-- nicechunk-play-onboarding-loader -->",
+        );
     },
   }],
   resolve: {
@@ -121,6 +127,18 @@ if (/^\s*import\s/m.test(loaderBuild.code) || Buffer.byteLength(loaderBuild.code
 const loaderHash = createHash("sha256").update(loaderBuild.code).digest("hex").slice(0, 8);
 const loaderFile = `assets/play-loader-${loaderHash}.js`;
 await writeFile(resolve(runtimeRoot, loaderFile), loaderBuild.code);
+const onboardingLoaderSource = await readFile(playOnboardingLoaderSource, "utf8");
+const onboardingLoaderBuild = await minifyJs("play-onboarding-loader.js", onboardingLoaderSource);
+if (onboardingLoaderBuild.errors?.length || !onboardingLoaderBuild.code) {
+  throw new Error(`Play onboarding Loader minification failed: ${onboardingLoaderBuild.errors?.[0]?.message || "empty output"}`);
+}
+new Function(onboardingLoaderBuild.code);
+if (/^\s*import\s/m.test(onboardingLoaderBuild.code) || Buffer.byteLength(onboardingLoaderBuild.code) > 12_000) {
+  throw new Error("Play onboarding Loader must remain a small dependency-free classic script.");
+}
+const onboardingLoaderHash = createHash("sha256").update(onboardingLoaderBuild.code).digest("hex").slice(0, 8);
+const onboardingLoaderFile = `assets/play-onboarding-loader-${onboardingLoaderHash}.js`;
+await writeFile(resolve(runtimeRoot, onboardingLoaderFile), onboardingLoaderBuild.code);
 const entry = await runtimeDescriptor(playEntryRecord.file, "module", "critical");
 const styles = await Promise.all((playEntryRecord.css || []).map((file) => runtimeDescriptor(file, "style", "critical")));
 const startupWorkers = (await readdir(resolve(runtimeRoot, "assets")))
@@ -170,10 +188,15 @@ await writeFile(loadingManifestPath, `${JSON.stringify(loadingManifest, null, 2)
 const runtimeIndexPath = resolve(runtimeRoot, "play", "index.html");
 const bundledIndex = await readFile(runtimeIndexPath, "utf8");
 const loaderUrl = `${runtimePrefix}/${loaderFile}`;
+const onboardingLoaderUrl = `${runtimePrefix}/${onboardingLoaderFile}`;
 const deployedIndex = removeBootAssetTags(bundledIndex, entry, styles)
   .replace(
     "<!-- nicechunk-play-loader -->",
     `<script src="${loaderUrl}" fetchpriority="high" data-nicechunk-loader data-manifest="${loadingManifestUrl}"></script>`,
+  )
+  .replace(
+    "<!-- nicechunk-play-onboarding-loader -->",
+    `<script src="${onboardingLoaderUrl}" defer data-nicechunk-onboarding data-module="/play/play-onboarding.js" data-style="/play/play-onboarding.css"></script>`,
   )
   .replace(
     '<html lang="en" data-i18n-scope="play">',
@@ -187,7 +210,9 @@ if (
   !deployedIndex.includes(`<meta name="nicechunk-runtime-version" content="${version}" />`) ||
   !deployedIndex.includes(`data-manifest="${loadingManifestUrl}"`) ||
   !deployedIndex.includes(`src="${loaderUrl}"`) ||
+  !deployedIndex.includes(`src="${onboardingLoaderUrl}"`) ||
   deployedIndex.includes("nicechunk-play-loader -->") ||
+  deployedIndex.includes("nicechunk-play-onboarding-loader -->") ||
   deployedIndex.includes(`src="${entry.url}"`) ||
   styles.some((file) => deployedIndex.includes(`href="${file.url}"`))
 ) {
@@ -203,6 +228,7 @@ await writeFile(resolve(outputRoot, "play-runtime.json"), `${JSON.stringify({
   chainModulePath: `/assets/nicechunkChain.${version}.js`,
   loadingManifestPath: loadingManifestUrl,
   loaderPath: loaderUrl,
+  onboardingLoaderPath: onboardingLoaderUrl,
   bundled: true,
 }, null, 2)}\n`);
 await normalizePermissions(outputRoot);

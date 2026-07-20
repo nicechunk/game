@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "Equipo guardado en cadena ({signature}).",
       "chainSaveFailed": "Error al guardar el equipo en cadena: {reason}."
+    },
+    "onboarding": {
+      "dialogAria": "Guía de {feature}",
+      "close": "Cerrar guía",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Paso {current}: {label}",
+      "dontShowAgain": "No volver a mostrar",
+      "skip": "Omitir guía",
+      "later": "Más tarde",
+      "next": "Siguiente",
+      "finish": "Finalizar",
+      "costEstimate": "Coste estimado",
+      "liveValuesNote": "Los valores activos se vuelven a consultar en el RPC antes de firmar.",
+      "checkingFee": "Consultando RPC",
+      "feeUnavailable": "Se comprobará al firmar",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "DESLIZA",
+      "controlTap": "TOCA",
+      "controlLook": "ARRASTRA",
+      "controlSelect": "CLIC",
+      "controlFirstPerson": "E",
+      "controlChoose": "ELEGIR",
+      "controlEquip": "EQUIPAR",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "FIRMAR",
+      "controlBlueprint": "PLANO",
+      "controlDimensions": "X × Z",
+      "controlPlace": "COLOCAR",
+      "controlReview": "REVISAR",
+      "controlBind": "VINCULAR",
+      "controlRecipe": "RECETA",
+      "controlInput": "ENTRADA",
+      "controlFuel": "COMBUST.",
+      "controlPrice": "PRECIO",
+      "controlMaterials": "MATERIAL",
+      "controlShape": "FORMA",
+      "controlGrip": "AGARRE",
+      "controlFit": "AJUSTE",
+      "controlCast": "FORJAR",
+      "cost": {
+        "accountDeposit": "Depósito reembolsable de cuenta",
+        "networkFee": "Comisión de red",
+        "sessionTopUp": "Recarga utilizable de sesión",
+        "buildSiteDeposit": "Depósito de cuenta BuildSite",
+        "progressDeposit": "Depósito de progreso de fundición",
+        "listingDeposit": "Depósito de cuenta del anuncio",
+        "marketFee": "Comisión tras la venta",
+        "selectedMaterials": "Materiales seleccionados",
+        "consumedOnChain": "Consumidos en cadena"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "Primeros pasos",
+          "title": "Controles del mundo",
+          "steps": {
+            "move": {
+              "title": "Muévete a la casilla luminosa",
+              "body": "Usa los controles de movimiento mientras mantienes la cámara orientada hacia tu ruta."
+            },
+            "look": {
+              "title": "Orbita la cámara",
+              "body": "Arrastra sobre el mundo para girar la cámara sin cambiar la dirección de movimiento."
+            },
+            "lookMobile": {
+              "title": "Desliza para mirar",
+              "body": "Desliza la vista con un dedo; el joystick queda dedicado al movimiento."
+            },
+            "select": {
+              "title": "Selecciona un bloque real",
+              "body": "Haz clic en un bloque dentro del alcance. Solo el vóxel pulsado recibe el contorno blanco."
+            },
+            "firstPerson": {
+              "title": "Cambia la cámara",
+              "body": "Pulsa E para entrar o salir de primera persona sin cambiar tu posición."
+            },
+            "toolMobile": {
+              "title": "Toca una herramienta",
+              "body": "Toca una ranura para activarla. La mochila abre su panel y no queda seleccionada."
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "Equipo del personaje",
+          "title": "Primer equipo",
+          "flow": {
+            "backpack": "Mochila",
+            "pda": "PDA de equipo",
+            "avatar": "Jugadores cercanos"
+          },
+          "steps": {
+            "choose": {
+              "title": "Elige un objeto de la mochila",
+              "body": "Selecciona una herramienta o prenda única que no esté equipada."
+            },
+            "equip": {
+              "title": "Muévelo a una ranura",
+              "body": "Los objetos equipados liberan capacidad y aparecen en el equipo del personaje."
+            },
+            "visible": {
+              "title": "Guarda el equipo público",
+              "body": "El PDA permite que otros carguen tu equipo visible sin leer tu mochila privada."
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "Sesión de minería",
+          "title": "Financia una sesión",
+          "warning": "La clave de sesión tiene tiempo y permisos limitados; no puede transferir ni retirar fondos.",
+          "steps": {
+            "amount": {
+              "title": "Define el saldo utilizable",
+              "body": "Elige la recarga SOL para transacciones verificadas repetidas."
+            },
+            "permission": {
+              "title": "Revisa los permisos",
+              "body": "La sesión temporal solo admite instrucciones aprobadas y caduca en ocho horas."
+            },
+            "confirm": {
+              "title": "Confirma con tu cartera",
+              "body": "El depósito se reembolsa; solo las transacciones enviadas pagan red."
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "Vinculación de plano",
+          "title": "Crear cimiento",
+          "warning": "El plano queda vinculado para siempre a una posición; el tamaño puede editarse después.",
+          "steps": {
+            "tool": {
+              "title": "Equipa el plano",
+              "body": "Cada plano único posee un cimiento y su propio menú de construcción."
+            },
+            "size": {
+              "title": "Define X y Z",
+              "body": "Introduce la huella exacta; todas las celdas deben estar al mismo nivel."
+            },
+            "place": {
+              "title": "Coloca la vista previa",
+              "body": "Haz clic en terreno plano para ver la huella uno a uno."
+            },
+            "review": {
+              "title": "Revisa terreno y guardián",
+              "body": "Solo se permite dentro de una región guardián activa y nivelada."
+            },
+            "bind": {
+              "title": "Vincula el plano",
+              "body": "Confirma solo cuando posición y dimensiones sean correctas."
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "Procesamiento",
+          "title": "Guía de fundición",
+          "flow": {
+            "inputs": "Entradas",
+            "fuel": "Combustible",
+            "chain": "Receta en cadena",
+            "output": "Salida a mochila"
+          },
+          "steps": {
+            "recipe": {
+              "title": "Elige una receta en cadena",
+              "body": "Selecciona primero la salida para validar materiales y cantidades exactos."
+            },
+            "inputs": {
+              "title": "Añade entradas válidas",
+              "body": "Pulsa Entrada en los materiales requeridos; los extras y sustitutos se rechazan."
+            },
+            "fuel": {
+              "title": "Añade combustible si hace falta",
+              "body": "Nivel y cantidad deben cumplir la receta; las recetas frías no usan combustible."
+            },
+            "review": {
+              "title": "Revisa e inicia",
+              "body": "Entradas y combustible se consumen en cadena; la salida vuelve a la mochila."
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "Anuncio de mercado",
+          "title": "Vender un objeto",
+          "warning": "El objeto queda bloqueado hasta que se venda o canceles el anuncio.",
+          "steps": {
+            "choose": {
+              "title": "Elige un objeto",
+              "body": "Selecciona el objeto único o pila exacta que retendrá el anuncio."
+            },
+            "price": {
+              "title": "Define categoría, moneda y precio",
+              "body": "Revisa el importe; al vender se aplica la comisión mostrada."
+            },
+            "sign": {
+              "title": "Crea y firma el anuncio",
+              "body": "El depósito vuelve al cerrar; cancelar devuelve el objeto."
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "Forja de herramientas",
+          "title": "Forja un objeto único",
+          "warning": "La forja consume los materiales elegidos y crea un objeto. Conserva espacio libre.",
+          "steps": {
+            "materials": {
+              "title": "Elige materiales verificados",
+              "body": "El volumen y atributos PDA limitan el diseño."
+            },
+            "shape": {
+              "title": "Construye en la mesa compartida",
+              "body": "Coloca, corta y ordena bloques manteniendo el conjunto conectado."
+            },
+            "handle": {
+              "title": "Define el agarre funcional",
+              "body": "Debe cruzar la zona verde de la mano y quedar dentro del objeto."
+            },
+            "fit": {
+              "title": "Comprueba el ajuste",
+              "body": "Gira la escena y evita que el objeto atraviese al personaje."
+            },
+            "cast": {
+              "title": "Forja el diseño final",
+              "body": "Revisa prueba, materiales y capacidad antes de firmar."
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

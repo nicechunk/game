@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "装備をチェーンに保存しました（{signature}）。",
       "chainSaveFailed": "装備のチェーン保存に失敗しました：{reason}。"
+    },
+    "onboarding": {
+      "dialogAria": "{feature} ガイド",
+      "close": "ガイドを閉じる",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "ステップ {current}: {label}",
+      "dontShowAgain": "今後表示しない",
+      "skip": "ガイドをスキップ",
+      "later": "あとで",
+      "next": "次へ",
+      "finish": "完了",
+      "costEstimate": "費用の目安",
+      "liveValuesNote": "署名前に使用中の RPC から最新値を再確認します。",
+      "checkingFee": "RPC を確認中",
+      "feeUnavailable": "署名前に確認",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "スワイプ",
+      "controlTap": "タップ",
+      "controlLook": "ドラッグ",
+      "controlSelect": "クリック",
+      "controlFirstPerson": "E",
+      "controlChoose": "選択",
+      "controlEquip": "装備",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "署名",
+      "controlBlueprint": "設計図",
+      "controlDimensions": "X × Z",
+      "controlPlace": "配置",
+      "controlReview": "確認",
+      "controlBind": "固定",
+      "controlRecipe": "レシピ",
+      "controlInput": "材料",
+      "controlFuel": "燃料",
+      "controlPrice": "価格",
+      "controlMaterials": "素材",
+      "controlShape": "成形",
+      "controlGrip": "グリップ",
+      "controlFit": "装着",
+      "controlCast": "鋳造",
+      "cost": {
+        "accountDeposit": "返却可能なアカウント預金",
+        "networkFee": "ネットワーク手数料",
+        "sessionTopUp": "使用可能なセッション入金",
+        "buildSiteDeposit": "BuildSite アカウント預金",
+        "progressDeposit": "精錬進行アカウント預金",
+        "listingDeposit": "出品アカウント預金",
+        "marketFee": "売却後の市場手数料",
+        "selectedMaterials": "選択素材",
+        "consumedOnChain": "オンチェーンで消費"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "最初の操作",
+          "title": "ワールド操作",
+          "steps": {
+            "move": {
+              "title": "光るマスへ移動",
+              "body": "カメラを進路に向けたまま移動キーを使います。"
+            },
+            "look": {
+              "title": "カメラを回転",
+              "body": "ワールド上をドラッグし、移動方向を変えずにカメラを回します。"
+            },
+            "lookMobile": {
+              "title": "スワイプして見回す",
+              "body": "ワールドを1本指でスワイプします。ジョイスティックは移動専用です。"
+            },
+            "select": {
+              "title": "実際のブロックを選択",
+              "body": "道具の範囲内をクリックします。クリックしたボクセルだけ白枠になります。"
+            },
+            "firstPerson": {
+              "title": "視点を切り替える",
+              "body": "E キーで位置を変えずに一人称視点を切り替えます。"
+            },
+            "toolMobile": {
+              "title": "道具をタップ",
+              "body": "スロットをタップして使用します。バックパックは選択状態にならず画面を開きます。"
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "キャラクター装備",
+          "title": "最初の装備",
+          "flow": {
+            "backpack": "バックパック",
+            "pda": "装備 PDA",
+            "avatar": "近くのプレイヤー"
+          },
+          "steps": {
+            "choose": {
+              "title": "バックパックから選ぶ",
+              "body": "まだ装備していない固有の道具や服を選択します。"
+            },
+            "equip": {
+              "title": "スロットへ移動",
+              "body": "装備品は容量から外れ、キャラクター装備に表示されます。"
+            },
+            "visible": {
+              "title": "公開装備を保存",
+              "body": "装備 PDA により、他のプレイヤーはバックパックを読まずに外見を取得できます。"
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "採掘セッション",
+          "title": "セッションへ入金",
+          "warning": "セッションキーは時間と権限が限定され、送金や出金はできません。",
+          "steps": {
+            "amount": {
+              "title": "使用額を設定",
+              "body": "繰り返す検証済みゲーム取引に使う SOL を指定します。"
+            },
+            "permission": {
+              "title": "権限範囲を確認",
+              "body": "一時セッションは承認済み命令だけを許可し、8時間で期限切れになります。"
+            },
+            "confirm": {
+              "title": "ウォレットで確認",
+              "body": "預金は返却可能で、送信した取引だけネットワーク手数料がかかります。"
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "設計図の固定",
+          "title": "基礎を作成",
+          "warning": "設計図は1つの位置に永久固定されます。寸法はあとで編集できます。",
+          "steps": {
+            "tool": {
+              "title": "設計図を装備",
+              "body": "各固有設計図は1つの基礎と専用メニューを持ちます。"
+            },
+            "size": {
+              "title": "X と Z を設定",
+              "body": "正確な範囲を入力します。全セルが同じ高さである必要があります。"
+            },
+            "place": {
+              "title": "プレビューを配置",
+              "body": "平地をクリックして1対1の基礎範囲を確認します。"
+            },
+            "review": {
+              "title": "地形とガーディアンを確認",
+              "body": "有効なガーディアン地域内かつ同じ地形高さでのみ作成できます。"
+            },
+            "bind": {
+              "title": "設計図を固定",
+              "body": "位置と寸法が正しい場合だけ確定します。"
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "素材加工",
+          "title": "精錬ガイド",
+          "flow": {
+            "inputs": "材料",
+            "fuel": "燃料",
+            "chain": "オンチェーンレシピ",
+            "output": "バックパックへ出力"
+          },
+          "steps": {
+            "recipe": {
+              "title": "レシピを選択",
+              "body": "先に出力を選び、必要素材と数量を正確に検証します。"
+            },
+            "inputs": {
+              "title": "一致する材料を追加",
+              "body": "必要素材の入力を押します。余分な素材や代用品は拒否されます。"
+            },
+            "fuel": {
+              "title": "必要な場合だけ燃料を追加",
+              "body": "燃料の等級と量を満たします。加熱不要のレシピに燃料は不要です。"
+            },
+            "review": {
+              "title": "確認して開始",
+              "body": "材料と燃料はチェーン上で消費され、出力は空き容量へ戻ります。"
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "マーケット出品",
+          "title": "アイテムを販売",
+          "warning": "アイテムは売却または出品取消までロックされます。",
+          "steps": {
+            "choose": {
+              "title": "アイテムを1つ選択",
+              "body": "出品が保持する固有アイテムまたはスタックを正確に選びます。"
+            },
+            "price": {
+              "title": "分類・通貨・価格を設定",
+              "body": "金額を確認します。売却時に表示された市場手数料が適用されます。"
+            },
+            "sign": {
+              "title": "出品を作成して署名",
+              "body": "終了時に預金は戻り、取消時にはアイテムも戻ります。"
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "道具鍛造",
+          "title": "固有アイテムを鍛造",
+          "warning": "鋳造は選択素材を消費して1個のアイテムを作ります。空き容量を確保してください。",
+          "steps": {
+            "materials": {
+              "title": "検証済み素材を選択",
+              "body": "PDA の体積と属性が設計の上限になります。"
+            },
+            "shape": {
+              "title": "共有作業台で成形",
+              "body": "部品を接続したまま配置・切削・調整します。"
+            },
+            "handle": {
+              "title": "機能グリップを設定",
+              "body": "グリップは緑の手領域と重なり、物体内に収まる必要があります。"
+            },
+            "fit": {
+              "title": "装着状態を確認",
+              "body": "共有シーンを回転し、アイテムが体を貫通しないことを確認します。"
+            },
+            "cast": {
+              "title": "最終設計を鋳造",
+              "body": "証明・素材使用量・空き容量を確認して署名します。"
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

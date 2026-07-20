@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "Equipment saved on chain ({signature}).",
       "chainSaveFailed": "Equipment chain save failed: {reason}."
+    },
+    "onboarding": {
+      "dialogAria": "{feature} guide",
+      "close": "Close guide",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Step {current}: {label}",
+      "dontShowAgain": "Do not show again",
+      "skip": "Skip guide",
+      "later": "Later",
+      "next": "Next",
+      "finish": "Finish",
+      "costEstimate": "Cost estimate",
+      "liveValuesNote": "Live values are checked from the active RPC again before signing.",
+      "checkingFee": "Checking current RPC",
+      "feeUnavailable": "Checked before signing",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "SWIPE",
+      "controlTap": "TAP",
+      "controlLook": "DRAG",
+      "controlSelect": "CLICK",
+      "controlFirstPerson": "E",
+      "controlChoose": "SELECT",
+      "controlEquip": "EQUIP",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "SIGN",
+      "controlBlueprint": "PLAN",
+      "controlDimensions": "X × Z",
+      "controlPlace": "PLACE",
+      "controlReview": "CHECK",
+      "controlBind": "BIND",
+      "controlRecipe": "RECIPE",
+      "controlInput": "INPUT",
+      "controlFuel": "FUEL",
+      "controlPrice": "PRICE",
+      "controlMaterials": "MATERIAL",
+      "controlShape": "SHAPE",
+      "controlGrip": "GRIP",
+      "controlFit": "FIT",
+      "controlCast": "CAST",
+      "cost": {
+        "accountDeposit": "Refundable account deposit",
+        "networkFee": "Network fee",
+        "sessionTopUp": "Spendable session top-up",
+        "buildSiteDeposit": "BuildSite account deposit",
+        "progressDeposit": "Smelting progress deposit",
+        "listingDeposit": "Listing account deposit",
+        "marketFee": "Market fee after sale",
+        "selectedMaterials": "Selected materials",
+        "consumedOnChain": "Consumed on chain"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "First steps",
+          "title": "World controls",
+          "steps": {
+            "move": {
+              "title": "Move to the glowing tile",
+              "body": "Use the movement controls while keeping the camera pointed at your route."
+            },
+            "look": {
+              "title": "Orbit the camera",
+              "body": "Drag across the world to rotate the camera without changing your movement direction."
+            },
+            "lookMobile": {
+              "title": "Swipe to look",
+              "body": "Swipe the world view with one finger. The joystick remains dedicated to movement."
+            },
+            "select": {
+              "title": "Select a real block",
+              "body": "Click a block inside tool range. Only the clicked voxel receives the white selection outline."
+            },
+            "firstPerson": {
+              "title": "Switch camera view",
+              "body": "Press E to enter or leave first-person view without changing your world position."
+            },
+            "toolMobile": {
+              "title": "Tap a tool",
+              "body": "Tap a hotbar slot to trigger or equip it. The backpack slot opens the backpack instead of staying selected."
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "Character loadout",
+          "title": "First equipment",
+          "flow": {
+            "backpack": "Backpack",
+            "pda": "Equipment PDA",
+            "avatar": "Nearby players"
+          },
+          "steps": {
+            "choose": {
+              "title": "Choose a backpack item",
+              "body": "Select one unique tool or wearable that is not already equipped."
+            },
+            "equip": {
+              "title": "Move it to a slot",
+              "body": "Equipped items leave backpack capacity and become visible in the character loadout."
+            },
+            "visible": {
+              "title": "Save the public loadout",
+              "body": "The Equipment PDA lets nearby players load your visible gear without reading your private backpack."
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "Mining session",
+          "title": "Fund a game session",
+          "warning": "The session key has a limited permission window and cannot transfer or withdraw wallet funds.",
+          "steps": {
+            "amount": {
+              "title": "Set the spendable balance",
+              "body": "Choose the SOL top-up used for repeated verified game transactions."
+            },
+            "permission": {
+              "title": "Review the permission boundary",
+              "body": "The temporary session is limited to approved game instructions and expires after eight hours."
+            },
+            "confirm": {
+              "title": "Confirm with your wallet",
+              "body": "The account deposit is refundable; only transactions actually submitted pay network fees."
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "Blueprint binding",
+          "title": "Create a foundation",
+          "warning": "A blueprint is permanently bound to one position. Its dimensions can be edited later.",
+          "steps": {
+            "tool": {
+              "title": "Equip the blueprint",
+              "body": "Each unique blueprint owns one foundation and remembers its own building menu."
+            },
+            "size": {
+              "title": "Set X and Z dimensions",
+              "body": "Enter the exact footprint. The terrain under every selected cell must be level."
+            },
+            "place": {
+              "title": "Place the preview",
+              "body": "Click flat ground to preview the full one-to-one foundation footprint."
+            },
+            "review": {
+              "title": "Review terrain and guardian",
+              "body": "Creation is allowed only inside an active guardian region on one terrain level."
+            },
+            "bind": {
+              "title": "Bind this blueprint",
+              "body": "Confirm the account creation only after the position and dimensions are correct."
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "Material processing",
+          "title": "Smelting guide",
+          "flow": {
+            "inputs": "Inputs",
+            "fuel": "Fuel",
+            "chain": "On-chain recipe",
+            "output": "Backpack output"
+          },
+          "steps": {
+            "recipe": {
+              "title": "Choose an on-chain recipe",
+              "body": "Select the output first so the interface can validate exact materials and quantities."
+            },
+            "inputs": {
+              "title": "Add matching inputs",
+              "body": "Tap Input on the required backpack materials. Extra or substituted items are rejected."
+            },
+            "fuel": {
+              "title": "Add fuel only when required",
+              "body": "Fuel level and quantity must meet the selected recipe; cold recipes need no fuel."
+            },
+            "review": {
+              "title": "Review output and start",
+              "body": "Inputs and fuel are consumed on chain. Successful output returns to available backpack space."
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "Market listing",
+          "title": "Sell an item",
+          "warning": "The selected item is locked until it sells or the listing is cancelled.",
+          "steps": {
+            "choose": {
+              "title": "Choose one backpack item",
+              "body": "Select the exact unique item or stack that the listing will hold."
+            },
+            "price": {
+              "title": "Set category, currency and price",
+              "body": "Review the amount carefully. Market settlement applies the displayed sale fee."
+            },
+            "sign": {
+              "title": "Create and sign the listing",
+              "body": "The listing PDA deposit returns when the listing closes; cancelling returns the item."
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "Tool forging",
+          "title": "Forge a unique item",
+          "warning": "Casting consumes selected backpack materials and creates one forged item. Keep enough free backpack capacity.",
+          "steps": {
+            "materials": {
+              "title": "Choose verified materials",
+              "body": "Select components from the equipped backpack. Their PDA volume and attributes limit the design."
+            },
+            "shape": {
+              "title": "Build on the shared stage",
+              "body": "Place, cut and arrange blocks on the workbench while keeping the assembly connected."
+            },
+            "handle": {
+              "title": "Set the functional grip",
+              "body": "The grip must overlap the green hand zone and remain inside the forged object."
+            },
+            "fit": {
+              "title": "Check avatar fit",
+              "body": "Rotate the shared scene and verify that the equipped item does not intersect the character body."
+            },
+            "cast": {
+              "title": "Cast the final design",
+              "body": "Review the proof, material use and free capacity, then sign the one-time forge transaction."
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

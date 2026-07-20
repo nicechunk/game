@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "装备已保存至链上（{signature}）。",
       "chainSaveFailed": "装备链上保存失败：{reason}。"
+    },
+    "onboarding": {
+      "dialogAria": "{feature} 引导",
+      "close": "关闭引导",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "步骤 {current}：{label}",
+      "dontShowAgain": "不再显示",
+      "skip": "跳过引导",
+      "later": "稍后",
+      "next": "下一步",
+      "finish": "完成",
+      "costEstimate": "费用预估",
+      "liveValuesNote": "签名前会通过当前 RPC 再次检查实时数值。",
+      "checkingFee": "正在查询 RPC",
+      "feeUnavailable": "签名前检查",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "滑动",
+      "controlTap": "点击",
+      "controlLook": "拖动",
+      "controlSelect": "点选",
+      "controlFirstPerson": "E",
+      "controlChoose": "选择",
+      "controlEquip": "装备",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "签名",
+      "controlBlueprint": "蓝图",
+      "controlDimensions": "X × Z",
+      "controlPlace": "放置",
+      "controlReview": "检查",
+      "controlBind": "绑定",
+      "controlRecipe": "配方",
+      "controlInput": "原料",
+      "controlFuel": "燃料",
+      "controlPrice": "价格",
+      "controlMaterials": "材料",
+      "controlShape": "塑形",
+      "controlGrip": "握把",
+      "controlFit": "试装",
+      "controlCast": "锻造",
+      "cost": {
+        "accountDeposit": "可退还账户押金",
+        "networkFee": "网络费",
+        "sessionTopUp": "可使用的 Session 充值",
+        "buildSiteDeposit": "BuildSite 账户押金",
+        "progressDeposit": "熔炼进度账户押金",
+        "listingDeposit": "挂单账户押金",
+        "marketFee": "成交后市场费",
+        "selectedMaterials": "已选材料",
+        "consumedOnChain": "链上消耗"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "第一步",
+          "title": "世界操作",
+          "steps": {
+            "move": {
+              "title": "移动到发光地块",
+              "body": "使用移动控制，同时让摄像机朝向你的前进路线。"
+            },
+            "look": {
+              "title": "环绕摄像机",
+              "body": "在世界画面上拖动，旋转摄像机但不改变移动方向。"
+            },
+            "lookMobile": {
+              "title": "滑动查看",
+              "body": "用单指滑动画面；摇杆只负责移动。"
+            },
+            "select": {
+              "title": "选择真实方块",
+              "body": "点击工具范围内的方块，只有实际点中的体素会出现白框。"
+            },
+            "firstPerson": {
+              "title": "切换视角",
+              "body": "按 E 在第一视角与第三视角之间切换，不改变世界坐标。"
+            },
+            "toolMobile": {
+              "title": "点击工具",
+              "body": "点击工具栏触发或装备；背包只打开面板，不会保持选中。"
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "角色装备",
+          "title": "第一次装备",
+          "flow": {
+            "backpack": "背包",
+            "pda": "装备 PDA",
+            "avatar": "附近玩家"
+          },
+          "steps": {
+            "choose": {
+              "title": "选择背包物品",
+              "body": "选择一件尚未装备的唯一工具或穿戴物。"
+            },
+            "equip": {
+              "title": "移动到装备栏",
+              "body": "装备后物品不占背包容量，并显示在角色配装中。"
+            },
+            "visible": {
+              "title": "保存公开装备",
+              "body": "附近玩家可通过装备 PDA 读取外观，不需要读取你的私人背包。"
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "挖掘 Session",
+          "title": "为 Session 充值",
+          "warning": "Session 密钥的时间和权限有限，不能转账或提取钱包资金。",
+          "steps": {
+            "amount": {
+              "title": "设置可使用余额",
+              "body": "设置用于重复验证游戏交易的 SOL 充值金额。"
+            },
+            "permission": {
+              "title": "检查权限范围",
+              "body": "临时 Session 只允许核准的游戏指令，并在八小时后过期。"
+            },
+            "confirm": {
+              "title": "使用钱包确认",
+              "body": "账户押金可退还；只有实际提交的交易会支付网络费。"
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "蓝图绑定",
+          "title": "创建地基",
+          "warning": "蓝图会永久绑定一个位置；地基尺寸之后仍可编辑。",
+          "steps": {
+            "tool": {
+              "title": "装备蓝图",
+              "body": "每张唯一蓝图对应一个地基和自己的建筑菜单。"
+            },
+            "size": {
+              "title": "设置 X、Z 尺寸",
+              "body": "输入精确占地范围；范围内所有地块必须在同一高度。"
+            },
+            "place": {
+              "title": "放置预览",
+              "body": "点击平坦地面，预览绝对一比一的地基范围。"
+            },
+            "review": {
+              "title": "检查地形与守护者",
+              "body": "只能在已启用的守护者区域及同一地形高度创建。"
+            },
+            "bind": {
+              "title": "绑定这张蓝图",
+              "body": "确认位置和尺寸正确后，再创建链上账户。"
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "材料加工",
+          "title": "熔炼引导",
+          "flow": {
+            "inputs": "原料",
+            "fuel": "燃料",
+            "chain": "链上配方",
+            "output": "产出回背包"
+          },
+          "steps": {
+            "recipe": {
+              "title": "选择链上配方",
+              "body": "先选择产物，界面才能精确验证材料和数量。"
+            },
+            "inputs": {
+              "title": "加入匹配原料",
+              "body": "点击所需背包材料的原料按钮，多余材料和替代品会被拒绝。"
+            },
+            "fuel": {
+              "title": "只在需要时加入燃料",
+              "body": "燃料等级和数量必须满足配方；冷加工配方不需要燃料。"
+            },
+            "review": {
+              "title": "检查产物并开始",
+              "body": "原料和燃料会在链上消耗，成功产物回到背包空位。"
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "市场挂单",
+          "title": "出售物品",
+          "warning": "选中的物品会锁定，直到成交或取消挂单。",
+          "steps": {
+            "choose": {
+              "title": "选择背包物品",
+              "body": "选择挂单要保管的精确唯一物品或堆叠。"
+            },
+            "price": {
+              "title": "设置分类、币种和价格",
+              "body": "仔细检查金额；成交时会收取画面显示的市场费。"
+            },
+            "sign": {
+              "title": "创建并签名挂单",
+              "body": "挂单关闭后押金退回；取消挂单会把物品退回背包。"
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "工具锻造",
+          "title": "锻造唯一物品",
+          "warning": "铸造会消耗所选背包材料并创建一件物品，请保留背包空位。",
+          "steps": {
+            "materials": {
+              "title": "选择已验证材料",
+              "body": "材料 PDA 的体积和属性会限制可用设计。"
+            },
+            "shape": {
+              "title": "在共用工作台塑形",
+              "body": "放置、切割和排列方块，同时保持整个结构连接。"
+            },
+            "handle": {
+              "title": "设置功能握把",
+              "body": "握把必须与绿色手掌区域相交，并保持在物体内部。"
+            },
+            "fit": {
+              "title": "检查角色试装",
+              "body": "旋转共用场景，确认装备不会穿过角色身体。"
+            },
+            "cast": {
+              "title": "铸造最终设计",
+              "body": "检查证明、材料消耗和背包空位后，再签名交易。"
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

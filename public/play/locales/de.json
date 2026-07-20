@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "Ausrüstung auf der Chain gespeichert ({signature}).",
       "chainSaveFailed": "Ausrüstung konnte nicht auf der Chain gespeichert werden: {reason}."
+    },
+    "onboarding": {
+      "dialogAria": "Anleitung: {feature}",
+      "close": "Anleitung schließen",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Schritt {current}: {label}",
+      "dontShowAgain": "Nicht mehr anzeigen",
+      "skip": "Anleitung überspringen",
+      "later": "Später",
+      "next": "Weiter",
+      "finish": "Fertig",
+      "costEstimate": "Kostenschätzung",
+      "liveValuesNote": "Aktuelle Werte werden vor dem Signieren erneut über den RPC geprüft.",
+      "checkingFee": "RPC wird geprüft",
+      "feeUnavailable": "Prüfung vor Signatur",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "WISCHEN",
+      "controlTap": "TIPPEN",
+      "controlLook": "ZIEHEN",
+      "controlSelect": "KLICK",
+      "controlFirstPerson": "E",
+      "controlChoose": "WÄHLEN",
+      "controlEquip": "ANLEGEN",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "SIGNIEREN",
+      "controlBlueprint": "PLAN",
+      "controlDimensions": "X × Z",
+      "controlPlace": "PLATZ",
+      "controlReview": "PRÜFEN",
+      "controlBind": "BINDEN",
+      "controlRecipe": "REZEPT",
+      "controlInput": "EINGABE",
+      "controlFuel": "BRENNST.",
+      "controlPrice": "PREIS",
+      "controlMaterials": "MATERIAL",
+      "controlShape": "FORM",
+      "controlGrip": "GRIFF",
+      "controlFit": "SITZ",
+      "controlCast": "GIESSEN",
+      "cost": {
+        "accountDeposit": "Erstattbare Kontoeinlage",
+        "networkFee": "Netzwerkgebühr",
+        "sessionTopUp": "Verfügbares Session-Guthaben",
+        "buildSiteDeposit": "BuildSite-Kontoeinlage",
+        "progressDeposit": "Schmelzfortschritt-Einlage",
+        "listingDeposit": "Angebotskonto-Einlage",
+        "marketFee": "Marktgebühr nach Verkauf",
+        "selectedMaterials": "Ausgewählte Materialien",
+        "consumedOnChain": "On-Chain verbraucht"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "Erste Schritte",
+          "title": "Weltsteuerung",
+          "steps": {
+            "move": {
+              "title": "Zum leuchtenden Feld bewegen",
+              "body": "Nutze die Bewegungstasten und halte die Kamera auf deinen Weg gerichtet."
+            },
+            "look": {
+              "title": "Kamera umkreisen",
+              "body": "Ziehe über die Welt, um die Kamera zu drehen, ohne die Laufrichtung zu ändern."
+            },
+            "lookMobile": {
+              "title": "Zum Umsehen wischen",
+              "body": "Wische mit einem Finger über die Welt; der Joystick bleibt für Bewegung."
+            },
+            "select": {
+              "title": "Einen echten Block wählen",
+              "body": "Klicke einen Block in Reichweite. Nur der angeklickte Voxel erhält den weißen Rahmen."
+            },
+            "firstPerson": {
+              "title": "Kameraansicht wechseln",
+              "body": "Drücke E für die Ego-Ansicht, ohne deine Weltposition zu ändern."
+            },
+            "toolMobile": {
+              "title": "Werkzeug antippen",
+              "body": "Tippe einen Slot zum Auslösen an; der Rucksack öffnet sein Fenster und bleibt nicht gewählt."
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "Charakterausrüstung",
+          "title": "Erste Ausrüstung",
+          "flow": {
+            "backpack": "Rucksack",
+            "pda": "Ausrüstungs-PDA",
+            "avatar": "Spieler in der Nähe"
+          },
+          "steps": {
+            "choose": {
+              "title": "Rucksackgegenstand wählen",
+              "body": "Wähle ein einzigartiges, noch nicht angelegtes Werkzeug oder Kleidungsstück."
+            },
+            "equip": {
+              "title": "In einen Slot verschieben",
+              "body": "Angelegte Gegenstände belegen keinen Rucksackplatz und erscheinen am Charakter."
+            },
+            "visible": {
+              "title": "Öffentliche Ausrüstung speichern",
+              "body": "Über die PDA laden andere sichtbare Ausrüstung, ohne deinen Rucksack zu lesen."
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "Mining-Session",
+          "title": "Session finanzieren",
+          "warning": "Der Session-Schlüssel hat begrenzte Zeit und Rechte; er kann kein Geld übertragen oder abheben.",
+          "steps": {
+            "amount": {
+              "title": "Verfügbares Guthaben festlegen",
+              "body": "Wähle das SOL-Guthaben für wiederholte verifizierte Spieltransaktionen."
+            },
+            "permission": {
+              "title": "Berechtigungen prüfen",
+              "body": "Die temporäre Session erlaubt nur genehmigte Spielbefehle und endet nach acht Stunden."
+            },
+            "confirm": {
+              "title": "Mit Wallet bestätigen",
+              "body": "Die Einlage ist erstattbar; Netzwerkgebühren entstehen nur bei gesendeten Transaktionen."
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "Bauplanbindung",
+          "title": "Fundament erstellen",
+          "warning": "Ein Bauplan wird dauerhaft an eine Position gebunden; Maße bleiben später änderbar.",
+          "steps": {
+            "tool": {
+              "title": "Bauplan ausrüsten",
+              "body": "Jeder einzigartige Bauplan besitzt ein Fundament und sein eigenes Baumenü."
+            },
+            "size": {
+              "title": "X- und Z-Maße setzen",
+              "body": "Gib den genauen Grundriss ein; alle Zellen müssen auf gleicher Höhe liegen."
+            },
+            "place": {
+              "title": "Vorschau platzieren",
+              "body": "Klicke ebenen Boden für den exakten Eins-zu-eins-Grundriss."
+            },
+            "review": {
+              "title": "Gelände und Wächter prüfen",
+              "body": "Nur in aktiver Wächterregion und auf einer Geländehöhe möglich."
+            },
+            "bind": {
+              "title": "Bauplan binden",
+              "body": "Bestätige erst, wenn Position und Maße stimmen."
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "Materialverarbeitung",
+          "title": "Schmelzanleitung",
+          "flow": {
+            "inputs": "Eingaben",
+            "fuel": "Brennstoff",
+            "chain": "On-Chain-Rezept",
+            "output": "Ausgabe in Rucksack"
+          },
+          "steps": {
+            "recipe": {
+              "title": "On-Chain-Rezept wählen",
+              "body": "Wähle zuerst die Ausgabe, damit Material und Menge exakt geprüft werden."
+            },
+            "inputs": {
+              "title": "Passende Eingaben hinzufügen",
+              "body": "Tippe Eingabe bei benötigten Materialien; Zusätze und Ersatz werden abgelehnt."
+            },
+            "fuel": {
+              "title": "Brennstoff nur bei Bedarf",
+              "body": "Stufe und Menge müssen passen; kalte Rezepte brauchen keinen Brennstoff."
+            },
+            "review": {
+              "title": "Prüfen und starten",
+              "body": "Eingaben und Brennstoff werden on-chain verbraucht; die Ausgabe geht in den Rucksack."
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "Marktangebot",
+          "title": "Gegenstand verkaufen",
+          "warning": "Der Gegenstand bleibt bis zum Verkauf oder Abbruch des Angebots gesperrt.",
+          "steps": {
+            "choose": {
+              "title": "Gegenstand wählen",
+              "body": "Wähle den exakten einzigartigen Gegenstand oder Stapel für das Angebot."
+            },
+            "price": {
+              "title": "Kategorie, Währung und Preis",
+              "body": "Prüfe den Betrag; nach Verkauf gilt die angezeigte Marktgebühr."
+            },
+            "sign": {
+              "title": "Angebot erstellen und signieren",
+              "body": "Die Einlage kehrt beim Schließen zurück; Abbruch gibt den Gegenstand zurück."
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "Werkzeugschmiede",
+          "title": "Einzigartigen Gegenstand schmieden",
+          "warning": "Der Guss verbraucht Materialien und erzeugt einen Gegenstand. Halte Platz frei.",
+          "steps": {
+            "materials": {
+              "title": "Geprüfte Materialien wählen",
+              "body": "PDA-Volumen und Attribute begrenzen den Entwurf."
+            },
+            "shape": {
+              "title": "Auf der gemeinsamen Werkbank bauen",
+              "body": "Platziere, schneide und ordne Blöcke als verbundene Baugruppe."
+            },
+            "handle": {
+              "title": "Funktionsgriff setzen",
+              "body": "Der Griff muss die grüne Handzone schneiden und im Objekt liegen."
+            },
+            "fit": {
+              "title": "Sitz am Avatar prüfen",
+              "body": "Drehe die Szene und verhindere Überschneidungen mit dem Körper."
+            },
+            "cast": {
+              "title": "Finalen Entwurf gießen",
+              "body": "Prüfe Nachweis, Material und Platz vor der Signatur."
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "Équipement enregistré sur la chaîne ({signature}).",
       "chainSaveFailed": "Échec de l’enregistrement de l’équipement sur la chaîne : {reason}."
+    },
+    "onboarding": {
+      "dialogAria": "Guide {feature}",
+      "close": "Fermer le guide",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Étape {current} : {label}",
+      "dontShowAgain": "Ne plus afficher",
+      "skip": "Ignorer le guide",
+      "later": "Plus tard",
+      "next": "Suivant",
+      "finish": "Terminer",
+      "costEstimate": "Coût estimé",
+      "liveValuesNote": "Les valeurs actives sont revérifiées via le RPC avant signature.",
+      "checkingFee": "Vérification du RPC",
+      "feeUnavailable": "Vérifié avant signature",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "GLISSER",
+      "controlTap": "TOUCHER",
+      "controlLook": "GLISSER",
+      "controlSelect": "CLIC",
+      "controlFirstPerson": "E",
+      "controlChoose": "CHOISIR",
+      "controlEquip": "ÉQUIPER",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "SIGNER",
+      "controlBlueprint": "PLAN",
+      "controlDimensions": "X × Z",
+      "controlPlace": "PLACER",
+      "controlReview": "VÉRIFIER",
+      "controlBind": "LIER",
+      "controlRecipe": "RECETTE",
+      "controlInput": "ENTRÉE",
+      "controlFuel": "COMBUST.",
+      "controlPrice": "PRIX",
+      "controlMaterials": "MATÉRIAU",
+      "controlShape": "FORME",
+      "controlGrip": "PRISE",
+      "controlFit": "AJUSTER",
+      "controlCast": "FORGER",
+      "cost": {
+        "accountDeposit": "Dépôt de compte remboursable",
+        "networkFee": "Frais réseau",
+        "sessionTopUp": "Recharge de session utilisable",
+        "buildSiteDeposit": "Dépôt du compte BuildSite",
+        "progressDeposit": "Dépôt de progression de fonte",
+        "listingDeposit": "Dépôt du compte d’annonce",
+        "marketFee": "Frais après vente",
+        "selectedMaterials": "Matériaux sélectionnés",
+        "consumedOnChain": "Consommés on-chain"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "Premiers pas",
+          "title": "Commandes du monde",
+          "steps": {
+            "move": {
+              "title": "Allez sur la case lumineuse",
+              "body": "Utilisez les commandes de déplacement en gardant la caméra orientée vers votre trajet."
+            },
+            "look": {
+              "title": "Faites pivoter la caméra",
+              "body": "Glissez sur le monde pour tourner la caméra sans changer la direction de marche."
+            },
+            "lookMobile": {
+              "title": "Glissez pour regarder",
+              "body": "Glissez la vue d’un doigt ; le joystick reste réservé au déplacement."
+            },
+            "select": {
+              "title": "Sélectionnez un vrai bloc",
+              "body": "Cliquez un bloc à portée. Seul le voxel cliqué reçoit le contour blanc."
+            },
+            "firstPerson": {
+              "title": "Changez de caméra",
+              "body": "Appuyez sur E pour activer ou quitter la vue subjective sans vous déplacer."
+            },
+            "toolMobile": {
+              "title": "Touchez un outil",
+              "body": "Touchez un emplacement pour l’activer ; le sac ouvre son panneau sans rester sélectionné."
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "Équipement du personnage",
+          "title": "Premier équipement",
+          "flow": {
+            "backpack": "Sac",
+            "pda": "PDA d’équipement",
+            "avatar": "Joueurs proches"
+          },
+          "steps": {
+            "choose": {
+              "title": "Choisissez un objet du sac",
+              "body": "Sélectionnez un outil ou vêtement unique non équipé."
+            },
+            "equip": {
+              "title": "Placez-le dans un emplacement",
+              "body": "L’objet équipé libère de la capacité et apparaît sur le personnage."
+            },
+            "visible": {
+              "title": "Enregistrez l’équipement public",
+              "body": "Le PDA permet aux joueurs proches de charger l’équipement visible sans lire le sac."
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "Session de minage",
+          "title": "Financer une session",
+          "warning": "La clé de session a une durée et des droits limités ; elle ne peut ni transférer ni retirer des fonds.",
+          "steps": {
+            "amount": {
+              "title": "Définissez le solde utilisable",
+              "body": "Choisissez la recharge SOL des transactions de jeu vérifiées."
+            },
+            "permission": {
+              "title": "Vérifiez les autorisations",
+              "body": "La session temporaire accepte seulement les instructions approuvées et expire après huit heures."
+            },
+            "confirm": {
+              "title": "Confirmez avec le portefeuille",
+              "body": "Le dépôt est remboursable ; seules les transactions envoyées paient le réseau."
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "Liaison du plan",
+          "title": "Créer une fondation",
+          "warning": "Le plan est lié définitivement à une position ; ses dimensions restent modifiables.",
+          "steps": {
+            "tool": {
+              "title": "Équipez le plan",
+              "body": "Chaque plan unique possède une fondation et son propre menu."
+            },
+            "size": {
+              "title": "Réglez X et Z",
+              "body": "Saisissez l’emprise exacte ; toutes les cellules doivent être au même niveau."
+            },
+            "place": {
+              "title": "Placez l’aperçu",
+              "body": "Cliquez un terrain plat pour voir l’emprise exacte à l’échelle un pour un."
+            },
+            "review": {
+              "title": "Vérifiez terrain et gardien",
+              "body": "Création uniquement dans une région gardien active et sur un niveau unique."
+            },
+            "bind": {
+              "title": "Liez ce plan",
+              "body": "Confirmez seulement lorsque position et dimensions sont correctes."
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "Traitement des matériaux",
+          "title": "Guide de fonte",
+          "flow": {
+            "inputs": "Entrées",
+            "fuel": "Combustible",
+            "chain": "Recette on-chain",
+            "output": "Sortie vers le sac"
+          },
+          "steps": {
+            "recipe": {
+              "title": "Choisissez une recette on-chain",
+              "body": "Sélectionnez d’abord la sortie pour valider exactement matériaux et quantités."
+            },
+            "inputs": {
+              "title": "Ajoutez les bonnes entrées",
+              "body": "Touchez Entrée sur les matériaux requis ; extras et substitutions sont refusés."
+            },
+            "fuel": {
+              "title": "Ajoutez du combustible si nécessaire",
+              "body": "Niveau et quantité doivent correspondre ; une recette froide n’en demande pas."
+            },
+            "review": {
+              "title": "Vérifiez puis démarrez",
+              "body": "Entrées et combustible sont consommés on-chain ; la sortie revient dans le sac."
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "Annonce du marché",
+          "title": "Vendre un objet",
+          "warning": "L’objet reste verrouillé jusqu’à sa vente ou l’annulation de l’annonce.",
+          "steps": {
+            "choose": {
+              "title": "Choisissez un objet",
+              "body": "Sélectionnez l’objet unique ou la pile exacte détenue par l’annonce."
+            },
+            "price": {
+              "title": "Réglez catégorie, devise et prix",
+              "body": "Vérifiez le montant ; les frais affichés s’appliquent après la vente."
+            },
+            "sign": {
+              "title": "Créez et signez l’annonce",
+              "body": "Le dépôt revient à la fermeture ; annuler restitue l’objet."
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "Forge d’outil",
+          "title": "Forger un objet unique",
+          "warning": "La fonte consomme les matériaux choisis et crée un objet. Gardez une place libre.",
+          "steps": {
+            "materials": {
+              "title": "Choisissez des matériaux vérifiés",
+              "body": "Leur volume et leurs attributs PDA limitent le modèle."
+            },
+            "shape": {
+              "title": "Construisez sur l’établi partagé",
+              "body": "Placez, coupez et agencez les blocs en gardant l’ensemble connecté."
+            },
+            "handle": {
+              "title": "Définissez la prise fonctionnelle",
+              "body": "La prise doit croiser la zone verte de la main et rester dans l’objet."
+            },
+            "fit": {
+              "title": "Vérifiez l’ajustement",
+              "body": "Tournez la scène et évitez toute intersection avec le personnage."
+            },
+            "cast": {
+              "title": "Forgez le modèle final",
+              "body": "Vérifiez preuve, matériaux et capacité avant de signer."
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {

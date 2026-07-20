@@ -1086,6 +1086,236 @@
     "equipment": {
       "chainSaved": "장비를 체인에 저장했습니다({signature}).",
       "chainSaveFailed": "장비 체인 저장에 실패했습니다: {reason}."
+    },
+    "onboarding": {
+      "dialogAria": "{feature} 안내",
+      "close": "안내 닫기",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "{current}단계: {label}",
+      "dontShowAgain": "다시 표시하지 않기",
+      "skip": "안내 건너뛰기",
+      "later": "나중에",
+      "next": "다음",
+      "finish": "완료",
+      "costEstimate": "예상 비용",
+      "liveValuesNote": "서명 전에 현재 RPC에서 최신 값을 다시 확인합니다.",
+      "checkingFee": "RPC 확인 중",
+      "feeUnavailable": "서명 전 확인",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "스와이프",
+      "controlTap": "탭",
+      "controlLook": "드래그",
+      "controlSelect": "클릭",
+      "controlFirstPerson": "E",
+      "controlChoose": "선택",
+      "controlEquip": "장착",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "서명",
+      "controlBlueprint": "설계도",
+      "controlDimensions": "X × Z",
+      "controlPlace": "배치",
+      "controlReview": "검토",
+      "controlBind": "귀속",
+      "controlRecipe": "레시피",
+      "controlInput": "재료",
+      "controlFuel": "연료",
+      "controlPrice": "가격",
+      "controlMaterials": "재료",
+      "controlShape": "성형",
+      "controlGrip": "그립",
+      "controlFit": "착용",
+      "controlCast": "주조",
+      "cost": {
+        "accountDeposit": "환불 가능한 계정 예치금",
+        "networkFee": "네트워크 수수료",
+        "sessionTopUp": "사용 가능한 세션 충전액",
+        "buildSiteDeposit": "BuildSite 계정 예치금",
+        "progressDeposit": "제련 진행 계정 예치금",
+        "listingDeposit": "판매 등록 계정 예치금",
+        "marketFee": "판매 후 시장 수수료",
+        "selectedMaterials": "선택한 재료",
+        "consumedOnChain": "온체인 소모"
+      },
+      "features": {
+        "basics": {
+          "eyebrow": "첫 단계",
+          "title": "월드 조작",
+          "steps": {
+            "move": {
+              "title": "빛나는 칸으로 이동",
+              "body": "카메라가 이동 경로를 향하도록 유지하면서 이동 조작을 사용하세요."
+            },
+            "look": {
+              "title": "카메라 회전",
+              "body": "월드를 드래그해 이동 방향을 바꾸지 않고 카메라를 회전하세요."
+            },
+            "lookMobile": {
+              "title": "스와이프로 둘러보기",
+              "body": "한 손가락으로 월드를 스와이프하세요. 조이스틱은 이동 전용입니다."
+            },
+            "select": {
+              "title": "실제 블록 선택",
+              "body": "도구 범위 안의 블록을 클릭하세요. 클릭한 복셀만 흰색 테두리가 생깁니다."
+            },
+            "firstPerson": {
+              "title": "카메라 시점 전환",
+              "body": "E를 눌러 위치 변화 없이 1인칭 시점을 전환하세요."
+            },
+            "toolMobile": {
+              "title": "도구 탭하기",
+              "body": "슬롯을 탭해 사용하세요. 배낭 슬롯은 선택되지 않고 배낭을 엽니다."
+            }
+          }
+        },
+        "equipment": {
+          "eyebrow": "캐릭터 장비",
+          "title": "첫 장비",
+          "flow": {
+            "backpack": "배낭",
+            "pda": "장비 PDA",
+            "avatar": "주변 플레이어"
+          },
+          "steps": {
+            "choose": {
+              "title": "배낭 아이템 선택",
+              "body": "아직 장착하지 않은 고유 도구나 의상을 선택하세요."
+            },
+            "equip": {
+              "title": "장비 슬롯으로 이동",
+              "body": "장착 아이템은 배낭 용량에서 빠지고 캐릭터 장비에 표시됩니다."
+            },
+            "visible": {
+              "title": "공개 장비 저장",
+              "body": "장비 PDA를 통해 다른 플레이어가 배낭을 읽지 않고 외형을 불러옵니다."
+            }
+          }
+        },
+        "session": {
+          "eyebrow": "채굴 세션",
+          "title": "세션 자금 충전",
+          "warning": "세션 키는 시간과 권한이 제한되며 지갑 자금을 송금하거나 출금할 수 없습니다.",
+          "steps": {
+            "amount": {
+              "title": "사용 가능 잔액 설정",
+              "body": "반복되는 검증 게임 거래에 사용할 SOL 충전액을 정하세요."
+            },
+            "permission": {
+              "title": "권한 범위 확인",
+              "body": "임시 세션은 승인된 게임 명령만 허용하며 8시간 뒤 만료됩니다."
+            },
+            "confirm": {
+              "title": "지갑으로 확인",
+              "body": "예치금은 환불되며 실제 전송한 거래만 네트워크 수수료를 냅니다."
+            }
+          }
+        },
+        "foundation": {
+          "eyebrow": "설계도 귀속",
+          "title": "기초 만들기",
+          "warning": "설계도는 한 위치에 영구 귀속되며 크기는 나중에 수정할 수 있습니다.",
+          "steps": {
+            "tool": {
+              "title": "설계도 장착",
+              "body": "각 고유 설계도는 하나의 기초와 자체 건축 메뉴를 가집니다."
+            },
+            "size": {
+              "title": "X와 Z 크기 설정",
+              "body": "정확한 범위를 입력하세요. 모든 셀의 지형 높이가 같아야 합니다."
+            },
+            "place": {
+              "title": "미리보기 배치",
+              "body": "평평한 땅을 클릭해 1대1 기초 범위를 확인하세요."
+            },
+            "review": {
+              "title": "지형과 가디언 확인",
+              "body": "활성 가디언 지역 안의 같은 지형 높이에서만 만들 수 있습니다."
+            },
+            "bind": {
+              "title": "설계도 귀속",
+              "body": "위치와 크기가 정확할 때만 확인하세요."
+            }
+          }
+        },
+        "smelting": {
+          "eyebrow": "재료 가공",
+          "title": "제련 안내",
+          "flow": {
+            "inputs": "재료",
+            "fuel": "연료",
+            "chain": "온체인 레시피",
+            "output": "배낭 출력"
+          },
+          "steps": {
+            "recipe": {
+              "title": "온체인 레시피 선택",
+              "body": "출력을 먼저 골라 필요한 재료와 수량을 정확히 검증하세요."
+            },
+            "inputs": {
+              "title": "맞는 재료 추가",
+              "body": "필요한 배낭 재료의 입력을 누르세요. 추가 재료와 대체품은 거부됩니다."
+            },
+            "fuel": {
+              "title": "필요할 때만 연료 추가",
+              "body": "연료 등급과 수량이 레시피를 충족해야 하며 냉간 레시피는 연료가 없습니다."
+            },
+            "review": {
+              "title": "검토 후 시작",
+              "body": "재료와 연료는 온체인에서 소모되고 출력은 배낭 여유 공간으로 갑니다."
+            }
+          }
+        },
+        "market": {
+          "eyebrow": "시장 판매 등록",
+          "title": "아이템 판매",
+          "warning": "아이템은 팔리거나 등록을 취소할 때까지 잠깁니다.",
+          "steps": {
+            "choose": {
+              "title": "배낭 아이템 선택",
+              "body": "판매 등록이 보관할 정확한 고유 아이템이나 스택을 선택하세요."
+            },
+            "price": {
+              "title": "분류, 통화, 가격 설정",
+              "body": "금액을 확인하세요. 판매 시 표시된 시장 수수료가 적용됩니다."
+            },
+            "sign": {
+              "title": "판매 등록 생성 및 서명",
+              "body": "종료 시 예치금이 돌아오고 취소하면 아이템도 돌아옵니다."
+            }
+          }
+        },
+        "forging": {
+          "eyebrow": "도구 단조",
+          "title": "고유 아이템 단조",
+          "warning": "주조는 선택 재료를 소모해 아이템 하나를 만듭니다. 배낭 공간을 남겨 두세요.",
+          "steps": {
+            "materials": {
+              "title": "검증 재료 선택",
+              "body": "PDA 부피와 속성이 설계 한계를 결정합니다."
+            },
+            "shape": {
+              "title": "공유 작업대에서 성형",
+              "body": "부품 연결을 유지하며 블록을 배치하고 절단하세요."
+            },
+            "handle": {
+              "title": "기능 그립 설정",
+              "body": "그립은 녹색 손 영역과 겹치고 물체 안에 있어야 합니다."
+            },
+            "fit": {
+              "title": "착용 상태 확인",
+              "body": "공유 장면을 회전해 아이템이 캐릭터 몸을 뚫지 않는지 확인하세요."
+            },
+            "cast": {
+              "title": "최종 설계 주조",
+              "body": "증명, 재료 사용량, 여유 공간을 확인한 뒤 서명하세요."
+            }
+          }
+        }
+      }
     }
   },
   "resourceSimulator": {
