@@ -1,0 +1,4344 @@
+{
+  "schemaVersion": 1,
+  "ruleSet": "nicechunk-smelting-v1",
+  "heatTiers": [
+    {
+      "tier": 0,
+      "key": "ambient",
+      "temperatureC": 20
+    },
+    {
+      "tier": 1,
+      "key": "low",
+      "temperatureC": 350
+    },
+    {
+      "tier": 2,
+      "key": "workshop",
+      "temperatureC": 700
+    },
+    {
+      "tier": 3,
+      "key": "forge",
+      "temperatureC": 1050
+    },
+    {
+      "tier": 4,
+      "key": "blast",
+      "temperatureC": 1300
+    }
+  ],
+  "fuels": [
+    {
+      "id": "dry_grass",
+      "sourceType": "raw",
+      "sourceKeys": [
+        "dryGrass",
+        "deadBush",
+        "thorn"
+      ],
+      "heatTier": 1,
+      "burnSeconds": 18,
+      "consumable": true
+    },
+    {
+      "id": "wood",
+      "sourceType": "raw",
+      "sourceKeys": [
+        "trunk",
+        "pineTrunk",
+        "deadWood",
+        "giantRoot"
+      ],
+      "heatTier": 2,
+      "burnSeconds": 42,
+      "consumable": true
+    },
+    {
+      "id": "charcoal",
+      "sourceType": "material",
+      "materialId": "charcoal",
+      "heatTier": 2,
+      "burnSeconds": 64,
+      "consumable": true
+    },
+    {
+      "id": "coal",
+      "sourceType": "raw",
+      "sourceKeys": [
+        "coal"
+      ],
+      "heatTier": 3,
+      "burnSeconds": 96,
+      "consumable": true
+    },
+    {
+      "id": "lava_heat",
+      "sourceType": "raw",
+      "sourceKeys": [
+        "lava",
+        "basalt"
+      ],
+      "heatTier": 4,
+      "burnSeconds": 160,
+      "consumable": false
+    }
+  ],
+  "materials": [
+    {
+      "id": "charcoal",
+      "class": "carbon",
+      "rawInputs": [
+        {
+          "key": "trunk",
+          "amount": 2
+        },
+        {
+          "key": "dryGrass",
+          "amount": 3
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "fuel",
+      "composition": [
+        [
+          "C",
+          "70-88%"
+        ],
+        [
+          "O",
+          "6-18%"
+        ],
+        [
+          "H",
+          "2-6%"
+        ],
+        [
+          "K",
+          "0.2-2%"
+        ]
+      ],
+      "itemCode": 1001,
+      "recipeId": 1001,
+      "mergeRecipeId": 2001,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 18,
+        "durability": 35,
+        "toughness": 22,
+        "ductility": 5,
+        "brittleness": 42,
+        "density": 25,
+        "heatResistance": 62,
+        "corrosionResistance": 70,
+        "conductivity": 22,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 58
+      },
+      "yieldBps": 5500,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "biochar_compost",
+      "class": "carbon",
+      "rawInputs": [
+        {
+          "key": "leaves",
+          "amount": 2
+        },
+        {
+          "key": "moss",
+          "amount": 1
+        },
+        {
+          "key": "mud",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 2,
+      "forgeUse": "soilCatalyst",
+      "composition": [
+        [
+          "C",
+          "32-52%"
+        ],
+        [
+          "O",
+          "24-38%"
+        ],
+        [
+          "H",
+          "4-9%"
+        ],
+        [
+          "N",
+          "1-5%"
+        ],
+        [
+          "K",
+          "0.5-4%"
+        ]
+      ],
+      "itemCode": 1002,
+      "recipeId": 1002,
+      "mergeRecipeId": 2002,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 8,
+        "durability": 22,
+        "toughness": 16,
+        "ductility": 10,
+        "brittleness": 35,
+        "density": 18,
+        "heatResistance": 34,
+        "corrosionResistance": 62,
+        "conductivity": 12,
+        "thermalConductivity": 14,
+        "magnetism": 0,
+        "workability": 72
+      },
+      "yieldBps": 5500,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "resin_binder",
+      "class": "polymer",
+      "rawInputs": [
+        {
+          "key": "pineTrunk",
+          "amount": 1
+        },
+        {
+          "key": "vine",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "binding",
+      "composition": [
+        [
+          "C",
+          "58-72%"
+        ],
+        [
+          "H",
+          "7-11%"
+        ],
+        [
+          "O",
+          "12-24%"
+        ],
+        [
+          "N",
+          "0.2-2%"
+        ]
+      ],
+      "itemCode": 1004,
+      "recipeId": 1004,
+      "mergeRecipeId": 2004,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 16,
+        "durability": 42,
+        "toughness": 36,
+        "ductility": 58,
+        "brittleness": 22,
+        "density": 20,
+        "heatResistance": 30,
+        "corrosionResistance": 68,
+        "conductivity": 5,
+        "thermalConductivity": 7,
+        "magnetism": 0,
+        "workability": 82
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "ceramic_brick",
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 2
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 1,
+      "yieldCount": 2,
+      "forgeUse": "mold",
+      "composition": [
+        [
+          "O",
+          "46-56%"
+        ],
+        [
+          "Si",
+          "22-36%"
+        ],
+        [
+          "Al",
+          "6-16%"
+        ],
+        [
+          "Fe",
+          "0.5-6%"
+        ]
+      ],
+      "itemCode": 1005,
+      "recipeId": 1005,
+      "mergeRecipeId": 2005,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 62,
+        "durability": 64,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 74,
+        "density": 54,
+        "heatResistance": 78,
+        "corrosionResistance": 72,
+        "conductivity": 8,
+        "thermalConductivity": 24,
+        "magnetism": 0,
+        "workability": 34
+      },
+      "yieldBps": 7200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "lime_ceramic",
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "shellBed",
+          "amount": 1
+        },
+        {
+          "key": "clay",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "binding",
+      "composition": [
+        [
+          "O",
+          "42-54%"
+        ],
+        [
+          "Ca",
+          "18-34%"
+        ],
+        [
+          "Si",
+          "10-24%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ]
+      ],
+      "itemCode": 1006,
+      "recipeId": 1006,
+      "mergeRecipeId": 2006,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 54,
+        "durability": 56,
+        "toughness": 32,
+        "ductility": 2,
+        "brittleness": 68,
+        "density": 48,
+        "heatResistance": 72,
+        "corrosionResistance": 66,
+        "conductivity": 7,
+        "thermalConductivity": 20,
+        "magnetism": 0,
+        "workability": 42
+      },
+      "yieldBps": 7200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "quicklime",
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "shellBed",
+          "amount": 2
+        },
+        {
+          "key": "coral",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "flux",
+      "composition": [
+        [
+          "Ca",
+          "42-58%"
+        ],
+        [
+          "O",
+          "32-45%"
+        ],
+        [
+          "C",
+          "0-8%"
+        ],
+        [
+          "Mg",
+          "0.5-4%"
+        ]
+      ],
+      "itemCode": 1007,
+      "recipeId": 1007,
+      "mergeRecipeId": 2007,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 38,
+        "durability": 34,
+        "toughness": 20,
+        "ductility": 1,
+        "brittleness": 82,
+        "density": 42,
+        "heatResistance": 64,
+        "corrosionResistance": 24,
+        "conductivity": 8,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 46
+      },
+      "yieldBps": 7200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "salt_flux",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "saltFlat",
+          "amount": 2
+        },
+        {
+          "key": "ash",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "flux",
+      "composition": [
+        [
+          "Na",
+          "24-38%"
+        ],
+        [
+          "Cl",
+          "28-42%"
+        ],
+        [
+          "K",
+          "2-8%"
+        ],
+        [
+          "O",
+          "8-20%"
+        ]
+      ],
+      "itemCode": 1008,
+      "recipeId": 1008,
+      "mergeRecipeId": 2008,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 24,
+        "durability": 26,
+        "toughness": 16,
+        "ductility": 4,
+        "brittleness": 62,
+        "density": 36,
+        "heatResistance": 42,
+        "corrosionResistance": 22,
+        "conductivity": 22,
+        "thermalConductivity": 26,
+        "magnetism": 0,
+        "workability": 74
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "ash_cement",
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 2
+        },
+        {
+          "key": "clay",
+          "amount": 1
+        },
+        {
+          "key": "shellBed",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 2,
+      "yieldCount": 2,
+      "forgeUse": "masonry",
+      "composition": [
+        [
+          "O",
+          "42-55%"
+        ],
+        [
+          "Si",
+          "16-30%"
+        ],
+        [
+          "Ca",
+          "8-20%"
+        ],
+        [
+          "Al",
+          "4-12%"
+        ],
+        [
+          "Fe",
+          "1-6%"
+        ]
+      ],
+      "itemCode": 1009,
+      "recipeId": 1009,
+      "mergeRecipeId": 2009,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 58,
+        "durability": 68,
+        "toughness": 46,
+        "ductility": 4,
+        "brittleness": 48,
+        "density": 50,
+        "heatResistance": 76,
+        "corrosionResistance": 62,
+        "conductivity": 10,
+        "thermalConductivity": 22,
+        "magnetism": 2,
+        "workability": 54
+      },
+      "yieldBps": 5800,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "glass_ingot",
+      "class": "glass",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 3
+        },
+        {
+          "key": "saltFlat",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "forgeUse": "lens",
+      "composition": [
+        [
+          "Si",
+          "30-44%"
+        ],
+        [
+          "O",
+          "48-58%"
+        ],
+        [
+          "Na",
+          "3-10%"
+        ],
+        [
+          "Ca",
+          "1-6%"
+        ]
+      ],
+      "itemCode": 1010,
+      "recipeId": 1010,
+      "mergeRecipeId": 2010,
+      "recipeTableId": 220,
+      "mergeRecipeTableId": 320,
+      "attributes": {
+        "hardness": 58,
+        "durability": 44,
+        "toughness": 18,
+        "ductility": 1,
+        "brittleness": 88,
+        "density": 45,
+        "heatResistance": 52,
+        "corrosionResistance": 86,
+        "conductivity": 4,
+        "thermalConductivity": 16,
+        "magnetism": 0,
+        "workability": 32
+      },
+      "yieldBps": 8000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "obsidian_glass",
+      "class": "glass",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 2
+        },
+        {
+          "key": "basalt",
+          "amount": 1
+        }
+      ],
+      "catalysts": [
+        {
+          "key": "lava",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "lens",
+      "composition": [
+        [
+          "Si",
+          "26-40%"
+        ],
+        [
+          "O",
+          "42-54%"
+        ],
+        [
+          "Fe",
+          "3-10%"
+        ],
+        [
+          "Mg",
+          "1-7%"
+        ],
+        [
+          "Al",
+          "4-12%"
+        ]
+      ],
+      "itemCode": 1011,
+      "recipeId": 1011,
+      "mergeRecipeId": 2011,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 72,
+        "durability": 56,
+        "toughness": 26,
+        "ductility": 1,
+        "brittleness": 78,
+        "density": 55,
+        "heatResistance": 68,
+        "corrosionResistance": 88,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 4,
+        "workability": 24
+      },
+      "yieldBps": 8000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "silicon_wafer",
+      "class": "crystal",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 4
+        },
+        {
+          "key": "coal",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "circuit",
+      "composition": [
+        [
+          "Si",
+          "78-92%"
+        ],
+        [
+          "O",
+          "3-12%"
+        ],
+        [
+          "C",
+          "0.5-4%"
+        ],
+        [
+          "Al",
+          "0.1-2%"
+        ]
+      ],
+      "itemCode": 1012,
+      "recipeId": 1012,
+      "mergeRecipeId": 2012,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 66,
+        "durability": 38,
+        "toughness": 16,
+        "ductility": 3,
+        "brittleness": 84,
+        "density": 42,
+        "heatResistance": 64,
+        "corrosionResistance": 76,
+        "conductivity": 56,
+        "thermalConductivity": 70,
+        "magnetism": 0,
+        "workability": 28
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "ice_crystal",
+      "class": "crystal",
+      "rawInputs": [
+        {
+          "key": "ice",
+          "amount": 2
+        },
+        {
+          "key": "snow",
+          "amount": 2
+        },
+        {
+          "key": "saltFlat",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "forgeUse": "cooling",
+      "composition": [
+        [
+          "O",
+          "82-89%"
+        ],
+        [
+          "H",
+          "10-12%"
+        ],
+        [
+          "Na",
+          "0.2-2%"
+        ],
+        [
+          "Cl",
+          "0.2-2%"
+        ]
+      ],
+      "itemCode": 1013,
+      "recipeId": 1013,
+      "mergeRecipeId": 2013,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 14,
+        "durability": 18,
+        "toughness": 10,
+        "ductility": 2,
+        "brittleness": 76,
+        "density": 18,
+        "heatResistance": 4,
+        "corrosionResistance": 72,
+        "conductivity": 3,
+        "thermalConductivity": 38,
+        "magnetism": 0,
+        "workability": 20
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "iron_bloom",
+      "class": "metal",
+      "rawInputs": [
+        {
+          "key": "deepStone",
+          "amount": 3
+        },
+        {
+          "key": "stone",
+          "amount": 1
+        }
+      ],
+      "catalysts": [
+        {
+          "key": "coal",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "forgeUse": "toolHead",
+      "composition": [
+        [
+          "Fe",
+          "54-74%"
+        ],
+        [
+          "O",
+          "8-18%"
+        ],
+        [
+          "C",
+          "0.2-3%"
+        ],
+        [
+          "Si",
+          "2-10%"
+        ],
+        [
+          "Mn",
+          "0-2%"
+        ]
+      ],
+      "itemCode": 1014,
+      "recipeId": 1014,
+      "mergeRecipeId": 2014,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 62,
+        "durability": 72,
+        "toughness": 74,
+        "ductility": 52,
+        "brittleness": 26,
+        "density": 78,
+        "heatResistance": 66,
+        "corrosionResistance": 34,
+        "conductivity": 46,
+        "thermalConductivity": 48,
+        "magnetism": 70,
+        "workability": 62
+      },
+      "yieldBps": 6200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "copper_bloom",
+      "class": "metal",
+      "rawInputs": [
+        {
+          "key": "gravel",
+          "amount": 2
+        },
+        {
+          "key": "basalt",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "forgeUse": "conductor",
+      "composition": [
+        [
+          "Cu",
+          "42-68%"
+        ],
+        [
+          "Fe",
+          "4-14%"
+        ],
+        [
+          "Si",
+          "4-14%"
+        ],
+        [
+          "O",
+          "8-22%"
+        ]
+      ],
+      "itemCode": 1015,
+      "recipeId": 1015,
+      "mergeRecipeId": 2015,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 42,
+        "durability": 58,
+        "toughness": 48,
+        "ductility": 86,
+        "brittleness": 14,
+        "density": 82,
+        "heatResistance": 48,
+        "corrosionResistance": 58,
+        "conductivity": 94,
+        "thermalConductivity": 88,
+        "magnetism": 2,
+        "workability": 84
+      },
+      "yieldBps": 6200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "alumina_plate",
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 3
+        },
+        {
+          "key": "deepStone",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "forgeUse": "armorPlate",
+      "composition": [
+        [
+          "Al",
+          "22-38%"
+        ],
+        [
+          "O",
+          "42-54%"
+        ],
+        [
+          "Si",
+          "8-18%"
+        ],
+        [
+          "Fe",
+          "1-6%"
+        ]
+      ],
+      "itemCode": 1016,
+      "recipeId": 1016,
+      "mergeRecipeId": 2016,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 84,
+        "durability": 66,
+        "toughness": 38,
+        "ductility": 1,
+        "brittleness": 72,
+        "density": 42,
+        "heatResistance": 92,
+        "corrosionResistance": 86,
+        "conductivity": 6,
+        "thermalConductivity": 32,
+        "magnetism": 0,
+        "workability": 30
+      },
+      "yieldBps": 7200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "nickel_iron",
+      "class": "alloy",
+      "rawInputs": [
+        {
+          "key": "deepStone",
+          "amount": 3
+        },
+        {
+          "key": "basalt",
+          "amount": 2
+        }
+      ],
+      "catalysts": [
+        {
+          "key": "coal",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "magneticCore",
+      "composition": [
+        [
+          "Fe",
+          "48-68%"
+        ],
+        [
+          "Ni",
+          "6-18%"
+        ],
+        [
+          "Mg",
+          "2-8%"
+        ],
+        [
+          "C",
+          "0.2-3%"
+        ],
+        [
+          "Si",
+          "2-10%"
+        ]
+      ],
+      "itemCode": 1017,
+      "recipeId": 1017,
+      "mergeRecipeId": 2017,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 70,
+        "durability": 78,
+        "toughness": 76,
+        "ductility": 50,
+        "brittleness": 24,
+        "density": 80,
+        "heatResistance": 72,
+        "corrosionResistance": 48,
+        "conductivity": 42,
+        "thermalConductivity": 44,
+        "magnetism": 92,
+        "workability": 56
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "carbon_plate",
+      "class": "carbon",
+      "rawInputs": [
+        {
+          "key": "coal",
+          "amount": 2
+        },
+        {
+          "key": "deepStone",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "forgeUse": "reinforcement",
+      "composition": [
+        [
+          "C",
+          "62-82%"
+        ],
+        [
+          "Fe",
+          "3-12%"
+        ],
+        [
+          "Si",
+          "2-8%"
+        ],
+        [
+          "O",
+          "4-14%"
+        ]
+      ],
+      "itemCode": 1018,
+      "recipeId": 1018,
+      "mergeRecipeId": 2018,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 78,
+        "durability": 62,
+        "toughness": 48,
+        "ductility": 10,
+        "brittleness": 58,
+        "density": 30,
+        "heatResistance": 86,
+        "corrosionResistance": 88,
+        "conductivity": 38,
+        "thermalConductivity": 58,
+        "magnetism": 0,
+        "workability": 44
+      },
+      "yieldBps": 5500,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "carbon_steel",
+      "class": "alloy",
+      "rawInputs": [
+        {
+          "key": "deepStone",
+          "amount": 4
+        },
+        {
+          "key": "coal",
+          "amount": 2
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "weaponAndTool",
+      "composition": [
+        [
+          "Fe",
+          "78-92%"
+        ],
+        [
+          "C",
+          "0.6-2.2%"
+        ],
+        [
+          "Mn",
+          "0-2%"
+        ],
+        [
+          "Si",
+          "0.2-2%"
+        ]
+      ],
+      "itemCode": 1019,
+      "recipeId": 1019,
+      "mergeRecipeId": 2019,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 86,
+        "durability": 88,
+        "toughness": 82,
+        "ductility": 44,
+        "brittleness": 30,
+        "density": 76,
+        "heatResistance": 74,
+        "corrosionResistance": 42,
+        "conductivity": 36,
+        "thermalConductivity": 42,
+        "magnetism": 78,
+        "workability": 52
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "basalt_fiber",
+      "class": "fiber",
+      "rawInputs": [
+        {
+          "key": "basalt",
+          "amount": 3
+        },
+        {
+          "key": "lava",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 2,
+      "forgeUse": "heatShield",
+      "composition": [
+        [
+          "Si",
+          "18-30%"
+        ],
+        [
+          "O",
+          "42-54%"
+        ],
+        [
+          "Mg",
+          "4-12%"
+        ],
+        [
+          "Fe",
+          "4-12%"
+        ],
+        [
+          "Ca",
+          "4-10%"
+        ]
+      ],
+      "itemCode": 1020,
+      "recipeId": 1020,
+      "mergeRecipeId": 2020,
+      "recipeTableId": 221,
+      "mergeRecipeTableId": 321,
+      "attributes": {
+        "hardness": 66,
+        "durability": 70,
+        "toughness": 62,
+        "ductility": 38,
+        "brittleness": 34,
+        "density": 34,
+        "heatResistance": 94,
+        "corrosionResistance": 82,
+        "conductivity": 8,
+        "thermalConductivity": 24,
+        "magnetism": 6,
+        "workability": 48
+      },
+      "yieldBps": 6500,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "basalt_composite",
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "basalt",
+          "amount": 3
+        },
+        {
+          "key": "pineTrunk",
+          "amount": 1
+        },
+        {
+          "key": "coal",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 4,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "armorPlate",
+      "composition": [
+        [
+          "Si",
+          "14-24%"
+        ],
+        [
+          "O",
+          "34-48%"
+        ],
+        [
+          "C",
+          "18-32%"
+        ],
+        [
+          "Mg",
+          "2-8%"
+        ],
+        [
+          "Fe",
+          "2-8%"
+        ]
+      ],
+      "itemCode": 1021,
+      "recipeId": 1021,
+      "mergeRecipeId": 2021,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 78,
+        "durability": 82,
+        "toughness": 78,
+        "ductility": 22,
+        "brittleness": 34,
+        "density": 52,
+        "heatResistance": 92,
+        "corrosionResistance": 80,
+        "conductivity": 12,
+        "thermalConductivity": 28,
+        "magnetism": 8,
+        "workability": 42
+      },
+      "yieldBps": 5800,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "geopolymer_block",
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 2
+        },
+        {
+          "key": "basalt",
+          "amount": 1
+        },
+        {
+          "key": "saltFlat",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 2,
+      "yieldCount": 2,
+      "forgeUse": "masonry",
+      "composition": [
+        [
+          "O",
+          "42-55%"
+        ],
+        [
+          "Si",
+          "20-34%"
+        ],
+        [
+          "Al",
+          "5-14%"
+        ],
+        [
+          "Na",
+          "1-6%"
+        ],
+        [
+          "Ca",
+          "1-7%"
+        ]
+      ],
+      "itemCode": 1022,
+      "recipeId": 1022,
+      "mergeRecipeId": 2022,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 64,
+        "durability": 76,
+        "toughness": 58,
+        "ductility": 4,
+        "brittleness": 42,
+        "density": 56,
+        "heatResistance": 84,
+        "corrosionResistance": 78,
+        "conductivity": 9,
+        "thermalConductivity": 22,
+        "magnetism": 4,
+        "workability": 46
+      },
+      "yieldBps": 5800,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "coral_lime",
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "coral",
+          "amount": 2
+        },
+        {
+          "key": "deadCoral",
+          "amount": 1
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 2,
+      "artisanLevel": 2,
+      "yieldCount": 2,
+      "forgeUse": "masonry",
+      "composition": [
+        [
+          "Ca",
+          "24-42%"
+        ],
+        [
+          "O",
+          "38-52%"
+        ],
+        [
+          "Si",
+          "8-18%"
+        ],
+        [
+          "C",
+          "1-8%"
+        ]
+      ],
+      "itemCode": 1023,
+      "recipeId": 1023,
+      "mergeRecipeId": 2023,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 48,
+        "durability": 54,
+        "toughness": 32,
+        "ductility": 2,
+        "brittleness": 66,
+        "density": 40,
+        "heatResistance": 62,
+        "corrosionResistance": 70,
+        "conductivity": 7,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 50
+      },
+      "yieldBps": 7200,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "toxic_glass",
+      "class": "glass",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 2
+        },
+        {
+          "key": "toxicWater",
+          "amount": 1
+        },
+        {
+          "key": "saltFlat",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 3,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "forgeUse": "sealedVessel",
+      "composition": [
+        [
+          "Si",
+          "24-38%"
+        ],
+        [
+          "O",
+          "44-56%"
+        ],
+        [
+          "Na",
+          "3-10%"
+        ],
+        [
+          "Cl",
+          "1-6%"
+        ],
+        [
+          "S",
+          "0.5-4%"
+        ]
+      ],
+      "itemCode": 1024,
+      "recipeId": 1024,
+      "mergeRecipeId": 2024,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 60,
+        "durability": 50,
+        "toughness": 20,
+        "ductility": 1,
+        "brittleness": 84,
+        "density": 48,
+        "heatResistance": 56,
+        "corrosionResistance": 94,
+        "conductivity": 8,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 22
+      },
+      "yieldBps": 8000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "cotton_cloth",
+      "class": "fiber",
+      "rawInputs": [
+        {
+          "key": "cotton",
+          "amount": 4
+        },
+        {
+          "key": "dryGrass",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 2,
+      "yieldCount": 1,
+      "unitVolumeMm3": 1000000,
+      "forgeUse": "fabric",
+      "renderMode": "cloth",
+      "composition": [
+        [
+          "C",
+          "42-48%"
+        ],
+        [
+          "O",
+          "40-46%"
+        ],
+        [
+          "H",
+          "5-7%"
+        ],
+        [
+          "N",
+          "0.1-1%"
+        ]
+      ],
+      "itemCode": 1025,
+      "recipeId": 1025,
+      "mergeRecipeId": 2025,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 8,
+        "durability": 46,
+        "toughness": 54,
+        "ductility": 78,
+        "brittleness": 8,
+        "density": 10,
+        "heatResistance": 22,
+        "corrosionResistance": 44,
+        "conductivity": 4,
+        "thermalConductivity": 6,
+        "magnetism": 0,
+        "workability": 92
+      },
+      "yieldBps": 6500,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "white_dye",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "flowerWhite",
+          "amount": 2
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "unitVolumeMm3": 20000,
+      "forgeUse": "dye",
+      "dyeColor": "#f4f6ee",
+      "composition": [
+        [
+          "O",
+          "42-54%"
+        ],
+        [
+          "C",
+          "28-40%"
+        ],
+        [
+          "H",
+          "4-8%"
+        ],
+        [
+          "Ca",
+          "2-8%"
+        ]
+      ],
+      "itemCode": 1026,
+      "recipeId": 1026,
+      "mergeRecipeId": 2026,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 6,
+        "durability": 24,
+        "toughness": 14,
+        "ductility": 20,
+        "brittleness": 18,
+        "density": 20,
+        "heatResistance": 28,
+        "corrosionResistance": 72,
+        "conductivity": 5,
+        "thermalConductivity": 8,
+        "magnetism": 0,
+        "workability": 90
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "yellow_dye",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "flowerYellow",
+          "amount": 2
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "unitVolumeMm3": 20000,
+      "forgeUse": "dye",
+      "dyeColor": "#eec436",
+      "composition": [
+        [
+          "C",
+          "48-62%"
+        ],
+        [
+          "O",
+          "26-38%"
+        ],
+        [
+          "H",
+          "5-9%"
+        ],
+        [
+          "N",
+          "0.5-3%"
+        ]
+      ],
+      "itemCode": 1027,
+      "recipeId": 1027,
+      "mergeRecipeId": 2027,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 6,
+        "durability": 24,
+        "toughness": 14,
+        "ductility": 20,
+        "brittleness": 18,
+        "density": 20,
+        "heatResistance": 28,
+        "corrosionResistance": 72,
+        "conductivity": 5,
+        "thermalConductivity": 8,
+        "magnetism": 0,
+        "workability": 90
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "red_dye",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "flowerRed",
+          "amount": 2
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "unitVolumeMm3": 20000,
+      "forgeUse": "dye",
+      "dyeColor": "#cc4f46",
+      "composition": [
+        [
+          "C",
+          "50-64%"
+        ],
+        [
+          "O",
+          "24-36%"
+        ],
+        [
+          "H",
+          "5-9%"
+        ],
+        [
+          "N",
+          "0.5-3%"
+        ]
+      ],
+      "itemCode": 1028,
+      "recipeId": 1028,
+      "mergeRecipeId": 2028,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 6,
+        "durability": 24,
+        "toughness": 14,
+        "ductility": 20,
+        "brittleness": 18,
+        "density": 20,
+        "heatResistance": 28,
+        "corrosionResistance": 72,
+        "conductivity": 5,
+        "thermalConductivity": 8,
+        "magnetism": 0,
+        "workability": 90
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "blue_dye",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "flowerBlue",
+          "amount": 2
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "unitVolumeMm3": 20000,
+      "forgeUse": "dye",
+      "dyeColor": "#5288da",
+      "composition": [
+        [
+          "C",
+          "46-60%"
+        ],
+        [
+          "O",
+          "26-40%"
+        ],
+        [
+          "H",
+          "5-9%"
+        ],
+        [
+          "N",
+          "1-4%"
+        ]
+      ],
+      "itemCode": 1029,
+      "recipeId": 1029,
+      "mergeRecipeId": 2029,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 6,
+        "durability": 24,
+        "toughness": 14,
+        "ductility": 20,
+        "brittleness": 18,
+        "density": 20,
+        "heatResistance": 28,
+        "corrosionResistance": 72,
+        "conductivity": 5,
+        "thermalConductivity": 8,
+        "magnetism": 0,
+        "workability": 90
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "pink_dye",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "flowerPink",
+          "amount": 2
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "requiredHeatTier": 1,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "unitVolumeMm3": 20000,
+      "forgeUse": "dye",
+      "dyeColor": "#e287b2",
+      "composition": [
+        [
+          "C",
+          "48-62%"
+        ],
+        [
+          "O",
+          "26-40%"
+        ],
+        [
+          "H",
+          "5-9%"
+        ],
+        [
+          "N",
+          "0.5-3%"
+        ]
+      ],
+      "itemCode": 1030,
+      "recipeId": 1030,
+      "mergeRecipeId": 2030,
+      "recipeTableId": 222,
+      "mergeRecipeTableId": 322,
+      "attributes": {
+        "hardness": 6,
+        "durability": 24,
+        "toughness": 14,
+        "ductility": 20,
+        "brittleness": 18,
+        "density": 20,
+        "heatResistance": 28,
+        "corrosionResistance": 72,
+        "conductivity": 5,
+        "thermalConductivity": 8,
+        "magnetism": 0,
+        "workability": 90
+      },
+      "yieldBps": 6000,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "wooden_plank",
+      "buildingMaterialId": 55,
+      "class": "wood",
+      "rawInputs": [
+        {
+          "key": "trunk",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9500,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.25
+      ],
+      "unitVolumeMm3": 20000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "carpentry",
+      "station": "sawbench",
+      "processSeconds": 12,
+      "densityKgM3": 550,
+      "densityScore": 46,
+      "thermalConductivityWMK": 0.13,
+      "waterAbsorptionPct": 12,
+      "compressiveStrengthMpa": 35,
+      "flexuralStrengthMpa": 70,
+      "composition": [
+        [
+          "C",
+          "44-51%"
+        ],
+        [
+          "O",
+          "40-46%"
+        ],
+        [
+          "H",
+          "5-7%"
+        ],
+        [
+          "N",
+          "0.1-0.5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 32,
+        "durability": 68,
+        "toughness": 70,
+        "ductility": 34,
+        "brittleness": 24,
+        "density": 46,
+        "heatResistance": 34,
+        "corrosionResistance": 44,
+        "conductivity": 3,
+        "thermalConductivity": 7,
+        "magnetism": 0,
+        "workability": 96
+      },
+      "itemCode": 1031,
+      "recipeId": 1031,
+      "mergeRecipeId": 2031,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "wooden_stick",
+      "buildingMaterialId": 56,
+      "class": "wood",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:wooden_plank",
+          "amount": 2
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9800,
+      "unitDimensionsVu": [
+        1,
+        0.07,
+        0.07
+      ],
+      "unitVolumeMm3": 4900,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "carpentry",
+      "station": "carpenters_bench",
+      "processSeconds": 6,
+      "densityKgM3": 550,
+      "densityScore": 46,
+      "thermalConductivityWMK": 0.13,
+      "waterAbsorptionPct": 12,
+      "compressiveStrengthMpa": 32,
+      "flexuralStrengthMpa": 64,
+      "composition": [
+        [
+          "C",
+          "44-51%"
+        ],
+        [
+          "O",
+          "40-46%"
+        ],
+        [
+          "H",
+          "5-7%"
+        ],
+        [
+          "N",
+          "0.1-0.5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 28,
+        "durability": 64,
+        "toughness": 66,
+        "ductility": 34,
+        "brittleness": 24,
+        "density": 46,
+        "heatResistance": 34,
+        "corrosionResistance": 44,
+        "conductivity": 3,
+        "thermalConductivity": 7,
+        "magnetism": 0,
+        "workability": 98
+      },
+      "itemCode": 1032,
+      "recipeId": 1032,
+      "mergeRecipeId": 2032,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "squared_timber",
+      "buildingMaterialId": 57,
+      "class": "wood",
+      "rawInputs": [
+        {
+          "key": "trunk",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "yieldBps": 8800,
+      "unitDimensionsVu": [
+        1,
+        0.22,
+        0.22
+      ],
+      "unitVolumeMm3": 48400,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "carpentry",
+      "station": "sawbench",
+      "processSeconds": 18,
+      "densityKgM3": 520,
+      "densityScore": 46,
+      "thermalConductivityWMK": 0.12,
+      "waterAbsorptionPct": 14,
+      "compressiveStrengthMpa": 40,
+      "flexuralStrengthMpa": 75,
+      "composition": [
+        [
+          "C",
+          "44-51%"
+        ],
+        [
+          "O",
+          "40-46%"
+        ],
+        [
+          "H",
+          "5-7%"
+        ],
+        [
+          "N",
+          "0.1-0.5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 38,
+        "durability": 76,
+        "toughness": 78,
+        "ductility": 34,
+        "brittleness": 24,
+        "density": 46,
+        "heatResistance": 34,
+        "corrosionResistance": 44,
+        "conductivity": 3,
+        "thermalConductivity": 7,
+        "magnetism": 0,
+        "workability": 84
+      },
+      "itemCode": 1033,
+      "recipeId": 1033,
+      "mergeRecipeId": 2033,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "clear_glass_panel",
+      "buildingMaterialId": 58,
+      "class": "glass",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 4
+        },
+        {
+          "key": "ash",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:salt_flux",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 4,
+      "temperatureC": 1250,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9200,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.06
+      ],
+      "unitVolumeMm3": 60000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glassmaking",
+      "station": "glass_furnace",
+      "processSeconds": 64,
+      "densityKgM3": 2500,
+      "densityScore": 62,
+      "thermalConductivityWMK": 1,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 1000,
+      "flexuralStrengthMpa": 45,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 68,
+        "durability": 52,
+        "toughness": 24,
+        "ductility": 1,
+        "brittleness": 86,
+        "density": 62,
+        "heatResistance": 62,
+        "corrosionResistance": 98,
+        "conductivity": 4,
+        "thermalConductivity": 17,
+        "magnetism": 0,
+        "workability": 22
+      },
+      "itemCode": 1034,
+      "recipeId": 1034,
+      "mergeRecipeId": 2034,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "ice_blue_glass_panel",
+      "buildingMaterialId": 59,
+      "class": "glass",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:clear_glass_panel",
+          "amount": 4
+        },
+        {
+          "key": "material:ice_crystal",
+          "amount": 1
+        },
+        {
+          "key": "material:salt_flux",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9400,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.06
+      ],
+      "unitVolumeMm3": 60000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glassmaking",
+      "station": "glass_furnace",
+      "processSeconds": 48,
+      "densityKgM3": 2520,
+      "densityScore": 62,
+      "thermalConductivityWMK": 0.95,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 980,
+      "flexuralStrengthMpa": 46,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 68,
+        "durability": 52,
+        "toughness": 24,
+        "ductility": 1,
+        "brittleness": 86,
+        "density": 62,
+        "heatResistance": 58,
+        "corrosionResistance": 98,
+        "conductivity": 4,
+        "thermalConductivity": 15,
+        "magnetism": 0,
+        "workability": 24
+      },
+      "itemCode": 1035,
+      "recipeId": 1035,
+      "mergeRecipeId": 2035,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "amber_glass_panel",
+      "buildingMaterialId": 60,
+      "class": "glass",
+      "rawInputs": [
+        {
+          "key": "coal",
+          "amount": 1
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:clear_glass_panel",
+          "amount": 4
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9300,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.06
+      ],
+      "unitVolumeMm3": 60000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glassmaking",
+      "station": "glass_furnace",
+      "processSeconds": 46,
+      "densityKgM3": 2520,
+      "densityScore": 62,
+      "thermalConductivityWMK": 1,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 970,
+      "flexuralStrengthMpa": 44,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 68,
+        "durability": 52,
+        "toughness": 24,
+        "ductility": 1,
+        "brittleness": 86,
+        "density": 62,
+        "heatResistance": 62,
+        "corrosionResistance": 96,
+        "conductivity": 4,
+        "thermalConductivity": 17,
+        "magnetism": 0,
+        "workability": 26
+      },
+      "itemCode": 1036,
+      "recipeId": 1036,
+      "mergeRecipeId": 2036,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "basalt_reinforced_glass",
+      "buildingMaterialId": 61,
+      "class": "composite",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:clear_glass_panel",
+          "amount": 4
+        },
+        {
+          "key": "material:basalt_fiber",
+          "amount": 1
+        },
+        {
+          "key": "material:resin_binder",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9000,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.06
+      ],
+      "unitVolumeMm3": 60000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "lamination",
+      "station": "lamination_press",
+      "processSeconds": 42,
+      "densityKgM3": 2600,
+      "densityScore": 52,
+      "thermalConductivityWMK": 0.85,
+      "waterAbsorptionPct": 0.1,
+      "compressiveStrengthMpa": 1050,
+      "flexuralStrengthMpa": 120,
+      "composition": [
+        [
+          "O",
+          "43-49%"
+        ],
+        [
+          "Si",
+          "21-27%"
+        ],
+        [
+          "Fe",
+          "7-13%"
+        ],
+        [
+          "Al",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "5-10%"
+        ],
+        [
+          "Mg",
+          "3-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 78,
+        "durability": 86,
+        "toughness": 72,
+        "ductility": 8,
+        "brittleness": 48,
+        "density": 52,
+        "heatResistance": 82,
+        "corrosionResistance": 92,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 28
+      },
+      "itemCode": 1037,
+      "recipeId": 1037,
+      "mergeRecipeId": 2037,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "fired_clay_brick",
+      "buildingMaterialId": 62,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 4
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 850,
+      "artisanLevel": 2,
+      "yieldCount": 4,
+      "yieldBps": 9000,
+      "unitDimensionsVu": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "unitVolumeMm3": 31250,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "kiln",
+      "station": "kiln",
+      "processSeconds": 54,
+      "densityKgM3": 1800,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.7,
+      "waterAbsorptionPct": 12,
+      "compressiveStrengthMpa": 25,
+      "flexuralStrengthMpa": 4,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 64,
+        "durability": 68,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 86,
+        "corrosionResistance": 84,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 48
+      },
+      "itemCode": 1038,
+      "recipeId": 1038,
+      "mergeRecipeId": 2038,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "adobe_brick",
+      "buildingMaterialId": 63,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "mud",
+          "amount": 3
+        },
+        {
+          "key": "dryDirt",
+          "amount": 1
+        },
+        {
+          "key": "dryGrass",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 8600,
+      "unitDimensionsVu": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "unitVolumeMm3": 31250,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "drying",
+      "station": "drying_rack",
+      "processSeconds": 90,
+      "densityKgM3": 1700,
+      "densityScore": 52,
+      "thermalConductivityWMK": 0.6,
+      "waterAbsorptionPct": 20,
+      "compressiveStrengthMpa": 3,
+      "flexuralStrengthMpa": 0.5,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 28,
+        "durability": 44,
+        "toughness": 38,
+        "ductility": 8,
+        "brittleness": 42,
+        "density": 52,
+        "heatResistance": 48,
+        "corrosionResistance": 24,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 82
+      },
+      "itemCode": 1039,
+      "recipeId": 1039,
+      "mergeRecipeId": 2039,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "stone_brick",
+      "buildingMaterialId": 64,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "stone",
+          "amount": 4
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9600,
+      "unitDimensionsVu": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "unitVolumeMm3": 31250,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "masonry",
+      "station": "masons_bench",
+      "processSeconds": 18,
+      "densityKgM3": 2400,
+      "densityScore": 65,
+      "thermalConductivityWMK": 2,
+      "waterAbsorptionPct": 3,
+      "compressiveStrengthMpa": 100,
+      "flexuralStrengthMpa": 10,
+      "composition": [
+        [
+          "O",
+          "44-52%"
+        ],
+        [
+          "Si",
+          "22-34%"
+        ],
+        [
+          "Ca",
+          "4-18%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ],
+        [
+          "Fe",
+          "1-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 74,
+        "durability": 82,
+        "toughness": 52,
+        "ductility": 1,
+        "brittleness": 58,
+        "density": 65,
+        "heatResistance": 84,
+        "corrosionResistance": 80,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 46
+      },
+      "itemCode": 1040,
+      "recipeId": 1040,
+      "mergeRecipeId": 2040,
+      "recipeTableId": 223,
+      "mergeRecipeTableId": 323,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "deep_stone_brick",
+      "buildingMaterialId": 65,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "deepStone",
+          "amount": 4
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 2,
+      "yieldCount": 4,
+      "yieldBps": 9400,
+      "unitDimensionsVu": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "unitVolumeMm3": 31250,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "masonry",
+      "station": "masons_bench",
+      "processSeconds": 24,
+      "densityKgM3": 2700,
+      "densityScore": 72,
+      "thermalConductivityWMK": 2.5,
+      "waterAbsorptionPct": 1.5,
+      "compressiveStrengthMpa": 160,
+      "flexuralStrengthMpa": 14,
+      "composition": [
+        [
+          "O",
+          "44-52%"
+        ],
+        [
+          "Si",
+          "22-34%"
+        ],
+        [
+          "Ca",
+          "4-18%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ],
+        [
+          "Fe",
+          "1-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 84,
+        "durability": 90,
+        "toughness": 62,
+        "ductility": 1,
+        "brittleness": 58,
+        "density": 72,
+        "heatResistance": 88,
+        "corrosionResistance": 80,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 30
+      },
+      "itemCode": 1041,
+      "recipeId": 1041,
+      "mergeRecipeId": 2041,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "basalt_brick",
+      "buildingMaterialId": 66,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "basalt",
+          "amount": 4
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 2,
+      "yieldCount": 4,
+      "yieldBps": 9200,
+      "unitDimensionsVu": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "unitVolumeMm3": 31250,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "masonry",
+      "station": "masons_bench",
+      "processSeconds": 28,
+      "densityKgM3": 2900,
+      "densityScore": 76,
+      "thermalConductivityWMK": 1.7,
+      "waterAbsorptionPct": 1,
+      "compressiveStrengthMpa": 180,
+      "flexuralStrengthMpa": 16,
+      "composition": [
+        [
+          "O",
+          "43-49%"
+        ],
+        [
+          "Si",
+          "21-27%"
+        ],
+        [
+          "Fe",
+          "7-13%"
+        ],
+        [
+          "Al",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "5-10%"
+        ],
+        [
+          "Mg",
+          "3-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 88,
+        "durability": 92,
+        "toughness": 66,
+        "ductility": 1,
+        "brittleness": 58,
+        "density": 76,
+        "heatResistance": 96,
+        "corrosionResistance": 88,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 26
+      },
+      "itemCode": 1042,
+      "recipeId": 1042,
+      "mergeRecipeId": 2042,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "sandstone_block",
+      "buildingMaterialId": 67,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "sand",
+          "amount": 4
+        },
+        {
+          "key": "saltFlat",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "yieldBps": 9000,
+      "unitDimensionsVu": [
+        1,
+        0.5,
+        0.5
+      ],
+      "unitVolumeMm3": 250000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "pressing",
+      "station": "stone_press",
+      "processSeconds": 20,
+      "densityKgM3": 2200,
+      "densityScore": 65,
+      "thermalConductivityWMK": 1.7,
+      "waterAbsorptionPct": 6,
+      "compressiveStrengthMpa": 40,
+      "flexuralStrengthMpa": 5,
+      "composition": [
+        [
+          "O",
+          "44-52%"
+        ],
+        [
+          "Si",
+          "22-34%"
+        ],
+        [
+          "Ca",
+          "4-18%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ],
+        [
+          "Fe",
+          "1-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 54,
+        "durability": 64,
+        "toughness": 42,
+        "ductility": 1,
+        "brittleness": 66,
+        "density": 65,
+        "heatResistance": 84,
+        "corrosionResistance": 80,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 66
+      },
+      "itemCode": 1043,
+      "recipeId": 1043,
+      "mergeRecipeId": 2043,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "cobblestone",
+      "buildingMaterialId": 68,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "stone",
+          "amount": 3
+        },
+        {
+          "key": "gravel",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9800,
+      "unitDimensionsVu": [
+        1,
+        0.5,
+        0.5
+      ],
+      "unitVolumeMm3": 250000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "masonry",
+      "station": "masons_bench",
+      "processSeconds": 10,
+      "densityKgM3": 2500,
+      "densityScore": 65,
+      "thermalConductivityWMK": 2.1,
+      "waterAbsorptionPct": 4,
+      "compressiveStrengthMpa": 80,
+      "flexuralStrengthMpa": 8,
+      "composition": [
+        [
+          "O",
+          "44-52%"
+        ],
+        [
+          "Si",
+          "22-34%"
+        ],
+        [
+          "Ca",
+          "4-18%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ],
+        [
+          "Fe",
+          "1-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 66,
+        "durability": 76,
+        "toughness": 58,
+        "ductility": 1,
+        "brittleness": 58,
+        "density": 65,
+        "heatResistance": 84,
+        "corrosionResistance": 80,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 54
+      },
+      "itemCode": 1044,
+      "recipeId": 1044,
+      "mergeRecipeId": 2044,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "polished_stone_slab",
+      "buildingMaterialId": 69,
+      "class": "stone",
+      "rawInputs": [
+        {
+          "key": "stone",
+          "amount": 2
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 2,
+      "yieldBps": 9400,
+      "unitDimensionsVu": [
+        1,
+        0.12,
+        0.5
+      ],
+      "unitVolumeMm3": 60000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "polishing",
+      "station": "polishing_bench",
+      "processSeconds": 20,
+      "densityKgM3": 2600,
+      "densityScore": 65,
+      "thermalConductivityWMK": 2.3,
+      "waterAbsorptionPct": 1.5,
+      "compressiveStrengthMpa": 130,
+      "flexuralStrengthMpa": 12,
+      "composition": [
+        [
+          "O",
+          "44-52%"
+        ],
+        [
+          "Si",
+          "22-34%"
+        ],
+        [
+          "Ca",
+          "4-18%"
+        ],
+        [
+          "Al",
+          "3-10%"
+        ],
+        [
+          "Fe",
+          "1-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 78,
+        "durability": 84,
+        "toughness": 52,
+        "ductility": 1,
+        "brittleness": 58,
+        "density": 65,
+        "heatResistance": 84,
+        "corrosionResistance": 88,
+        "conductivity": 7,
+        "thermalConductivity": 30,
+        "magnetism": 2,
+        "workability": 38
+      },
+      "itemCode": 1045,
+      "recipeId": 1045,
+      "mergeRecipeId": 2045,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "lime_plaster",
+      "buildingMaterialId": 70,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 1
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:quicklime",
+          "amount": 2
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9000,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.08
+      ],
+      "unitVolumeMm3": 80000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "mixing",
+      "station": "plaster_mixer",
+      "processSeconds": 32,
+      "densityKgM3": 1600,
+      "densityScore": 52,
+      "thermalConductivityWMK": 0.7,
+      "waterAbsorptionPct": 15,
+      "compressiveStrengthMpa": 5,
+      "flexuralStrengthMpa": 1.5,
+      "composition": [
+        [
+          "O",
+          "43-50%"
+        ],
+        [
+          "Ca",
+          "28-39%"
+        ],
+        [
+          "Si",
+          "5-15%"
+        ],
+        [
+          "C",
+          "2-8%"
+        ],
+        [
+          "Al",
+          "1-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 32,
+        "durability": 58,
+        "toughness": 36,
+        "ductility": 8,
+        "brittleness": 44,
+        "density": 52,
+        "heatResistance": 66,
+        "corrosionResistance": 72,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 92
+      },
+      "itemCode": 1046,
+      "recipeId": 1046,
+      "mergeRecipeId": 2046,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "clay_plaster",
+      "buildingMaterialId": 71,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 2
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        },
+        {
+          "key": "water",
+          "amount": 1
+        },
+        {
+          "key": "dryGrass",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 4,
+      "yieldBps": 9200,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.08
+      ],
+      "unitVolumeMm3": 80000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "mixing",
+      "station": "plaster_mixer",
+      "processSeconds": 24,
+      "densityKgM3": 1700,
+      "densityScore": 52,
+      "thermalConductivityWMK": 0.8,
+      "waterAbsorptionPct": 18,
+      "compressiveStrengthMpa": 3,
+      "flexuralStrengthMpa": 1,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 26,
+        "durability": 48,
+        "toughness": 34,
+        "ductility": 8,
+        "brittleness": 44,
+        "density": 52,
+        "heatResistance": 66,
+        "corrosionResistance": 46,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 94
+      },
+      "itemCode": 1047,
+      "recipeId": 1047,
+      "mergeRecipeId": 2047,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "rammed_earth",
+      "buildingMaterialId": 72,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "dryDirt",
+          "amount": 3
+        },
+        {
+          "key": "gravel",
+          "amount": 1
+        },
+        {
+          "key": "clay",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "yieldBps": 9600,
+      "unitDimensionsVu": [
+        1,
+        1,
+        0.5
+      ],
+      "unitVolumeMm3": 500000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "compaction",
+      "station": "earth_rammer",
+      "processSeconds": 30,
+      "densityKgM3": 1900,
+      "densityScore": 52,
+      "thermalConductivityWMK": 1,
+      "waterAbsorptionPct": 10,
+      "compressiveStrengthMpa": 4,
+      "flexuralStrengthMpa": 1,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 40,
+        "durability": 62,
+        "toughness": 48,
+        "ductility": 8,
+        "brittleness": 44,
+        "density": 52,
+        "heatResistance": 62,
+        "corrosionResistance": 42,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 70
+      },
+      "itemCode": 1048,
+      "recipeId": 1048,
+      "mergeRecipeId": 2048,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "shell_terrazzo",
+      "buildingMaterialId": 73,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "shellBed",
+          "amount": 2
+        },
+        {
+          "key": "stone",
+          "amount": 2
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:quicklime",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 2,
+      "yieldCount": 2,
+      "yieldBps": 9000,
+      "unitDimensionsVu": [
+        1,
+        0.1,
+        1
+      ],
+      "unitVolumeMm3": 100000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "polishing",
+      "station": "polishing_bench",
+      "processSeconds": 36,
+      "densityKgM3": 2400,
+      "densityScore": 52,
+      "thermalConductivityWMK": 1.6,
+      "waterAbsorptionPct": 1.5,
+      "compressiveStrengthMpa": 50,
+      "flexuralStrengthMpa": 7,
+      "composition": [
+        [
+          "O",
+          "43-50%"
+        ],
+        [
+          "Ca",
+          "28-39%"
+        ],
+        [
+          "Si",
+          "5-15%"
+        ],
+        [
+          "C",
+          "2-8%"
+        ],
+        [
+          "Al",
+          "1-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 70,
+        "durability": 82,
+        "toughness": 58,
+        "ductility": 8,
+        "brittleness": 50,
+        "density": 52,
+        "heatResistance": 66,
+        "corrosionResistance": 86,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 46
+      },
+      "itemCode": 1049,
+      "recipeId": 1049,
+      "mergeRecipeId": 2049,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "white_ceramic_tile",
+      "buildingMaterialId": 74,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 4
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:lime_ceramic",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 2,
+      "yieldCount": 4,
+      "yieldBps": 9400,
+      "unitDimensionsVu": [
+        0.5,
+        0.04,
+        0.5
+      ],
+      "unitVolumeMm3": 10000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "kiln",
+      "station": "kiln",
+      "processSeconds": 48,
+      "densityKgM3": 2200,
+      "densityScore": 55,
+      "thermalConductivityWMK": 1.2,
+      "waterAbsorptionPct": 0.5,
+      "compressiveStrengthMpa": 200,
+      "flexuralStrengthMpa": 35,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 78,
+        "durability": 76,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 68,
+        "density": 55,
+        "heatResistance": 82,
+        "corrosionResistance": 94,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 34
+      },
+      "itemCode": 1050,
+      "recipeId": 1050,
+      "mergeRecipeId": 2050,
+      "recipeTableId": 224,
+      "mergeRecipeTableId": 324,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "blue_ceramic_tile",
+      "buildingMaterialId": 75,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 4
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:ice_crystal",
+          "amount": 1
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9200,
+      "unitDimensionsVu": [
+        0.5,
+        0.04,
+        0.5
+      ],
+      "unitVolumeMm3": 10000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "kiln",
+      "station": "kiln",
+      "processSeconds": 50,
+      "densityKgM3": 2250,
+      "densityScore": 55,
+      "thermalConductivityWMK": 1.25,
+      "waterAbsorptionPct": 0.4,
+      "compressiveStrengthMpa": 205,
+      "flexuralStrengthMpa": 36,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 80,
+        "durability": 78,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 68,
+        "density": 55,
+        "heatResistance": 82,
+        "corrosionResistance": 96,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 32
+      },
+      "itemCode": 1051,
+      "recipeId": 1051,
+      "mergeRecipeId": 2051,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "volcanic_ash_concrete",
+      "buildingMaterialId": 76,
+      "class": "composite",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 2
+        },
+        {
+          "key": "basalt",
+          "amount": 2
+        },
+        {
+          "key": "gravel",
+          "amount": 1
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 2,
+      "yieldCount": 2,
+      "yieldBps": 9300,
+      "unitDimensionsVu": [
+        1,
+        0.5,
+        0.5
+      ],
+      "unitVolumeMm3": 250000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "mixing",
+      "station": "aggregate_mixer",
+      "processSeconds": 38,
+      "densityKgM3": 2300,
+      "densityScore": 52,
+      "thermalConductivityWMK": 1.5,
+      "waterAbsorptionPct": 5,
+      "compressiveStrengthMpa": 45,
+      "flexuralStrengthMpa": 5,
+      "composition": [
+        [
+          "O",
+          "43-49%"
+        ],
+        [
+          "Si",
+          "21-27%"
+        ],
+        [
+          "Fe",
+          "7-13%"
+        ],
+        [
+          "Al",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "5-10%"
+        ],
+        [
+          "Mg",
+          "3-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 68,
+        "durability": 86,
+        "toughness": 64,
+        "ductility": 8,
+        "brittleness": 44,
+        "density": 52,
+        "heatResistance": 90,
+        "corrosionResistance": 82,
+        "conductivity": 6,
+        "thermalConductivity": 18,
+        "magnetism": 0,
+        "workability": 48
+      },
+      "itemCode": 1052,
+      "recipeId": 1052,
+      "mergeRecipeId": 2052,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "salt_crystal_block",
+      "buildingMaterialId": 77,
+      "class": "crystal",
+      "rawInputs": [
+        {
+          "key": "saltFlat",
+          "amount": 4
+        },
+        {
+          "key": "water",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 1,
+      "yieldCount": 1,
+      "yieldBps": 8500,
+      "unitDimensionsVu": [
+        1,
+        0.5,
+        0.5
+      ],
+      "unitVolumeMm3": 250000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "crystallization",
+      "station": "crystallizer",
+      "processSeconds": 72,
+      "densityKgM3": 2160,
+      "densityScore": 54,
+      "thermalConductivityWMK": 6,
+      "waterAbsorptionPct": 0.1,
+      "compressiveStrengthMpa": 20,
+      "flexuralStrengthMpa": 2,
+      "composition": [
+        [
+          "Cl",
+          "56-61%"
+        ],
+        [
+          "Na",
+          "37-40%"
+        ],
+        [
+          "O",
+          "0-3%"
+        ],
+        [
+          "Ca",
+          "0-2%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 24,
+        "durability": 28,
+        "toughness": 18,
+        "ductility": 1,
+        "brittleness": 82,
+        "density": 54,
+        "heatResistance": 42,
+        "corrosionResistance": 12,
+        "conductivity": 30,
+        "thermalConductivity": 46,
+        "magnetism": 0,
+        "workability": 30
+      },
+      "itemCode": 1053,
+      "recipeId": 1053,
+      "mergeRecipeId": 2053,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_terracotta",
+      "buildingMaterialId": 96,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "clay",
+          "amount": 4
+        },
+        {
+          "key": "sand",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [],
+      "catalysts": [],
+      "requiredHeatTier": 2,
+      "temperatureC": 700,
+      "artisanLevel": 2,
+      "yieldCount": 4,
+      "yieldBps": 7800,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "kiln",
+      "station": "kiln",
+      "processSeconds": 58,
+      "densityKgM3": 1900,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.8,
+      "waterAbsorptionPct": 8,
+      "compressiveStrengthMpa": 45,
+      "flexuralStrengthMpa": 15,
+      "composition": [
+        [
+          "O",
+          "46-54%"
+        ],
+        [
+          "Si",
+          "24-34%"
+        ],
+        [
+          "Al",
+          "7-15%"
+        ],
+        [
+          "Fe",
+          "1-7%"
+        ],
+        [
+          "Ca",
+          "0.5-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 62,
+        "durability": 70,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 84,
+        "corrosionResistance": 74,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 46
+      },
+      "itemCode": 1054,
+      "recipeId": 1054,
+      "mergeRecipeId": 2054,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_ice_blue",
+      "buildingMaterialId": 97,
+      "class": "ceramic",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:roof_tile_terracotta",
+          "amount": 4
+        },
+        {
+          "key": "material:ice_crystal",
+          "amount": 1
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        },
+        {
+          "key": "material:salt_flux",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9400,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glaze_firing",
+      "station": "kiln",
+      "processSeconds": 52,
+      "densityKgM3": 2050,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.9,
+      "waterAbsorptionPct": 2,
+      "compressiveStrengthMpa": 60,
+      "flexuralStrengthMpa": 20,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 72,
+        "durability": 80,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 82,
+        "corrosionResistance": 92,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 34
+      },
+      "itemCode": 1055,
+      "recipeId": 1055,
+      "mergeRecipeId": 2055,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_shell_white",
+      "buildingMaterialId": 98,
+      "class": "ceramic",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:roof_tile_terracotta",
+          "amount": 4
+        },
+        {
+          "key": "material:lime_ceramic",
+          "amount": 1
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9300,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glaze_firing",
+      "station": "kiln",
+      "processSeconds": 50,
+      "densityKgM3": 2070,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.95,
+      "waterAbsorptionPct": 2,
+      "compressiveStrengthMpa": 62,
+      "flexuralStrengthMpa": 20,
+      "composition": [
+        [
+          "O",
+          "43-50%"
+        ],
+        [
+          "Ca",
+          "28-39%"
+        ],
+        [
+          "Si",
+          "5-15%"
+        ],
+        [
+          "C",
+          "2-8%"
+        ],
+        [
+          "Al",
+          "1-5%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 72,
+        "durability": 80,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 84,
+        "corrosionResistance": 90,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 34
+      },
+      "itemCode": 1056,
+      "recipeId": 1056,
+      "mergeRecipeId": 2056,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_charcoal",
+      "buildingMaterialId": 99,
+      "class": "ceramic",
+      "rawInputs": [],
+      "materialInputs": [
+        {
+          "key": "material:roof_tile_terracotta",
+          "amount": 4
+        },
+        {
+          "key": "material:charcoal",
+          "amount": 1
+        },
+        {
+          "key": "material:resin_binder",
+          "amount": 1
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9200,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glaze_firing",
+      "station": "kiln",
+      "processSeconds": 50,
+      "densityKgM3": 2040,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.85,
+      "waterAbsorptionPct": 2,
+      "compressiveStrengthMpa": 58,
+      "flexuralStrengthMpa": 19,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 70,
+        "durability": 78,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 86,
+        "corrosionResistance": 88,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 32
+      },
+      "itemCode": 1057,
+      "recipeId": 1057,
+      "mergeRecipeId": 2057,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_ash_gray",
+      "buildingMaterialId": 100,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 1
+        },
+        {
+          "key": "basalt",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:roof_tile_terracotta",
+          "amount": 4
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 3,
+      "yieldCount": 4,
+      "yieldBps": 9300,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glaze_firing",
+      "station": "kiln",
+      "processSeconds": 52,
+      "densityKgM3": 2120,
+      "densityScore": 55,
+      "thermalConductivityWMK": 1,
+      "waterAbsorptionPct": 1.8,
+      "compressiveStrengthMpa": 65,
+      "flexuralStrengthMpa": 22,
+      "composition": [
+        [
+          "O",
+          "43-49%"
+        ],
+        [
+          "Si",
+          "21-27%"
+        ],
+        [
+          "Fe",
+          "7-13%"
+        ],
+        [
+          "Al",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "5-10%"
+        ],
+        [
+          "Mg",
+          "3-8%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 76,
+        "durability": 84,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 90,
+        "corrosionResistance": 92,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 30
+      },
+      "itemCode": 1058,
+      "recipeId": 1058,
+      "mergeRecipeId": 2058,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "roof_tile_mycelium",
+      "buildingMaterialId": 101,
+      "class": "ceramic",
+      "rawInputs": [
+        {
+          "key": "glowMycelium",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:roof_tile_terracotta",
+          "amount": 4
+        },
+        {
+          "key": "material:salt_flux",
+          "amount": 1
+        },
+        {
+          "key": "material:glass_ingot",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 3,
+      "temperatureC": 1050,
+      "artisanLevel": 4,
+      "yieldCount": 4,
+      "yieldBps": 8800,
+      "unitDimensionsVu": [
+        1,
+        0.08,
+        0.5
+      ],
+      "unitVolumeMm3": 40000,
+      "forgeUse": "construction",
+      "renderMode": "building_component",
+      "processType": "glaze_firing",
+      "station": "kiln",
+      "processSeconds": 54,
+      "densityKgM3": 2030,
+      "densityScore": 55,
+      "thermalConductivityWMK": 0.9,
+      "waterAbsorptionPct": 2.2,
+      "compressiveStrengthMpa": 56,
+      "flexuralStrengthMpa": 18,
+      "composition": [
+        [
+          "O",
+          "52-58%"
+        ],
+        [
+          "Si",
+          "30-36%"
+        ],
+        [
+          "Na",
+          "6-10%"
+        ],
+        [
+          "Ca",
+          "3-7%"
+        ],
+        [
+          "Al",
+          "0.5-3%"
+        ]
+      ],
+      "attributes": {
+        "hardness": 68,
+        "durability": 76,
+        "toughness": 36,
+        "ductility": 2,
+        "brittleness": 72,
+        "density": 55,
+        "heatResistance": 78,
+        "corrosionResistance": 86,
+        "conductivity": 6,
+        "thermalConductivity": 22,
+        "magnetism": 0,
+        "workability": 28
+      },
+      "itemCode": 1059,
+      "recipeId": 1059,
+      "mergeRecipeId": 2059,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "mergeYieldBps": 10000
+    },
+    {
+      "id": "blasting_charge",
+      "class": "chemical",
+      "rawInputs": [
+        {
+          "key": "ash",
+          "amount": 1
+        },
+        {
+          "key": "toxicWater",
+          "amount": 1
+        }
+      ],
+      "materialInputs": [
+        {
+          "key": "material:charcoal",
+          "amount": 2
+        },
+        {
+          "key": "material:biochar_compost",
+          "amount": 2
+        },
+        {
+          "key": "material:resin_binder",
+          "amount": 1
+        }
+      ],
+      "catalysts": [],
+      "requiredHeatTier": 0,
+      "temperatureC": 20,
+      "artisanLevel": 3,
+      "yieldCount": 1,
+      "yieldBps": 9000,
+      "unitVolumeMm3": 750000,
+      "forgeUse": "explosive",
+      "renderMode": "blasting_charge",
+      "processType": "cold_compaction",
+      "station": "explosives_bench",
+      "processSeconds": 36,
+      "densityKgM3": 1250,
+      "composition": [
+        [
+          "C",
+          "30-45%"
+        ],
+        [
+          "O",
+          "25-40%"
+        ],
+        [
+          "N",
+          "2-8%"
+        ],
+        [
+          "K",
+          "2-10%"
+        ],
+        [
+          "S",
+          "0.5-4%"
+        ],
+        [
+          "H",
+          "3-8%"
+        ]
+      ],
+      "itemCode": 1060,
+      "recipeId": 1060,
+      "mergeRecipeId": 2060,
+      "recipeTableId": 225,
+      "mergeRecipeTableId": 325,
+      "attributes": {
+        "hardness": 18,
+        "durability": 42,
+        "toughness": 30,
+        "ductility": 24,
+        "brittleness": 50,
+        "density": 38,
+        "heatResistance": 6,
+        "corrosionResistance": 34,
+        "conductivity": 8,
+        "thermalConductivity": 12,
+        "magnetism": 0,
+        "workability": 26
+      },
+      "mergeYieldBps": 10000
+    }
+  ]
+}

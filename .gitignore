@@ -1,0 +1,22 @@
+# Local credentials and machine configuration
+.env
+.env.*
+.auth/
+.gh-config/
+.ssh/
+*.key
+*.pem
+*keypair*.json
+hosts.yml
+id_ed25519
+id_rsa
+rpc_key
+
+# Dependencies and generated files
+node_modules/
+coverage/
+dist/
+.play-runtime/
+.vite/
+*.log
+.DS_Store

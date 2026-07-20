@@ -1,0 +1,26 @@
+{
+  "name": "@nicechunk/game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm run check:policy && npm run check:i18n && npm test",
+    "check:policy": "node scripts/repository-policy.mjs",
+    "check:i18n": "node scripts/check-play-i18n.mjs",
+    "test": "node --test play/tests/*.test.mjs",
+    "build:chain": "vite build --config vite.chain.config.js",
+    "build:play": "node scripts/build-play-debug-runtime.mjs",
+    "build": "npm run check:i18n && npm run build:chain && npm run build:play"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
+    "bs58": "^4.0.1",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0"
+  }
+}

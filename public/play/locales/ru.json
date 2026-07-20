@@ -1,0 +1,3609 @@
+{
+  "_meta": {
+    "language": "ru",
+    "label": "Russian",
+    "version": "play-locale-ru-9a483942f87dffdb",
+    "contentHash": "9a483942f87dffdb"
+  },
+  "siteFooter": {
+    "tagline": "Seeded voxel world protocol on Solana.",
+    "navigationAria": "Навигация в футере",
+    "socialAria": "Социальные ссылки NiceChunk",
+    "home": "Главная",
+    "play": "Войти в мир",
+    "roadmap": "План",
+    "docs": "Документы",
+    "guardian": "Стражи",
+    "contracts": "Контракты",
+    "x": "X / Twitter",
+    "github": "GitHub",
+    "copyright": "2026 NiceChunk. Все права защищены."
+  },
+  "common": {
+    "brand": "NICECHUNK",
+    "language": "Язык",
+    "comingSoon": "Planned",
+    "languageNative": {
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "de": "Deutsch",
+      "ja": "日本語",
+      "ru": "Русский",
+      "ko": "한국어",
+      "zhHant": "繁體中文",
+      "zhHans": "简体中文"
+    }
+  },
+  "main": {
+    "title": "Воксельный прототип Nicechunk",
+    "brand": "Nicechunk",
+    "account": {
+      "label": "Аккаунт игрока",
+      "open": "Открыть профиль игрока",
+      "guest": "Гость",
+      "level": "Ур. {level}",
+      "defaultTitle": "Новичок",
+      "notConnected": "Не подключено",
+      "sessionBalance": "Session: {balance} SOL",
+      "sessionNotFunded": "Session: not funded",
+      "walletBalance": "Кошелек: {balance} SOL",
+      "walletBalanceUnknown": "Кошелек: неизвестен"
+    },
+    "blueprint": {
+      "guideAria": "Руководство по строительству",
+      "guideTitle": "РУКОВОДСТВО ПО СТРОИТЕЛЬСТВУ",
+      "toolName": "Чертеж",
+      "stepEquip": "Взять инструмент чертежа",
+      "stepSize": "Задать размер фундамента",
+      "stepPlace": "Разместить фундамент",
+      "stepConfirm": "Закрепить фундамент",
+      "stepBuild": "Строить на фундаменте",
+      "length": "ДЛИНА",
+      "width": "ШИРИНА",
+      "decreaseLength": "Уменьшить длину",
+      "increaseLength": "Увеличить длину",
+      "lengthInput": "Длина фундамента",
+      "decreaseWidth": "Уменьшить ширину",
+      "increaseWidth": "Увеличить ширину",
+      "widthInput": "Ширина фундамента",
+      "cancel": "Отмена",
+      "confirm": "Создать фундамент",
+      "mode": "РЕЖИМ ЧЕРТЕЖА",
+      "submitting": "Закрепление...",
+      "topFaceRequired": "Выберите верхнюю грань твердого блока земли.",
+      "invalid": "Эту область нельзя использовать как фундамент.",
+      "chooseGround": "Нажмите на ровную площадку для размещения чертежа.",
+      "submitFailed": "Не удалось отправить фундамент.",
+      "created": "Фундамент создан и защищен в сети.",
+      "worldLoading": "Данные мира еще загружаются.",
+      "overlap": "Эта область пересекается с существующим фундаментом.",
+      "notLevel": "Вся область фундамента должна быть ровной.",
+      "solidGround": "Для фундамента нужна твердая сухая земля.",
+      "clearArea": "Уберите растения, камни и деревья с площадки.",
+      "ready": "Ровная площадка готова. Подтвердите создание.",
+      "syncFailed": "Ошибка синхронизации PDA фундамента: {reason}",
+      "stepEquipDetail": "Выберите инструмент чертежа на панели.",
+      "stepSizeDetail": "Задайте размер и нажмите на ровную землю.",
+      "stepPlaceDetail": "Разместите голограмму на свободной ровной площадке.",
+      "stepConfirmDetail": "Проверьте контур и создайте защищенный фундамент.",
+      "stepBuildDetail": "Фундамент готов к строительству.",
+      "foundationTab": "ФУНДАМЕНТ",
+      "buildingTab": "ЗДАНИЕ",
+      "modeAria": "Режим чертежа",
+      "targetFoundation": "ЦЕЛЕВОЙ ФУНДАМЕНТ",
+      "targetFoundationAria": "Целевой фундамент",
+      "exactScale": "ТОЧНЫЕ ВОКСЕЛИ 1:1",
+      "codePlaceholder": "Вставьте код NCM3",
+      "codeAria": "Код здания NCM3",
+      "rotateLeft": "Повернуть влево",
+      "rotateRight": "Повернуть вправо",
+      "rotation": "ПОВОРОТ",
+      "offsetX": "СМЕЩЕНИЕ X",
+      "offsetZ": "СМЕЩЕНИЕ Z",
+      "previewBuilding": "Предпросмотр",
+      "createBuilding": "Создать здание",
+      "noFoundation": "Создайте фундамент перед импортом здания.",
+      "enterCode": "Сначала вставьте код здания NCM3.",
+      "buildingReady": "Здание NCM3 помещается на фундаменте в точном масштабе 1:1.",
+      "buildingDoesNotFit": "Здание выходит за границы фундамента. Скорректируйте X/Z или увеличьте фундамент; здание не будет масштабироваться.",
+      "invalidCode": "Недопустимый код NCM3: {reason}",
+      "buildingSubmitFailed": "Не удалось отправить здание: {reason}",
+      "buildingCreated": "Здание создано на этом фундаменте.",
+      "foundationOption": "Фундамент №{id} · {width}×{depth}",
+      "noFoundationOption": "Нет доступного фундамента",
+      "sizeMetric": "РАЗМЕР",
+      "voxelsMetric": "ВОКСЕЛИ",
+      "bytesMetric": "БАЙТЫ",
+      "submittingBuilding": "Создание...",
+      "buildingSyncFailed": "Не удалось синхронизировать PDA здания: {reason}",
+      "stepBuildCodeDetail": "Вставьте код NCM3 для этого чертежа, проверьте точный масштаб 1:1 и создайте здание.",
+      "coordinateRange": "Фундамент выходит за поддерживаемый диапазон координат.",
+      "validating": "Проверка уровня земли и свободного места...",
+      "processingBuilding": "Обработка здания NCM3 вне потока отрисовки...",
+      "processing": "Обработка...",
+      "guardianCoverageRequired": "Все регионы Guardian, покрытые этим фундаментом, должны быть активны. Отсутствуют: {regions}.",
+      "guardianIndexPending": "Транзакция в цепочке завершена, но индексация Guardian еще не выполнена: {reason}.",
+      "guardianUnavailable": "Guardian недоступен",
+      "invalidBuildingHash": "Недопустимый итоговый хэш здания.",
+      "instanceLabel": "ЧЕРТЕЖ №{number} · ID {id}",
+      "foundationLocked": "Этот чертеж навсегда привязан к своему фундаменту.",
+      "saveSize": "Сохранить размер фундамента",
+      "resizing": "Обновление...",
+      "resized": "Размер фундамента обновлен и защищен в цепочке.",
+      "resizeFailed": "Не удалось обновить размер фундамента.",
+      "foundationSelected": "Фундамент выбран. Измените его длину или ширину.",
+      "resizeReady": "Новый размер готов. Сохраните обновленную защищенную область.",
+      "selectBoundFoundation": "Нажмите на фундамент этого чертежа, чтобы изменить его размер.",
+      "stepEditDetail": "Измените размер выбранного фундамента и сохраните защищенную область.",
+      "foundationSyncPending": "Ожидается обновление BuildSite"
+    },
+    "forgedPlacement": {
+      "loading": "Загрузка проверенной модели кованого предмета...",
+      "unavailable": "Проверенная модель кованого предмета недоступна, поэтому действия рукой и размещение отключены.",
+      "topFaceRequired": "Выберите верхнюю грань твердого блока.",
+      "outOfRange": "Подойдите ближе, чтобы разместить кованый предмет.",
+      "playerOverlap": "Кованый предмет не может пересекаться с игроком.",
+      "occupied": "Кованый предмет пересекается с существующим рельефом.",
+      "selected": "Позиция кованого предмета выбрана: {x}, {y}, {z}."
+    },
+    "profile": {
+      "eyebrow": "Overview",
+      "title": "Профиль персонажа",
+      "tabs": "Profile sections",
+      "attributesTab": "Overview",
+      "modelTab": "Model",
+      "name": "Имя",
+      "level": "Уровень",
+      "titleLabel": "Титул",
+      "wallet": "Кошелек",
+      "position": "Позиция",
+      "chunks": "Известные чанки",
+      "backpack": "Equipped Backpack",
+      "noBackpack": "No backpack equipped",
+      "buyBackpack": "Buy Backpack",
+      "buyingBackpack": "Buying...",
+      "backpackEquipped": "{address} · {count}/{capacity}",
+      "backpackPurchaseFailed": "Backpack purchase failed: {reason}",
+      "model": "Модель персонажа",
+      "close": "Закрыть профиль",
+      "logout": "Выход",
+      "invite": {
+        "open": "Invite Friends",
+        "close": "Close invite panel",
+        "eyebrow": "On-chain Invite Registry",
+        "title": "Invite Friends",
+        "body": "Create a registration link and track invited players through Solana PDA pages, not a private server database.",
+        "tabsAria": "Invite panel sections",
+        "createTab": "Create Invite",
+        "ledgerTab": "Invite List",
+        "briefAria": "Invite cost model",
+        "rule1Label": "01 · First page",
+        "rule1Title": "Inviter creates the first PDA page",
+        "rule1Body": "The inviter pays the Solana account storage deposit for page 1 before sharing a fully trackable invite link.",
+        "rule2Label": "02 · Overflow",
+        "rule2Title": "Registrants pay only when they need a new page",
+        "rule2Body": "Each page stores 64 invited wallets. If all existing pages are full, the next invited player pays to create the next page while registering.",
+        "rule3Label": "03 · Public ledger",
+        "rule3Title": "Fees are PDA storage, not team revenue",
+        "rule3Body": "The SOL is used by Solana to make rent-exempt PDA accounts. Invite data is public, append-only, and not controlled by a NiceChunk backend.",
+        "linkLabel": "Registration link",
+        "guardian": "Guardian: {guardian} · region {region}",
+        "referrer": "Inviter: {wallet}",
+        "initialize": "Create First PDA Page",
+        "initializing": "Creating...",
+        "initializeDone": "First PDA Page Created",
+        "copy": "Copy Link",
+        "copied": "Copied",
+        "refresh": "Refresh Invite List Chain Data",
+        "costLoading": "Calculating page 1 storage deposit...",
+        "firstPageCost": "Page 1 storage deposit: about {sol} SOL · {bytes} bytes · {capacity} wallets. This is Solana PDA rent-exempt storage, not a payment to the team.",
+        "players": "On-chain invited players",
+        "status": "PDA pages",
+        "ledgerMeta": "{entries} players · {pages} PDA page(s) · {used}/{slots} slots",
+        "paginationAria": "Invite list pages",
+        "previousPage": "Prev",
+        "nextPage": "Next",
+        "pageLabel": "{page} / {pages}",
+        "tablePlayer": "Player",
+        "tableStatus": "Status",
+        "tablePage": "PDA Page",
+        "tableSlot": "Slot",
+        "loadingPage": "Loading this page...",
+        "loading": "Reading on-chain invite PDA pages...",
+        "unavailable": "On-chain invite pages are unavailable. The registration link can still be shared, but invite tracking may not append until the player program is upgraded.",
+        "empty": "No invited player has completed on-chain registration yet.",
+        "firstPageMissing": "The first invite PDA page has not been created yet. Create page 1 before sharing if you want fully on-chain invitation tracking.",
+        "region": "region {region}",
+        "pageIndex": "page {page} · #{index}",
+        "statusLoading": "Reading Solana PDA pages...",
+        "statusInitializing": "Creating invite page 1 on Solana...",
+        "statusCreated": "Invite page created. Page 1 capacity: {count}/{capacity}.",
+        "statusReady": "On-chain invite ledger ready: {pages} page(s), page 1 uses {count}/{capacity} slots.",
+        "statusMissing": "First invite PDA page is not created. The inviter pays this one-time Solana storage deposit.",
+        "statusFailed": "Invite ledger unavailable: {reason}",
+        "statusRegistered": "Registered",
+        "statusPending": "Pending",
+        "programUpgradePending": "player program upgrade pending"
+      },
+      "rpc": "RPC",
+      "rpcPublic": "Публичный RPC",
+      "rpcKey": "RPCKEY {key}",
+      "rpcRecommend": "Set a private RPC key for steadier mining.",
+      "rpcConfigured": "Private RPC key is active for chain calls.",
+      "rpcSet": "Настроить",
+      "rpcUpdate": "Обновить",
+      "rpcSetPrompt": "Set a Helius API key to avoid public RPC limits.",
+      "rpcUpdatePrompt": "Update your Helius API key for NiceChunk chain calls.",
+      "characterTitle": "CHARACTER",
+      "basicInfo": "BASIC INFO",
+      "skillsTab": "Skills",
+      "equipmentTab": "Equipment",
+      "reputation": "Reputation",
+      "worldRegion": "World / Region",
+      "stats": "STATS",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "viewSkills": "View Skills",
+      "editProfile": "Edit Profile",
+      "playerName": "Player name",
+      "playerNamePlaceholder": "Choose a chain player name",
+      "save": "Save",
+      "defaultTitle": "Explorer",
+      "modelMale": "Villager boy",
+      "modelFemale": "Villager girl",
+      "modelCode": "NCM model code",
+      "saveLook": "Save look",
+      "equipmentTitle": "EQUIPMENT",
+      "avatarPreview": "Player avatar preview",
+      "powerScore": "Power Score",
+      "balanceUnavailable": "0 SOL",
+      "notConnected": "Not connected",
+      "statGathering": "Gathering",
+      "statCarry": "Carry",
+      "statSmelting": "Smelting",
+      "statSpeed": "Speed",
+      "statStrength": "Strength",
+      "statCrafting": "Crafting",
+      "skillsEyebrow": "Skill Matrix",
+      "skillsIntro": "Skills define how precisely the character gathers, carries, smelts, forges, moves, and explores. Current values are frontend rules and can map directly to the player PDA later.",
+      "equipmentEyebrow": "Equipment",
+      "equipmentIntro": "Current character equipment and held objects. This view uses local gameplay state without making extra chain requests.",
+      "skillLevel": "Lv. {level}/{max}",
+      "skillCurrent": "Current",
+      "skillNext": "Next",
+      "skillCap": "Cap",
+      "skillFormula": "Rule",
+      "skillMaxed": "Max level",
+      "skillXpProgress": "XP {current}/{required}",
+      "skillXpMax": "Total XP {xp}",
+      "skillXpTitle": "Experience",
+      "skillXpTiers": "Upgrade XP tiers",
+      "skillXpTier": "Lv.{level}: {xp} XP",
+      "equipment": {
+        "emptySlot": "Empty",
+        "emptySlotDetail": "No equipment assigned to this slot.",
+        "locked": "Locked",
+        "lockedDetail": "This equipment slot has not been unlocked.",
+        "head": "Head",
+        "face": "Face",
+        "shoulder": "Shoulder",
+        "wrist": "Wrist",
+        "chest": "Chest",
+        "back": "Back / Pack",
+        "gloves": "Gloves",
+        "boots": "Boots",
+        "belt": "Belt / Charm",
+        "offHand": "Off Hand",
+        "necklace": "Necklace",
+        "ring1": "Ring 1",
+        "ring2": "Ring 2",
+        "leftHand": "Left Hand",
+        "rightHand": "Right Hand",
+        "rightHandDetail": "Hotbar slot {slot}. Current action: {action}.",
+        "rightHandEmpty": "No item is currently held.",
+        "legs": "Legs",
+        "feet": "Feet",
+        "backpackSlot": "Backpack",
+        "backpack": "Backpack",
+        "backpackDetail": "Equipped inventory container. Capacity {count}/{capacity}.",
+        "backpackEmpty": "Buy and equip a backpack before mining persistent resources.",
+        "mainHand": "Main Hand",
+        "mainHandDetail": "Hotbar slot {slot}. Current action: {action}.",
+        "mainHandEmpty": "No item is currently held.",
+        "forged": "Forged Item",
+        "forgedEquipped": "Latest forged item · {bytes} bytes",
+        "forgedEmpty": "No forged item",
+        "forgedDetail": "Saved local forged object. It can be equipped from the hotbar and rendered on the character.",
+        "forgedEmptyDetail": "Forge an item first, then it will appear here.",
+        "tool": "Gathering Tool",
+        "toolDetail": "Durability {durability}. Used for mining and block breaking.",
+        "toolReady": "Default mining tool is ready.",
+        "chainBacked": "Chain-backed",
+        "capacity": "Capacity",
+        "source": "Source",
+        "pickaxeDetail": "A reliable mining tool. Hits are validated by the physical tool sweep in chunk.js.",
+        "resource": "Resource",
+        "resourceDetail": "Verified placeable stack · {resource} x{count}",
+        "backpackOpenDetail": "Opens inventory and resource proof data.",
+        "hotbarDetail": "Equipped from hotbar slot {slot}.",
+        "durability": "Durability",
+        "parameters": "PARAMETERS",
+        "status": "Status",
+        "notEquipped": "Not equipped",
+        "lastProof": "Last block proof · {status} · {x}, {y}, {z}",
+        "basic": "Basic",
+        "collision": "Collision",
+        "physicalSweep": "Physical sweep",
+        "miningHits": "Mining hits",
+        "proof": "Proof",
+        "coordinateProof": "Coordinate",
+        "stack": "Stack",
+        "resourceId": "Resource ID",
+        "local": "Local",
+        "hotbarSlot": "Hotbar slot"
+      },
+      "skills": {
+        "precisionGathering": {
+          "name": "Precision Gathering",
+          "description": "Controls how much real material volume is recovered when a resource block is mined.",
+          "xpSource": "Gain XP by successfully mining persistent resource blocks. Harder blocks and rarer material drops give more XP.",
+          "current": "{percent}% gathered · {liters} L per resource block",
+          "next": "Next level: {percent}% · {liters} L per block",
+          "max": "Max: 100% · 1 L per resource block",
+          "formula": "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L"
+        },
+        "burden": {
+          "name": "Burden",
+          "description": "Sets safe backpack carry capacity before movement, stamina, and action penalties begin.",
+          "xpSource": "Gain XP by moving, mining, and returning with carried mass. Heavier legal loads give more XP, but overweight states do not.",
+          "current": "{kg} kg safe carry capacity",
+          "next": "Next level: {kg} kg",
+          "max": "Max: 130 kg safe carry capacity",
+          "formula": "30 kg + Lv x 10 kg"
+        },
+        "smelting": {
+          "name": "Smelting",
+          "description": "Reduces material loss when raw resources become refined materials.",
+          "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
+          "current": "{yieldPercent}% yield · {lossPercent}% loss",
+          "next": "Next level: {yieldPercent}% yield · {lossPercent}% loss",
+          "max": "Max: 100% yield · 0% loss",
+          "formula": "Yield = 70% + Lv x 3%; loss = 30% - Lv x 3%"
+        },
+        "forging": {
+          "name": "Forging",
+          "description": "Improves durability when materials are shaped into usable equipment.",
+          "xpSource": "Gain XP when a forged object is saved. More complete objects, valid grips, and higher material grades give more XP.",
+          "current": "+{bonus}% forged item durability",
+          "next": "Next level: +{bonus}% durability",
+          "max": "Max: +50% durability",
+          "formula": "Durability bonus = Lv x 5%"
+        },
+        "craftsmanship": {
+          "name": "Craftsmanship",
+          "description": "Unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
+          "xpSource": "Gain XP from advanced crafting operations: joining, shaping, cutting, assembling mechanisms, and using unlocked process tiers.",
+          "current": "Process tier {tier} available",
+          "next": "Next level: process tier {tier}",
+          "max": "Max: process tier 6",
+          "formula": "Tier = 1 + floor(Lv / 2); unlocks advanced craft methods"
+        },
+        "swiftness": {
+          "name": "Swiftness",
+          "description": "Improves ground movement speed while keeping camera control and collision rules stable.",
+          "xpSource": "Gain XP through active traversal: walking, sprinting, climbing, jumping obstacles, and covering distance without teleporting.",
+          "current": "{speed}% movement speed",
+          "next": "Next level: {speed}% movement speed",
+          "max": "Max: 130% movement speed",
+          "formula": "Speed = 100% + Lv x 3%"
+        },
+        "exploration": {
+          "name": "Exploration",
+          "description": "Adds weight to rare extra-drop rolls that come from altitude, depth, biome, and civilization drop tables.",
+          "xpSource": "Gain XP by entering new chunks, discovering rare terrain, mining altitude/depth-specific resources, and triggering extra-drop tables.",
+          "current": "+{chance}% rare extra-drop roll weight",
+          "next": "Next level: +{chance}% rare roll weight",
+          "max": "Max: +100% rare extra-drop roll weight",
+          "formula": "Rare roll weight bonus = Lv x 10%; extra drops gain 1 XP when triggered"
+        },
+        "stamina": {
+          "name": "Stamina",
+          "description": "Reduces fatigue from mining, running, jumping, and repeated heavy actions.",
+          "xpSource": "Gain XP by spending stamina through repeated mining, running, jumping, and carrying, then recovering without exceeding safe limits.",
+          "current": "{reduction}% lower mining and movement fatigue",
+          "next": "Next level: {reduction}% lower fatigue",
+          "max": "Max: 40% lower fatigue",
+          "formula": "Fatigue cost reduction = Lv x 4%"
+        },
+        "strength": {
+          "name": "Strength",
+          "description": "Controls one-hand lift stability for forged objects using mass, gravity, center of mass, and torque.",
+          "xpSource": "Gain XP by lifting, holding, and manipulating valid heavy objects without body collision or grip failure.",
+          "current": "{kg} kg one-hand lift control",
+          "next": "Next level: {kg} kg one-hand control",
+          "max": "Max: 48 kg one-hand lift control",
+          "formula": "Grip lift control = 8 kg + Lv x 4 kg; later combines mass, gravity and torque"
+        },
+        "appraisal": {
+          "name": "Appraisal",
+          "description": "Reveals more material traits so players can understand rare materials and advanced recipes.",
+          "xpSource": "Gain XP by inspecting materials, identifying forged items, revealing resource attributes, and using discovered traits in recipes.",
+          "current": "Reveals {traits} material traits",
+          "next": "Next level: reveals {traits} traits",
+          "max": "Max: reveals 12 material traits",
+          "formula": "Visible traits = 2 + Lv; supports rare materials and civilization rules"
+        }
+      },
+      "settingsTab": "Настройки",
+      "settings": "НАСТРОЙКИ",
+      "settingsIntro": "Управляйте кошельком, подключением к сети и языком интерфейса.",
+      "accountSettings": "Аккаунт",
+      "accountSettingsHint": "Активная сессия игрового кошелька.",
+      "walletAddress": "Адрес кошелька",
+      "walletConnectedHint": "Этот кошелёк используется для игровых действий в сети.",
+      "walletDisconnectedHint": "Подключите кошелёк для доступа к игровым функциям в сети.",
+      "logOut": "Выйти",
+      "rpcSettings": "Подключение RPC",
+      "rpcSettingsHint": "Настройте шлюз данных Solana для этого браузера.",
+      "rpcHelius": "RPC Helius",
+      "rpcHintPrivate": "Приватный RPC используется для запросов к сети.",
+      "rpcHintPublic": "Укажите ключ Helius для более стабильной добычи.",
+      "languageSettings": "Язык интерфейса",
+      "language": "Язык",
+      "languageHint": "Выберите язык интерфейса игры.",
+      "rotateAvatar": "Перетащите для вращения"
+    },
+    "debug": "Отладка",
+    "bulkMining": {
+      "title": "Массовая добыча",
+      "on": "Вкл.",
+      "off": "Выкл.",
+      "inactive": "Выкл. · только отладка",
+      "limit": "Выбрано больше {max} блоков",
+      "chooseEnd": "Начало выбрано · укажите противоположный угол",
+      "selection": "Выбрано {count} / {max} блоков",
+      "chooseStart": "Нажмите блок, чтобы задать первый угол",
+      "confirm": "Подтвердить пакет",
+      "cancel": "Отмена",
+      "enabled": "Массовая добыча включена. Нажмите два блока, чтобы задать объём.",
+      "disabled": "Массовая добыча выключена.",
+      "selectSolid": "Выберите добываемый твёрдый блок.",
+      "anchorSet": "Начало задано в {x}, {y}, {z}. Нажмите противоположный угол.",
+      "tooLarge": "Выбор превышает отладочный лимит в {max} блоков.",
+      "empty": "В выбранном объёме нет добываемых блоков.",
+      "ready": "Выбрано {count} блоков. Подтвердите пакетную отправку в сеть.",
+      "incomplete": "Перед массовой добычей выберите два угла.",
+      "submitting": "Отправка {count} блоков пакетами по чанкам.",
+      "cancelled": "Выбор массовой добычи очищен.",
+      "resultTitle": "Добыча завершена · {count} блоков",
+      "noDropsSaved": "Добыча не сохранена · учтены вместимость и вероятность выпадения"
+    },
+    "minimap": "Мини-карта",
+    "map": "Карта",
+    "mapGuardian": {
+      "resolving": "Guardian: поиск...",
+      "resolvingForChunk": "Guardian: поиск для чанка {chunkX},{chunkZ}",
+      "active": "Guardian: {endpoint} | чанк {chunkX},{chunkZ} | диапазон {minX}..{maxX}, {minZ}..{maxZ}",
+      "none": "Guardian: нет для чанка {chunkX},{chunkZ}"
+    },
+    "mapTeleport": {
+      "x": "X",
+      "z": "Z",
+      "xLabel": "Мир X",
+      "zLabel": "Мир Z",
+      "action": "Телепорт",
+      "invalid": "Введите корректные координаты",
+      "done": "Телепортировано"
+    },
+    "chainLog": {
+      "aria": "Chain event log",
+      "minePending": "Mining submitted, awaiting confirmation",
+      "minePendingDetail": "Submitting {resource} at {coords} to devnet",
+      "mineSubmitted": "Mining confirmed",
+      "signature": "{resource} at {coords}: {signature}",
+      "signatureWithCost": "spent {cost} SOL · {resource} at {coords}: {signature}",
+      "mineSkipped": "Mining sync skipped",
+      "disabled": "On-chain sync is disabled for {resource} at {coords}",
+      "mineSkippedDetail": "{resource} at {coords}: {reason}",
+      "mineFailed": "Mining transaction failed",
+      "mineFailedDetail": "{resource} at {coords}: {reason}",
+      "alreadyMined": "Block already recorded",
+      "alreadyMinedReason": "already mined",
+      "walletUnavailable": "wallet unavailable",
+      "chainDisabledReason": "chain sync disabled",
+      "unknownReason": "unknown reason",
+      "noSignature": "no signature",
+      "walletUnexpectedError": "wallet returned an unexpected error",
+      "sessionFundingCancelled": "session funding cancelled",
+      "sessionFundingFailed": "session funding failed",
+      "notTreeTrunk": "not a tree trunk",
+      "backpackFull": "backpack full",
+      "noBackpack": "no backpack equipped",
+      "noBackpackTitle": "Backpack required",
+      "noBackpackDetail": "Buy and equip a backpack before mining {coords}"
+    },
+    "chainSession": {
+      "eyebrow": "Mining Session",
+      "title": "Set mining session SOL",
+      "body": "Mining can create or expand Solana chunk storage accounts. This SOL is sent from your wallet to your browser session signer so mining can submit transactions without asking you to sign every block.",
+      "pointStorage": "The spending is Solana network cost: transaction fees and rent-exempt storage deposits for chunk PDAs.",
+      "pointProject": "It is not paid to the NiceChunk project wallet, and the project cannot withdraw your session balance.",
+      "pointControl": "Your main wallet only signs this setup or a later top-up; block mining is then signed by your temporary session key.",
+      "amountLabel": "Session funding amount",
+      "minimum": "Minimum: {amount} SOL",
+      "currentUnknown": "Current session balance: unknown",
+      "current": "Current session balance: {balance} SOL",
+      "mobileBody": "Mobile browser signing requires opening this page inside a wallet app browser.",
+      "openPhantom": "Open in Phantom",
+      "openSolflare": "Open in Solflare",
+      "openBackpack": "Open in Backpack",
+      "cancel": "Cancel",
+      "confirm": "Confirm and continue mining"
+    },
+    "chat": {
+      "input": "Сообщение или команда отладки",
+      "placeholder": "Сообщение или /команда",
+      "open": "Открыть чат и команды",
+      "close": "Закрыть чат",
+      "send": "Отправить",
+      "commandHint": "Команды отладки можно вводить напрямую, например /debug.",
+      "guardianRequired": "Подключитесь к Хранителю перед отправкой сообщения.",
+      "debugUnavailable": "Команды отладки недоступны в этом клиенте.",
+      "submitFailed": "Не удалось отправить сообщение или команду."
+    },
+    "hotbar": "Панель быстрого доступа",
+    "chunks": "{active}/{known} чанков",
+    "fps": "{fps} FPS",
+    "item": {
+      "empty": "Пустая рука",
+      "iron_pickaxe": "Железная кирка",
+      "dirt": "Земля",
+      "stone": "Камень",
+      "sand": "Песок",
+      "trunk": "Бревно",
+      "leaves": "Листья",
+      "red_flower": "Красный цветок",
+      "forged_item": "Кованый предмет",
+      "backpack": "Рюкзак",
+      "backpack_resource": "Mined Resource",
+      "market_phone": "Market Phone"
+    },
+    "hotbarSlot": {
+      "empty": "Слот {slot}: пусто",
+      "item": "Слот {slot}: {item}",
+      "detail": "Слот {slot}: {item}, {amount}",
+      "durability": "Прочность {value}",
+      "count": "Количество {value}"
+    },
+    "backpack": {
+      "eyebrow": "Inventory Tool",
+      "title": "Backpack",
+      "close": "Close backpack",
+      "slots": "Backpack slots",
+      "emptySlot": "Backpack slot {slot}: Empty",
+      "detailLine": "Coordinates {source}",
+      "emptyDetail": "Select an item to inspect it.",
+      "emptyDetailTitle": "No resource selected",
+      "emptyHintSelect": "Select slot",
+      "emptyHintInspect": "Inspect origin",
+      "emptyHintSmelt": "Smelt later",
+      "itemType": "Item",
+      "unknownSource": "Unknown source",
+      "coordinateResource": "Coordinate Resource",
+      "totalWeight": "Weight: {weight}",
+      "massLine": "Mass {mass}",
+      "sizeLine": "Size {size}",
+      "volumeLine": "Volume {volume}",
+      "quantityLine": "Quantity {count}",
+      "itemIdLine": "Item ID {id}",
+      "materialIdLine": "Material {id}",
+      "unknownMass": "Unknown",
+      "unknownSize": "Unknown",
+      "materialPropertyLine": "{grade} grade · Purity {purity}/100",
+      "equipped": "Экипировано",
+      "equippedSlot": "Экипировано в ячейке {slot} панели",
+      "equippedLocked": "Экипировано в ячейке {slot} панели. Снимите предмет перед выбором, перемещением или удалением."
+    },
+    "loading": {
+      "eyebrow": "World Gateway",
+      "title": "Preparing NiceChunk world",
+      "boot": "Preparing player session and voxel engine.",
+      "session": "Validating wallet access before entering the world.",
+      "i18n": "Fetching the game interface dictionary.",
+      "engine": "Creating renderer, materials, avatar, lighting, and input systems.",
+      "chunks": "Generating terrain, water, trees, and first visible chunk meshes.",
+      "ready": "First frame rendered. Entering NiceChunk.",
+      "bytesKnown": "Transferred {loaded} / {total}",
+      "bytesUnknown": "Transferred {loaded}",
+      "stages": {
+        "boot": {
+          "title": "Запуск клиента",
+          "body": "Preparing player session and voxel engine."
+        },
+        "session": {
+          "title": "Checking session",
+          "body": "Validating wallet access before entering the world."
+        },
+        "version": {
+          "title": "Checking client version",
+          "body": "Making sure the latest game client is loaded."
+        },
+        "language": {
+          "title": "Загрузка языка",
+          "body": "Fetching the game interface dictionary."
+        },
+        "worldConfig": {
+          "title": "Reading world parameters",
+          "body": "Loading the on-chain world seed and terrain configuration."
+        },
+        "chainSync": {
+          "title": "Синхронизация данных блокчейна",
+          "body": "Loading visible chunk resource changes before rendering the world."
+        },
+        "engine": {
+          "title": "Запуск воксельного движка",
+          "body": "Creating renderer, materials, avatar, lighting, and input systems."
+        },
+        "chunks": {
+          "title": "Создание видимых чанков",
+          "body": "Generating terrain, water, trees, and first visible chunk meshes."
+        },
+        "ready": {
+          "title": "Мир готов",
+          "body": "First frame rendered. Entering NiceChunk."
+        },
+        "redirect": {
+          "title": "Opening wallet gateway",
+          "body": "No active game session was found. Redirecting to wallet login."
+        }
+      },
+      "loader": {
+        "generatingWorld": "Создание мира",
+        "loading": "Загрузка",
+        "complete": "Готово",
+        "cached": "В кэше",
+        "failed": "Ошибка",
+        "failureMessage": "Не удалось загрузить файл игры.",
+        "retry": "Повторить",
+        "files": "{loaded} / {total} файлов",
+        "network": "Сеть"
+      }
+    },
+    "rpcConfig": {
+      "title": "Public RPC is overloaded",
+      "body": "Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.",
+      "link": "Get a Helius API key",
+      "explainerAria": "RPC setting details",
+      "pointGatewayLabel": "Chain gateway",
+      "pointGatewayTitle": "RPC decides how the browser reaches Solana",
+      "pointGatewayBody": "NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions. It does not change your wallet ownership.",
+      "pointReliabilityLabel": "Reliability",
+      "pointReliabilityTitle": "A private key avoids public endpoint congestion",
+      "pointReliabilityBody": "When many players share the public devnet RPC, reads and mining transactions can be throttled. Your own Helius key gives this browser a steadier route.",
+      "pointCostLabel": "Cost boundary",
+      "pointCostTitle": "The key is not a payment to NiceChunk",
+      "pointCostBody": "The API key is stored locally in your browser and used only to build your RPC URL. For normal NiceChunk gameplay, the Helius Free plan is usually enough. If you want higher limits and a smoother experience, you can use a paid Helius plan.",
+      "pointSecurityLabel": "Security",
+      "pointSecurityTitle": "RPC cannot spend SOL by itself",
+      "pointSecurityBody": "Transactions still require your wallet or game wallet signature. RPC only transports signed requests and chain data.",
+      "inputLabel": "Helius API key",
+      "placeholder": "Paste your Helius API key",
+      "save": "Save RPC",
+      "dismiss": "Dismiss RPC warning",
+      "publicRpcFailed": "Public devnet RPC is rate limited. Add a Helius API key to keep chain reads and mining transactions reliable.",
+      "invalid": "Enter a Helius API key before saving.",
+      "saved": "Saved. NiceChunk will use your Helius devnet RPC for chain calls."
+    },
+    "market": {
+      "open": "Открыть рынок",
+      "close": "Close market",
+      "refresh": "Refresh market listings",
+      "eyebrow": "Trade Terminal",
+      "title": "Рынок",
+      "tabs": "Market sections",
+      "browseTab": "Обзор",
+      "sellTab": "Продать",
+      "ordersTab": "Ордера",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Resource, equipment, coordinate",
+      "searchMetaIdle": "{category} · {currency} · {sort}",
+      "searchMetaActive": "{category} · {currency} · {sort} · \"{query}\"",
+      "chainListingsSyncing": "Syncing chain listings...",
+      "chainListingsSynced": "Chain listings synced",
+      "chainListingsUnavailable": "Chain sync unavailable",
+      "sortLabel": "Sort",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
+      "sortPriceAsc": "Price low to high",
+      "sortPriceDesc": "Price high to low",
+      "currencyFilterLabel": "Currency",
+      "currencyAll": "All currencies",
+      "currencyNck": "NCK",
+      "currencySol": "SOL",
+      "filters": "Market filters",
+      "browsePagination": "Browse listings pages",
+      "ordersPagination": "Order pages",
+      "pageSummary": "Showing {start}-{end} of {total}",
+      "pageIndicator": "Page {page} / {totalPages}",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "categoryAll": "All",
+      "categoryRaw": "Raw Materials",
+      "categoryEquipment": "Equipment",
+      "categoryBuilding": "Building Materials",
+      "categoryClothing": "Clothing",
+      "feeLabel": "Market Fee",
+      "feeValue": "1%",
+      "settlement": "Preferred settlement: NCK",
+      "backpackCount": "{count}/{capacity}",
+      "sampleIron": "Iron Ore Fragment",
+      "sampleIronMeta": "Raw material",
+      "samplePickaxe": "Forged Pickaxe",
+      "samplePickaxeMeta": "Tool · Rare",
+      "sampleBrick": "Stone Brick Stack",
+      "sampleBrickMeta": "Building",
+      "sampleCloak": "Oak Leaf Block",
+      "sampleCloakMeta": "Clothing",
+      "buy": "Купить",
+      "buyNeedsWallet": "Connect a wallet to buy this listing.",
+      "buyNeedsBackpack": "Equip a backpack to buy this listing.",
+      "buyBackpackFull": "Your backpack is full.",
+      "buyPending": "Buying...",
+      "buyCreated": "Purchase confirmed on-chain: {signature}",
+      "buyFailed": "Buy transaction failed: {reason}",
+      "cancelListing": "Cancel",
+      "cancelNeedsBackpackSpace": "Free one backpack slot before canceling this listing.",
+      "ownListing": "Your listing",
+      "cancelCreated": "Listing canceled.",
+      "expandDetails": "Details",
+      "collapseDetails": "Hide details",
+      "detailTitle": "Listing details",
+      "detailClose": "Close listing details",
+      "cardAria": "{name}, {price} {currency}",
+      "detailItem": "Item",
+      "detailSeller": "Seller",
+      "detailSource": "Source",
+      "detailInventory": "Inventory",
+      "detailPayment": "Payment",
+      "detailRequirement": "Requirement",
+      "detailUnknown": "Unknown",
+      "paymentNck": "Requires a wallet NCK token account.",
+      "paymentSol": "Pays from wallet SOL balance.",
+      "sampleListing": "Sample listing",
+      "loadingListings": "Loading listings...",
+      "chainListingLoadFailed": "On-chain listings are temporarily unavailable.",
+      "chainListingName": "On-chain Resource Listing",
+      "chainListingMeta": "{source} slot {slot}",
+      "sourceBackpack": "Backpack",
+      "sourceEquipment": "Снаряжение",
+      "listingUnavailable": "listing unavailable",
+      "selfPurchase": "cannot buy your own listing",
+      "nckTokenMissing": "wallet has no NCK token account",
+      "sellSteps": "Sell listing steps",
+      "stepSelectItem": "1. Select Item",
+      "stepListingDraft": "2. Listing Draft",
+      "inventoryEyebrow": "Backpack",
+      "inventoryTitle": "Select one item to list",
+      "listingEyebrow": "Listing Draft",
+      "noSelection": "No item selected",
+      "categoryLabel": "Category",
+      "currencyLabel": "Currency",
+      "priceLabel": "Price",
+      "pricePlaceholder": "0.00",
+      "formHint": "Select an item, set category and price, then create an on-chain listing.",
+      "createListing": "Создать листинг",
+      "noOrders": "No active orders",
+      "noOrdersMeta": "Wallet orders will appear here.",
+      "noListings": "No listings match",
+      "noListingsMeta": "Try another category or search term.",
+      "noInventoryItems": "No listable items",
+      "noInventoryItemsMeta": "Equip a backpack and keep items in it to create listings.",
+      "emptyHintChain": "Chain sync",
+      "emptyHintPda": "PDA scan",
+      "emptyHintRetry": "Retry sync",
+      "emptyHintRpc": "RPC status",
+      "emptyHintFilters": "Adjust filters",
+      "emptyHintAll": "Show all",
+      "emptyHintWallet": "Wallet orders",
+      "emptyHintSettlement": "NCK / SOL",
+      "emptyHintBackpack": "Equip backpack",
+      "emptyHintResources": "Mine resources",
+      "emptyHintMarket": "Market terminal",
+      "emptyHintOnchain": "On-chain listings",
+      "invalidListing": "Select an item and enter a valid price.",
+      "listingPending": "Confirm the transaction to create this listing on-chain.",
+      "listingCreated": "Listing created on-chain: {signature}",
+      "listingFailed": "Listing transaction failed: {reason}",
+      "cancelPending": "Canceling...",
+      "cancelFailed": "Cancel transaction failed: {reason}"
+    },
+    "smelting": {
+      "open": "Открыть плавильню",
+      "close": "Закрыть плавильню",
+      "eyebrow": "Подготовка ковки",
+      "title": "Плавильная станция",
+      "modePreview": "Локальный просмотр",
+      "coreMeta": "Station Core: Forge Alpha | Thermal Level: Stable",
+      "safetyLabel": "Safety Protocols",
+      "safetyActive": "Thermal shield active",
+      "closeHint": "[ESC] Close",
+      "forgeHint": "[F] Forge",
+      "noBackpackShort": "Нет рюкзака",
+      "statusNoBackpack": "Экипируйте рюкзак перед плавкой.",
+      "noBackpackResources": "Экипируйте рюкзак перед плавкой ресурсов.",
+      "backpackCount": "{count}/{capacity}",
+      "inputEyebrow": "Ресурсы рюкзака",
+      "inputTitle": "Выберите добытый ресурс",
+      "resources": "Ресурсы для плавки",
+      "furnaceEyebrow": "Термоядро",
+      "furnaceTitle": "Рецепт",
+      "inputSlot": "Вход",
+      "inputSlotMass": "{label} · {mass}",
+      "fuelSlot": "Топливо",
+      "fuelTitle": "Топливо",
+      "fuel": "Топливо",
+      "fuelHeat": "Уровень жара {tier}",
+      "addInput": "Вход",
+      "addFuel": "Топливо",
+      "outputEyebrow": "Выход для ковки",
+      "outputTitle": "Просмотр материала",
+      "start": "Начать плавку",
+      "running": "Плавка...",
+      "statusIdle": "Select input and fuel.",
+      "statusSyncing": "Синхронизация экипированного рюкзака...",
+      "statusNoInput": "Выберите добытый ресурс.",
+      "statusNoFuel": "Добавьте подходящее топливо.",
+      "statusHeatMissing": "Топливо не достигает нужного жара.",
+      "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
+      "statusReady": "Готово к просмотру плавки.",
+      "statusRunning": "Нагрев образца...",
+      "statusComplete": "Просмотр материала завершен.",
+      "noResources": "В рюкзаке нет добытых ресурсов.",
+      "noFuel": "Нет подходящего топлива.",
+      "selectInput": "Выберите ресурс для просмотра выхода.",
+      "materialSource": "Mined material",
+      "resourceMassSize": "{mass} · {size}",
+      "dropInputHint": "Drag mined materials here",
+      "dropFuelHint": "Drag fuel blocks here",
+      "emptySyncTitle": "Syncing backpack",
+      "emptyNoBackpackTitle": "Backpack required",
+      "emptyNoResourcesTitle": "No smeltable resources",
+      "emptyNoFuelTitle": "Fuel missing",
+      "emptySelectInputTitle": "Awaiting material",
+      "emptyIdleTitle": "Station idle",
+      "emptyHintReadPda": "Reading PDA",
+      "emptyHintSlots": "Checking slots",
+      "emptyHintEquip": "Equip backpack",
+      "emptyHintMine": "Mine resources",
+      "emptyHintCoordinate": "Coordinate-bound",
+      "emptyHintWood": "Wood blocks",
+      "emptyHintBiomass": "Biomass",
+      "emptyHintSelect": "Select input",
+      "emptyHintPreview": "Preview output",
+      "emptyHintFuel": "Add fuel",
+      "outputName": "{kind} {resource}",
+      "outputDescription": "A forge-ready material batch derived from {resource}. Its element ranges stay tied to the original mined coordinate.",
+      "mixedBatch": "Mixed batch",
+      "batchBasis": "{inputs} inputs / {fuels} fuels",
+      "requiredHeat": "Нужный жар",
+      "servings": "Servings",
+      "outputSize": "Output size",
+      "yieldRange": "Диапазон выхода",
+      "outputRate": "Output rate",
+      "outputRateValue": "Recipe {recipePercent}% · skill loss {lossPercent}%",
+      "inputMass": "Масса входа {mass}",
+      "quality": "Основа качества",
+      "heatMet": "Tier {tier} met",
+      "heatMissing": "Tier {required} required, fuel {fuel}",
+      "noRecipeName": "Партия без рецепта",
+      "noRecipeDescription": "Выбранная партия пока не соответствует официальному рецепту плавки NiceChunk. Измените входные блоки по публичной таблице материалов.",
+      "recipeMatched": "Рецепт найден: {recipe}",
+      "recipeCandidate": "Кандидат рецепта: {recipe}.",
+      "statusRecipeIncomplete": "Кандидат {recipe}: не хватает {missing}.",
+      "statusRecipeExtra": "Кандидат {recipe}: уберите лишнее {extra}.",
+      "noRecipeMatch": "Для этой партии нет совпадения с публичным рецептом.",
+      "missingInputLabel": "{amount}x {resource}",
+      "previewOnly": "Только просмотр: контракт плавки еще не отправляется.",
+      "chainSubmitNotice": "On-chain smelting consumes selected inputs and fuel, then writes the forge material back into your equipped backpack.",
+      "submitFailed": "Smelting transaction failed: {reason}",
+      "submitComplete": "Smelting confirmed on-chain: {signature}",
+      "kindChar": "Карбонизированный",
+      "kindBiochar": "Биоуголь",
+      "kindCeramic": "Спеченный",
+      "kindBloom": "Очищенный",
+      "kindStabilized": "Стабилизированный",
+      "kindMaterial": "Обработанный",
+      "mobileTabsAria": "Smelting sections",
+      "tabBackpack": "Backpack",
+      "tabRecipes": "Recipes",
+      "tabFurnace": "Furnace",
+      "filterAria": "Smelting resource filters",
+      "filterAll": "All",
+      "filterRaw": "Raw",
+      "filterFuel": "Fuel",
+      "filterReady": "Ready",
+      "filterMissing": "Missing",
+      "recipesEyebrow": "Public Recipe Table",
+      "recipesTitle": "Match backpack inputs",
+      "recipeFilterAria": "Smelting recipe filters",
+      "recipeProgress": "{matched}/{required} inputs · input {volume} · heat tier {tier}",
+      "recipeRequirement": "{resource} {available}/{amount}",
+      "recipeRequirementVolume": "{resource} use {used} / have {available}",
+      "recipeServings": "Servings",
+      "recipeServingsValue": "{count}x",
+      "recipeOutputSize": "Output {size}",
+      "recipeOutputVolume": "Output volume {volume}",
+      "increaseServings": "Increase servings",
+      "decreaseServings": "Decrease servings",
+      "notReady": "Not ready",
+      "selectRecipe": "Select Recipe",
+      "findInputs": "Find Inputs",
+      "recipeReady": "Ready",
+      "recipeFuelMissing": "Missing fuel",
+      "recipeMissingInputs": "Missing {count} input slots",
+      "recipePartial": "Partial match",
+      "coordinateUnknown": "Coordinate unknown",
+      "closeDrawer": "Close item actions",
+      "singleItemCoordinate": "Single slot · {coord}",
+      "removeInput": "Remove Input",
+      "addInputFull": "Add Input",
+      "removeFuel": "Remove Fuel",
+      "useAsFuel": "Use as Fuel",
+      "viewRecipes": "View Recipes",
+      "purity": "Purity",
+      "grade": "Grade",
+      "tabInventory": "Инвентарь",
+      "tabSmelting": "Плавка",
+      "modeTabsAria": "Инвентарь и производство",
+      "smeltingSubtitle": "Объединяйте добытые ресурсы по публичным ончейн-рецептам.",
+      "chainAuthoritative": "Показаны только подтверждённые PDA ячейки рюкзака.",
+      "smeltingArea": "Зона плавки",
+      "inputMaterials": "Входные материалы",
+      "inputMaterialsLimit": "До 5 групп ингредиентов",
+      "autoFill": "Автозаполнение",
+      "clear": "Очистить",
+      "onChain": "Ончейн",
+      "output": "Выход",
+      "submitting": "Отправка в сеть...",
+      "submitCompleteShort": "Подтверждено в сети",
+      "recipeDetails": "Детали рецепта",
+      "requiredInputs": "Необходимые входы",
+      "qualityScore": "Качество",
+      "composition": "Состав",
+      "attributes": "Свойства материала",
+      "filterBuilding": "Строительство",
+      "ambientProcess": "Холодная обработка · {station}",
+      "noFuelRequired": "Топливо не требуется",
+      "processReady": "Обработка готова",
+      "statusReadyCold": "Готово к ончейн-обработке без топлива."
+    },
+    "materialGrade": {
+      "crude": "Crude",
+      "standard": "Standard",
+      "refined": "Refined",
+      "prime": "Prime",
+      "mythic": "Mythic"
+    },
+    "materialAttributes": {
+      "hardness": "Hardness",
+      "durability": "Durability",
+      "toughness": "Toughness",
+      "ductility": "Ductility",
+      "brittleness": "Brittleness",
+      "density": "Density",
+      "heatResistance": "Heat Resistance",
+      "corrosionResistance": "Corrosion Resistance",
+      "conductivity": "Conductivity",
+      "thermalConductivity": "Thermal Conductivity",
+      "magnetism": "Magnetism",
+      "workability": "Workability"
+    },
+    "backpackCreate": {
+      "title": "CREATE YOUR BACKPACK",
+      "capacity": "50 SLOTS",
+      "capacityDetail": "Expand storage for all your adventures.",
+      "warning": "Mining unavailable until backpack is created.",
+      "intro": "A backpack is required to store mined resources, tools, fuel, and crafted materials. Create one to unlock mining.",
+      "storeTitle": "STORE RESOURCES",
+      "storeDetail": "Collect and store all the resources you find.",
+      "miningTitle": "UNLOCK MINING",
+      "miningDetail": "Mining is locked until you have a backpack.",
+      "materialTitle": "CARRY MATERIALS",
+      "materialDetail": "Carry tools, materials, and crafted items.",
+      "previewTitle": "BACKPACK PREVIEW",
+      "previewCapacity": "50 / 50 SLOTS",
+      "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
+      "submit": "CREATE BACKPACK",
+      "learn": "LEARN MORE",
+      "hotbarHint": "Your backpack will appear here after creation!"
+    },
+    "block": {
+      "unknown": "Unknown Block",
+      "grass": "Grass",
+      "dirt": "Dirt",
+      "stone": "Stone",
+      "deepStone": "Deep Stone",
+      "coal": "Coal",
+      "sand": "Sand",
+      "sandstone": "Sandstone",
+      "gravel": "Gravel",
+      "clay": "Clay",
+      "mud": "Mud",
+      "dryDirt": "Dry Dirt",
+      "saltFlat": "Salt Flat",
+      "snow": "Snow",
+      "ice": "Ice",
+      "frozenSoil": "Frozen Soil",
+      "basalt": "Basalt",
+      "ash": "Ash",
+      "bedrock": "Bedrock",
+      "water": "Water",
+      "swampWater": "Swamp Water",
+      "toxicWater": "Toxic Water",
+      "lava": "Lava",
+      "quicksand": "Quicksand",
+      "trunk": "Log",
+      "trunkDark": "Dark Log",
+      "leaves": "Leaves",
+      "leavesDark": "Dark Leaves",
+      "leavesLight": "Light Leaves",
+      "leavesTeal": "Teal Leaves",
+      "leavesWarm": "Warm Leaves",
+      "pineTrunk": "Pine Log",
+      "pineLeaves": "Pine Leaves",
+      "snowLeaves": "Snowy Leaves",
+      "deadWood": "Dead Wood",
+      "giantRoot": "Giant Root",
+      "grassPlant": "Grass Plant",
+      "dryGrass": "Dry Grass",
+      "bush": "Bush",
+      "deadBush": "Dead Bush",
+      "cactus": "Cactus",
+      "reed": "Reed",
+      "swampGrass": "Swamp Grass",
+      "snowBush": "Snow Bush",
+      "thorn": "Thorn",
+      "moss": "Moss",
+      "lichen": "Lichen",
+      "vine": "Vine",
+      "glowMycelium": "Glow Mycelium",
+      "mushroom": "Mushroom",
+      "seaweed": "Seaweed",
+      "aquaticPlant": "Aquatic Plant",
+      "coral": "Coral",
+      "deadCoral": "Dead Coral",
+      "shellBed": "Shell Bed",
+      "flowerStem": "Flower Stem",
+      "flowerRed": "Красный цветок",
+      "flowerYellow": "Жёлтый цветок",
+      "flowerBlue": "Синий цветок",
+      "flowerWhite": "Белый цветок",
+      "cotton": "Хлопок",
+      "flowerPink": "Розовый цветок"
+    },
+    "equipment": {
+      "chainSaved": "Экипировка сохранена в сети ({signature}).",
+      "chainSaveFailed": "Не удалось сохранить экипировку в сети: {reason}."
+    }
+  },
+  "resourceSimulator": {
+    "resource": {
+      "gravel": "Crushed Stone"
+    },
+    "material": {
+      "stone": "Stone",
+      "dirt": "Dirt",
+      "sand": "Sand",
+      "unknown": "Unknown"
+    },
+    "debug": {
+      "aria": "Resource simulation debug log",
+      "enabled": "Debug mode enabled",
+      "reward": "{material} -> +{amount} {resource}",
+      "noReward": "{material} -> +0 resource"
+    },
+    "page": {
+      "title": "NiceChunk Resource Rules",
+      "navAria": "Resource navigation",
+      "enterWorld": "Enter World",
+      "worldRules": "World Rules",
+      "eyebrow": "OPEN RESOURCE RULES",
+      "heading": "Public rules for block-to-resource discovery.",
+      "body": "NiceChunk resource rules describe how destroyed blocks become materials. This page exposes the current rule manifest, a deterministic simulator, and the event shape that can later map to verifiable chain logic.",
+      "statusAria": "Simulator status",
+      "statusLabel": "Current active rule",
+      "statusValue": "Stone block -> 0.1 crushed stone",
+      "statusNote": "Deterministic local preview",
+      "statusGridAria": "Resource rule status",
+      "statusCard": {
+        "rule": "Rule ID",
+        "source": "Source Block",
+        "output": "Output Resource",
+        "verification": "Verification",
+        "local": "Local deterministic"
+      },
+      "ruleEyebrow": "RULE MANIFEST",
+      "ruleTitle": "Stone mining rule",
+      "inputMaterial": "Input material",
+      "outputResource": "Output resource",
+      "outputAmount": "Output amount",
+      "condition": "Condition",
+      "conditionValue": "Only destroyed stone blocks produce this resource.",
+      "simEyebrow": "DETERMINISTIC SIMULATOR",
+      "tryTitle": "Try a block submission",
+      "material": "Material",
+      "x": "X",
+      "y": "Y",
+      "z": "Z",
+      "simulate": "Simulate Discovery",
+      "resultReward": "{material} produces +{amount} {resource}.",
+      "resultNoReward": "{material} is not eligible for this rule.",
+      "flowEyebrow": "VERIFICATION FLOW",
+      "flowTitle": "How the test maps to the future contract",
+      "flow1": "The client submits the destroyed block coordinate and material.",
+      "flow2": "The simulator checks whether the material is stone.",
+      "flow3": "If eligible, it returns a deterministic resource reward.",
+      "flow4": "The game hotbar clears non-tool items and records the produced resource.",
+      "logEyebrow": "EVENT PAYLOAD",
+      "logTitle": "Debug event format"
+    }
+  },
+  "resourceAtlas": {
+    "nav": {
+      "aria": "Primary navigation",
+      "home": "Home",
+      "roadbook": "Roadbook",
+      "worldRules": "World Rules",
+      "resources": "Resources",
+      "elements": "Elements",
+      "fairness": "Fairness",
+      "proofOfFrontier": "Proof",
+      "guardians": "Guardians",
+      "docs": "Docs",
+      "enterWorld": "Enter World"
+    },
+    "page": {
+      "title": "NiceChunk Box Resource Atlas",
+      "eyebrow": "GENERATED BLOCK RESOURCE ATLAS",
+      "heading": "Every generated block is a public resource rule.",
+      "body": "NiceChunk maps terrain blocks into scientifically scoped resource foundations. Each block exposes its generation signal, likely elemental composition range, and role in the future mining and forging economy.",
+      "metricsAria": "Atlas status",
+      "workspaceAria": "Block resource atlas",
+      "modeAria": "Resource data mode",
+      "rawMode": "Raw Resources",
+      "materialMode": "Material Data",
+      "rawModeBody": "Raw resources are mined from generated blocks. They must be smelted into material resources before forging.",
+      "materialModeBody": "Material data defines fuel heat, smelting inputs, artisan requirements, and the forge-ready outputs created from raw resources.",
+      "filtersAria": "Atlas filters",
+      "filterTitle": "Block families",
+      "resultCount": "{count} shown",
+      "modelLabel": "Composition model",
+      "modelBody": "Ranges are material tendencies, not fixed rewards. Actual resource rolls can later use seed, coordinate, depth, biome, and chain-verified state.",
+      "searchLabel": "Search blocks, elements, or signals",
+      "searchPlaceholder": "Search grass, Si, volcanic...",
+      "empty": "No generated blocks match the current filters.",
+      "blockAria": "Open {name} resource details",
+      "compositionTitle": "Element composition range",
+      "physicalTitle": "Density and mass estimate",
+      "densityLabel": "Bulk density",
+      "dimensionsLabel": "Actual block dimensions",
+      "volumeLabel": "Calculated volume",
+      "massLabel": "Calculated mass",
+      "notAvailable": "Unknown",
+      "signalsTitle": "Generation signals",
+      "visualTitle": "Voxel visual gene",
+      "metric": {
+        "blocks": "Generated blocks",
+        "families": "Block families",
+        "elements": "Referenced elements",
+        "materials": "Smeltable materials",
+        "worldRules": "World rules",
+        "ruleSet": "Rule set"
+      },
+      "color": {
+        "0": "Primary face",
+        "1": "Side face",
+        "2": "Top highlight"
+      }
+    },
+    "material": {
+      "workspaceAria": "Material resource data",
+      "eyebrow": "SMELTING DATA",
+      "title": "Raw resources become forgeable materials.",
+      "body": "Raw resources cannot be forged directly. A smelter consumes fuel heat, checks the material recipe, then outputs material resources for item forging.",
+      "ruleSetLabel": "Rule source",
+      "contractBody": "This table is a standalone JSON rule source so the game client and future contracts can reference the same smelting requirements.",
+      "fuelTitle": "Fuel heat tiers",
+      "fuelBody": "Burnable fuels provide heat tiers. Higher tier recipes require stronger fuel or a hotter furnace source.",
+      "recipeTitle": "Material atlas",
+      "recipeBody": "Browse forge-ready materials by class, inspect their element profile, and review the smelting requirements behind each output.",
+      "atlasAria": "Material atlas",
+      "filtersAria": "Material filters",
+      "categoryTitle": "Material classes",
+      "allMaterials": "All Materials",
+      "resultCount": "{count} shown",
+      "searchLabel": "Search materials, classes, elements, or inputs",
+      "searchPlaceholder": "Search steel, Si, glass...",
+      "empty": "No material recipes match the current filters.",
+      "materialAria": "Open {name} material details",
+      "visualModelLabel": "Element color model",
+      "visualModelBody": "Material thumbnails are generated from the dominant elements in each recipe profile.",
+      "processTitle": "Smelting process",
+      "compositionTitle": "Material element profile",
+      "forgeUseTitle": "Forge unlock",
+      "sourceBlocksTitle": "Raw resource sources",
+      "heatLabel": "Heat",
+      "burnTimeLabel": "Burn time",
+      "sourceLabel": "Source",
+      "consumableLabel": "Use",
+      "consumable": "Consumable",
+      "reusable": "Reusable heat source",
+      "burnSeconds": "{seconds}s",
+      "requiredHeatLabel": "Required heat",
+      "artisanLevelLabel": "Artisan level",
+      "artisanLevel": "Level {level}",
+      "rawInputsLabel": "Raw inputs",
+      "catalystLabel": "Catalyst",
+      "yieldLabel": "Yield",
+      "yieldCount": "{count} batch",
+      "forgeUseLabel": "Forge role",
+      "inputAmount": "{amount}x {resource}",
+      "heatTierValue": "Tier {tier}: {name} ({temp} C)",
+      "heatTierShort": "Heat T{tier}",
+      "heatTier": {
+        "low": "Low kiln",
+        "workshop": "Workshop furnace",
+        "forge": "Forge heat",
+        "blast": "Blast heat",
+        "unknown": "Unknown heat"
+      },
+      "class": {
+        "carbon": "Carbon",
+        "ceramic": "Ceramic",
+        "glass": "Glass",
+        "metal": "Metal",
+        "alloy": "Alloy",
+        "fiber": "Fiber",
+        "polymer": "Polymer",
+        "chemical": "Chemical",
+        "composite": "Composite",
+        "crystal": "Crystal"
+      },
+      "forgeUse": {
+        "fuel": "High-density fuel and reducing agent",
+        "soilCatalyst": "Soil amendment, bio-reactor feed, and low-tier catalyst",
+        "mold": "Forge molds, bricks, and furnace lining",
+        "binding": "Heat-stable binder and ceramic additive",
+        "flux": "Smelting flux for cleaner melts and lower slag",
+        "masonry": "Structural blocks, kiln bodies, and field construction",
+        "lens": "Optics, windows, gauges, and fragile fittings",
+        "circuit": "Circuits, sensors, logic plates, and signal devices",
+        "cooling": "Cooling cells, stabilizers, and frost-grade fittings",
+        "toolHead": "Pickaxe heads, blades, tools, and structural fittings",
+        "conductor": "Conductive fittings, coils, and precision parts",
+        "armorPlate": "Armor plates, shields, and impact-resistant panels",
+        "magneticCore": "Magnetic cores, motor parts, and advanced mechanisms",
+        "reinforcement": "Light reinforcement plates and carbon inserts",
+        "weaponAndTool": "Durable tools, weapons, and armor plates",
+        "heatShield": "Heat shields, furnace lining, and high-temperature parts",
+        "sealedVessel": "Sealed vessels, toxic containment, and hazard tools",
+        "explosive": "Заряд для управляемой массовой выемки"
+      },
+      "fuel": {
+        "dry_grass": {
+          "name": "Dry Biomass",
+          "description": "Low heat starter fuel from dry grass, dead bush, or thorn. Useful for first kiln recipes."
+        },
+        "wood": {
+          "name": "Wood Fuel",
+          "description": "General workshop fuel made from logs, dead wood, or giant roots. Burns longer than grass fuel."
+        },
+        "charcoal": {
+          "name": "Charcoal",
+          "description": "Processed carbon fuel made from wood resources. Cleaner and steadier than raw wood."
+        },
+        "coal": {
+          "name": "Coal",
+          "description": "Deep stone seam fuel with strong forge heat. It is uncommon and suited for metal blooms."
+        },
+        "lava_heat": {
+          "name": "Lava Heat",
+          "description": "A non-consumed high heat source for blast-tier recipes, anchored to volcanic resources."
+        }
+      },
+      "item": {
+        "charcoal": {
+          "name": "Charcoal",
+          "description": "Carbonized wood material used as fuel, reducing agent, and early alloy support."
+        },
+        "biochar_compost": {
+          "name": "Biochar Compost",
+          "description": "Low-heat carbon and nutrient material made from leaves, moss, and mud for soil systems and biological stations."
+        },
+        "resin_binder": {
+          "name": "Resin Binder",
+          "description": "Pine and vine resin concentrate that binds fibers, seals vessels, and supports low-temperature composites."
+        },
+        "ceramic_brick": {
+          "name": "Ceramic Brick",
+          "description": "Fired clay and sand material for furnace walls, molds, and basic construction recipes."
+        },
+        "lime_ceramic": {
+          "name": "Lime Ceramic",
+          "description": "Shell-bed lime and clay ceramic used as a heat-stable binder and refractory additive."
+        },
+        "quicklime": {
+          "name": "Quicklime",
+          "description": "Reactive calcium-rich lime fired from shells and coral, useful as flux, mortar base, and chemical reagent."
+        },
+        "salt_flux": {
+          "name": "Salt Flux",
+          "description": "Salt-flat and ash flux that helps smelting separate slag and stabilizes cleaner metal batches."
+        },
+        "ash_cement": {
+          "name": "Ash Cement",
+          "description": "Volcanic ash, clay, and shell lime binder for masonry, furnace shells, and heat-stable construction."
+        },
+        "glass_ingot": {
+          "name": "Glass Ingot",
+          "description": "Silica-rich glass stock for lenses, windows, gauges, and fragile technical parts."
+        },
+        "obsidian_glass": {
+          "name": "Obsidian Glass",
+          "description": "Dark volcanic glass made from silica and basalt under lava heat, suited to durable optics and sealed panes."
+        },
+        "silicon_wafer": {
+          "name": "Silicon Wafer",
+          "description": "Purified silicon plate reduced with carbon, intended for circuits, sensors, and future signal devices."
+        },
+        "ice_crystal": {
+          "name": "Ice Crystal",
+          "description": "Stabilized ice and salt crystal for cooling cells, frost tools, and thermal-control assemblies."
+        },
+        "iron_bloom": {
+          "name": "Iron Bloom",
+          "description": "Forge-ready iron mass reduced from deep stone and stone with coal as the carbon reducer."
+        },
+        "copper_bloom": {
+          "name": "Copper Bloom",
+          "description": "Conductive metal bloom concentrated from gravel and basalt trace metal tendencies."
+        },
+        "alumina_plate": {
+          "name": "Alumina Plate",
+          "description": "Aluminum-rich ceramic plate from clay and deep stone, useful for impact panels and insulated fittings."
+        },
+        "nickel_iron": {
+          "name": "Nickel Iron",
+          "description": "Magnetic iron alloy refined from deep stone and basalt trace metals for motors and advanced mechanisms."
+        },
+        "carbon_plate": {
+          "name": "Carbon Plate",
+          "description": "Compressed coal and deep stone carbon material for light reinforcement and inserts."
+        },
+        "carbon_steel": {
+          "name": "Carbon Steel",
+          "description": "High-tier steel billet made from deep stone iron tendency and coal carbon control."
+        },
+        "basalt_fiber": {
+          "name": "Basalt Fiber",
+          "description": "Pulled volcanic fiber from basalt and lava heat, suited to heat shields and furnace parts."
+        },
+        "basalt_composite": {
+          "name": "Basalt Composite",
+          "description": "High-heat basalt, carbon, and resin composite for armor panels, shields, and durable housings."
+        },
+        "geopolymer_block": {
+          "name": "Geopolymer Block",
+          "description": "Ash, basalt, and salt-activated stone composite for strong masonry and kiln bodies."
+        },
+        "coral_lime": {
+          "name": "Coral Lime",
+          "description": "Calcium-rich coral and sand ceramic for marine masonry, mortar, and heat-stable blocks."
+        },
+        "toxic_glass": {
+          "name": "Toxic Glass",
+          "description": "Sealed hazardous glass from toxic water, salt, and silica, intended for containment vessels and risk tools."
+        },
+        "cotton": {
+          "name": "Хлопок"
+        },
+        "flowerWhite": {
+          "name": "Белый цветок"
+        },
+        "flowerYellow": {
+          "name": "Жёлтый цветок"
+        },
+        "flowerRed": {
+          "name": "Красный цветок"
+        },
+        "flowerBlue": {
+          "name": "Синий цветок"
+        },
+        "flowerPink": {
+          "name": "Розовый цветок"
+        },
+        "cotton_cloth": {
+          "name": "Хлопковая ткань",
+          "description": "Ткань из хлопка и сухой травы для гибкого кованого снаряжения и анимированных тканевых поверхностей."
+        },
+        "white_dye": {
+          "name": "Белый краситель",
+          "description": "Светлый цветочный пигмент для окрашивания ткани во время ковки."
+        },
+        "yellow_dye": {
+          "name": "Жёлтый краситель",
+          "description": "Тёплый жёлтый цветочный пигмент для окрашивания ткани во время ковки."
+        },
+        "red_dye": {
+          "name": "Красный краситель",
+          "description": "Яркий красный цветочный пигмент для окрашивания ткани во время ковки."
+        },
+        "blue_dye": {
+          "name": "Синий краситель",
+          "description": "Холодный синий цветочный пигмент для окрашивания ткани во время ковки."
+        },
+        "pink_dye": {
+          "name": "Розовый краситель",
+          "description": "Мягкий розовый цветочный пигмент для окрашивания ткани во время ковки."
+        },
+        "wooden_plank": {
+          "name": "Деревянная доска",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "wooden_stick": {
+          "name": "Деревянная рейка",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "squared_timber": {
+          "name": "Квадратный брус",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "clear_glass_panel": {
+          "name": "Панель прозрачного стекла",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "ice_blue_glass_panel": {
+          "name": "Панель ледяного синего стекла",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "amber_glass_panel": {
+          "name": "Панель янтарного стекла",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "basalt_reinforced_glass": {
+          "name": "Стекло, армированное базальтом",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "fired_clay_brick": {
+          "name": "Обожжённый глиняный кирпич",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "adobe_brick": {
+          "name": "Саманный кирпич",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "stone_brick": {
+          "name": "Каменный кирпич",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "deep_stone_brick": {
+          "name": "Кирпич из глубинного камня",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "basalt_brick": {
+          "name": "Базальтовый кирпич",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "sandstone_block": {
+          "name": "Блок тёсаного песчаника",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "cobblestone": {
+          "name": "Булыжник",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "polished_stone_slab": {
+          "name": "Полированная каменная плита",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "lime_plaster": {
+          "name": "Известковая штукатурка",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "clay_plaster": {
+          "name": "Глиняная штукатурка",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "rammed_earth": {
+          "name": "Утрамбованная земля",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "shell_terrazzo": {
+          "name": "Плита ракушечного терраццо",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "white_ceramic_tile": {
+          "name": "Белая керамическая плитка",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "blue_ceramic_tile": {
+          "name": "Синяя керамическая плитка",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "volcanic_ash_concrete": {
+          "name": "Бетон из вулканического пепла",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "salt_crystal_block": {
+          "name": "Блок кристаллической соли",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_terracotta": {
+          "name": "Терракотовая черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_ice_blue": {
+          "name": "Ледяная синяя глазурованная черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_shell_white": {
+          "name": "Ракушечно-белая глазурованная черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_charcoal": {
+          "name": "Угольно-чёрная глазурованная черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_ash_gray": {
+          "name": "Пепельно-серая глазурованная черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "roof_tile_mycelium": {
+          "name": "Светящаяся мицелиевая черепица",
+          "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+        },
+        "blasting_charge": {
+          "name": "Взрывной заряд",
+          "description": "Компактный шахтный заряд на смоляной связке для управляемой разработки нескольких блоков. Его формула NiceChunk намеренно вымышленная."
+        }
+      }
+    },
+    "drop": {
+      "eyebrow": "CHAIN DROP TABLE",
+      "title": "Civilization rules can add rare extra drops without growing terrain code.",
+      "body": "The canonical terrain algorithm still defines the mined base block. A compact on-chain drop table can add deterministic extra rewards by source block, altitude, depth, seeded probability, and the player's Exploration level.",
+      "ruleSetLabel": "Rule set",
+      "contractBody": "This PDA is designed for the civilization system: approved proposals append bounded rule bytes instead of redeploying the mining program.",
+      "source": "Source",
+      "extraDrop": "Extra drop",
+      "chance": "Base chance",
+      "size": "Drop size",
+      "altitude": "Altitude",
+      "depth": "Depth",
+      "detailTitle": "Extra drop sources",
+      "detailBody": "On chain this is designed as compact {ruleSet} bytes: source resource, base probability, sample size window, altitude window, and depth window. Final roll weight gains +10% per Exploration level.",
+      "chanceValue": "{value}%",
+      "sizeValue": "{min} to {max}",
+      "rangeValue": "{min} to {max}"
+    },
+    "category": {
+      "all": "All Blocks",
+      "terrain": "Terrain",
+      "fluids": "Fluids",
+      "geological": "Geological",
+      "cold": "Cold",
+      "volcanic": "Volcanic",
+      "organic": "Organic",
+      "plants": "Plants",
+      "aquatic": "Aquatic",
+      "anomaly": "Rare / Anomaly"
+    },
+    "rarity": {
+      "Common": "Common",
+      "Uncommon": "Uncommon",
+      "Rare": "Rare",
+      "Anomaly": "Anomaly"
+    },
+    "signal": {
+      "temperature": "Temperature",
+      "humidity": "Humidity",
+      "altitude": "Altitude",
+      "slope": "Slope",
+      "rarity": "Rarity"
+    },
+    "block": {
+      "grass": {
+        "name": "Блок травы",
+        "source": "Поверхность",
+        "description": "Живой верхний почвенный блок: силикатная почва под тонким биологическим слоем, сформированным влажностью, уклоном и плотностью леса."
+      },
+      "dirt": {
+        "name": "Почва",
+        "source": "Мелкий подземный слой",
+        "description": "Выветренная почва под травой, смешанная с силикатными зернами, глинами, оксидами железа, влагой и органическими остатками."
+      },
+      "stone": {
+        "name": "Камень",
+        "source": "Подземный слой",
+        "description": "Обычная силикатная порода для холмов, скал, стен пещер и базового геологического материала при добыче."
+      },
+      "deepStone": {
+        "name": "Глубинный камень",
+        "source": "Глубокий подземный слой",
+        "description": "Плотная порода нижних пластов с повышенной склонностью к железу и магнию, генерируемая ниже мелкой коры."
+      },
+      "sand": {
+        "name": "Песок",
+        "source": "Поверхность",
+        "description": "Кварцевый зернистый осадок, создаваемый правилами пустынь, пляжей, рек, озер и морского дна."
+      },
+      "gravel": {
+        "name": "Гравий",
+        "source": "Поверхность / Подземный слой",
+        "description": "Смешанные обломки пород; состав сильно меняется по соседнему рельефу, но остается в основном силикатным."
+      },
+      "clay": {
+        "name": "Глина",
+        "source": "Влажная поверхность / Подземный слой",
+        "description": "Мелкий гидратированный алюмосиликатный осадок во влажных, пологих местах и слоях рядом с водой."
+      },
+      "mud": {
+        "name": "Грязь",
+        "source": "Влажная поверхность",
+        "description": "Почва с высоким содержанием воды и органики, характерная для низких плохо дренированных экосистем с малым доступом кислорода."
+      },
+      "dryDirt": {
+        "name": "Сухая почва",
+        "source": "Сухая поверхность",
+        "description": "Высушенная почва с меньшей долей водорода и органики, создаваемая правилами низкой влажности."
+      },
+      "saltFlat": {
+        "name": "Солончак",
+        "source": "Пустынный участок",
+        "description": "Эвапоритовая корка сухого бассейна, где преобладает хлорид натрия с примесями магния, кальция, сульфатов и кислородных солей."
+      },
+      "snow": {
+        "name": "Снег",
+        "source": "Холодная поверхность",
+        "description": "Слой замерзших осадков выше снеговой линии или в холодном биоме, возможно с следами минеральной пыли."
+      },
+      "ice": {
+        "name": "Лед",
+        "source": "Замерзшая жидкость / Редкая поверхность",
+        "description": "Твердая фаза воды, выбранная холодными жидкостями и редкими снежными правилами; химически проста, но важна для среды."
+      },
+      "frozenSoil": {
+        "name": "Мерзлая почва",
+        "source": "Холодная поверхность / Подземный слой",
+        "description": "Почва типа вечной мерзлоты, смешивающая минеральные зерна, связанный лед и сохраненную органику."
+      },
+      "basalt": {
+        "name": "Базальт",
+        "source": "Вулканическая поверхность / Подземный слой",
+        "description": "Темная мафическая вулканическая порода из быстро остывшей лавы, с большей склонностью к железу, магнию, кальцию и титану."
+      },
+      "ash": {
+        "name": "Вулканический пепел",
+        "source": "Вулканическая поверхность",
+        "description": "Мелкие вулканические частицы из вулканических биомов, похожие на силикатную породу, но более пористые и склонные к сульфатам."
+      },
+      "bedrock": {
+        "name": "Коренная порода",
+        "source": "Основание мира",
+        "description": "Протокольный фундаментальный слой в основании генерируемых колонн; ведет себя как твердая порода, а не фиксированное химическое месторождение."
+      },
+      "water": {
+        "name": "Вода",
+        "source": "Жидкость",
+        "description": "Стандартный жидкий блок для океанов, рек, озер и низинных вод, с небольшими различиями растворенных ионов по биому."
+      },
+      "swampWater": {
+        "name": "Болотная вода",
+        "source": "Болотная жидкость",
+        "description": "Органически богатая стоячая вода из правил болот и влажных земель, со следами растворенного углерода, серы, железа и азота."
+      },
+      "toxicWater": {
+        "name": "Токсичная вода",
+        "source": "Загрязненная жидкость",
+        "description": "Опасная жидкость, выбранная сигналами загрязнения. Основой остается вода, но следовые металлы и сульфиды повышают биологический риск."
+      },
+      "lava": {
+        "name": "Лава",
+        "source": "Вулканическая жидкость",
+        "description": "Расплавленная силикатная жидкость из вулканических сигналов. Состав следует базальтовому расплаву, а не условному фэнтезийному огню."
+      },
+      "quicksand": {
+        "name": "Зыбучий песок",
+        "source": "Пустынная поверхность",
+        "description": "Водонасыщенная песчаная ловушка из пустынной аномальности; в основном кремнезем с водой, снижающей механическую устойчивость."
+      },
+      "trunk": {
+        "name": "Ствол",
+        "source": "Дерево",
+        "description": "Древесная структурная ткань широколиственных деревьев, состоящая главным образом из целлюлозы, лигнина, воды и минеральных питательных веществ."
+      },
+      "leaves": {
+        "name": "Листья",
+        "source": "Крона дерева",
+        "description": "Фотосинтетические блоки кроны; органическая ткань с магниевым хлорофиллом и питательными следовыми металлами."
+      },
+      "pineTrunk": {
+        "name": "Сосновый ствол",
+        "source": "Сосна",
+        "description": "Смолистая древесина хвойного дерева, создаваемая холодными, высокогорными или вечнозелеными правилами."
+      },
+      "pineLeaves": {
+        "name": "Сосновая хвоя",
+        "source": "Крона сосны",
+        "description": "Вечнозеленая хвойная крона с меньшим водообменом и следами минеральных питательных веществ."
+      },
+      "deadWood": {
+        "name": "Мертвая древесина",
+        "source": "Вулканическая / сухая растительность",
+        "description": "Высушенная или перегретая древесина с меньшим содержанием водорода и большей долей открытого углерода."
+      },
+      "giantRoot": {
+        "name": "Гигантский корень",
+        "source": "Растительность тропического леса",
+        "description": "Большая открытая корневая масса из влажных тропических лесов; древесная, но у почвы более влажная и минерализованная."
+      },
+      "grassPlant": {
+        "name": "Травянистое растение",
+        "source": "Поверхностная растительность",
+        "description": "Малое травянистое растение, выбранное влажными и пологими поверхностными правилами."
+      },
+      "dryGrass": {
+        "name": "Сухая трава",
+        "source": "Сухая растительность",
+        "description": "Высушенный травянистый материал с низковлажных поверхностей, с меньшим водородом и более высокой концентрацией углерода."
+      },
+      "bush": {
+        "name": "Куст",
+        "source": "Поверхностная растительность",
+        "description": "Древесный кустарниковый слой из правил леса, равнин, гор и тропического леса."
+      },
+      "deadBush": {
+        "name": "Сухой куст",
+        "source": "Сухая / вулканическая растительность",
+        "description": "Высохший остаток кустарника, создаваемый пустынными и вулканическими поверхностными условиями."
+      },
+      "cactus": {
+        "name": "Кактус",
+        "source": "Пустынная растительность",
+        "description": "Запасающий воду суккулент из пустынных правил; органический, но с необычно высокой долей связанной воды."
+      },
+      "reed": {
+        "name": "Камыш",
+        "source": "Прибрежная растительность",
+        "description": "Водное краевое растение, генерируемое рядом с болотами, реками, озерами и влажными землями."
+      },
+      "swampGrass": {
+        "name": "Болотная трава",
+        "source": "Болотная поверхность",
+        "description": "Травяной слой влажных земель с органической тканью и осадочным влиянием стоячей воды."
+      },
+      "snowBush": {
+        "name": "Снежный куст",
+        "source": "Холодная растительность",
+        "description": "Холодостойкий куст, часто окрашенный снегом или инеем и выбранный горными и снежными правилами."
+      },
+      "thorn": {
+        "name": "Колючка",
+        "source": "Сухая / вулканическая растительность",
+        "description": "Затвердевший защитный растительный материал сухих или вулканических поверхностей, богатый углеродной структурной тканью."
+      },
+      "moss": {
+        "name": "Мох",
+        "source": "Влажная поверхность / Пещера",
+        "description": "Влажный недревесный биологический мат из влажных лесов, болот и правил рядом с пещерами."
+      },
+      "lichen": {
+        "name": "Лишайник",
+        "source": "Холодная / каменная поверхность",
+        "description": "Симбиотическая корка холодных или каменных поверхностей, соединяющая биологическую ткань и минеральный субстрат."
+      },
+      "vine": {
+        "name": "Лиана",
+        "source": "Влажная растительность",
+        "description": "Гибкое углеродистое вьющееся растение, генерируемое во влажных биомах и влажных пещероподобных областях."
+      },
+      "glowMycelium": {
+        "name": "Светящийся мицелий",
+        "source": "Пещерная растительность",
+        "description": "Биолюминесцентный грибной мат из влажных подземных пространств, с усиленными сигналами фосфора и серы."
+      },
+      "mushroom": {
+        "name": "Гриб",
+        "source": "Влажная / пещерная растительность",
+        "description": "Плодовое тело гриба, выбранное редкими случайными результатами влажной растительности."
+      },
+      "seaweed": {
+        "name": "Морские водоросли",
+        "source": "Морская растительность",
+        "description": "Морская растительная биомасса под водой, с следовыми тенденциями натрия, калия, магния и йода."
+      },
+      "aquaticPlant": {
+        "name": "Водное растение",
+        "source": "Пресноводная растительность",
+        "description": "Пресноводная растительность с высоким содержанием воды, поглощающая питательные вещества из осадка."
+      },
+      "coral": {
+        "name": "Коралл",
+        "source": "Теплая морская растительность",
+        "description": "Структура из карбоната кальция, создаваемая в теплых мелководных условиях."
+      },
+      "deadCoral": {
+        "name": "Мертвый коралл",
+        "source": "Холодная / загрязненная морская растительность",
+        "description": "Мертвый карбонатно-кальциевый рифовый материал из холодных или загрязненных океанских правил."
+      },
+      "shellBed": {
+        "name": "Ракушечный слой",
+        "source": "Редкий пляж / Морское дно",
+        "description": "Накопление фрагментов раковин и карбонатных зерен, создаваемое как редкие пятна побережья и морского дна."
+      },
+      "coal": {
+        "name": "Coal",
+        "source": "Deep Stone Seam",
+        "description": "Carbon-rich sedimentary fuel generated as low-frequency seams inside deep stone, useful for smelting heat rather than direct forging."
+      },
+      "cotton": {
+        "name": "Хлопок"
+      },
+      "flowerWhite": {
+        "name": "Белый цветок"
+      },
+      "flowerYellow": {
+        "name": "Жёлтый цветок"
+      },
+      "flowerRed": {
+        "name": "Красный цветок"
+      },
+      "flowerBlue": {
+        "name": "Синий цветок"
+      },
+      "flowerPink": {
+        "name": "Розовый цветок"
+      }
+    },
+    "tag": {
+      "plains": "Равнины",
+      "forest": "Лес",
+      "rainforest": "Тропический лес",
+      "general": "Общее",
+      "mountain": "Горы",
+      "cave": "Пещера",
+      "foundation": "Основание",
+      "deepCave": "Глубокая пещера",
+      "desert": "Пустыня",
+      "beach": "Пляж",
+      "river": "Река",
+      "oceanFloor": "Морское дно",
+      "wetland": "Влажные земли",
+      "swamp": "Болото",
+      "lake": "Озеро",
+      "desertEdge": "Край пустыни",
+      "dryPlains": "Сухие равнины",
+      "evaporite": "Эвапорит",
+      "snowfield": "Снежное поле",
+      "tundra": "Тундра",
+      "frozenWater": "Замерзшая вода",
+      "volcano": "Вулкан",
+      "deepRock": "Глубинная порода",
+      "ejecta": "Выбросы",
+      "unbreakable": "Неразрушимое",
+      "ocean": "Океан",
+      "corruption": "Загрязнение",
+      "heat": "Жар",
+      "hazard": "Опасность",
+      "tree": "Дерево",
+      "dryBiome": "Сухой биом",
+      "rareOrganic": "Редкая органика",
+      "succulent": "Суккулент",
+      "hazardPlant": "Опасное растение",
+      "humid": "Влажно",
+      "bioluminescent": "Биолюминесценция",
+      "aquatic": "Водное",
+      "warmWater": "Теплая вода",
+      "rare": "Редкое",
+      "coldWater": "Холодная вода"
+    }
+  },
+  "elements": {
+    "names": {
+      "H": "Hydrogen",
+      "He": "Helium",
+      "Li": "Lithium",
+      "Be": "Beryllium",
+      "B": "Boron",
+      "C": "Carbon",
+      "N": "Nitrogen",
+      "O": "Oxygen",
+      "F": "Fluorine",
+      "Ne": "Neon",
+      "Na": "Sodium",
+      "Mg": "Magnesium",
+      "Al": "Aluminium",
+      "Si": "Silicon",
+      "P": "Phosphorus",
+      "S": "Sulfur",
+      "Cl": "Chlorine",
+      "Ar": "Argon",
+      "K": "Potassium",
+      "Ca": "Calcium",
+      "Sc": "Scandium",
+      "Ti": "Titanium",
+      "V": "Vanadium",
+      "Cr": "Chromium",
+      "Mn": "Manganese",
+      "Fe": "Iron",
+      "Co": "Cobalt",
+      "Ni": "Nickel",
+      "Cu": "Copper",
+      "Zn": "Zinc",
+      "Ga": "Gallium",
+      "Ge": "Germanium",
+      "As": "Arsenic",
+      "Se": "Selenium",
+      "Br": "Bromine",
+      "Kr": "Krypton",
+      "Rb": "Rubidium",
+      "Sr": "Strontium",
+      "Y": "Yttrium",
+      "Zr": "Zirconium",
+      "Nb": "Niobium",
+      "Mo": "Molybdenum",
+      "Tc": "Technetium",
+      "Ru": "Ruthenium",
+      "Rh": "Rhodium",
+      "Pd": "Palladium",
+      "Ag": "Silver",
+      "Cd": "Cadmium",
+      "In": "Indium",
+      "Sn": "Tin",
+      "Sb": "Antimony",
+      "Te": "Tellurium",
+      "I": "Iodine",
+      "Xe": "Xenon",
+      "Cs": "Caesium",
+      "Ba": "Barium",
+      "La": "Lanthanum",
+      "Ce": "Cerium",
+      "Pr": "Praseodymium",
+      "Nd": "Neodymium",
+      "Pm": "Promethium",
+      "Sm": "Samarium",
+      "Eu": "Europium",
+      "Gd": "Gadolinium",
+      "Tb": "Terbium",
+      "Dy": "Dysprosium",
+      "Ho": "Holmium",
+      "Er": "Erbium",
+      "Tm": "Thulium",
+      "Yb": "Ytterbium",
+      "Lu": "Lutetium",
+      "Hf": "Hafnium",
+      "Ta": "Tantalum",
+      "W": "Tungsten",
+      "Re": "Rhenium",
+      "Os": "Osmium",
+      "Ir": "Iridium",
+      "Pt": "Platinum",
+      "Au": "Gold",
+      "Hg": "Mercury",
+      "Tl": "Thallium",
+      "Pb": "Lead",
+      "Bi": "Bismuth",
+      "Po": "Polonium",
+      "At": "Astatine",
+      "Rn": "Radon",
+      "Fr": "Francium",
+      "Ra": "Radium",
+      "Ac": "Actinium",
+      "Th": "Thorium",
+      "Pa": "Protactinium",
+      "U": "Uranium",
+      "Np": "Neptunium",
+      "Pu": "Plutonium",
+      "Am": "Americium",
+      "Cm": "Curium",
+      "Bk": "Berkelium",
+      "Cf": "Californium",
+      "Es": "Einsteinium",
+      "Fm": "Fermium",
+      "Md": "Mendelevium",
+      "No": "Nobelium",
+      "Lr": "Lawrencium",
+      "Rf": "Rutherfordium",
+      "Db": "Dubnium",
+      "Sg": "Seaborgium",
+      "Bh": "Bohrium",
+      "Hs": "Hassium",
+      "Mt": "Meitnerium",
+      "Ds": "Darmstadtium",
+      "Rg": "Roentgenium",
+      "Cn": "Copernicium",
+      "Nh": "Nihonium",
+      "Fl": "Flerovium",
+      "Mc": "Moscovium",
+      "Lv": "Livermorium",
+      "Ts": "Tennessine",
+      "Og": "Oganesson"
+    },
+    "description": {
+      "H": {
+        "short": "Hydrogen is a nonmetal resource foundation used for fuel cells, hydrogen storage, life chemistry, rocket propellant, and organic synthesis in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Hydrogen should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "He": {
+        "short": "Helium is a noble gas resource foundation used for cryogenic cooling, inert containment, balloons, precision devices, and low-temperature machines in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Helium should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Li": {
+        "short": "Lithium is an alkali metal resource foundation used for batteries, lightweight energy storage, reactive chemistry, and high-tier power cells in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Lithium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Be": {
+        "short": "Beryllium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Beryllium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "B": {
+        "short": "Boron is a metalloid resource foundation used for semiconductors, glass, ceramic crystals, optical parts, and precision electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Boron should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "C": {
+        "short": "Carbon is a nonmetal resource foundation used for organic chains, carbon fiber, fuel, steel strengthening, graphite conductors, and advanced composites in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Carbon should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "N": {
+        "short": "Nitrogen is a nonmetal resource foundation used for fertilizer chemistry, inert atmospheres, explosives, cooling, and biological loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Nitrogen should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "O": {
+        "short": "Oxygen is a nonmetal resource foundation used for oxidation, combustion support, life support, ceramics, glass, and oxide ores in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Oxygen should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "F": {
+        "short": "Fluorine is a halogen resource foundation used for etching, aggressive chemical processing, high-risk salts, and advanced fluorinated materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Fluorine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ne": {
+        "short": "Neon is a noble gas resource foundation used for neon lighting, plasma displays, optical signs, and stable gas chambers in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Neon should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Na": {
+        "short": "Sodium is an alkali metal resource foundation used for batteries, high-reactivity chemistry, energy cells, and sealed storage routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Sodium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Mg": {
+        "short": "Magnesium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Magnesium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Al": {
+        "short": "Aluminum is a post transition metal resource foundation used for lightweight construction, conductive frames, aerospace parts, and corrosion-resistant shells in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Aluminum should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Si": {
+        "short": "Silicon is a metalloid resource foundation used for semiconductors, glass, solar materials, rock chemistry, and programmable crystal systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Silicon should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "P": {
+        "short": "Phosphorus is a nonmetal resource foundation used for life materials, gas chemistry, fuels, ceramics, fertilizers, and reaction chains in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Phosphorus should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "S": {
+        "short": "Sulfur is a nonmetal resource foundation used for life materials, gas chemistry, fuels, ceramics, fertilizers, and reaction chains in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Sulfur should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cl": {
+        "short": "Chlorine is a halogen resource foundation used for corrosive chemistry, salts, etching, toxic weapons, and high-risk industrial reactions in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Chlorine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ar": {
+        "short": "Argon is a noble gas resource foundation used for inert atmospheres, welding protection, sealed processing, and plasma lamps in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Argon should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "K": {
+        "short": "Potassium is an alkali metal resource foundation used for batteries, high-reactivity chemistry, energy cells, and sealed storage routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Potassium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ca": {
+        "short": "Calcium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Calcium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sc": {
+        "short": "Scandium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Scandium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ti": {
+        "short": "Titanium is a transition metal resource foundation used for lightweight armor, high-strength tools, aerospace structures, and advanced machines in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Titanium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "V": {
+        "short": "Vanadium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Vanadium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cr": {
+        "short": "Chromium is a transition metal resource foundation used for stainless alloys, corrosion-resistant plating, hard coatings, and pigment systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Chromium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Mn": {
+        "short": "Manganese is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Manganese should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Fe": {
+        "short": "Iron is a transition metal resource foundation used for construction, machinery, weapons, magnetic devices, and steel synthesis in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Iron should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Co": {
+        "short": "Cobalt is a transition metal resource foundation used for battery cathodes, strong alloys, pigments, magnets, and high-grade tools in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Cobalt should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ni": {
+        "short": "Nickel is a transition metal resource foundation used for stainless steel, batteries, magnets, armor alloys, and catalytic equipment in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Nickel should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cu": {
+        "short": "Copper is a transition metal resource foundation used for wiring, electronics, motors, conductive blocks, and copper alloys in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Copper should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Zn": {
+        "short": "Zinc is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Zinc should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ga": {
+        "short": "Gallium is a post transition metal resource foundation used for low-melting electronics, compound semiconductors, display materials, and unusual liquid-metal logic in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Gallium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ge": {
+        "short": "Germanium is a metalloid resource foundation used for semiconductor wafers, infrared optics, high-tier electronics, and crystal recipes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Germanium should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "As": {
+        "short": "Arsenic is a metalloid resource foundation used for semiconductors, glass, ceramic crystals, optical parts, and precision electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Arsenic should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Se": {
+        "short": "Selenium is a nonmetal resource foundation used for life materials, gas chemistry, fuels, ceramics, fertilizers, and reaction chains in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Selenium should be balanced as a nonmetal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Br": {
+        "short": "Bromine is a halogen resource foundation used for corrosive chemistry, salts, etching, toxic weapons, and high-risk industrial reactions in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Bromine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Kr": {
+        "short": "Krypton is a noble gas resource foundation used for inert atmospheres, cryogenic systems, plasma lighting, optics, and protected processing in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Krypton should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Rb": {
+        "short": "Rubidium is an alkali metal resource foundation used for batteries, high-reactivity chemistry, energy cells, and sealed storage routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Rubidium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sr": {
+        "short": "Strontium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Strontium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Y": {
+        "short": "Yttrium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Yttrium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Zr": {
+        "short": "Zirconium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Zirconium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Nb": {
+        "short": "Niobium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Niobium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Mo": {
+        "short": "Molybdenum is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Molybdenum should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Tc": {
+        "short": "Technetium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Technetium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ru": {
+        "short": "Ruthenium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Ruthenium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Rh": {
+        "short": "Rhodium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Rhodium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pd": {
+        "short": "Palladium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Palladium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ag": {
+        "short": "Silver is a transition metal resource foundation used for elite conductivity, optical materials, antimicrobial systems, and precious resource routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Silver should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cd": {
+        "short": "Cadmium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Cadmium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "In": {
+        "short": "Indium is a post transition metal resource foundation used for display films, touch interfaces, solder systems, and specialized electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Indium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sn": {
+        "short": "Tin is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Tin should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sb": {
+        "short": "Antimony is a metalloid resource foundation used for semiconductors, glass, ceramic crystals, optical parts, and precision electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Antimony should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Te": {
+        "short": "Tellurium is a metalloid resource foundation used for semiconductors, glass, ceramic crystals, optical parts, and precision electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Tellurium should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "I": {
+        "short": "Iodine is a halogen resource foundation used for corrosive chemistry, salts, etching, toxic weapons, and high-risk industrial reactions in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Iodine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Xe": {
+        "short": "Xenon is a noble gas resource foundation used for ion engines, flash lamps, anesthesia chemistry, and high-tier optical systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Xenon should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cs": {
+        "short": "Cesium is an alkali metal resource foundation used for batteries, high-reactivity chemistry, energy cells, and sealed storage routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Cesium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ba": {
+        "short": "Barium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Barium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "La": {
+        "short": "Lanthanum is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Lanthanum should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ce": {
+        "short": "Cerium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Cerium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pr": {
+        "short": "Praseodymium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Praseodymium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Nd": {
+        "short": "Neodymium is a lanthanide resource foundation used for permanent magnets, motors, generators, and rare-earth technology recipes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Neodymium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pm": {
+        "short": "Promethium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Promethium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sm": {
+        "short": "Samarium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Samarium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Eu": {
+        "short": "Europium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Europium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Gd": {
+        "short": "Gadolinium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Gadolinium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Tb": {
+        "short": "Terbium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Terbium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Dy": {
+        "short": "Dysprosium is a lanthanide resource foundation used for high-temperature magnets, rare-earth motors, and elite electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Dysprosium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ho": {
+        "short": "Holmium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Holmium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Er": {
+        "short": "Erbium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Erbium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Tm": {
+        "short": "Thulium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Thulium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Yb": {
+        "short": "Ytterbium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Ytterbium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Lu": {
+        "short": "Lutetium is a lanthanide resource foundation used for rare-earth magnets, optics, lasers, phosphors, and high-tech electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Lutetium should be balanced as a lanthanide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Hf": {
+        "short": "Hafnium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Hafnium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ta": {
+        "short": "Tantalum is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Tantalum should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "W": {
+        "short": "Tungsten is a transition metal resource foundation used for high-temperature tools, hard armor, heavy weapons, furnaces, and heat-resistant machines in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Tungsten should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Re": {
+        "short": "Rhenium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Rhenium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Os": {
+        "short": "Osmium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Osmium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ir": {
+        "short": "Iridium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Iridium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pt": {
+        "short": "Platinum is a transition metal resource foundation used for catalysts, fuel cells, precision devices, noble alloys, and high-value technology recipes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Platinum should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Au": {
+        "short": "Gold is a transition metal resource foundation used for high-value electronics, precision contacts, decoration, treasury assets, and protocol-grade collectibles in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Gold should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Hg": {
+        "short": "Mercury is a transition metal resource foundation used for liquid metal devices, sensors, toxic traps, and sealed special equipment in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Mercury should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Tl": {
+        "short": "Thallium is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Thallium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pb": {
+        "short": "Lead is a post transition metal resource foundation used for radiation shielding, dense weights, low-melting alloys, and hazardous containment blocks in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Lead should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Bi": {
+        "short": "Bismuth is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Bismuth should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Po": {
+        "short": "Polonium is a metalloid resource foundation used for semiconductors, glass, ceramic crystals, optical parts, and precision electronics in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Polonium should be balanced as a metalloid material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "At": {
+        "short": "Astatine is a halogen resource foundation used for corrosive chemistry, salts, etching, toxic weapons, and high-risk industrial reactions in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Astatine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Rn": {
+        "short": "Radon is a noble gas resource foundation used for radioactive gas traps, decay detection, and sealed hazardous research in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Radon should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Fr": {
+        "short": "Francium is an alkali metal resource foundation used for batteries, high-reactivity chemistry, energy cells, and sealed storage routes in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Francium should be balanced as an alkali metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ra": {
+        "short": "Radium is an alkaline earth metal resource foundation used for minerals, ceramics, structural compounds, alloys, and biological mineral loops in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Radium should be balanced as an alkaline earth metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ac": {
+        "short": "Actinium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Actinium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Th": {
+        "short": "Thorium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Thorium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pa": {
+        "short": "Protactinium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Protactinium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "U": {
+        "short": "Uranium is an actinide resource foundation used for nuclear fuel, radiation systems, end-game energy, and shielded industrial chains in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Uranium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Np": {
+        "short": "Neptunium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Neptunium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Pu": {
+        "short": "Plutonium is an actinide resource foundation used for reactor fuel, forbidden weapons research, high-risk energy loops, and late-game protocol materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Plutonium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Am": {
+        "short": "Americium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Americium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cm": {
+        "short": "Curium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Curium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Bk": {
+        "short": "Berkelium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Berkelium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cf": {
+        "short": "Californium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Californium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Es": {
+        "short": "Einsteinium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Einsteinium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Fm": {
+        "short": "Fermium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Fermium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Md": {
+        "short": "Mendelevium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Mendelevium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "No": {
+        "short": "Nobelium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Nobelium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Lr": {
+        "short": "Lawrencium is an actinide resource foundation used for nuclear energy, radiation systems, shielded research, and end-game hazardous materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Lawrencium should be balanced as an actinide material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Rf": {
+        "short": "Rutherfordium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Rutherfordium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Db": {
+        "short": "Dubnium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Dubnium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Sg": {
+        "short": "Seaborgium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Seaborgium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Bh": {
+        "short": "Bohrium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Bohrium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Hs": {
+        "short": "Hassium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Hassium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Mt": {
+        "short": "Meitnerium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Meitnerium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ds": {
+        "short": "Darmstadtium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Darmstadtium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Rg": {
+        "short": "Roentgenium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Roentgenium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Cn": {
+        "short": "Copernicium is a transition metal resource foundation used for industrial machines, weapons, tools, alloys, structural parts, and conductive systems in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Copernicium should be balanced as a transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Nh": {
+        "short": "Nihonium is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Nihonium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Fl": {
+        "short": "Flerovium is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Flerovium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Mc": {
+        "short": "Moscovium is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Moscovium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Lv": {
+        "short": "Livermorium is a post transition metal resource foundation used for special alloys, soft metals, shielding, low-melting recipes, and electronic materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Livermorium should be balanced as a post transition metal material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Ts": {
+        "short": "Tennessine is a halogen resource foundation used for corrosive chemistry, salts, etching, toxic weapons, and high-risk industrial reactions in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Tennessine should be balanced as a halogen material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      },
+      "Og": {
+        "short": "Oganesson is a noble gas resource foundation used for unstable end-game world-rule fragments, radioactive anomalies, and experimental protocol materials in NiceChunk's material and forging vocabulary.",
+        "gameplayRole": "In NiceChunk, Oganesson should be balanced as a noble gas material: it defines processing routes, affinity rules, visual resource genes, and player-facing risk or value when discovered from seeded chunks."
+      }
+    },
+    "process": {
+      "alloy": "Alloy",
+      "battery_grade_refine": "Battery Grade Refine",
+      "capture": "Capture",
+      "cast": "Cast",
+      "compress": "Compress",
+      "corrosion_resistant_container": "Corrosion Resistant Container",
+      "crush": "Crush",
+      "cryogenic_separate": "Cryogenic Separate",
+      "crystallize": "Crystallize",
+      "distill": "Distill",
+      "electrolyze": "Electrolyze",
+      "forge": "Forge",
+      "high_temp_sinter": "High Temperature Sinter",
+      "inert_atmosphere_process": "Inert Atmosphere Process",
+      "ionize": "Ionize",
+      "isotope_separate": "Isotope Separate",
+      "mine": "Mine",
+      "nuclear_refine": "Nuclear Refine",
+      "oxidize": "Oxidize",
+      "precision_machine": "Precision Machine",
+      "quench": "Quench",
+      "radiation_shielding": "Radiation Shielding",
+      "reduce": "Reduce",
+      "refine": "Refine",
+      "sealed_capture": "Sealed Capture",
+      "semiconductor_refine": "Semiconductor Refine",
+      "sinter": "Sinter",
+      "smelt": "Smelt",
+      "temper": "Temper",
+      "vacuum_refine": "Vacuum Refine",
+      "wash": "Wash"
+    },
+    "visual": {
+      "ceramic_crystal": "Ceramic Crystal",
+      "copper_metal": "Copper Metal",
+      "corrosive_gas": "Corrosive Gas",
+      "faceted_crystal": "Faceted Crystal",
+      "gold_metal": "Gold Metal",
+      "graphite_carbon": "Graphite Carbon",
+      "liquid_metal": "Liquid Metal",
+      "matte_solid": "Matte Solid",
+      "metalloid_crystal": "Metalloid Crystal",
+      "neon_glow_gas": "Neon Glow Gas",
+      "noble_gas": "Noble Gas",
+      "plasma_gas": "Plasma Gas",
+      "radioactive_silver_metal": "Radioactive Silver Metal",
+      "rough_crystal": "Rough Crystal",
+      "silver_metal": "Silver Metal",
+      "silvery_metal": "Silvery Metal",
+      "solid_powder": "Solid Powder",
+      "toxic_halogen": "Toxic Halogen",
+      "uranium_silver_metal": "Uranium Silver Metal",
+      "volatile_liquid": "Volatile Liquid",
+      "white_silvery_metal": "White Silvery Metal",
+      "yellow_crystal": "Yellow Crystal",
+      "acid_gas": "Acid Gas",
+      "brushed_metal": "Brushed Metal",
+      "clear_gas": "Clear Gas",
+      "corrosive_liquid": "Corrosive Liquid",
+      "fresh_cut_metal": "Fresh Cut Metal",
+      "glowing_rare_earth_veins": "Glowing Rare Earth Veins",
+      "halide_crystal": "Halide Crystal",
+      "mineral_metal": "Mineral Metal",
+      "powdered_solid": "Powdered Solid",
+      "radioactive_veins": "Radioactive Veins",
+      "soft_brushed_metal": "Soft Brushed Metal",
+      "crystal_ore": "Crystal Ore",
+      "metallic_ore_veins": "Metallic Ore Veins",
+      "mineral_ore": "Mineral Ore",
+      "powder_veins": "Powder Veins",
+      "radioactive_cracked_ore": "Radioactive Cracked Ore",
+      "rare_earth_veins": "Rare Earth Veins",
+      "reactive_salt_ore": "Reactive Salt Ore",
+      "sealed_gas_pocket": "Sealed Gas Pocket",
+      "soft_metal_ore": "Soft Metal Ore",
+      "corrosive_vapor": "Corrosive Vapor",
+      "glowing_dust": "Glowing Dust",
+      "mineral_sparks": "Mineral Sparks",
+      "radioactive_sparks": "Radioactive Sparks",
+      "soft_glow_mist": "Soft Glow Mist",
+      "pulse": "Pulse",
+      "slow_flow": "Slow Flow",
+      "subtle_shimmer": "Subtle Shimmer",
+      "unstable_flicker": "Unstable Flicker"
+    },
+    "nav": {
+      "aria": "Primary navigation",
+      "home": "Home",
+      "roadbook": "Roadbook",
+      "world": "World",
+      "worldRules": "World Rules",
+      "economy": "Economy",
+      "fairness": "Fairness",
+      "resources": "Resources",
+      "elements": "Elements",
+      "proofOfFrontier": "Proof",
+      "guardians": "Guardians",
+      "docs": "Docs",
+      "enterWorld": "Enter World"
+    },
+    "page": {
+      "title": "NiceChunk Elements",
+      "shortTitle": "Elements",
+      "navAria": "Element navigation",
+      "enterWorld": "Enter World",
+      "resourceRules": "Resource Rules",
+      "eyebrow": "ELEMENT RESOURCE FOUNDATION",
+      "heading": "Elements become resources.",
+      "body": "NiceChunk uses the 118 real chemical elements as the open vocabulary for future resources, forging, material visuals, and verifiable game rules.",
+      "statsAria": "Element model status",
+      "tableEyebrow": "Periodic Interface",
+      "tableTitle": "Open element map",
+      "filterAria": "Element category filters",
+      "filterAll": "All",
+      "protocolAria": "Element protocol notes",
+      "stat": {
+        "discovered": "Discovered elements",
+        "elements": "Real chemical elements",
+        "categories": "Resource categories",
+        "natural": "Natural candidates",
+        "versioned": "Ruleset status"
+      },
+      "protocol": {
+        "resourceGene": {
+          "title": "Resource Gene",
+          "body": "Each element can become a deterministic material identity for mined drops, block recipes, and future asset metadata."
+        },
+        "forgingInput": {
+          "title": "Forging Input",
+          "body": "Atomic and physical traits map into future processing tiers, heat requirements, risks, and station logic."
+        },
+        "visualGene": {
+          "title": "Visual Gene",
+          "body": "Color, metallic, roughness, emission, vein, grain, and crack traits can drive voxel material rendering."
+        },
+        "verification": {
+          "title": "Open Verification",
+          "body": "The table is designed as public rule data so players can inspect how resources are classified before chain commitments."
+        }
+      },
+      "tableAria": "Periodic table",
+      "legendAria": "Element categories",
+      "detailsEyebrow": "ELEMENT DETAILS",
+      "detailsTitle": "Click an element to inspect its properties and processing requirements.",
+      "detailsBody": "The requirements below are game-facing placeholders. They define how each element category can later become mined resources, processed materials, and new constructible blocks.",
+      "detailListAria": "Element detail list",
+      "elementAria": "{name}, symbol {symbol}, atomic number {atomicNumber}",
+      "detailHeading": "{name} ({symbol})",
+      "summary": "{name} is element {atomicNumber}. In NiceChunk it represents a {category} resource that can be discovered from block destruction and later used in block construction rules.",
+      "blockValue": "{block}-block",
+      "processingTitle": "Processing requirements",
+      "constructionHint": "{name} can be used as a base {category} component when future recipes define new constructible blocks."
+    },
+    "detail": {
+      "back": "Back to Elements",
+      "documentTitle": "NiceChunk Element File | {symbol} {name}",
+      "missingTitle": "NiceChunk Element File | {symbol}",
+      "fileEyebrow": "ELEMENT FILE",
+      "missingZh": "Element detail data has not been added yet.",
+      "missingEn": "Element detail data has not been added yet.",
+      "yes": "Yes",
+      "no": "No",
+      "notAvailable": "Unknown",
+      "sections": {
+        "identity": "Identity",
+        "atomic": "Atomic Attributes",
+        "physical": "Physical Attributes",
+        "chemical": "Chemical Attributes",
+        "game": "Game Attributes",
+        "processing": "Processing Attributes",
+        "affinity": "Affinity Attributes",
+        "visualGene": "Visual Gene",
+        "description": "Description"
+      },
+      "field": {
+        "id": "Element ID",
+        "atomicNumber": "Atomic Number",
+        "symbol": "Symbol",
+        "name": "Name",
+        "category": "Element Category",
+        "period": "Period",
+        "group": "Group",
+        "block": "Block",
+        "standardState": "Standard State",
+        "naturalOccurrence": "Natural Occurrence",
+        "atomicMass": "Atomic Mass",
+        "atomicRadiusPm": "Atomic Radius",
+        "covalentRadiusPm": "Covalent Radius",
+        "electronConfig": "Electron Configuration",
+        "valenceElectrons": "Valence Electrons",
+        "commonOxidationStates": "Common Oxidation States",
+        "maxOxidationState": "Max Oxidation State",
+        "minOxidationState": "Min Oxidation State",
+        "densityKgM3": "Density",
+        "referenceDimensions": "Reference Dimensions",
+        "referenceMassKg": "Reference Mass",
+        "meltingPointC": "Melting Point",
+        "boilingPointC": "Boiling Point",
+        "hardness": "Hardness",
+        "toughness": "Toughness",
+        "ductility": "Ductility",
+        "brittleness": "Brittleness",
+        "electricalConductivity": "Electrical Conductivity",
+        "thermalConductivity": "Thermal Conductivity",
+        "heatResistance": "Heat Resistance",
+        "magnetism": "Magnetism",
+        "transparencyTendency": "Transparency Tendency",
+        "electronegativity": "Electronegativity",
+        "reactivity": "Reactivity",
+        "stability": "Stability",
+        "oxidationTendency": "Oxidation Tendency",
+        "corrosiveness": "Corrosiveness",
+        "toxicity": "Toxicity",
+        "radioactivity": "Radioactivity",
+        "flammability": "Flammability",
+        "explosiveTendency": "Explosive Tendency",
+        "acidBaseTendency": "Acid/Base Tendency",
+        "rarity": "Rarity",
+        "baseValue": "Base Value",
+        "miningDifficulty": "Mining Difficulty",
+        "refiningDifficulty": "Refining Difficulty",
+        "processingDifficulty": "Processing Difficulty",
+        "industrialValue": "Industrial Value",
+        "weaponValue": "Weapon Value",
+        "technologyValue": "Technology Value",
+        "buildingValue": "Building Value",
+        "energyValue": "Energy Value",
+        "biologicalValue": "Biological Value",
+        "hazardLevel": "Hazard Level",
+        "requiredTemperatureC": "Required Temperature",
+        "minFurnaceTier": "Minimum Furnace Tier",
+        "minToolTier": "Minimum Tool Tier",
+        "requiredFuelTier": "Required Fuel Tier",
+        "oxygenSensitive": "Oxygen Sensitive",
+        "waterSensitive": "Water Sensitive",
+        "requiresInertAtmosphere": "Requires Inert Atmosphere",
+        "forgeable": "Forgeable",
+        "castable": "Castable",
+        "crystallizable": "Crystallizable",
+        "alloyable": "Alloyable",
+        "preferredProcesses": "Preferred Processes",
+        "risk": {
+          "oxidation": "Oxidation Risk",
+          "explosion": "Explosion Risk",
+          "vaporization": "Vaporization Risk",
+          "contamination": "Contamination Risk",
+          "brittleness": "Brittleness Risk"
+        },
+        "metalAffinity": "Metal Affinity",
+        "alloyAffinity": "Alloy Affinity",
+        "oxygenAffinity": "Oxygen Affinity",
+        "carbonAffinity": "Carbon Affinity",
+        "hydrogenAffinity": "Hydrogen Affinity",
+        "siliconAffinity": "Silicon Affinity",
+        "sulfurAffinity": "Sulfur Affinity",
+        "halogenAffinity": "Halogen Affinity",
+        "crystalAffinity": "Crystal Affinity",
+        "ceramicAffinity": "Ceramic Affinity",
+        "organicAffinity": "Organic Affinity",
+        "gasAffinity": "Gas Affinity",
+        "energyAffinity": "Energy Affinity",
+        "magneticMaterialAffinity": "Magnetic Material Affinity",
+        "structuralMaterialAffinity": "Structural Material Affinity",
+        "opticalMaterialAffinity": "Optical Material Affinity",
+        "electronicMaterialAffinity": "Electronic Material Affinity",
+        "baseColor": "Base Color",
+        "secondaryColor": "Secondary Color",
+        "oxidizedColor": "Oxidized Color",
+        "darkStateColor": "Dark State Color",
+        "emissionColor": "Emission Color",
+        "materialLook": "Material Look",
+        "textureType": "Texture Type",
+        "oreTextureType": "Ore Texture Type",
+        "metallic": "Metallic",
+        "roughness": "Roughness",
+        "transparency": "Transparency",
+        "emissionStrength": "Emission Strength",
+        "grain": "Grain",
+        "scratchDensity": "Scratch Density",
+        "veinDensity": "Vein Density",
+        "crackDensity": "Crack Density",
+        "oxidationPattern": "Oxidation Pattern",
+        "particleEffect": "Particle Effect",
+        "animationEffect": "Animation Effect"
+      }
+    },
+    "category": {
+      "nonmetal": "Nonmetal",
+      "noble_gas": "Noble Gas",
+      "alkali_metal": "Alkali Metal",
+      "alkaline_earth_metal": "Alkaline Earth Metal",
+      "metalloid": "Metalloid",
+      "halogen": "Halogen",
+      "post_transition_metal": "Post-transition Metal",
+      "transition_metal": "Transition Metal",
+      "lanthanide": "Lanthanide",
+      "actinide": "Actinide",
+      "unknown_properties": "Unknown Properties"
+    },
+    "state": {
+      "solid": "Solid",
+      "liquid": "Liquid",
+      "gas": "Gas",
+      "unknown": "Unknown"
+    },
+    "phase": {
+      "solid": "Solid",
+      "liquid": "Liquid",
+      "gas": "Gas",
+      "unknown": "Unknown"
+    },
+    "property": {
+      "atomicNumber": "Atomic Number",
+      "symbol": "Symbol",
+      "atomicMass": "Atomic Mass",
+      "category": "Category",
+      "phase": "State",
+      "group": "Group",
+      "period": "Period",
+      "block": "Electron Block"
+    },
+    "processing": {
+      "tier": "Processing Tier",
+      "tierValue": "Tier {tier}",
+      "station": {
+        "separator": "Separator",
+        "cryogenicTrap": "Cryogenic Trap",
+        "stabilizer": "Stabilizer",
+        "kiln": "Kiln",
+        "refiner": "Refiner",
+        "sealedReactor": "Sealed Reactor",
+        "smelter": "Smelter",
+        "alloyForge": "Alloy Forge",
+        "magneticSeparator": "Magnetic Separator",
+        "shieldedReactor": "Shielded Reactor"
+      },
+      "heat": {
+        "low": "Low Heat",
+        "medium": "Medium Heat",
+        "high": "High Heat",
+        "extreme": "Extreme Heat"
+      },
+      "binder": {
+        "none": "No Binder",
+        "pressureCell": "Pressure Cell",
+        "sealedCapsule": "Sealed Capsule",
+        "flux": "Flux",
+        "silicateMatrix": "Silicate Matrix",
+        "saltMatrix": "Salt Matrix",
+        "ingotMold": "Ingot Mold",
+        "carbonFlux": "Carbon Flux",
+        "rareEarthFlux": "Rare Earth Flux",
+        "containmentCore": "Containment Core"
+      }
+    }
+  },
+  "forging": {
+    "title": "Кузнечный стол Nicechunk",
+    "appName": "Кузнечный стол",
+    "sceneLabel": "Сцена ковки",
+    "runtimeEngine": "CHUNK.JS · NATIVE WEBGL2 · FIXED-POINT",
+    "runtimeNode": "FORGE NODE: NGINX_STANDALONE",
+    "addMaterial": "Добавить материал",
+    "previewMaterial": "Предпросмотр материала",
+    "proofDesignHash": "Хеш проекта",
+    "proofByteLength": "Длина в байтах",
+    "proofMaterialVolume": "Объём материала",
+    "proofMaterialDurability": "Прочность материала",
+    "proofClientVerified": "Проверено клиентом",
+    "proofChainVerified": "Проверено в цепи",
+    "rendererUnsupported": "WebGL2 недоступен. Для этого кузнечного стола требуются совместимые браузер и графический процессор.",
+    "materialGenericName": "Материал {code}",
+    "equipmentPreview": "Предпросмотр экипировки",
+    "toolSlots": "Ячейки инструментов",
+    "chainCode": "Код цепи",
+    "resetView": "Сбросить вид",
+    "panelEyebrow": "MVP СТАНЦИЯ",
+    "panelTitle": "Ковка инструментов",
+    "hammer": "Молот",
+    "tool": {
+      "gloves": "Перчатки",
+      "hammer": "Молот",
+      "saw": "Пила",
+      "handDrill": "Ручная дрель",
+      "grip": "Рукоять",
+      "axe": "Топор",
+      "paintBrush": "Кисть",
+      "empty": "Пусто"
+    },
+    "toolMenu": {
+      "sawTitle": "Настройки пилы",
+      "drillTitle": "Настройки дрели",
+      "paintTitle": "Настройки кисти",
+      "palette": "Палитра",
+      "paletteColor": "Цвет палитры",
+      "customColor": "Свой цвет",
+      "brushSize": "Размер кисти",
+      "paintMode": "Режим",
+      "paintModeDraw": "Рисовать",
+      "paintModeErase": "Стереть",
+      "cutMode": "Рез",
+      "cutKerf": "Пропил",
+      "cutTrim": "Обрезка",
+      "angle": "Угол",
+      "angleValue": "{value} град",
+      "direction": "Направление",
+      "directionAuto": "Авто",
+      "directionA": "Направление A",
+      "directionB": "Направление B",
+      "profile": "Профиль",
+      "profileRound": "Круг",
+      "profileSquare": "Квадрат",
+      "profileSlot": "Паз",
+      "size": "Размер",
+      "sizeSmall": "1 ячейка",
+      "sizeMedium": "3 ячейки",
+      "sizeLarge": "5 ячеек",
+      "depth": "Глубина",
+      "depthThrough": "Сквозь",
+      "depthHalf": "Половина",
+      "depthShallow": "Мелко",
+      "gripTitle": "Настройки рукояти",
+      "gripRotation": "Поворот по поверхности",
+      "gripRotationValue": "{value}°"
+    },
+    "axis": {
+      "front": "Вперед",
+      "up": "Вверх",
+      "right": "Вправо"
+    },
+    "resources": "Ресурсы",
+    "drafts": "Черновики",
+    "draftList": "Список черновиков",
+    "draftMenu": "Действия с черновиком",
+    "saveDraft": "Сохранить черновик",
+    "newDraft": "Новый черновик",
+    "noDrafts": "Черновиков пока нет",
+    "draftName": "Черновик {index}",
+    "renameDraft": "Переименовать черновик",
+    "deleteDraft": "Удалить черновик",
+    "draftRenamePrompt": "Имя черновика",
+    "draftDeleteConfirm": "Удалить черновик \"{name}\"?",
+    "workpiece": "Заготовка",
+    "material": "Материал",
+    "heat": "Нагрев",
+    "mass": "Масса",
+    "shape": "Форма",
+    "normalize": "Выровнять",
+    "rotateX": "Поворот X",
+    "rotateY": "Поворот Y",
+    "rotateZ": "Поворот Z",
+    "rotateObject": "Повернуть объект",
+    "removeObject": "Удалить объект",
+    "cast": "Отлить",
+    "clear": "Очистить",
+    "chainCodeTitle": "Код отлитого предмета",
+    "chainCodeHint": "Для отправки автоматически выбирается более короткое каноническое представление: компоненты или запечённая поверхность. Редактируемый черновик остаётся локально.",
+    "chainCodePlaceholder": "Вставьте код цепи, чтобы создать редактируемую заготовку.",
+    "generateCode": "Создать",
+    "saveCode": "Сохранить",
+    "copyCode": "Копировать код",
+    "forgeOnChain": "Ковать on-chain",
+    "close": "Закрыть",
+    "percent": "{value}%",
+    "massValue": "{value} ед.",
+    "shapeValue": "{x} x {y} x {z}",
+    "attributes": "Properties",
+    "attributeWeight": "Weight",
+    "attributeVolume": "Solid volume",
+    "attributeDensity": "Density",
+    "componentCount": "{count} components",
+    "singleComponent": "Single component",
+    "resource": {
+      "iron": {
+        "name": "Железная руда",
+        "detail": "Твердая основа инструмента"
+      },
+      "copper": {
+        "name": "Медная руда",
+        "detail": "Мягкий проводящий металл"
+      },
+      "tin": {
+        "name": "Оловянная руда",
+        "detail": "Легкий сплавной материал"
+      },
+      "handle": {
+        "name": "Рукоять",
+        "detail": "Хват для привязки к руке"
+      },
+      "coal": {
+        "name": "Уголь",
+        "detail": "Повышает жар ковки"
+      }
+    },
+    "status": {
+      "ready": "Готово",
+      "hammerReady": "Молот активен",
+      "glovesReady": "Перчатки активны",
+      "sawReady": "Пила активна",
+      "drillReady": "Ручная дрель активна",
+      "gripReady": "Выбор хвата активен",
+      "paintReady": "Кисть активна",
+      "paintApplied": "Краска нанесена",
+      "paintErased": "Краска стерта",
+      "toolPending": "Инструмент недоступен в этом режиме",
+      "orbitReady": "Только вращение вида",
+      "dropReady": "Положите на наковальню",
+      "resourceAdded": "Ресурс добавлен",
+      "heatAdded": "Жар повышен",
+      "empty": "Сначала добавьте руду",
+      "miss": "Грань не задета",
+      "hit": "Грань сжата",
+      "deformationLimit": "Деформация остановлена на пределе сетки обработки",
+      "gripSet": "Хват задан",
+      "gripTooLarge": "Сечение слишком велико для руки",
+      "gripBlocked": "Хват пересечется с аватаром",
+      "gripInvalid": "Разместите хват на открытой поверхности размером с ладонь",
+      "sawCut": "Пропил углублен",
+      "sawComplete": "Пропил открыт",
+      "drillCut": "Отверстие углублено",
+      "drillThrough": "Отверстие открыто",
+      "drillPocket": "Карман вырезан",
+      "castComplete": "Предмет отлит",
+      "castLocked": "Отлитый предмет двигается как одно целое",
+      "castDisconnected": "Детали должны соприкасаться перед отливкой",
+      "draftSaved": "Черновик сохранен",
+      "draftLoaded": "Черновик загружен",
+      "draftRenamed": "Черновик переименован",
+      "draftDeleted": "Черновик удален",
+      "shapeSettled": "Разделенные разрезы пересобраны",
+      "shapeSplit": "Рез разделен на детали",
+      "pieceRemoved": "Заготовка удалена",
+      "noChainCode": "Сначала отлейте предмет",
+      "chainCopied": "Код цепи скопирован",
+      "chainSaved": "Кованый предмет сохранен",
+      "chainSubmitting": "Куем экипировку on-chain...",
+      "chainSubmitted": "Equipment forged and saved to the backpack",
+      "chainSubmitFailed": "Ковка on-chain не удалась",
+      "chainCodeTooLarge": "Chain code is too large for forged item storage",
+      "chainCodeOutOfSync": "Load this chain code into the workbench before forging on-chain",
+      "chainMaterialRequired": "Select backpack materials before forging on-chain",
+      "chainMaterialMismatch": "Backpack materials changed. Sync materials and forge again",
+      "chainDesignMaterialMismatch": "This design exceeds the selected materials. Use stronger materials or simplify the shape",
+      "chainHotbarFull": "Hotbar is full. Free one slot before forging",
+      "chainBackpackFull": "Backpack is full. Free one backpack slot before forging",
+      "chainHotbarQueueFailed": "Forged on-chain, but could not add it to the hotbar queue",
+      "chainLoaded": "Код цепи загружен",
+      "invalidChainCode": "Недопустимый код цепи",
+      "normalized": "Форма выровнена",
+      "rotated": "Заготовка повернута",
+      "cleared": "Заготовка очищена",
+      "materialsSynced": "Backpack materials synced",
+      "materialLoadFailed": "Could not load backpack materials",
+      "locationChanged": "Forge location changed",
+      "chainDesignMaterialMismatchPanel": "Material capacity check failed. Review the right-side capacity table.",
+      "chainDesignMaterialMismatchDetailed": "Material capacity check failed: design level {requested} exceeds allowed level {allowed} (material capacity {capacity}, shortage {deficit}). Main issue: {issue}. Design demand: {mass}, {designVolume}, highest property {attribute} {attributeScore}/100. Selected materials: {materialCount} item(s), effective durability {effectiveDurability}, volume {materialVolume}. Missing now: durability {missingDurability}, volume {missingVolume}.",
+      "chainWalletUnavailable": "Wallet unavailable. Connect a wallet first",
+      "chainNoBackpack": "No equipped backpack. Equip a backpack first",
+      "inspectModeReady": "Режим осмотра: выбор не изменяет заготовку",
+      "objectModeReady": "Режим объекта: перемещение, поворот, выравнивание или удаление материала",
+      "surfaceModeReady": "Режим поверхности: выберите инструмент и точную грань",
+      "objectModeRequired": "Для этой операции переключитесь в режим объекта",
+      "moved": "Заготовка перемещена",
+      "axeReady": "Топор активен",
+      "axeComplete": "Грань скошена",
+      "undone": "Последнее изменение отменено",
+      "redone": "Изменение восстановлено",
+      "appearanceReadOnly": "Код компактной поверхности доступен только для просмотра; для правки загрузите локальный черновик",
+      "dyeSelected": "Выбран материал: {material}",
+      "dyeRequired": "Для окрашенных поверхностей нужны соответствующие красители в рюкзаке.",
+      "dyeMissing": "В рюкзаке нужен материал: {material}.",
+      "dyeColorUnsupported": "Этот цвет не связан с красителем для ковки.",
+      "tooManyForgeInputs": "Для проекта нужно материалов: {count}; лимит в сети — {max}."
+    },
+    "panelTabs": "Forging panel sections",
+    "materialsTab": "Materials",
+    "propertiesTab": "Properties",
+    "sceneLive": "Live Forge Scene",
+    "anvilGrid": "World Terrain",
+    "randomLocation": "Random Location",
+    "locationLoading": "Locating",
+    "locationValue": "X {x} Z {z}",
+    "materials": "Materials",
+    "syncMaterials": "Sync",
+    "materialList": "Material list",
+    "chainActionReady": "Ready to forge on-chain.",
+    "chainActionPreparing": "Checking chain code and backpack materials...",
+    "selectMaterialPrompt": "Select a material",
+    "selectMaterialPromptDetail": "Press a backpack material and drag it into the forge scene.",
+    "materialSlot": "Slot",
+    "materialType": "Type",
+    "materialMass": "Weight",
+    "materialVolume": "Volume",
+    "materialDensity": "Density",
+    "materialDimensions": "Dimensions",
+    "materialHardness": "Hardness",
+    "materialHeat": "Heat",
+    "materialComposition": "Composition",
+    "materialSyncing": "Syncing backpack",
+    "materialSyncingDetail": "Reading equipped backpack materials.",
+    "materialNoBackpack": "No backpack equipped",
+    "materialNoBackpackDetail": "Equip a backpack with forged materials to use this bench.",
+    "materialEmpty": "No materials",
+    "materialEmptyDetail": "Smelt mined resources into materials, then return to forging.",
+    "materialLoadFailed": "Material sync failed",
+    "materialLoadFailedDetail": "Could not read backpack materials from the chain.",
+    "materialCardDetail": "{type} · x{count}",
+    "materialFuelDetail": "Fuel · heat tier {tier} · x{count}",
+    "attributeHardness": "Hardness",
+    "attributeDurability": "Durability",
+    "attributeToughness": "Toughness",
+    "attributeWorkability": "Workability",
+    "attributeGripForce": "Strength requirement",
+    "attributeTorque": "Grip torque",
+    "attributeCenterOfMass": "Center of mass",
+    "materialBreakdown": "Material breakdown",
+    "materialShareValue": "{mass} · {volume} · {percent}%",
+    "gripNotSet": "Set grip first",
+    "gripRequirementValue": "{force} / {kgf}",
+    "workpieceEmpty": "No workpiece",
+    "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
+    "dimensionsValue": "{x} x {y} x {z}",
+    "scoreValue": "{value}/100",
+    "volumeCm3Value": "{value} cm3",
+    "vectorValue": "{x}, {y}, {z}",
+    "capacityDiagnosticsTitle": "Material capacity",
+    "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",
+    "capacityDiagnosticsPass": "Pass",
+    "capacityDiagnosticsFail": "Fail",
+    "capacityDiagnosticTableCheck": "Check",
+    "capacityDiagnosticTableCurrent": "Current",
+    "capacityDiagnosticTableRequired": "Required",
+    "capacityDiagnosticTableResult": "Result",
+    "capacityDiagnosticNoGap": "No gap",
+    "capacityDiagnosticGap": "{value} short",
+    "capacityMeta": {
+      "designMass": "Design weight",
+      "designVolume": "Design volume",
+      "topAttribute": "Top property",
+      "topAttributeValue": "{attribute} {score}/100",
+      "materialCapacity": "Material capacity",
+      "tolerance": "Tolerance",
+      "mainIssue": "Main issue"
+    },
+    "capacityCheck": {
+      "level": "Level allowance",
+      "effectiveDurability": "Effective durability",
+      "volume": "Material volume",
+      "materialCount": "Material count"
+    },
+    "capacityAttribute": {
+      "ductility": "Ductility",
+      "brittleness": "Brittleness",
+      "heatResistance": "Heat resistance",
+      "corrosionResistance": "Corrosion resistance",
+      "conductivity": "Conductivity",
+      "thermalConductivity": "Thermal conductivity",
+      "magnetism": "Magnetism"
+    },
+    "capacityIssue": {
+      "noMaterial": "no selected material",
+      "materialDurability": "selected materials have too little effective durability",
+      "materialVolume": "selected materials have too little volume",
+      "materialCapacity": "selected materials are below the required capacity",
+      "designMass": "the design is too heavy",
+      "designVolume": "the design is too large",
+      "designAttributes": "the design property requirements are too high"
+    },
+    "undo": "Отменить",
+    "redo": "Повторить",
+    "editMode": {
+      "label": "Режим редактирования",
+      "inspect": "Осмотр",
+      "object": "Объект",
+      "surface": "Поверхность",
+      "inspectHint": "Выбирайте материал и грань, не изменяя заготовку.",
+      "objectHint": "Перетащите материал или используйте оси, затем поверните, выровняйте или удалите его.",
+      "surfaceHint": "Выберите инструмент, затем точную грань для обработки."
+    },
+    "materialQuantityShort": "x{count}",
+    "materialQuantity": "Количество",
+    "valueUnavailable": "Недоступно",
+    "materialSlotValue": "Ячейка №{value}",
+    "materialMassGramsValue": "{value} г",
+    "materialDurability": "Прочность",
+    "materialDurabilityValue": "{current} / {max}",
+    "materialEffectiveDurability": "Эффективная прочность",
+    "materialQuality": "Качество",
+    "materialQualityValue": "{value}%",
+    "materialGrade": "Сорт",
+    "materialItemLevel": "Уровень предмета",
+    "materialParameterAttributes": "Свойства материала",
+    "materialTypeValue": "Кузнечный материал",
+    "materialClass": {
+      "alloy": "Сплав",
+      "carbon": "Углерод",
+      "ceramic": "Керамика",
+      "chemical": "Химический материал",
+      "composite": "Композит",
+      "crystal": "Кристалл",
+      "fiber": "Волокно",
+      "glass": "Стекло",
+      "metal": "Металл",
+      "polymer": "Полимер"
+    },
+    "inheritedProperties": "Унаследованные свойства",
+    "densityKgM3Value": "{value} кг/м³",
+    "materialInputVolume": "Входной объём",
+    "materialUsedVolume": "Использованный объём",
+    "materialUnusedVolume": "Остаток объёма",
+    "finalInheritedAttributes": "Итоговые унаследованные параметры",
+    "inheritanceModeMassWeighted": "По массе",
+    "inheritanceModeEmbedded": "Встроенный результат NCF1",
+    "inheritanceEmbeddedDescription": "Импортированный код сохраняет закодированные итоговые массу, объём и параметры. Вклад материалов недоступен до редактирования с текущими материалами.",
+    "inheritanceRuleDescription": "Каждое свойство наследуется с детерминированным весом массы: использованный твёрдый объём умножается на плотность материала. Материала можно дать больше, но учитывается только объём, оставшийся в заготовке.",
+    "componentMaterialName": "Компонент {index} · {material}",
+    "componentEditorEmpty": "Компонент не выбран",
+    "componentEditorEmptyDetail": "Выберите компонент заготовки в сцене ковки.",
+    "selectedComponent": "Выбран компонент {index}",
+    "selectedFaceValue": "Выбранная грань: {axis} {side}",
+    "selectedFaceNone": "Грань обработки не выбрана",
+    "axisName": {
+      "x": "ось X",
+      "y": "ось Y",
+      "z": "ось Z"
+    },
+    "faceSide": {
+      "positive": "положительная",
+      "negative": "отрицательная"
+    },
+    "moveObject": "Переместить объект",
+    "moveAxis": "{axis} {direction}",
+    "precision": {
+      "ariaLabel": "Точные координаты",
+      "title": "Точная цель",
+      "axisX": "X",
+      "axisY": "Y",
+      "axisZ": "Z",
+      "objectPosition": "Позиция · X {x} · Y {y} · Z {z}",
+      "objectQ": "Фикс. Q · X {x} · Y {y} · Z {z}",
+      "freeMove": "Свободное перемещение · плоскость X/Z",
+      "moveAxis": "Перемещение по оси · {axis}",
+      "gridCell": "Ячейка · X {x}/{maxX} · Y {y}/{maxY} · Z {z}/{maxZ}",
+      "surfaceFace": "Грань · {axis}{side} · Плоскость {plane}",
+      "surfacePoint": "Точка · X {x} · Y {y} · Z {z}"
+    },
+    "proofEditableByteLength": "Байты проекта",
+    "proofBytesSaved": "Сэкономлено",
+    "proofSavingsValue": "{bytes} Б · {percent}%",
+    "proofNoSavings": "Уже минимально",
+    "compactSurfaceRepresentation": "Компактная поверхность",
+    "appearanceInspectOnly": "Просмотр компактной поверхности",
+    "appearanceInspectOnlyDetail": "Представление можно осматривать и отрисовывать, но история компонентов в нём не хранится. Для редактирования загрузите локальный черновик.",
+    "surfaceQuadCount": "Квадов поверхности: {count}",
+    "inheritanceAppearanceDescription": "Компактная поверхность сохраняет массу, объём, унаследованные параметры, материалы, окраску и рукоять. История компонентов остаётся только в локальном черновике.",
+    "physicalInertia": "Профиль инерции",
+    "inertiaQ2Value": "{x}, {y}, {z} Q²",
+    "torqueMgQValue": "{value} мг·Q",
+    "physicsAdvisoryNote": "Только детерминированная оценка управляемости. Она не влияет на проверку материалов в сети.",
+    "materialItem": {
+      "charcoal": {
+        "name": "Charcoal",
+        "description": "Carbonized wood material used as fuel, reducing agent, and early alloy support."
+      },
+      "biochar_compost": {
+        "name": "Biochar Compost",
+        "description": "Low-heat carbon and nutrient material made from leaves, moss, and mud for soil systems and biological stations."
+      },
+      "resin_binder": {
+        "name": "Resin Binder",
+        "description": "Pine and vine resin concentrate that binds fibers, seals vessels, and supports low-temperature composites."
+      },
+      "ceramic_brick": {
+        "name": "Ceramic Brick",
+        "description": "Fired clay and sand material for furnace walls, molds, and basic construction recipes."
+      },
+      "lime_ceramic": {
+        "name": "Lime Ceramic",
+        "description": "Shell-bed lime and clay ceramic used as a heat-stable binder and refractory additive."
+      },
+      "quicklime": {
+        "name": "Quicklime",
+        "description": "Reactive calcium-rich lime fired from shells and coral, useful as flux, mortar base, and chemical reagent."
+      },
+      "salt_flux": {
+        "name": "Salt Flux",
+        "description": "Salt-flat and ash flux that helps smelting separate slag and stabilizes cleaner metal batches."
+      },
+      "ash_cement": {
+        "name": "Ash Cement",
+        "description": "Volcanic ash, clay, and shell lime binder for masonry, furnace shells, and heat-stable construction."
+      },
+      "glass_ingot": {
+        "name": "Glass Ingot",
+        "description": "Silica-rich glass stock for lenses, windows, gauges, and fragile technical parts."
+      },
+      "obsidian_glass": {
+        "name": "Obsidian Glass",
+        "description": "Dark volcanic glass made from silica and basalt under lava heat, suited to durable optics and sealed panes."
+      },
+      "silicon_wafer": {
+        "name": "Silicon Wafer",
+        "description": "Purified silicon plate reduced with carbon, intended for circuits, sensors, and future signal devices."
+      },
+      "ice_crystal": {
+        "name": "Ice Crystal",
+        "description": "Stabilized ice and salt crystal for cooling cells, frost tools, and thermal-control assemblies."
+      },
+      "iron_bloom": {
+        "name": "Iron Bloom",
+        "description": "Forge-ready iron mass reduced from deep stone and stone with coal as the carbon reducer."
+      },
+      "copper_bloom": {
+        "name": "Copper Bloom",
+        "description": "Conductive metal bloom concentrated from gravel and basalt trace metal tendencies."
+      },
+      "alumina_plate": {
+        "name": "Alumina Plate",
+        "description": "Aluminum-rich ceramic plate from clay and deep stone, useful for impact panels and insulated fittings."
+      },
+      "nickel_iron": {
+        "name": "Nickel Iron",
+        "description": "Magnetic iron alloy refined from deep stone and basalt trace metals for motors and advanced mechanisms."
+      },
+      "carbon_plate": {
+        "name": "Carbon Plate",
+        "description": "Compressed coal and deep stone carbon material for light reinforcement and inserts."
+      },
+      "carbon_steel": {
+        "name": "Carbon Steel",
+        "description": "High-tier steel billet made from deep stone iron tendency and coal carbon control."
+      },
+      "basalt_fiber": {
+        "name": "Basalt Fiber",
+        "description": "Pulled volcanic fiber from basalt and lava heat, suited to heat shields and furnace parts."
+      },
+      "basalt_composite": {
+        "name": "Basalt Composite",
+        "description": "High-heat basalt, carbon, and resin composite for armor panels, shields, and durable housings."
+      },
+      "geopolymer_block": {
+        "name": "Geopolymer Block",
+        "description": "Ash, basalt, and salt-activated stone composite for strong masonry and kiln bodies."
+      },
+      "coral_lime": {
+        "name": "Coral Lime",
+        "description": "Calcium-rich coral and sand ceramic for marine masonry, mortar, and heat-stable blocks."
+      },
+      "toxic_glass": {
+        "name": "Toxic Glass",
+        "description": "Sealed hazardous glass from toxic water, salt, and silica, intended for containment vessels and risk tools."
+      },
+      "cotton": {
+        "name": "Хлопок"
+      },
+      "flowerWhite": {
+        "name": "Белый цветок"
+      },
+      "flowerYellow": {
+        "name": "Жёлтый цветок"
+      },
+      "flowerRed": {
+        "name": "Красный цветок"
+      },
+      "flowerBlue": {
+        "name": "Синий цветок"
+      },
+      "flowerPink": {
+        "name": "Розовый цветок"
+      },
+      "cotton_cloth": {
+        "name": "Хлопковая ткань",
+        "description": "Ткань из хлопка и сухой травы для гибкого кованого снаряжения и анимированных тканевых поверхностей."
+      },
+      "white_dye": {
+        "name": "Белый краситель",
+        "description": "Светлый цветочный пигмент для окрашивания ткани во время ковки."
+      },
+      "yellow_dye": {
+        "name": "Жёлтый краситель",
+        "description": "Тёплый жёлтый цветочный пигмент для окрашивания ткани во время ковки."
+      },
+      "red_dye": {
+        "name": "Красный краситель",
+        "description": "Яркий красный цветочный пигмент для окрашивания ткани во время ковки."
+      },
+      "blue_dye": {
+        "name": "Синий краситель",
+        "description": "Холодный синий цветочный пигмент для окрашивания ткани во время ковки."
+      },
+      "pink_dye": {
+        "name": "Розовый краситель",
+        "description": "Мягкий розовый цветочный пигмент для окрашивания ткани во время ковки."
+      },
+      "wooden_plank": {
+        "name": "Деревянная доска",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "wooden_stick": {
+        "name": "Деревянная рейка",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "squared_timber": {
+        "name": "Квадратный брус",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "clear_glass_panel": {
+        "name": "Панель прозрачного стекла",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "ice_blue_glass_panel": {
+        "name": "Панель ледяного синего стекла",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "amber_glass_panel": {
+        "name": "Панель янтарного стекла",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "basalt_reinforced_glass": {
+        "name": "Стекло, армированное базальтом",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "fired_clay_brick": {
+        "name": "Обожжённый глиняный кирпич",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "adobe_brick": {
+        "name": "Саманный кирпич",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "stone_brick": {
+        "name": "Каменный кирпич",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "deep_stone_brick": {
+        "name": "Кирпич из глубинного камня",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "basalt_brick": {
+        "name": "Базальтовый кирпич",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "sandstone_block": {
+        "name": "Блок тёсаного песчаника",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "cobblestone": {
+        "name": "Булыжник",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "polished_stone_slab": {
+        "name": "Полированная каменная плита",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "lime_plaster": {
+        "name": "Известковая штукатурка",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "clay_plaster": {
+        "name": "Глиняная штукатурка",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "rammed_earth": {
+        "name": "Утрамбованная земля",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "shell_terrazzo": {
+        "name": "Плита ракушечного терраццо",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "white_ceramic_tile": {
+        "name": "Белая керамическая плитка",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "blue_ceramic_tile": {
+        "name": "Синяя керамическая плитка",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "volcanic_ash_concrete": {
+        "name": "Бетон из вулканического пепла",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "salt_crystal_block": {
+        "name": "Блок кристаллической соли",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_terracotta": {
+        "name": "Терракотовая черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_ice_blue": {
+        "name": "Ледяная синяя глазурованная черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_shell_white": {
+        "name": "Ракушечно-белая глазурованная черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_charcoal": {
+        "name": "Угольно-чёрная глазурованная черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_ash_gray": {
+        "name": "Пепельно-серая глазурованная черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "roof_tile_mycelium": {
+        "name": "Светящаяся мицелиевая черепица",
+        "description": "Производственный строительный материал NCM3 с каноническим ончейн-рецептом, физическими свойствами и отдельной низкополигональной моделью."
+      },
+      "blasting_charge": {
+        "name": "Взрывной заряд",
+        "description": "Компактный шахтный заряд на смоляной связке для управляемой разработки нескольких блоков. Его формула NiceChunk намеренно вымышленная."
+      }
+    },
+    "selectDye": "Выбрать краситель",
+    "selectDyeNamed": "Выбрать {material}",
+    "dyeInventory": "Запас красителей",
+    "dyeSelected": "Выбранный краситель",
+    "dyeUsed": "Используется в проекте",
+    "dyeAvailable": "Доступен для окраски",
+    "avatarPreviewAria": "Предпросмотр экипированного аватара",
+    "avatarPreviewTitle": "Примерка",
+    "avatarPreviewEmpty": "Задайте допустимый хват",
+    "avatarPreviewEquipped": "Хват экипирован",
+    "avatarPreviewError": "Предпросмотр недоступен",
+    "avatarPreviewHint": "Перетащите для вращения"
+  },
+  "mining": {
+    "title": "Добыча Nicechunk",
+    "canvasLabel": "Подземная шахтная пещера",
+    "player": {
+      "title": "Начинающий шахтер",
+      "wallet": "Кошелек"
+    },
+    "panel": {
+      "kicker": "Текущая пещера",
+      "title": "Пользователи онлайн",
+      "depth": "Глубина шахты",
+      "ore": "Руда",
+      "oreCount": "Осталось {count}",
+      "contractAddress": "Контракт шахты",
+      "hashrate": "Общий хешрейт",
+      "blockTime": "Среднее время блока",
+      "totalBlocks": "Всего блоков",
+      "minedBlocks": "Добыто блоков",
+      "remainingBlocks": "Осталось блоков",
+      "hashrateH": "{value} H/s",
+      "hashrateKh": "{value} KH/s",
+      "seconds": "{value}с",
+      "meters": "{value} м"
+    },
+    "controls": {
+      "label": "Управление добычей",
+      "mine": "Добывать"
+    },
+    "inventory": {
+      "ore": "Руда",
+      "energy": "Энергия"
+    },
+    "status": {
+      "label": "Статус",
+      "ready": "Готово к добыче",
+      "noTarget": "Наведитесь на светящуюся жилу",
+      "mined": "Руда добыта"
+    },
+    "userStatus": {
+      "mining": "Добывает у центральной жилы",
+      "drilling": "Бурит боковую стену",
+      "hauling": "Везет вагонетку",
+      "scanning": "Проверяет качество руды",
+      "resting": "Восстанавливает энергию",
+      "yield": "{count} руды"
+    },
+    "system": {
+      "label": "Информация о компьютере",
+      "cpu": "CPU",
+      "memory": "Память",
+      "cores": "{count} ядер",
+      "memoryGb": "{value} ГБ",
+      "unknown": "Неизвестно"
+    },
+    "tools": {
+      "label": "Инструменты",
+      "slot": "Слот {slot}: {item}",
+      "drill": "Шахтный бур",
+      "scanner": "Сканер руды",
+      "lantern": "Шахтный фонарь",
+      "hammer": "Каменный молот"
+    },
+    "account": {
+      "guest": "Гость",
+      "level": "Ур. {level}",
+      "notConnected": "Не подключено"
+    },
+    "hotbarSlot": {
+      "empty": "Слот {slot}: пусто"
+    }
+  }
+}

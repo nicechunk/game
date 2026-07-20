@@ -1,0 +1,3 @@
+[submodule "chunk.js"]
+	path = chunk.js
+	url = https://github.com/nicechunk/chunk.js.git

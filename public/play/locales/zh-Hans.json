@@ -1,0 +1,3611 @@
+{
+  "_meta": {
+    "language": "zh-Hans",
+    "label": "Simplified Chinese",
+    "version": "play-locale-zh-Hans-863ae18b03db0341",
+    "contentHash": "863ae18b03db0341"
+  },
+  "siteFooter": {
+    "tagline": "Solana 上的种子体素世界协议。",
+    "navigationAria": "页脚导航",
+    "socialAria": "NiceChunk 社交链接",
+    "home": "首页",
+    "play": "进入世界",
+    "roadmap": "路书",
+    "docs": "文档",
+    "guardian": "守护者",
+    "contracts": "合约",
+    "x": "X / Twitter",
+    "github": "GitHub",
+    "copyright": "2026 NiceChunk。保留所有权利。"
+  },
+  "common": {
+    "brand": "NICECHUNK",
+    "language": "语言",
+    "comingSoon": "即将开放",
+    "languageNative": {
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "de": "Deutsch",
+      "ja": "日本語",
+      "ru": "Русский",
+      "ko": "한국어",
+      "zhHant": "繁體中文",
+      "zhHans": "简体中文"
+    }
+  },
+  "main": {
+    "title": "Nicechunk 体素原型",
+    "brand": "Nicechunk",
+    "account": {
+      "label": "玩家账户",
+      "open": "打开玩家属性",
+      "guest": "访客",
+      "level": "Lv. {level}",
+      "defaultTitle": "新手",
+      "notConnected": "未连接",
+      "sessionBalance": "Session：{balance} SOL",
+      "sessionNotFunded": "Session：尚未注资",
+      "walletBalance": "钱包：{balance} SOL",
+      "walletBalanceUnknown": "钱包：未知"
+    },
+    "blueprint": {
+      "guideAria": "建筑指南",
+      "guideTitle": "建筑指南",
+      "toolName": "蓝图",
+      "stepEquip": "装备蓝图工具",
+      "stepSize": "设置地基尺寸",
+      "stepPlace": "放置地基",
+      "stepConfirm": "保护地基",
+      "stepBuild": "在地基上建造",
+      "length": "长度",
+      "width": "宽度",
+      "decreaseLength": "缩短长度",
+      "increaseLength": "增加长度",
+      "lengthInput": "地基长度",
+      "decreaseWidth": "缩小宽度",
+      "increaseWidth": "增加宽度",
+      "widthInput": "地基宽度",
+      "cancel": "取消",
+      "confirm": "创建地基",
+      "mode": "蓝图模式",
+      "submitting": "正在保护...",
+      "topFaceRequired": "请选择坚固地面方块的顶面。",
+      "invalid": "此区域不能作为地基。",
+      "chooseGround": "点击平坦区域放置蓝图。",
+      "submitFailed": "地基提交失败。",
+      "created": "地基已创建并在链上受到保护。",
+      "worldLoading": "世界数据仍在加载。",
+      "overlap": "此区域与现有地基重叠。",
+      "notLevel": "整个地基区域必须保持水平。",
+      "solidGround": "地基需要坚固干燥的地面。",
+      "clearArea": "请清除地基范围内的植物、岩石和树木。",
+      "ready": "平坦区域已就绪，请确认创建地基。",
+      "syncFailed": "地基 PDA 同步失败：{reason}",
+      "stepEquipDetail": "从工具栏选择蓝图工具。",
+      "stepSizeDetail": "设置地基尺寸后点击平坦地面。",
+      "stepPlaceDetail": "将全息蓝图放在空旷且水平的区域。",
+      "stepConfirmDetail": "检查外框并创建受保护的地基。",
+      "stepBuildDetail": "地基已可用于建造。",
+      "foundationTab": "地基",
+      "buildingTab": "建筑",
+      "modeAria": "蓝图模式",
+      "targetFoundation": "目标地基",
+      "targetFoundationAria": "目标地基",
+      "exactScale": "精确 1:1 体素",
+      "codePlaceholder": "粘贴 NCM3 代码",
+      "codeAria": "NCM3 建筑代码",
+      "rotateLeft": "向左旋转",
+      "rotateRight": "向右旋转",
+      "rotation": "旋转",
+      "offsetX": "X 偏移",
+      "offsetZ": "Z 偏移",
+      "previewBuilding": "预览",
+      "createBuilding": "创建建筑",
+      "noFoundation": "导入建筑前请先创建地基。",
+      "enterCode": "请先粘贴 NCM3 建筑代码。",
+      "buildingReady": "NCM3 建筑以精确 1:1 比例完整放入该地基。",
+      "buildingDoesNotFit": "建筑超出地基范围。请调整 X/Z 或扩大地基；建筑不会被缩放。",
+      "invalidCode": "NCM3 建筑代码无效：{reason}",
+      "buildingSubmitFailed": "建筑提交失败：{reason}",
+      "buildingCreated": "已在该地基上创建建筑。",
+      "foundationOption": "地基 #{id} · {width}×{depth}",
+      "noFoundationOption": "没有可用地基",
+      "sizeMetric": "尺寸",
+      "voxelsMetric": "体素",
+      "bytesMetric": "字节",
+      "submittingBuilding": "创建中...",
+      "buildingSyncFailed": "建筑 PDA 同步失败：{reason}",
+      "stepBuildCodeDetail": "粘贴此蓝图的 NCM3 代码，以精确 1:1 比例预览后创建建筑。",
+      "coordinateRange": "地基超出支持的世界坐标范围。",
+      "validating": "正在检查地面高度和净空...",
+      "processingBuilding": "正在渲染线程之外处理 NCM3 建筑...",
+      "processing": "处理中...",
+      "guardianCoverageRequired": "该地基覆盖的每个守护者区域都必须处于启用状态。缺少：{regions}。",
+      "guardianIndexPending": "链上交易已成功，但守护者索引仍在等待：{reason}。",
+      "guardianUnavailable": "守护者不可用",
+      "invalidBuildingHash": "最终建筑哈希无效。",
+      "instanceLabel": "蓝图 #{number} · ID {id}",
+      "foundationLocked": "此蓝图已永久绑定到它的地基。",
+      "saveSize": "保存地基尺寸",
+      "resizing": "更新中...",
+      "resized": "地基尺寸已更新并在链上受到保护。",
+      "resizeFailed": "地基尺寸更新失败。",
+      "foundationSelected": "已选择地基，调整长度或宽度即可编辑。",
+      "resizeReady": "新的地基尺寸已就绪，保存后将更新受保护区域。",
+      "selectBoundFoundation": "点击此蓝图绑定的地基以编辑尺寸。",
+      "stepEditDetail": "调整已选地基的尺寸，然后保存其受保护区域。",
+      "foundationSyncPending": "BuildSite 刷新等待中"
+    },
+    "forgedPlacement": {
+      "loading": "正在加载已验证的锻造模型...",
+      "unavailable": "已验证的锻造模型不可用，手部动作和放置功能已禁用。",
+      "topFaceRequired": "请选择坚固方块的顶面。",
+      "outOfRange": "请靠近一些以放置这个锻造物。",
+      "playerOverlap": "锻造物不能与玩家重叠。",
+      "occupied": "锻造物与现有地形相交。",
+      "selected": "已选择锻造物位置：{x}, {y}, {z}。"
+    },
+    "profile": {
+      "eyebrow": "总览",
+      "title": "角色档案",
+      "tabs": "角色面板切换",
+      "attributesTab": "总览",
+      "modelTab": "形象",
+      "name": "名称",
+      "level": "等级",
+      "titleLabel": "称号",
+      "wallet": "钱包",
+      "position": "位置",
+      "chunks": "已知区块",
+      "backpack": "已装备背包",
+      "noBackpack": "尚未装备背包",
+      "buyBackpack": "购买背包",
+      "buyingBackpack": "购买中...",
+      "backpackEquipped": "{address} · {count}/{capacity}",
+      "backpackPurchaseFailed": "背包购买失败：{reason}",
+      "model": "角色模型",
+      "close": "关闭属性",
+      "logout": "退出",
+      "invite": {
+        "open": "邀请好友",
+        "close": "关闭邀请面板",
+        "eyebrow": "链上邀请登记",
+        "title": "邀请好友",
+        "body": "创建注册链接，并通过 Solana PDA 分页记录被邀请玩家，不依赖私有服务器数据库。",
+        "tabsAria": "邀请面板分区",
+        "createTab": "创建邀请",
+        "ledgerTab": "邀请列表",
+        "briefAria": "邀请费用模型",
+        "rule1Label": "01 · 第一页",
+        "rule1Title": "邀请人创建第一页 PDA",
+        "rule1Body": "邀请人先支付第 1 页 Solana 账户存储押金，再分享可完整追踪的邀请链接。",
+        "rule2Label": "02 · 溢出页",
+        "rule2Title": "只有需要新页时才由注册者支付",
+        "rule2Body": "每页保存 64 个被邀请钱包。如果已有页面已满，下一位被邀请注册者在注册时支付创建下一页的成本。",
+        "rule3Label": "03 · 公开账本",
+        "rule3Title": "费用是 PDA 存储，不是团队收入",
+        "rule3Body": "这笔 SOL 用于 Solana rent-exempt PDA 账户存储。邀请数据公开、只追加，且不由 NiceChunk 后端控制。",
+        "linkLabel": "注册链接",
+        "guardian": "守护者：{guardian} · 区域 {region}",
+        "referrer": "邀请人：{wallet}",
+        "initialize": "创建第一页 PDA",
+        "initializing": "创建中...",
+        "initializeDone": "第一页 PDA 已创建",
+        "copy": "复制链接",
+        "copied": "已复制",
+        "refresh": "刷新邀请列表链上数据",
+        "costLoading": "正在计算第 1 页存储押金...",
+        "firstPageCost": "第 1 页存储押金约 {sol} SOL · {bytes} bytes · {capacity} 个钱包槽位。这是 Solana PDA 免租存储押金，不是支付给团队的费用。",
+        "players": "链上已邀请玩家",
+        "status": "PDA 分页",
+        "ledgerMeta": "{entries} 位玩家 · {pages} 个 PDA 页面 · {used}/{slots} 个槽位",
+        "paginationAria": "邀请列表分页",
+        "previousPage": "上一页",
+        "nextPage": "下一页",
+        "pageLabel": "{page} / {pages}",
+        "tablePlayer": "玩家",
+        "tableStatus": "状态",
+        "tablePage": "PDA 页",
+        "tableSlot": "槽位",
+        "loadingPage": "正在加载当前页...",
+        "loading": "正在读取链上邀请 PDA 页面...",
+        "unavailable": "链上邀请页暂不可用。注册链接仍可分享，但在玩家程序升级前可能无法追加邀请记录。",
+        "empty": "还没有被邀请玩家完成链上注册。",
+        "firstPageMissing": "第一页邀请 PDA 尚未创建。如果希望完整链上追踪，请先创建第 1 页再分享。",
+        "region": "区域 {region}",
+        "pageIndex": "第 {page} 页 · #{index}",
+        "statusLoading": "正在读取 Solana PDA 页面...",
+        "statusInitializing": "正在 Solana 上创建邀请第 1 页...",
+        "statusCreated": "邀请页已创建。第 1 页容量：{count}/{capacity}。",
+        "statusReady": "链上邀请账本已就绪：{pages} 页，第 1 页使用 {count}/{capacity} 个槽位。",
+        "statusMissing": "第一页邀请 PDA 尚未创建。邀请人支付这一次 Solana 存储押金。",
+        "statusFailed": "邀请账本不可用：{reason}",
+        "statusRegistered": "已注册",
+        "statusPending": "待注册",
+        "programUpgradePending": "玩家程序等待升级"
+      },
+      "rpc": "RPC",
+      "rpcPublic": "公共 RPC",
+      "rpcKey": "RPCKEY {key}",
+      "rpcRecommend": "推荐设置专用 RPC key，挖掘和链上同步会更稳定。",
+      "rpcConfigured": "专用 RPC key 已启用，链上调用会使用你的 RPC。",
+      "rpcSet": "设置",
+      "rpcUpdate": "更新",
+      "rpcSetPrompt": "设置 Helius API key，避免公共 RPC 限流。",
+      "rpcUpdatePrompt": "更新 NiceChunk 链上调用使用的 Helius API key。",
+      "characterTitle": "角色",
+      "basicInfo": "基础信息",
+      "skillsTab": "技能",
+      "equipmentTab": "装备",
+      "reputation": "声望",
+      "worldRegion": "世界 / 区域",
+      "stats": "属性",
+      "copy": "复制",
+      "copied": "已复制",
+      "copyFailed": "复制失败",
+      "viewSkills": "查看技能",
+      "editProfile": "编辑资料",
+      "playerName": "玩家名称",
+      "playerNamePlaceholder": "选择链上玩家名称",
+      "save": "保存",
+      "defaultTitle": "探险家",
+      "modelMale": "村民男孩",
+      "modelFemale": "村民女孩",
+      "modelCode": "NCM 模型代码",
+      "saveLook": "保存外观",
+      "equipmentTitle": "装备",
+      "avatarPreview": "玩家角色预览",
+      "powerScore": "战力评分",
+      "balanceUnavailable": "0 SOL",
+      "notConnected": "未连接",
+      "statGathering": "采集",
+      "statCarry": "负重",
+      "statSmelting": "熔炼",
+      "statSpeed": "速度",
+      "statStrength": "力量",
+      "statCrafting": "工艺",
+      "skillsEyebrow": "技能矩阵",
+      "skillsIntro": "技能定义角色采集、负重、熔炼、锻造、移动和探索的能力。当前先按前端规则展示，后续可直接映射到玩家 PDA。",
+      "equipmentEyebrow": "装备",
+      "equipmentIntro": "当前人物身上的装备和手持物。这里读取本地游戏状态，不额外触发链上请求。",
+      "skillLevel": "Lv. {level}/{max}",
+      "skillCurrent": "当前",
+      "skillNext": "下级",
+      "skillCap": "上限",
+      "skillFormula": "规则",
+      "skillMaxed": "已满级",
+      "skillXpProgress": "经验 {current}/{required}",
+      "skillXpMax": "总经验 {xp}",
+      "skillXpTitle": "经验",
+      "skillXpTiers": "升级经验档位",
+      "skillXpTier": "Lv.{level}：{xp} 经验",
+      "equipment": {
+        "emptySlot": "空",
+        "emptySlotDetail": "此装备槽还没有装备物品。",
+        "locked": "未解锁",
+        "lockedDetail": "此装备槽尚未解锁。",
+        "head": "头",
+        "face": "面",
+        "shoulder": "肩",
+        "wrist": "腕",
+        "chest": "胸",
+        "back": "背部 / 背包",
+        "gloves": "手套",
+        "boots": "靴子",
+        "belt": "腰带 / 护符",
+        "offHand": "副手",
+        "necklace": "项链",
+        "ring1": "戒指 1",
+        "ring2": "戒指 2",
+        "leftHand": "左手",
+        "rightHand": "右手",
+        "rightHandDetail": "快捷栏第 {slot} 格。当前动作：{action}。",
+        "rightHandEmpty": "当前没有手持物。",
+        "legs": "腿",
+        "feet": "脚",
+        "backpackSlot": "背包",
+        "backpack": "背包",
+        "backpackDetail": "已装备的库存容器。容量 {count}/{capacity}。",
+        "backpackEmpty": "购买并装备背包后，才能挖掘持久资源。",
+        "mainHand": "主手",
+        "mainHandDetail": "快捷栏第 {slot} 格。当前动作：{action}。",
+        "mainHandEmpty": "当前没有手持物。",
+        "forged": "锻造物",
+        "forgedEquipped": "最近锻造物 · {bytes} bytes",
+        "forgedEmpty": "没有锻造物",
+        "forgedDetail": "本地保存的锻造对象，可从快捷栏装备并渲染到人物身上。",
+        "forgedEmptyDetail": "先锻造一个物品，它会显示在这里。",
+        "tool": "采集工具",
+        "toolDetail": "耐久 {durability}。用于挖掘和破坏方块。",
+        "toolReady": "默认采集工具已就绪。",
+        "chainBacked": "链上资产",
+        "capacity": "容量",
+        "source": "来源",
+        "pickaxeDetail": "可靠的采矿工具。命中由 chunk.js 的真实工具扫掠碰撞验证。",
+        "resource": "资源",
+        "resourceDetail": "已验证的可放置资源堆 · {resource} x{count}",
+        "backpackOpenDetail": "打开背包和资源证明数据。",
+        "hotbarDetail": "装备自快捷栏第 {slot} 格。",
+        "durability": "耐久度",
+        "parameters": "参数",
+        "status": "状态",
+        "notEquipped": "未装备",
+        "lastProof": "最近方块证明 · {status} · {x}, {y}, {z}",
+        "basic": "基础",
+        "collision": "碰撞",
+        "physicalSweep": "物理扫掠",
+        "miningHits": "挖掘次数",
+        "proof": "证明",
+        "coordinateProof": "坐标验证",
+        "stack": "数量",
+        "resourceId": "资源 ID",
+        "local": "本地",
+        "hotbarSlot": "快捷栏槽位"
+      },
+      "skills": {
+        "precisionGathering": {
+          "name": "精密采集",
+          "description": "决定挖掘资源块时，能回收到多少真实材料体积。",
+          "xpSource": "成功挖掘持久资源块时获得经验。方块越硬、额外掉落越稀有，获得经验越多。",
+          "current": "采集 {percent}% · 每个资源块 {liters} L",
+          "next": "下一级：{percent}% · 每块 {liters} L",
+          "max": "满级：100% · 每个资源块 1 L",
+          "formula": "min(100%, 10% + Lv x 10%)；资源块为 0.1m x 0.1m x 0.1m = 1 L"
+        },
+        "burden": {
+          "name": "负重",
+          "description": "决定角色可安全携带的背包重量，超过后会影响移动、耐力和动作。",
+          "xpSource": "携带资源移动、挖掘和返回时获得经验。合法负重越高经验越多，超重状态不计入有效训练。",
+          "current": "安全负重 {kg} kg",
+          "next": "下一级：{kg} kg",
+          "max": "满级：安全负重 130 kg",
+          "formula": "30 kg + Lv x 10 kg"
+        },
+        "smelting": {
+          "name": "熔炼",
+          "description": "降低原始资源熔炼为材料时的材料损耗。",
+          "xpSource": "完成有效熔炼配方时，按消耗的输入材料数量获得经验，每个输入材料 +1 经验。",
+          "current": "产出率 {yieldPercent}% · 损耗 {lossPercent}%",
+          "next": "下一级：产出率 {yieldPercent}% · 损耗 {lossPercent}%",
+          "max": "满级：产出率 100% · 损耗 0%",
+          "formula": "产出率 = 70% + Lv x 3%；损耗 = 30% - Lv x 3%"
+        },
+        "forging": {
+          "name": "锻造",
+          "description": "提高材料被锻造成装备后的耐久度。",
+          "xpSource": "保存锻造物时获得经验。结构更完整、握把有效、材料等级更高时经验更多。",
+          "current": "锻造物品耐久 +{bonus}%",
+          "next": "下一级：耐久 +{bonus}%",
+          "max": "满级：耐久 +50%",
+          "formula": "耐久加成 = Lv x 5%"
+        },
+        "craftsmanship": {
+          "name": "工艺",
+          "description": "解锁更高级的工艺层级，用于复杂工具、连接件、合金和机关结构。",
+          "xpSource": "通过高级工艺操作获得经验，包括连接、塑形、切割、组装机关，以及使用已解锁工艺阶级。",
+          "current": "可用工艺阶级 {tier}",
+          "next": "下一级：工艺阶级 {tier}",
+          "max": "满级：工艺阶级 6",
+          "formula": "阶级 = 1 + floor(Lv / 2)；用于解锁高级工艺"
+        },
+        "swiftness": {
+          "name": "迅捷",
+          "description": "提高地面移动速度，同时保持镜头控制和碰撞规则稳定。",
+          "xpSource": "通过真实移动获得经验，包括步行、奔跑、攀爬、跳过障碍和非传送位移。",
+          "current": "移动速度 {speed}%",
+          "next": "下一级：移动速度 {speed}%",
+          "max": "满级：移动速度 130%",
+          "formula": "速度 = 100% + Lv x 3%"
+        },
+        "exploration": {
+          "name": "探险",
+          "description": "提高稀有额外掉落的权重，配合海拔、深度、生态和文明掉落表生效。",
+          "xpSource": "进入新区块、发现稀有地形、挖掘海拔/深度限定资源、触发额外掉落表时获得经验。",
+          "current": "稀有额外掉落权重 +{chance}%",
+          "next": "下一级：稀有权重 +{chance}%",
+          "max": "满级：稀有额外掉落权重 +100%",
+          "formula": "稀有权重加成 = Lv x 10%；触发额外掉落时获得 1 点经验"
+        },
+        "stamina": {
+          "name": "耐力",
+          "description": "降低挖掘、奔跑、跳跃和连续重体力动作带来的疲劳。",
+          "xpSource": "通过连续挖掘、奔跑、跳跃和负重消耗体力后恢复获得经验，但超过安全限制不计入有效训练。",
+          "current": "挖掘和移动疲劳降低 {reduction}%",
+          "next": "下一级：疲劳降低 {reduction}%",
+          "max": "满级：疲劳降低 40%",
+          "formula": "疲劳消耗降低 = Lv x 4%"
+        },
+        "strength": {
+          "name": "力量",
+          "description": "决定单手举起锻造物品的稳定性，后续会结合质量、重力、重心和力矩计算。",
+          "xpSource": "成功举起、保持和操作有效重物时获得经验，物品不能穿模，也不能抓握失败。",
+          "current": "单手控制 {kg} kg",
+          "next": "下一级：单手控制 {kg} kg",
+          "max": "满级：单手控制 48 kg",
+          "formula": "抓握举起控制 = 8 kg + Lv x 4 kg；后续结合质量、重力和力矩"
+        },
+        "appraisal": {
+          "name": "鉴定",
+          "description": "显示更多材料属性，方便判断稀有材料和高级配方价值。",
+          "xpSource": "通过检查材料、识别锻造物、揭示资源属性，并把已发现属性用于配方时获得经验。",
+          "current": "显示 {traits} 项材料属性",
+          "next": "下一级：显示 {traits} 项属性",
+          "max": "满级：显示 12 项材料属性",
+          "formula": "可见属性 = 2 + Lv；支持稀有材料和文明规则"
+        }
+      },
+      "settingsTab": "设置",
+      "settings": "设置",
+      "settingsIntro": "管理钱包访问、网络连接和界面语言。",
+      "accountSettings": "账户",
+      "accountSettingsHint": "当前使用中的游戏钱包会话。",
+      "walletAddress": "钱包地址",
+      "walletConnectedHint": "此钱包正用于链上游戏操作。",
+      "walletDisconnectedHint": "连接钱包以使用链上游戏功能。",
+      "logOut": "退出登录",
+      "rpcSettings": "RPC 连接",
+      "rpcSettingsHint": "设置此浏览器使用的 Solana 数据网关。",
+      "rpcHelius": "Helius RPC",
+      "rpcHintPrivate": "链上调用当前使用私有 RPC。",
+      "rpcHintPublic": "设置 Helius 密钥以获得更稳定的挖掘体验。",
+      "languageSettings": "界面语言",
+      "language": "语言",
+      "languageHint": "选择游戏界面语言。",
+      "rotateAvatar": "拖动旋转"
+    },
+    "debug": "Debug",
+    "bulkMining": {
+      "title": "批量挖掘",
+      "on": "开启",
+      "off": "关闭",
+      "inactive": "关闭 · 仅限调试",
+      "limit": "选择范围超过 {max} 个方块",
+      "chooseEnd": "起点已选择 · 请选择对角",
+      "selection": "已选择 {count} / {max} 个方块",
+      "chooseStart": "点击方块设置第一个角点",
+      "confirm": "确认批量挖掘",
+      "cancel": "取消",
+      "enabled": "批量挖掘已开启。点击两个方块来设置立体范围。",
+      "disabled": "批量挖掘已关闭。",
+      "selectSolid": "请选择可挖掘的实体方块。",
+      "anchorSet": "起点已设置为 {x}, {y}, {z}。请点击对角。",
+      "tooLarge": "选择范围超过 {max} 个方块的调试上限。",
+      "empty": "选择范围内没有可挖掘方块。",
+      "ready": "已选择 {count} 个方块。确认后将分批提交到链上。",
+      "incomplete": "确认批量挖掘前，请先选择两个角点。",
+      "submitting": "正在按区块批次提交 {count} 个方块。",
+      "cancelled": "已清除批量挖掘选择范围。",
+      "resultTitle": "挖掘完成 · {count} 个方块",
+      "noDropsSaved": "没有掉落物存入背包 · 已应用容量与掉落概率"
+    },
+    "minimap": "小地图",
+    "map": "地图",
+    "mapGuardian": {
+      "resolving": "守护者：解析中...",
+      "resolvingForChunk": "守护者：正在解析 chunk {chunkX},{chunkZ}",
+      "active": "守护者：{endpoint} | chunk {chunkX},{chunkZ} | 范围 {minX}..{maxX}, {minZ}..{maxZ}",
+      "none": "守护者：chunk {chunkX},{chunkZ} 没有匹配节点"
+    },
+    "mapTeleport": {
+      "x": "X",
+      "z": "Z",
+      "xLabel": "世界 X",
+      "zLabel": "世界 Z",
+      "action": "传送",
+      "invalid": "请输入有效坐标",
+      "done": "已传送"
+    },
+    "chainLog": {
+      "aria": "链上事件日志",
+      "minePending": "挖掘已经提交，待确认",
+      "minePendingDetail": "正在提交 {resource}（{coords}）到开发网",
+      "mineSubmitted": "挖掘已确认",
+      "signature": "{resource}（{coords}）：{signature}",
+      "signatureWithCost": "消耗 {cost} SOL · {resource}（{coords}）：{signature}",
+      "mineSkipped": "挖掘同步已跳过",
+      "disabled": "{resource}（{coords}）的链上同步已关闭",
+      "mineSkippedDetail": "{resource}（{coords}）：{reason}",
+      "mineFailed": "挖掘交易失败",
+      "mineFailedDetail": "{resource}（{coords}）：{reason}",
+      "alreadyMined": "方块已登记",
+      "alreadyMinedReason": "已被挖掘",
+      "walletUnavailable": "钱包不可用",
+      "chainDisabledReason": "链上同步已关闭",
+      "unknownReason": "未知原因",
+      "noSignature": "没有签名",
+      "walletUnexpectedError": "钱包返回了未知错误",
+      "sessionFundingCancelled": "已取消 Session 注资",
+      "sessionFundingFailed": "Session 注资失败",
+      "notTreeTrunk": "不是树干",
+      "backpackFull": "背包已满",
+      "noBackpack": "尚未装备背包",
+      "noBackpackTitle": "需要背包",
+      "noBackpackDetail": "购买并装备背包后才能挖掘 {coords}"
+    },
+    "chainSession": {
+      "eyebrow": "挖掘 Session",
+      "title": "设置挖掘 Session SOL",
+      "body": "挖掘可能会创建或扩容 Solana Chunk 储存账户。这些 SOL 会从你的钱包转到浏览器临时 Session 签名账户，让挖掘可以自动提交交易，不需要每挖一个方块都要求你签名。",
+      "pointStorage": "实际消耗的是 Solana 网络成本：交易手续费，以及 Chunk PDA 的免租金储存押金。",
+      "pointProject": "这笔 SOL 不是支付给 NiceChunk 项目方，项目方无法提取你的 Session 余额。",
+      "pointControl": "你的主钱包只会签署本次设置或之后补充余额；方块挖掘交易由临时 Session key 签署。",
+      "amountLabel": "Session 注资金额",
+      "minimum": "最低：{amount} SOL",
+      "currentUnknown": "当前 Session 余额：未知",
+      "current": "当前 Session 余额：{balance} SOL",
+      "mobileBody": "手机浏览器需要在钱包 App 内置浏览器中打开此页，才能唤起签名。",
+      "openPhantom": "用 Phantom 打开",
+      "openSolflare": "用 Solflare 打开",
+      "openBackpack": "用 Backpack 打开",
+      "cancel": "取消",
+      "confirm": "确认并继续挖掘"
+    },
+    "chat": {
+      "input": "消息或调试命令",
+      "placeholder": "消息或 /命令",
+      "open": "打开聊天和命令",
+      "close": "关闭聊天",
+      "send": "发送",
+      "commandHint": "可以直接输入调试命令，例如 /debug。",
+      "guardianRequired": "发送聊天消息前请先连接守护者。",
+      "debugUnavailable": "此客户端不提供调试命令。",
+      "submitFailed": "消息或命令发送失败。"
+    },
+    "hotbar": "快捷工具栏",
+    "chunks": "{active}/{known} chunks",
+    "fps": "{fps} FPS",
+    "item": {
+      "empty": "空手",
+      "iron_pickaxe": "铁镐",
+      "dirt": "泥土",
+      "stone": "石头",
+      "sand": "沙子",
+      "trunk": "树干",
+      "leaves": "树叶",
+      "red_flower": "红花",
+      "forged_item": "铸造物品",
+      "backpack": "背包",
+      "backpack_resource": "挖掘资源",
+      "market_phone": "市场电话"
+    },
+    "hotbarSlot": {
+      "empty": "第 {slot} 格：空",
+      "item": "第 {slot} 格：{item}",
+      "detail": "第 {slot} 格：{item}，{amount}",
+      "durability": "耐久 {value}",
+      "count": "数量 {value}"
+    },
+    "backpack": {
+      "eyebrow": "背包工具",
+      "title": "背包",
+      "close": "关闭背包",
+      "slots": "背包格子",
+      "emptySlot": "背包第 {slot} 格：空",
+      "detailLine": "坐标 {source}",
+      "emptyDetail": "选择一个物品查看详情。",
+      "emptyDetailTitle": "尚未选择资源",
+      "emptyHintSelect": "选择格子",
+      "emptyHintInspect": "查看来源",
+      "emptyHintSmelt": "之后熔炼",
+      "itemType": "物品",
+      "unknownSource": "未知来源",
+      "coordinateResource": "坐标资源",
+      "totalWeight": "总重量：{weight}",
+      "massLine": "质量 {mass}",
+      "sizeLine": "尺寸 {size}",
+      "volumeLine": "体积 {volume}",
+      "quantityLine": "数量 {count}",
+      "itemIdLine": "物品 ID {id}",
+      "materialIdLine": "材料 {id}",
+      "unknownMass": "未知",
+      "unknownSize": "未知",
+      "materialPropertyLine": "{grade}品级 · 纯度 {purity}/100",
+      "equipped": "已装备",
+      "equippedSlot": "已装备至工具栏第 {slot} 格",
+      "equippedLocked": "已装备至工具栏第 {slot} 格。取下装备后才能选择、移动或丢弃。"
+    },
+    "loading": {
+      "eyebrow": "世界网关",
+      "title": "正在准备 NiceChunk 世界",
+      "boot": "正在准备玩家会话和体素引擎。",
+      "session": "进入世界前正在验证钱包访问状态。",
+      "i18n": "正在获取游戏界面字典。",
+      "engine": "正在创建渲染器、材质、角色、光照和输入系统。",
+      "chunks": "正在生成地形、水体、树木和第一批可见 Chunk 网格。",
+      "ready": "首帧已渲染，正在进入 NiceChunk。",
+      "bytesKnown": "已传输 {loaded} / {total}",
+      "bytesUnknown": "已传输 {loaded}",
+      "stages": {
+        "boot": {
+          "title": "正在启动客户端",
+          "body": "正在准备玩家会话和体素引擎。"
+        },
+        "session": {
+          "title": "检查会话",
+          "body": "进入世界前正在验证钱包访问状态。"
+        },
+        "version": {
+          "title": "检查客户端版本",
+          "body": "正在确认已加载最新游戏客户端。"
+        },
+        "language": {
+          "title": "正在加载语言",
+          "body": "正在获取游戏界面字典。"
+        },
+        "worldConfig": {
+          "title": "正在读取世界参数",
+          "body": "正在加载链上世界种子和地形配置。"
+        },
+        "chainSync": {
+          "title": "正在同步链上状态",
+          "body": "正在渲染世界前加载可见 Chunk 的资源变更。"
+        },
+        "engine": {
+          "title": "正在启动体素引擎",
+          "body": "正在创建渲染器、材质、角色、光照和输入系统。"
+        },
+        "chunks": {
+          "title": "正在生成可见 Chunk",
+          "body": "正在生成地形、水体、树木和第一批可见 Chunk 网格。"
+        },
+        "ready": {
+          "title": "世界已就绪",
+          "body": "首帧已渲染，正在进入 NiceChunk。"
+        },
+        "redirect": {
+          "title": "打开钱包网关",
+          "body": "没有找到有效游戏会话，正在跳转到钱包登录。"
+        }
+      },
+      "loader": {
+        "generatingWorld": "正在生成世界",
+        "loading": "加载中",
+        "complete": "已完成",
+        "cached": "已缓存",
+        "failed": "失败",
+        "failureMessage": "游戏文件无法加载。",
+        "retry": "重试",
+        "files": "{loaded} / {total} 个文件",
+        "network": "网络"
+      }
+    },
+    "rpcConfig": {
+      "title": "公共 RPC 负载过高",
+      "body": "填写 Helius 开发网 API key，链上读取和交易提交会改用你的专用 RPC。",
+      "link": "申请 Helius API key",
+      "explainerAria": "RPC 设置说明",
+      "pointGatewayLabel": "链上网关",
+      "pointGatewayTitle": "RPC 决定浏览器如何连接 Solana",
+      "pointGatewayBody": "NiceChunk 通过 RPC 读取账户、刷新世界状态、提交已签名交易。它不会改变你的钱包所有权。",
+      "pointReliabilityLabel": "稳定性",
+      "pointReliabilityTitle": "专用 key 可以避开公共端点拥堵",
+      "pointReliabilityBody": "很多玩家共用公共开发网 RPC 时，读取和挖掘交易可能被限流。填写你的 Helius key 后，本浏览器会使用更稳定的链上通道。",
+      "pointCostLabel": "费用边界",
+      "pointCostTitle": "这个 key 不是支付给 NiceChunk 的费用",
+      "pointCostBody": "API key 只保存在你的浏览器本地，用来拼接你的 RPC URL。按 NiceChunk 正常游戏用量，Helius 免费方案通常已经足够；如果你希望更高额度和更顺畅的体验，也可以使用 Helius 付费方案。",
+      "pointSecurityLabel": "安全边界",
+      "pointSecurityTitle": "RPC 本身不能花费你的 SOL",
+      "pointSecurityBody": "交易仍然需要你的插件钱包或游戏钱包签名。RPC 只负责传输已签名请求和链上数据。",
+      "inputLabel": "Helius API key",
+      "placeholder": "粘贴你的 Helius API key",
+      "save": "保存 RPC",
+      "dismiss": "关闭 RPC 提醒",
+      "publicRpcFailed": "公共开发网 RPC 正在限流。添加 Helius API key 后，链上读取和挖掘交易会更稳定。",
+      "invalid": "保存前请输入 Helius API key。",
+      "saved": "已保存。NiceChunk 会使用你的 Helius 开发网 RPC 执行链上调用。"
+    },
+    "market": {
+      "open": "打开交易市场",
+      "close": "关闭交易市场",
+      "refresh": "刷新市场挂单",
+      "eyebrow": "交易终端",
+      "title": "市场",
+      "tabs": "市场栏目",
+      "browseTab": "浏览",
+      "sellTab": "出售",
+      "ordersTab": "订单",
+      "searchLabel": "搜索",
+      "searchPlaceholder": "资源、装备、坐标",
+      "searchMetaIdle": "{category} · {currency} · {sort}",
+      "searchMetaActive": "{category} · {currency} · {sort} · “{query}”",
+      "chainListingsSyncing": "正在同步链上挂单...",
+      "chainListingsSynced": "链上挂单已同步",
+      "chainListingsUnavailable": "链上同步不可用",
+      "sortLabel": "排序",
+      "sortNewest": "最新优先",
+      "sortOldest": "最早优先",
+      "sortPriceAsc": "价格从低到高",
+      "sortPriceDesc": "价格从高到低",
+      "currencyFilterLabel": "币种",
+      "currencyAll": "全部币种",
+      "currencyNck": "NCK",
+      "currencySol": "SOL",
+      "filters": "市场筛选",
+      "browsePagination": "浏览挂单翻页",
+      "ordersPagination": "订单翻页",
+      "pageSummary": "显示 {start}-{end} / 共 {total}",
+      "pageIndicator": "第 {page} / {totalPages} 页",
+      "previousPage": "上一页",
+      "nextPage": "下一页",
+      "categoryAll": "全部",
+      "categoryRaw": "原材料",
+      "categoryEquipment": "装备",
+      "categoryBuilding": "建筑材料",
+      "categoryClothing": "服装",
+      "feeLabel": "市场手续费",
+      "feeValue": "1%",
+      "settlement": "推荐结算：NCK",
+      "backpackCount": "{count}/{capacity}",
+      "sampleIron": "铁矿碎块",
+      "sampleIronMeta": "原材料",
+      "samplePickaxe": "锻造镐",
+      "samplePickaxeMeta": "工具 · 稀有",
+      "sampleBrick": "石砖堆",
+      "sampleBrickMeta": "建筑材料",
+      "sampleCloak": "橡树叶方块",
+      "sampleCloakMeta": "服装",
+      "buy": "购买",
+      "buyNeedsWallet": "连接钱包后才能购买这个挂单。",
+      "buyNeedsBackpack": "装备背包后才能购买这个挂单。",
+      "buyBackpackFull": "你的背包已满。",
+      "buyPending": "购买中...",
+      "buyCreated": "链上购买已确认：{signature}",
+      "buyFailed": "购买交易失败：{reason}",
+      "cancelListing": "取消",
+      "cancelNeedsBackpackSpace": "请先空出一个背包格子，再取消这个挂单。",
+      "ownListing": "你的挂单",
+      "cancelCreated": "挂单已取消。",
+      "expandDetails": "详情",
+      "collapseDetails": "收起详情",
+      "detailTitle": "挂单详情",
+      "detailClose": "关闭挂单详情",
+      "cardAria": "{name}，{price} {currency}",
+      "detailItem": "物品",
+      "detailSeller": "卖家",
+      "detailSource": "来源",
+      "detailInventory": "库存",
+      "detailPayment": "付款",
+      "detailRequirement": "购买条件",
+      "detailUnknown": "未知",
+      "paymentNck": "需要钱包拥有 NCK 代币账户。",
+      "paymentSol": "从钱包 SOL 余额支付。",
+      "sampleListing": "示例挂单",
+      "loadingListings": "正在加载挂单...",
+      "chainListingLoadFailed": "链上挂单暂时不可用。",
+      "chainListingName": "链上资源挂单",
+      "chainListingMeta": "{source} 第 {slot} 格",
+      "sourceBackpack": "背包",
+      "sourceEquipment": "装备",
+      "listingUnavailable": "挂单不可用",
+      "selfPurchase": "不能购买自己的挂单",
+      "nckTokenMissing": "钱包没有 NCK 代币账户",
+      "sellSteps": "出售挂单步骤",
+      "stepSelectItem": "1. 选择物品",
+      "stepListingDraft": "2. 挂单草稿",
+      "inventoryEyebrow": "背包",
+      "inventoryTitle": "选择一个物品挂单",
+      "listingEyebrow": "挂单草稿",
+      "noSelection": "尚未选择物品",
+      "categoryLabel": "分类",
+      "currencyLabel": "币种",
+      "priceLabel": "价格",
+      "pricePlaceholder": "0.00",
+      "formHint": "选择物品，设置分类和价格，然后创建链上挂单。",
+      "createListing": "创建挂单",
+      "noOrders": "暂无活跃订单",
+      "noOrdersMeta": "钱包订单会显示在这里。",
+      "noListings": "没有匹配的挂单",
+      "noListingsMeta": "换一个分类或搜索词试试。",
+      "noInventoryItems": "没有可挂单物品",
+      "noInventoryItemsMeta": "装备背包，并把物品放在背包内，即可创建挂单。",
+      "emptyHintChain": "链上同步",
+      "emptyHintPda": "PDA 扫描",
+      "emptyHintRetry": "重试同步",
+      "emptyHintRpc": "RPC 状态",
+      "emptyHintFilters": "调整筛选",
+      "emptyHintAll": "显示全部",
+      "emptyHintWallet": "钱包订单",
+      "emptyHintSettlement": "NCK / SOL",
+      "emptyHintBackpack": "装备背包",
+      "emptyHintResources": "采集资源",
+      "emptyHintMarket": "市场终端",
+      "emptyHintOnchain": "链上挂单",
+      "invalidListing": "请选择物品并输入有效价格。",
+      "listingPending": "请确认交易以创建链上挂单。",
+      "listingCreated": "链上挂单已创建：{signature}",
+      "listingFailed": "挂单交易失败：{reason}",
+      "cancelPending": "取消中...",
+      "cancelFailed": "取消交易失败：{reason}"
+    },
+    "smelting": {
+      "open": "打开熔炼台",
+      "close": "关闭熔炼台",
+      "eyebrow": "锻造材料准备",
+      "title": "熔炼台",
+      "modePreview": "本地预览",
+      "coreMeta": "站点核心：Forge Alpha | 热量等级：稳定",
+      "safetyLabel": "安全协议",
+      "safetyActive": "热防护已激活",
+      "closeHint": "[ESC] 关闭",
+      "forgeHint": "[F] 锻造",
+      "noBackpackShort": "无背包",
+      "statusNoBackpack": "熔炼前请先装备背包。",
+      "noBackpackResources": "熔炼资源前请先装备背包。",
+      "backpackCount": "{count}/{capacity}",
+      "inputEyebrow": "背包资源",
+      "inputTitle": "选择一个已采集资源",
+      "resources": "可熔炼背包资源",
+      "furnaceEyebrow": "热核心",
+      "furnaceTitle": "配方匹配",
+      "inputSlot": "输入",
+      "inputSlotMass": "{label} · {mass}",
+      "fuelSlot": "燃料",
+      "fuelTitle": "燃料",
+      "fuel": "燃料",
+      "fuelHeat": "热量等级 {tier}",
+      "addInput": "输入",
+      "addFuel": "燃料",
+      "outputEyebrow": "可锻造输出",
+      "outputTitle": "材料预览",
+      "start": "开始熔炼",
+      "running": "熔炼中...",
+      "statusIdle": "选择输入和燃料。",
+      "statusSyncing": "正在同步已装备背包...",
+      "statusNoInput": "选择一个已采集资源。",
+      "statusNoFuel": "加入兼容燃料。",
+      "statusHeatMissing": "所选燃料达不到需要的热量等级。",
+      "statusHeatMissingMulti": "燃料热量等级 {fuel} 低于所需等级 {required}。",
+      "statusReady": "可以预览熔炼。",
+      "statusRunning": "正在加热资源样本...",
+      "statusComplete": "锻造材料预览完成。",
+      "noResources": "这个背包里没有已采集资源。",
+      "noFuel": "背包里没有兼容燃料。",
+      "selectInput": "选择一个背包资源以预览输出。",
+      "materialSource": "已采集材料",
+      "resourceMassSize": "{mass} · {size}",
+      "dropInputHint": "把已采集材料拖到这里",
+      "dropFuelHint": "把燃料方块拖到这里",
+      "emptySyncTitle": "正在同步背包",
+      "emptyNoBackpackTitle": "需要背包",
+      "emptyNoResourcesTitle": "没有可熔炼资源",
+      "emptyNoFuelTitle": "缺少燃料",
+      "emptySelectInputTitle": "等待材料",
+      "emptyIdleTitle": "熔炼台待命",
+      "emptyHintReadPda": "读取 PDA",
+      "emptyHintSlots": "检查格子",
+      "emptyHintEquip": "装备背包",
+      "emptyHintMine": "采集资源",
+      "emptyHintCoordinate": "坐标绑定",
+      "emptyHintWood": "木质方块",
+      "emptyHintBiomass": "生物质",
+      "emptyHintSelect": "选择输入",
+      "emptyHintPreview": "预览产物",
+      "emptyHintFuel": "加入燃料",
+      "outputName": "{kind}{resource}",
+      "outputDescription": "从 {resource} 提炼出的可锻造材料批次，元素区间仍绑定原始采集坐标。",
+      "mixedBatch": "混合批次",
+      "batchBasis": "{inputs} 个输入 / {fuels} 个燃料",
+      "requiredHeat": "所需热量",
+      "servings": "份数",
+      "outputSize": "输出尺寸",
+      "yieldRange": "产出区间",
+      "outputRate": "产出率",
+      "outputRateValue": "配方 {recipePercent}% · 技能损耗 {lossPercent}%",
+      "inputMass": "输入质量 {mass}",
+      "quality": "品质依据",
+      "heatMet": "已满足等级 {tier}",
+      "heatMissing": "需要等级 {required}，燃料 {fuel}",
+      "noRecipeName": "未匹配批次",
+      "noRecipeDescription": "所选批次尚未匹配 NiceChunk 官方熔炼配方。请按照公开材料表调整输入方块。",
+      "recipeMatched": "配方已匹配：{recipe}",
+      "recipeCandidate": "候选配方：{recipe}。",
+      "statusRecipeIncomplete": "候选配方 {recipe}：缺少 {missing}。",
+      "statusRecipeExtra": "候选配方 {recipe}：移除多余 {extra}。",
+      "noRecipeMatch": "此批次没有匹配公开配方。",
+      "missingInputLabel": "{amount}x {resource}",
+      "previewOnly": "仅预览：熔炼合约尚未提交。",
+      "chainSubmitNotice": "On-chain smelting consumes selected inputs and fuel, then writes the forge material back into your equipped backpack.",
+      "submitFailed": "Smelting transaction failed: {reason}",
+      "submitComplete": "Smelting confirmed on-chain: {signature}",
+      "kindChar": "碳化",
+      "kindBiochar": "生物炭",
+      "kindCeramic": "烧结",
+      "kindBloom": "精炼",
+      "kindStabilized": "稳定化",
+      "kindMaterial": "加工",
+      "mobileTabsAria": "熔炼分区",
+      "tabBackpack": "背包",
+      "tabRecipes": "配方",
+      "tabFurnace": "熔炉",
+      "filterAria": "熔炼资源筛选",
+      "filterAll": "全部",
+      "filterRaw": "原料",
+      "filterFuel": "燃料",
+      "filterReady": "可用",
+      "filterMissing": "缺少",
+      "recipesEyebrow": "公开配方表",
+      "recipesTitle": "匹配背包输入",
+      "recipeFilterAria": "熔炼配方筛选",
+      "recipeProgress": "{matched}/{required} 个输入 · 输入 {volume} · 热量等级 {tier}",
+      "recipeRequirement": "{resource} {available}/{amount}",
+      "recipeRequirementVolume": "{resource} 用 {used} / 有 {available}",
+      "recipeServings": "份数",
+      "recipeServingsValue": "{count}份",
+      "recipeOutputSize": "输出 {size}",
+      "recipeOutputVolume": "输出体积 {volume}",
+      "increaseServings": "增加份数",
+      "decreaseServings": "减少份数",
+      "notReady": "未就绪",
+      "selectRecipe": "选择配方",
+      "findInputs": "查找输入",
+      "recipeReady": "可熔炼",
+      "recipeFuelMissing": "缺少燃料",
+      "recipeMissingInputs": "缺少 {count} 个输入格",
+      "recipePartial": "部分匹配",
+      "coordinateUnknown": "坐标未知",
+      "closeDrawer": "关闭物品操作",
+      "singleItemCoordinate": "单格物品 · {coord}",
+      "removeInput": "移除原料",
+      "addInputFull": "加入原料",
+      "removeFuel": "移除燃料",
+      "useAsFuel": "设为燃料",
+      "viewRecipes": "查看配方",
+      "purity": "纯度",
+      "grade": "品级",
+      "tabInventory": "背包",
+      "tabSmelting": "熔炼",
+      "modeTabsAria": "背包与生产界面",
+      "smeltingSubtitle": "通过公开链上配方组合已采集资源。",
+      "chainAuthoritative": "仅显示 PDA 已确认的背包栏位。",
+      "smeltingArea": "熔炼区",
+      "inputMaterials": "输入材料",
+      "inputMaterialsLimit": "最多 5 组材料",
+      "autoFill": "自动填入",
+      "clear": "清除",
+      "onChain": "链上",
+      "output": "产出",
+      "submitting": "正在提交链上交易...",
+      "submitCompleteShort": "链上确认完成",
+      "recipeDetails": "配方详情",
+      "requiredInputs": "所需材料",
+      "qualityScore": "品质",
+      "composition": "成分",
+      "attributes": "材料属性",
+      "filterBuilding": "建筑",
+      "ambientProcess": "常温加工 · {station}",
+      "noFuelRequired": "无需燃料",
+      "processReady": "加工已就绪",
+      "statusReadyCold": "可以在无燃料的情况下提交链上加工。"
+    },
+    "materialGrade": {
+      "crude": "粗制",
+      "standard": "标准",
+      "refined": "精炼",
+      "prime": "优质",
+      "mythic": "神话"
+    },
+    "materialAttributes": {
+      "hardness": "硬度",
+      "durability": "耐久",
+      "toughness": "韧性",
+      "ductility": "延展",
+      "brittleness": "脆性",
+      "density": "密度",
+      "heatResistance": "耐热",
+      "corrosionResistance": "抗腐蚀",
+      "conductivity": "导电",
+      "thermalConductivity": "导热",
+      "magnetism": "磁性",
+      "workability": "加工性"
+    },
+    "backpackCreate": {
+      "title": "创建背包",
+      "capacity": "50 个槽位",
+      "capacityDetail": "扩展储存空间，装下旅途中获得的物品。",
+      "warning": "创建背包前无法挖掘。",
+      "intro": "背包用于储存挖掘资源、工具、燃料和锻造材料。创建背包后即可开始挖掘。",
+      "storeTitle": "储存资源",
+      "storeDetail": "收集并储存探索中找到的资源。",
+      "miningTitle": "解锁挖掘",
+      "miningDetail": "拥有背包后才能进行挖掘。",
+      "materialTitle": "携带材料",
+      "materialDetail": "携带工具、材料和锻造物品。",
+      "previewTitle": "背包预览",
+      "previewCapacity": "50 / 50 槽位",
+      "learnDetail": "背包是钱包持有的 PDA。坐标证明通过链上验证后，挖掘资源才会进入背包。",
+      "submit": "创建背包",
+      "learn": "了解更多",
+      "hotbarHint": "创建后，背包会显示在这里！"
+    },
+    "block": {
+      "unknown": "未知方块",
+      "grass": "草方块",
+      "dirt": "泥土",
+      "stone": "石头",
+      "deepStone": "深层石头",
+      "coal": "煤炭",
+      "sand": "沙子",
+      "sandstone": "砂岩",
+      "gravel": "砾石",
+      "clay": "黏土",
+      "mud": "泥浆",
+      "dryDirt": "干土",
+      "saltFlat": "盐滩",
+      "snow": "雪",
+      "ice": "冰",
+      "frozenSoil": "冻土",
+      "basalt": "玄武岩",
+      "ash": "火山灰",
+      "bedrock": "基岩",
+      "water": "水",
+      "swampWater": "沼泽水",
+      "toxicWater": "毒水",
+      "lava": "熔岩",
+      "quicksand": "流沙",
+      "trunk": "原木",
+      "trunkDark": "深色原木",
+      "leaves": "树叶",
+      "leavesDark": "深色树叶",
+      "leavesLight": "浅色树叶",
+      "leavesTeal": "青绿色树叶",
+      "leavesWarm": "暖色树叶",
+      "pineTrunk": "松木原木",
+      "pineLeaves": "松针叶",
+      "snowLeaves": "覆雪树叶",
+      "deadWood": "枯木",
+      "giantRoot": "巨型树根",
+      "grassPlant": "草丛",
+      "dryGrass": "干草",
+      "bush": "灌木",
+      "deadBush": "枯灌木",
+      "cactus": "仙人掌",
+      "reed": "芦苇",
+      "swampGrass": "沼泽草",
+      "snowBush": "雪地灌木",
+      "thorn": "荆棘",
+      "moss": "苔藓",
+      "lichen": "地衣",
+      "vine": "藤蔓",
+      "glowMycelium": "发光菌丝",
+      "mushroom": "蘑菇",
+      "seaweed": "海草",
+      "aquaticPlant": "水生植物",
+      "coral": "珊瑚",
+      "deadCoral": "死亡珊瑚",
+      "shellBed": "贝壳层",
+      "flowerStem": "花茎",
+      "flowerRed": "红花",
+      "flowerYellow": "黄花",
+      "flowerBlue": "蓝花",
+      "flowerWhite": "白花",
+      "cotton": "棉花",
+      "flowerPink": "粉红花"
+    },
+    "equipment": {
+      "chainSaved": "装备已保存至链上（{signature}）。",
+      "chainSaveFailed": "装备链上保存失败：{reason}。"
+    }
+  },
+  "resourceSimulator": {
+    "resource": {
+      "gravel": "碎石"
+    },
+    "material": {
+      "stone": "石头",
+      "dirt": "泥土",
+      "sand": "沙子",
+      "unknown": "未知"
+    },
+    "debug": {
+      "aria": "资源模拟调试日志",
+      "enabled": "调试模式已开启",
+      "reward": "{material} -> +{amount} {resource}",
+      "noReward": "{material} -> +0 资源"
+    },
+    "page": {
+      "title": "NiceChunk 资源规则",
+      "navAria": "资源导航",
+      "enterWorld": "进入世界",
+      "worldRules": "世界规则",
+      "eyebrow": "公开资源规则",
+      "heading": "方块到资源发现的公开规则。",
+      "body": "NiceChunk 资源规则描述被破坏的方块如何转化为材料。这个页面公开当前规则清单、确定性模拟器，以及后续可映射到链上验证逻辑的事件格式。",
+      "statusAria": "模拟器状态",
+      "statusLabel": "当前激活规则",
+      "statusValue": "石头方块 -> 0.1 碎石",
+      "statusNote": "本地确定性预览",
+      "statusGridAria": "资源规则状态",
+      "statusCard": {
+        "rule": "规则 ID",
+        "source": "来源方块",
+        "output": "产出资源",
+        "verification": "验证方式",
+        "local": "本地确定性"
+      },
+      "ruleEyebrow": "规则清单",
+      "ruleTitle": "石头挖掘规则",
+      "inputMaterial": "输入材料",
+      "outputResource": "产出资源",
+      "outputAmount": "产出数量",
+      "condition": "条件",
+      "conditionValue": "只有被破坏的石头方块会产生这个资源。",
+      "simEyebrow": "确定性模拟器",
+      "tryTitle": "提交一个方块测试",
+      "material": "材料",
+      "x": "X",
+      "y": "Y",
+      "z": "Z",
+      "simulate": "模拟发现",
+      "resultReward": "{material} 产生 +{amount} {resource}。",
+      "resultNoReward": "{material} 不符合当前规则。",
+      "flowEyebrow": "验证流程",
+      "flowTitle": "这个测试如何映射到未来合约",
+      "flow1": "客户端提交被破坏方块的坐标和材料。",
+      "flow2": "模拟器检查材料是否为石头。",
+      "flow3": "如果符合条件，返回确定性的资源奖励。",
+      "flow4": "游戏热栏会清空非工具物品，并记录产出的资源。",
+      "logEyebrow": "事件载荷",
+      "logTitle": "调试事件格式"
+    }
+  },
+  "resourceAtlas": {
+    "nav": {
+      "aria": "主导航",
+      "home": "首页",
+      "roadbook": "路书",
+      "worldRules": "世界规则",
+      "resources": "资源",
+      "elements": "元素表",
+      "fairness": "公平性",
+      "proofOfFrontier": "证明",
+      "guardians": "守护者",
+      "docs": "文档",
+      "enterWorld": "进入世界"
+    },
+    "page": {
+      "title": "NiceChunk 方块资源图鉴",
+      "eyebrow": "生成方块资源图鉴",
+      "heading": "每一种生成方块，都是公开资源规则。",
+      "body": "NiceChunk 会把地形方块映射为有科学依据的资源基础。每个方块都会公开生成信号、可能的元素组成区间，以及它在未来挖矿和锻造经济中的定位。",
+      "metricsAria": "图鉴状态",
+      "workspaceAria": "方块资源图鉴",
+      "modeAria": "资源数据分类",
+      "rawMode": "原始资源",
+      "materialMode": "材料资料",
+      "rawModeBody": "原始资源来自生成方块的挖掘。它们必须先熔炼成材料资源，才能进入锻造。",
+      "materialModeBody": "材料资料定义燃料热量、熔炼输入、工匠要求，以及由原始资源产出的可锻造材料。",
+      "filtersAria": "图鉴筛选",
+      "filterTitle": "方块类别",
+      "resultCount": "显示 {count} 个",
+      "modelLabel": "组成模型",
+      "modelBody": "区间表示材料倾向，不是固定奖励。后续真实资源产出可以继续结合种子、坐标、深度、生物群系和链上验证状态。",
+      "searchLabel": "搜索方块、元素或生成信号",
+      "searchPlaceholder": "搜索 grass、Si、volcanic...",
+      "empty": "当前筛选下没有匹配的生成方块。",
+      "blockAria": "打开 {name} 资源详情",
+      "compositionTitle": "元素组成区间",
+      "physicalTitle": "密度与质量估算",
+      "densityLabel": "体积密度",
+      "dimensionsLabel": "实际方块尺寸",
+      "volumeLabel": "计算体积",
+      "massLabel": "计算质量",
+      "notAvailable": "未知",
+      "signalsTitle": "生成信号",
+      "visualTitle": "方块视觉基因",
+      "metric": {
+        "blocks": "生成方块",
+        "families": "方块类别",
+        "elements": "关联元素",
+        "materials": "可熔炼材料",
+        "worldRules": "世界规则",
+        "ruleSet": "规则集"
+      },
+      "color": {
+        "0": "主表面",
+        "1": "侧面",
+        "2": "顶部高光"
+      }
+    },
+    "material": {
+      "workspaceAria": "材料资源资料",
+      "eyebrow": "熔炼资料",
+      "title": "原始资源会变成可锻造材料。",
+      "body": "原始资源不能直接锻造。熔炼炉会消耗燃料热量，检查材料配方，然后产出可用于物品锻造的材料资源。",
+      "ruleSetLabel": "规则来源",
+      "contractBody": "这张表来自独立 JSON 规则源，方便游戏客户端和未来合约引用同一套熔炼要求。",
+      "fuelTitle": "燃料热量等级",
+      "fuelBody": "可燃燃料提供热量等级。更高阶的配方需要更强燃料或更热的炉源。",
+      "recipeTitle": "材料图鉴",
+      "recipeBody": "按材料类别浏览可锻造材料，查看元素构成，并核对每个产物背后的熔炼要求。",
+      "atlasAria": "材料图鉴",
+      "filtersAria": "材料筛选",
+      "categoryTitle": "材料类别",
+      "allMaterials": "全部材料",
+      "resultCount": "显示 {count} 个",
+      "searchLabel": "搜索材料、类别、元素或输入",
+      "searchPlaceholder": "搜索 steel、Si、glass...",
+      "empty": "当前筛选下没有匹配的材料配方。",
+      "materialAria": "打开 {name} 材料详情",
+      "visualModelLabel": "元素色彩模型",
+      "visualModelBody": "材料缩略图会根据每个配方档案中的主导元素生成。",
+      "processTitle": "熔炼流程",
+      "compositionTitle": "材料元素档案",
+      "forgeUseTitle": "锻造解锁",
+      "sourceBlocksTitle": "原始资源来源",
+      "heatLabel": "热量",
+      "burnTimeLabel": "燃烧时间",
+      "sourceLabel": "来源",
+      "consumableLabel": "消耗",
+      "consumable": "会消耗",
+      "reusable": "可复用热源",
+      "burnSeconds": "{seconds} 秒",
+      "requiredHeatLabel": "所需热量",
+      "artisanLevelLabel": "工匠等级",
+      "artisanLevel": "{level} 级",
+      "rawInputsLabel": "原始输入",
+      "catalystLabel": "催化/还原",
+      "yieldLabel": "产出",
+      "yieldCount": "{count} 批",
+      "forgeUseLabel": "锻造用途",
+      "inputAmount": "{amount}x {resource}",
+      "heatTierValue": "{tier} 级：{name}（{temp} C）",
+      "heatTierShort": "热量 T{tier}",
+      "heatTier": {
+        "low": "低温窑",
+        "workshop": "工坊炉",
+        "forge": "锻造热",
+        "blast": "鼓风高热",
+        "unknown": "未知热量"
+      },
+      "class": {
+        "carbon": "碳材料",
+        "ceramic": "陶瓷",
+        "glass": "玻璃",
+        "metal": "金属",
+        "alloy": "合金",
+        "fiber": "纤维",
+        "polymer": "聚合物",
+        "chemical": "化工",
+        "composite": "复合材料",
+        "crystal": "晶体"
+      },
+      "forgeUse": {
+        "fuel": "高密度燃料和还原剂",
+        "soilCatalyst": "土壤改良、生物反应器原料和低阶催化剂",
+        "mold": "锻造模具、砖和炉衬",
+        "binding": "耐热粘结剂和陶瓷添加物",
+        "flux": "熔炼助熔剂，用于净化熔体并减少炉渣",
+        "masonry": "结构砌块、窑炉主体和野外建造",
+        "lens": "镜片、窗片、仪表和易碎配件",
+        "circuit": "电路、传感器、逻辑板和信号装置",
+        "cooling": "冷却单元、稳定器和寒冷等级配件",
+        "toolHead": "镐头、刀刃、工具和结构件",
+        "conductor": "导电配件、线圈和精密零件",
+        "armorPlate": "护甲板、盾牌和抗冲击面板",
+        "magneticCore": "磁芯、电机部件和高级机构",
+        "reinforcement": "轻量加固板和碳质嵌件",
+        "weaponAndTool": "耐用工具、武器和护甲板",
+        "heatShield": "隔热板、炉衬和高温部件",
+        "sealedVessel": "密封容器、毒性封存和危险工具",
+        "explosive": "受控批量开挖药包"
+      },
+      "fuel": {
+        "dry_grass": {
+          "name": "干燥生物质",
+          "description": "来自干草、枯灌木或荆棘的低热量起火燃料，适合第一批窑炉配方。"
+        },
+        "wood": {
+          "name": "木质燃料",
+          "description": "由原木、枯木或巨型树根提供的通用工坊燃料，比草本燃料燃烧更久。"
+        },
+        "charcoal": {
+          "name": "木炭",
+          "description": "由木质资源加工出的碳燃料，比原木更稳定也更干净。"
+        },
+        "coal": {
+          "name": "煤炭",
+          "description": "来自深层石煤层的强力锻造燃料，不常见，适合金属海绵坯。"
+        },
+        "lava_heat": {
+          "name": "熔岩热源",
+          "description": "不直接消耗的高热炉源，绑定火山资源，用于鼓风级配方。"
+        }
+      },
+      "item": {
+        "charcoal": {
+          "name": "木炭",
+          "description": "碳化木质材料，可作为燃料、还原剂和早期合金辅助材料。"
+        },
+        "biochar_compost": {
+          "name": "生物炭堆肥",
+          "description": "由树叶、苔藓和泥浆低温制成的碳与养分材料，可用于土壤系统和生物站点。"
+        },
+        "resin_binder": {
+          "name": "树脂粘结剂",
+          "description": "由松木和藤蔓提取的树脂浓缩物，可粘合纤维、密封容器，并支持低温复合材料。"
+        },
+        "ceramic_brick": {
+          "name": "陶瓷砖",
+          "description": "由黏土和沙烧制成的材料，可用于炉壁、模具和基础建造配方。"
+        },
+        "lime_ceramic": {
+          "name": "石灰陶瓷",
+          "description": "由贝壳层石灰和黏土制成的陶瓷，可作为耐热粘结剂和耐火添加物。"
+        },
+        "quicklime": {
+          "name": "生石灰",
+          "description": "由贝壳和珊瑚烧制出的富钙活性石灰，可作为助熔剂、砂浆基底和化学试剂。"
+        },
+        "salt_flux": {
+          "name": "盐助熔剂",
+          "description": "由盐滩和火山灰制成的助熔材料，可帮助熔炼分离炉渣并稳定更干净的金属批次。"
+        },
+        "ash_cement": {
+          "name": "灰质水泥",
+          "description": "由火山灰、黏土和贝壳石灰制成的粘结材料，可用于砌体、炉壳和耐热建造。"
+        },
+        "glass_ingot": {
+          "name": "玻璃锭",
+          "description": "富硅玻璃坯料，可用于镜片、窗片、仪表和易碎技术部件。"
+        },
+        "obsidian_glass": {
+          "name": "黑曜玻璃",
+          "description": "由硅质沙和玄武岩在熔岩高热下形成的暗色火山玻璃，适合耐用光学件和密封窗片。"
+        },
+        "silicon_wafer": {
+          "name": "硅晶片",
+          "description": "用碳还原得到的纯化硅片，可用于电路、传感器和未来信号装置。"
+        },
+        "ice_crystal": {
+          "name": "冰晶",
+          "description": "由冰、雪和盐稳定出的晶体，可用于冷却单元、冰霜工具和热控组件。"
+        },
+        "iron_bloom": {
+          "name": "铁海绵坯",
+          "description": "从深层石和石头中还原出的可锻铁质坯料，煤炭负责供碳和还原。"
+        },
+        "copper_bloom": {
+          "name": "铜海绵坯",
+          "description": "从砾石和玄武岩的痕量金属倾向中富集出的导电金属坯。"
+        },
+        "alumina_plate": {
+          "name": "氧化铝板",
+          "description": "由黏土和深层石制成的富铝陶瓷板，可用于抗冲击面板和绝缘配件。"
+        },
+        "nickel_iron": {
+          "name": "镍铁合金",
+          "description": "从深层石和玄武岩痕量金属中精炼出的磁性铁合金，可用于电机和高级机构。"
+        },
+        "carbon_plate": {
+          "name": "碳板",
+          "description": "由煤炭和深层石压制出的碳材料，可用于轻量加固和嵌件。"
+        },
+        "carbon_steel": {
+          "name": "碳钢坯",
+          "description": "高阶钢材坯料，来自深层石的铁倾向和煤炭的控碳。"
+        },
+        "basalt_fiber": {
+          "name": "玄武岩纤维",
+          "description": "由玄武岩和熔岩高热拉制的火山纤维，适合隔热板和炉体部件。"
+        },
+        "basalt_composite": {
+          "name": "玄武岩复合板",
+          "description": "由高热玄武岩、碳和树脂方向形成的复合材料，可用于护甲板、盾牌和耐用外壳。"
+        },
+        "geopolymer_block": {
+          "name": "地聚物块",
+          "description": "由火山灰、玄武岩和盐激发形成的石质复合材料，可用于高强砌体和窑炉主体。"
+        },
+        "coral_lime": {
+          "name": "珊瑚石灰",
+          "description": "由珊瑚、死珊瑚和沙制成的富钙陶瓷，可用于海洋砌体、砂浆和耐热块。"
+        },
+        "toxic_glass": {
+          "name": "毒性玻璃",
+          "description": "由毒水、盐和硅质沙制成的密封危险玻璃，用于封存容器和风险工具。"
+        },
+        "cotton": {
+          "name": "棉花"
+        },
+        "flowerWhite": {
+          "name": "白花"
+        },
+        "flowerYellow": {
+          "name": "黄花"
+        },
+        "flowerRed": {
+          "name": "红花"
+        },
+        "flowerBlue": {
+          "name": "蓝花"
+        },
+        "flowerPink": {
+          "name": "粉红花"
+        },
+        "cotton_cloth": {
+          "name": "棉布",
+          "description": "以棉花和干草织成的布料，可制作柔软的锻造装备与具有动效的布面。"
+        },
+        "white_dye": {
+          "name": "白色染料",
+          "description": "锻造时用于绘制布料的浅色花朵颜料。"
+        },
+        "yellow_dye": {
+          "name": "黄色染料",
+          "description": "锻造时用于绘制布料的暖黄色花朵颜料。"
+        },
+        "red_dye": {
+          "name": "红色染料",
+          "description": "锻造时用于绘制布料的鲜红色花朵颜料。"
+        },
+        "blue_dye": {
+          "name": "蓝色染料",
+          "description": "锻造时用于绘制布料的冷蓝色花朵颜料。"
+        },
+        "pink_dye": {
+          "name": "粉红色染料",
+          "description": "锻造时用于绘制布料的柔粉色花朵颜料。"
+        },
+        "wooden_plank": {
+          "name": "木板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "wooden_stick": {
+          "name": "木条",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "squared_timber": {
+          "name": "方木",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "clear_glass_panel": {
+          "name": "透明玻璃板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "ice_blue_glass_panel": {
+          "name": "冰蓝玻璃板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "amber_glass_panel": {
+          "name": "琥珀玻璃板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "basalt_reinforced_glass": {
+          "name": "玄武岩强化玻璃",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "fired_clay_brick": {
+          "name": "烧制黏土砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "adobe_brick": {
+          "name": "土坯砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "stone_brick": {
+          "name": "石砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "deep_stone_brick": {
+          "name": "深层石砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "basalt_brick": {
+          "name": "玄武岩砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "sandstone_block": {
+          "name": "切割砂岩块",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "cobblestone": {
+          "name": "鹅卵石",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "polished_stone_slab": {
+          "name": "抛光石板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "lime_plaster": {
+          "name": "石灰抹灰",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "clay_plaster": {
+          "name": "黏土抹灰",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "rammed_earth": {
+          "name": "夯土",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "shell_terrazzo": {
+          "name": "贝壳水磨石板",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "white_ceramic_tile": {
+          "name": "白色陶瓷砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "blue_ceramic_tile": {
+          "name": "蓝色陶瓷砖",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "volcanic_ash_concrete": {
+          "name": "火山灰混凝土",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "salt_crystal_block": {
+          "name": "盐晶块",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_terracotta": {
+          "name": "赤陶屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_ice_blue": {
+          "name": "冰蓝釉面屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_shell_white": {
+          "name": "贝白釉面屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_charcoal": {
+          "name": "炭黑釉面屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_ash_gray": {
+          "name": "火山灰釉面屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "roof_tile_mycelium": {
+          "name": "菌丝发光釉面屋瓦",
+          "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+        },
+        "blasting_charge": {
+          "name": "爆破药包",
+          "description": "以树脂粘结的紧凑型矿用药包，用于受控的多方块开挖；NiceChunk 配方为刻意虚构的游戏设定。"
+        }
+      }
+    },
+    "drop": {
+      "eyebrow": "链上掉落表",
+      "title": "文明规则可以增加稀有额外掉落，而不膨胀地形代码。",
+      "body": "canonical 地形算法仍然负责确认被挖掘的基础方块。紧凑的链上掉落表会根据来源方块、海拔、深度、种子概率和玩家探险等级，确定是否产生额外奖励。",
+      "ruleSetLabel": "规则集",
+      "contractBody": "这个 PDA 面向文明系统设计：通过的提案只追加有边界的规则字节，不需要重新部署挖掘程序。",
+      "source": "来源",
+      "extraDrop": "额外掉落",
+      "chance": "基础概率",
+      "size": "掉落尺寸",
+      "altitude": "海拔",
+      "depth": "深度",
+      "detailTitle": "额外掉落来源",
+      "detailBody": "链上会按紧凑的 {ruleSet} 字节设计：来源资源、基础概率、样本尺寸窗口、海拔窗口和深度窗口。最终掉落权重每级探险 +10%。",
+      "chanceValue": "{value}%",
+      "sizeValue": "{min} 到 {max}",
+      "rangeValue": "{min} 到 {max}"
+    },
+    "category": {
+      "all": "全部方块",
+      "terrain": "地形",
+      "fluids": "流体",
+      "geological": "地质",
+      "cold": "寒冷",
+      "volcanic": "火山",
+      "organic": "有机",
+      "plants": "植物",
+      "aquatic": "水域",
+      "anomaly": "稀有 / 异常"
+    },
+    "rarity": {
+      "Common": "常见",
+      "Uncommon": "不常见",
+      "Rare": "稀有",
+      "Anomaly": "异常"
+    },
+    "signal": {
+      "temperature": "温度",
+      "humidity": "湿度",
+      "altitude": "海拔",
+      "slope": "坡度",
+      "rarity": "稀有度"
+    },
+    "block": {
+      "grass": {
+        "name": "草地方块",
+        "source": "地表",
+        "description": "有生命的表层土方块：硅酸盐土壤上覆盖一层薄薄的生物层，由湿度、坡度和森林密度共同塑造。"
+      },
+      "dirt": {
+        "name": "泥土",
+        "source": "浅层地下",
+        "description": "草地下方的风化土壤，混合了硅酸盐颗粒、黏土矿物、铁氧化物、水分和有机残留。"
+      },
+      "stone": {
+        "name": "石头",
+        "source": "地下",
+        "description": "常见的硅酸盐岩石，是丘陵、峭壁、洞穴墙体和结构性挖掘的基础地质材料。"
+      },
+      "deepStone": {
+        "name": "深层石",
+        "source": "深层地下",
+        "description": "更致密的下部地层岩石，铁和镁的倾向更高，用于生成浅层地壳以下的岩层。"
+      },
+      "sand": {
+        "name": "沙子",
+        "source": "地表",
+        "description": "以石英为主的颗粒沉积物，由沙漠、海滩、河流、湖泊和海底规则生成。"
+      },
+      "gravel": {
+        "name": "砾石",
+        "source": "地表 / 地下",
+        "description": "混合的破碎岩粒，组成会随附近地形明显变化，但整体仍以硅酸盐为主。"
+      },
+      "clay": {
+        "name": "黏土",
+        "source": "潮湿地表 / 地下",
+        "description": "细粒含水铝硅酸盐沉积物，生成于潮湿、低坡度地形和邻水地层。"
+      },
+      "mud": {
+        "name": "泥浆",
+        "source": "潮湿地表",
+        "description": "含水量很高的土壤，带有有机质，常见于排水差、氧暴露有限的低洼湿地生态。"
+      },
+      "dryDirt": {
+        "name": "干土",
+        "source": "干燥地表",
+        "description": "脱水土壤，氢和有机组分较低，由低湿度地表规则生成。"
+      },
+      "saltFlat": {
+        "name": "盐滩",
+        "source": "沙漠斑块",
+        "description": "干旱盆地蒸发后留下的蒸发岩壳，氯化钠占主导，并混有镁、钙、硫酸盐和含氧盐。"
+      },
+      "snow": {
+        "name": "雪",
+        "source": "寒冷地表",
+        "description": "在雪线以上或寒冷生物群系中生成的冻结降水层，可能含有微量矿物尘埃。"
+      },
+      "ice": {
+        "name": "冰",
+        "source": "冻结流体 / 稀有地表",
+        "description": "由寒冷流体和稀有雪原规则选中的固态水，相对简单但在环境规则中很重要。"
+      },
+      "frozenSoil": {
+        "name": "冻土",
+        "source": "寒冷地表 / 地下",
+        "description": "类似永久冻土的土壤，混合矿物颗粒、结合水冰和被保存的有机质。"
+      },
+      "basalt": {
+        "name": "玄武岩",
+        "source": "火山地表 / 地下",
+        "description": "由快速冷却的熔岩形成的深色镁铁质火山岩，相比普通石头更偏向铁、镁、钙和钛。"
+      },
+      "ash": {
+        "name": "火山灰",
+        "source": "火山地表",
+        "description": "火山生物群系中生成的细粒火山颗粒，化学上接近硅酸盐岩石，但孔隙更多，也更容易带硫酸盐倾向。"
+      },
+      "bedrock": {
+        "name": "基岩",
+        "source": "世界基底",
+        "description": "生成柱底部的协议基础层。它表现为坚硬的基底岩，而不是固定的化学资源矿床。"
+      },
+      "water": {
+        "name": "水",
+        "source": "流体",
+        "description": "用于海洋、河流、湖泊和低洼水域覆盖的标准流体方块，会根据生物群系产生少量溶解离子差异。"
+      },
+      "swampWater": {
+        "name": "沼泽水",
+        "source": "沼泽流体",
+        "description": "由沼泽和湿地规则生成的富有机质滞流水，化学组成包含溶解碳、硫、铁和氮的痕量信号。"
+      },
+      "toxicWater": {
+        "name": "毒水",
+        "source": "污染流体",
+        "description": "由污染信号选中的危险流体。基础仍然是水，但痕量金属和硫化物会提高生物风险。"
+      },
+      "lava": {
+        "name": "熔岩",
+        "source": "火山流体",
+        "description": "由火山信号生成的熔融硅酸盐流体。组成遵循玄武质熔体，而不是普通幻想火焰。"
+      },
+      "quicksand": {
+        "name": "流沙",
+        "source": "沙漠地表",
+        "description": "由沙漠异常规则生成的含水松散沙陷阱，主要为二氧化硅，并含有足够水分降低力学稳定性。"
+      },
+      "trunk": {
+        "name": "树干",
+        "source": "树木",
+        "description": "由阔叶树规则生成的木质结构组织，主要由纤维素、木质素、水和矿物养分构成。"
+      },
+      "leaves": {
+        "name": "树叶",
+        "source": "树冠",
+        "description": "光合作用树冠方块，化学上属于有机组织，并带有含镁叶绿素和营养痕量金属。"
+      },
+      "pineTrunk": {
+        "name": "松树干",
+        "source": "松树",
+        "description": "树脂含量较高的针叶木，由寒冷、高海拔或常绿树规则生成。"
+      },
+      "pineLeaves": {
+        "name": "松针叶",
+        "source": "松树冠",
+        "description": "常绿针叶树冠，水分循环较低，并含有矿物营养痕量。"
+      },
+      "deadWood": {
+        "name": "枯木",
+        "source": "火山 / 干燥植被",
+        "description": "脱水或受热胁迫的木材，氢含量较低，暴露碳比例较高。"
+      },
+      "giantRoot": {
+        "name": "巨型树根",
+        "source": "雨林植被",
+        "description": "由潮湿雨林规则生成的大型裸露根系，结构上属于木质组织，但靠近土壤处更湿润且矿物更丰富。"
+      },
+      "grassPlant": {
+        "name": "草本植物",
+        "source": "地表植被",
+        "description": "由潮湿、低坡度地表规则选中的小型草本植物。"
+      },
+      "dryGrass": {
+        "name": "干草",
+        "source": "干燥植被",
+        "description": "来自低湿度地表的干燥草本材料，氢含量较低，碳浓度较高。"
+      },
+      "bush": {
+        "name": "灌木",
+        "source": "地表植被",
+        "description": "由森林、平原、山地和雨林植被规则生成的木质灌木层。"
+      },
+      "deadBush": {
+        "name": "枯灌木",
+        "source": "干燥 / 火山植被",
+        "description": "由沙漠和火山地表条件生成的干枯灌木残留物。"
+      },
+      "cactus": {
+        "name": "仙人掌",
+        "source": "沙漠植被",
+        "description": "由沙漠规则生成的储水多肉植物，化学上属于有机组织，但结合水比例异常高。"
+      },
+      "reed": {
+        "name": "芦苇",
+        "source": "水边植被",
+        "description": "生成于沼泽、河流、湖泊和湿地流体附近的水边植物。"
+      },
+      "swampGrass": {
+        "name": "沼泽草",
+        "source": "沼泽地表",
+        "description": "湿地草层，包含有机组织，并受到滞流水沉积物污染。"
+      },
+      "snowBush": {
+        "name": "雪地灌木",
+        "source": "寒冷植被",
+        "description": "耐寒灌木，常带雪霜色调，由山地和雪原植被规则选中。"
+      },
+      "thorn": {
+        "name": "荆棘",
+        "source": "干燥 / 火山植被",
+        "description": "来自干燥或火山地表的硬化防御性植物材料，富集碳质结构组织。"
+      },
+      "moss": {
+        "name": "苔藓",
+        "source": "潮湿地表 / 洞穴",
+        "description": "由潮湿森林、沼泽和邻近洞穴规则生成的湿润非木质生物垫。"
+      },
+      "lichen": {
+        "name": "地衣",
+        "source": "寒冷 / 岩石表面",
+        "description": "寒冷或岩石表面上的共生壳层，连接生物组织和矿物基质。"
+      },
+      "vine": {
+        "name": "藤蔓",
+        "source": "潮湿植被",
+        "description": "由潮湿生物群系和类似洞穴的湿润区域生成的攀缘植物，具有柔韧的富碳组织。"
+      },
+      "glowMycelium": {
+        "name": "发光菌丝",
+        "source": "洞穴植被",
+        "description": "来自地下潮湿空间的生物发光真菌垫，化学上属于生物组织，并强化磷和硫信号。"
+      },
+      "mushroom": {
+        "name": "蘑菇",
+        "source": "潮湿 / 洞穴植被",
+        "description": "由稀有潮湿植被随机结果选中的真菌子实体。"
+      },
+      "seaweed": {
+        "name": "海藻",
+        "source": "海洋植被",
+        "description": "来自水下区域的海洋植物状生物质，带有钠、钾、镁和碘的痕量倾向。"
+      },
+      "aquaticPlant": {
+        "name": "水生植物",
+        "source": "淡水植被",
+        "description": "含水量很高的淡水植被，会从沉积物中吸收养分。"
+      },
+      "coral": {
+        "name": "珊瑚",
+        "source": "温暖海洋植被",
+        "description": "在温暖浅海条件中生成的碳酸钙结构。"
+      },
+      "deadCoral": {
+        "name": "死亡珊瑚",
+        "source": "寒冷 / 污染海洋植被",
+        "description": "由寒冷或污染海洋规则选中的死亡碳酸钙礁体材料。"
+      },
+      "shellBed": {
+        "name": "贝壳层",
+        "source": "稀有海滩 / 海底",
+        "description": "由贝壳碎片和碳酸盐颗粒堆积形成，作为稀有海岸和海底斑点生成。"
+      },
+      "coal": {
+        "name": "煤炭",
+        "source": "深层石煤层",
+        "description": "富碳沉积燃料，会以较低频率在深层石中成片生成，主要用于熔炼热量，而不是直接锻造。"
+      },
+      "cotton": {
+        "name": "棉花"
+      },
+      "flowerWhite": {
+        "name": "白花"
+      },
+      "flowerYellow": {
+        "name": "黄花"
+      },
+      "flowerRed": {
+        "name": "红花"
+      },
+      "flowerBlue": {
+        "name": "蓝花"
+      },
+      "flowerPink": {
+        "name": "粉红花"
+      }
+    },
+    "tag": {
+      "plains": "平原",
+      "forest": "森林",
+      "rainforest": "雨林",
+      "general": "通用",
+      "mountain": "山地",
+      "cave": "洞穴",
+      "foundation": "基础层",
+      "deepCave": "深层洞穴",
+      "desert": "沙漠",
+      "beach": "海滩",
+      "river": "河流",
+      "oceanFloor": "海底",
+      "wetland": "湿地",
+      "swamp": "沼泽",
+      "lake": "湖泊",
+      "desertEdge": "沙漠边缘",
+      "dryPlains": "干燥平原",
+      "evaporite": "蒸发岩",
+      "snowfield": "雪原",
+      "tundra": "苔原",
+      "frozenWater": "冻结水体",
+      "volcano": "火山",
+      "deepRock": "深层岩石",
+      "ejecta": "喷出物",
+      "unbreakable": "不可破坏",
+      "ocean": "海洋",
+      "corruption": "污染",
+      "heat": "高热",
+      "fuel": "燃料",
+      "carbon": "碳",
+      "hazard": "危险",
+      "tree": "树木",
+      "dryBiome": "干燥生物群系",
+      "rareOrganic": "稀有有机物",
+      "succulent": "多肉植物",
+      "hazardPlant": "危险植物",
+      "humid": "潮湿",
+      "bioluminescent": "生物发光",
+      "aquatic": "水域",
+      "warmWater": "温暖水域",
+      "rare": "稀有",
+      "coldWater": "寒冷水域"
+    }
+  },
+  "elements": {
+    "names": {
+      "H": "氢",
+      "He": "氦",
+      "Li": "锂",
+      "Be": "铍",
+      "B": "硼",
+      "C": "碳",
+      "N": "氮",
+      "O": "氧",
+      "F": "氟",
+      "Ne": "氖",
+      "Na": "钠",
+      "Mg": "镁",
+      "Al": "铝",
+      "Si": "硅",
+      "P": "磷",
+      "S": "硫",
+      "Cl": "氯",
+      "Ar": "氩",
+      "K": "钾",
+      "Ca": "钙",
+      "Sc": "钪",
+      "Ti": "钛",
+      "V": "钒",
+      "Cr": "铬",
+      "Mn": "锰",
+      "Fe": "铁",
+      "Co": "钴",
+      "Ni": "镍",
+      "Cu": "铜",
+      "Zn": "锌",
+      "Ga": "镓",
+      "Ge": "锗",
+      "As": "砷",
+      "Se": "硒",
+      "Br": "溴",
+      "Kr": "氪",
+      "Rb": "铷",
+      "Sr": "锶",
+      "Y": "钇",
+      "Zr": "锆",
+      "Nb": "铌",
+      "Mo": "钼",
+      "Tc": "锝",
+      "Ru": "钌",
+      "Rh": "铑",
+      "Pd": "钯",
+      "Ag": "银",
+      "Cd": "镉",
+      "In": "铟",
+      "Sn": "锡",
+      "Sb": "锑",
+      "Te": "碲",
+      "I": "碘",
+      "Xe": "氙",
+      "Cs": "铯",
+      "Ba": "钡",
+      "La": "镧",
+      "Ce": "铈",
+      "Pr": "镨",
+      "Nd": "钕",
+      "Pm": "钷",
+      "Sm": "钐",
+      "Eu": "铕",
+      "Gd": "钆",
+      "Tb": "铽",
+      "Dy": "镝",
+      "Ho": "钬",
+      "Er": "铒",
+      "Tm": "铥",
+      "Yb": "镱",
+      "Lu": "镥",
+      "Hf": "铪",
+      "Ta": "钽",
+      "W": "钨",
+      "Re": "铼",
+      "Os": "锇",
+      "Ir": "铱",
+      "Pt": "铂",
+      "Au": "金",
+      "Hg": "汞",
+      "Tl": "铊",
+      "Pb": "铅",
+      "Bi": "铋",
+      "Po": "钋",
+      "At": "砹",
+      "Rn": "氡",
+      "Fr": "钫",
+      "Ra": "镭",
+      "Ac": "锕",
+      "Th": "钍",
+      "Pa": "镤",
+      "U": "铀",
+      "Np": "镎",
+      "Pu": "钚",
+      "Am": "镅",
+      "Cm": "锔",
+      "Bk": "锫",
+      "Cf": "锎",
+      "Es": "锿",
+      "Fm": "镄",
+      "Md": "钔",
+      "No": "锘",
+      "Lr": "铹",
+      "Rf": "𬬻",
+      "Db": "𬭊",
+      "Sg": "𬭳",
+      "Bh": "𬭛",
+      "Hs": "𬭶",
+      "Mt": "鿏",
+      "Ds": "𫟼",
+      "Rg": "𬬭",
+      "Cn": "鎶",
+      "Nh": "鉨",
+      "Fl": "鈇",
+      "Mc": "镆",
+      "Lv": "鉝",
+      "Ts": "鿬",
+      "Og": "鿫"
+    },
+    "description": {
+      "H": {
+        "short": "氢是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于燃料电池、储氢、生命化学、火箭推进和有机合成。",
+        "gameplayRole": "在 NiceChunk 中，氢会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "He": {
+        "short": "氦是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于低温冷却、惰性封装、气球、精密设备和低温机器。",
+        "gameplayRole": "在 NiceChunk 中，氦会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Li": {
+        "short": "锂是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、轻量化储能、活泼化学反应和高级能量单元。",
+        "gameplayRole": "在 NiceChunk 中，锂会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Be": {
+        "short": "铍是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，铍会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "B": {
+        "short": "硼是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、陶瓷晶体、光学部件和精密电子。",
+        "gameplayRole": "在 NiceChunk 中，硼会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "C": {
+        "short": "碳是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于有机链、碳纤维、燃料、钢材强化、石墨导体和高级复合材料。",
+        "gameplayRole": "在 NiceChunk 中，碳会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "N": {
+        "short": "氮是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于肥料化学、保护气氛、含能材料、冷却系统和生物循环。",
+        "gameplayRole": "在 NiceChunk 中，氮会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "O": {
+        "short": "氧是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于氧化反应、助燃、生命维持、陶瓷、玻璃和氧化矿物。",
+        "gameplayRole": "在 NiceChunk 中，氧会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "F": {
+        "short": "氟是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于蚀刻、强腐蚀化工、高风险盐类和高级含氟材料。",
+        "gameplayRole": "在 NiceChunk 中，氟会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ne": {
+        "short": "氖是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于霓虹光源、等离子显示、光学标识和稳定气体舱。",
+        "gameplayRole": "在 NiceChunk 中，氖会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Na": {
+        "short": "钠是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、高反应化学、能量单元和密封储存路线。",
+        "gameplayRole": "在 NiceChunk 中，钠会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Mg": {
+        "short": "镁是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，镁会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Al": {
+        "short": "铝是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于轻量建筑、导电框架、航空部件和耐腐蚀外壳。",
+        "gameplayRole": "在 NiceChunk 中，铝会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Si": {
+        "short": "硅是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、太阳能材料、岩石化学和可编程晶体系统。",
+        "gameplayRole": "在 NiceChunk 中，硅会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "P": {
+        "short": "磷是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于生命材料、气体化学、燃料、陶瓷、肥料和反应链。",
+        "gameplayRole": "在 NiceChunk 中，磷会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "S": {
+        "short": "硫是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于生命材料、气体化学、燃料、陶瓷、肥料和反应链。",
+        "gameplayRole": "在 NiceChunk 中，硫会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cl": {
+        "short": "氯是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于腐蚀化学、盐类、蚀刻、毒性武器和高风险工业反应。",
+        "gameplayRole": "在 NiceChunk 中，氯会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ar": {
+        "short": "氩是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于惰性气氛、焊接保护、密封加工和等离子灯。",
+        "gameplayRole": "在 NiceChunk 中，氩会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "K": {
+        "short": "钾是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、高反应化学、能量单元和密封储存路线。",
+        "gameplayRole": "在 NiceChunk 中，钾会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ca": {
+        "short": "钙是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，钙会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sc": {
+        "short": "钪是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钪会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ti": {
+        "short": "钛是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于轻量护甲、高强度工具、航空结构和高级机器。",
+        "gameplayRole": "在 NiceChunk 中，钛会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "V": {
+        "short": "钒是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钒会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cr": {
+        "short": "铬是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于不锈合金、耐腐蚀镀层、硬质涂层和颜料系统。",
+        "gameplayRole": "在 NiceChunk 中，铬会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Mn": {
+        "short": "锰是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，锰会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Fe": {
+        "short": "铁是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于建筑、机械、武器、磁性设备和钢材合成。",
+        "gameplayRole": "在 NiceChunk 中，铁会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Co": {
+        "short": "钴是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于电池正极、强合金、颜料、磁体和高级工具。",
+        "gameplayRole": "在 NiceChunk 中，钴会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ni": {
+        "short": "镍是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于不锈钢、电池、磁体、护甲合金和催化设备。",
+        "gameplayRole": "在 NiceChunk 中，镍会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cu": {
+        "short": "铜是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于导线、电子设备、电机、导电方块和铜合金。",
+        "gameplayRole": "在 NiceChunk 中，铜会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Zn": {
+        "short": "锌是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，锌会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ga": {
+        "short": "镓是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于低熔点电子材料、化合物半导体、显示材料和特殊液态金属逻辑。",
+        "gameplayRole": "在 NiceChunk 中，镓会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ge": {
+        "short": "锗是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体晶圆、红外光学、高级电子和晶体配方。",
+        "gameplayRole": "在 NiceChunk 中，锗会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "As": {
+        "short": "砷是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、陶瓷晶体、光学部件和精密电子。",
+        "gameplayRole": "在 NiceChunk 中，砷会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Se": {
+        "short": "硒是 NiceChunk 材料和锻造词汇表中的非金属资源基础，可用于生命材料、气体化学、燃料、陶瓷、肥料和反应链。",
+        "gameplayRole": "在 NiceChunk 中，硒会作为非金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Br": {
+        "short": "溴是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于腐蚀化学、盐类、蚀刻、毒性武器和高风险工业反应。",
+        "gameplayRole": "在 NiceChunk 中，溴会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Kr": {
+        "short": "氪是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于惰性气氛、低温系统、等离子照明、光学和保护性加工。",
+        "gameplayRole": "在 NiceChunk 中，氪会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Rb": {
+        "short": "铷是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、高反应化学、能量单元和密封储存路线。",
+        "gameplayRole": "在 NiceChunk 中，铷会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sr": {
+        "short": "锶是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，锶会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Y": {
+        "short": "钇是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钇会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Zr": {
+        "short": "锆是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，锆会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Nb": {
+        "short": "铌是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，铌会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Mo": {
+        "short": "钼是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钼会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Tc": {
+        "short": "锝是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，锝会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ru": {
+        "short": "钌是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钌会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Rh": {
+        "short": "铑是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，铑会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pd": {
+        "short": "钯是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钯会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ag": {
+        "short": "银是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于顶级导电材料、光学材料、抗菌系统和贵金属资源路线。",
+        "gameplayRole": "在 NiceChunk 中，银会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cd": {
+        "short": "镉是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，镉会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "In": {
+        "short": "铟是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于显示薄膜、触控界面、焊料系统和专用电子材料。",
+        "gameplayRole": "在 NiceChunk 中，铟会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sn": {
+        "short": "锡是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，锡会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sb": {
+        "short": "锑是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、陶瓷晶体、光学部件和精密电子。",
+        "gameplayRole": "在 NiceChunk 中，锑会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Te": {
+        "short": "碲是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、陶瓷晶体、光学部件和精密电子。",
+        "gameplayRole": "在 NiceChunk 中，碲会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "I": {
+        "short": "碘是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于腐蚀化学、盐类、蚀刻、毒性武器和高风险工业反应。",
+        "gameplayRole": "在 NiceChunk 中，碘会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Xe": {
+        "short": "氙是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于离子引擎、闪光灯、麻醉化学和高级光学系统。",
+        "gameplayRole": "在 NiceChunk 中，氙会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cs": {
+        "short": "铯是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、高反应化学、能量单元和密封储存路线。",
+        "gameplayRole": "在 NiceChunk 中，铯会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ba": {
+        "short": "钡是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，钡会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "La": {
+        "short": "镧是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，镧会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ce": {
+        "short": "铈是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，铈会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pr": {
+        "short": "镨是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，镨会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Nd": {
+        "short": "钕是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于永磁体、电机、发电机和稀土科技配方。",
+        "gameplayRole": "在 NiceChunk 中，钕会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pm": {
+        "short": "钷是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，钷会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sm": {
+        "short": "钐是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，钐会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Eu": {
+        "short": "铕是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，铕会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Gd": {
+        "short": "钆是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，钆会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Tb": {
+        "short": "铽是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，铽会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Dy": {
+        "short": "镝是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于高温磁体、稀土电机和精密电子材料。",
+        "gameplayRole": "在 NiceChunk 中，镝会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ho": {
+        "short": "钬是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，钬会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Er": {
+        "short": "铒是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，铒会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Tm": {
+        "short": "铥是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，铥会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Yb": {
+        "short": "镱是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，镱会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Lu": {
+        "short": "镥是 NiceChunk 材料和锻造词汇表中的镧系元素资源基础，可用于稀土磁体、光学、激光、荧光材料和高级电子。",
+        "gameplayRole": "在 NiceChunk 中，镥会作为镧系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Hf": {
+        "short": "铪是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，铪会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ta": {
+        "short": "钽是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，钽会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "W": {
+        "short": "钨是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于高温工具、硬质护甲、重型武器、熔炉和耐热机器。",
+        "gameplayRole": "在 NiceChunk 中，钨会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Re": {
+        "short": "铼是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，铼会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Os": {
+        "short": "锇是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，锇会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ir": {
+        "short": "铱是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，铱会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pt": {
+        "short": "铂是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于催化剂、燃料电池、精密设备、贵金属合金和高价值科技配方。",
+        "gameplayRole": "在 NiceChunk 中，铂会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Au": {
+        "short": "金是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于高价值电子、精密触点、装饰、金库资产和协议级收藏品。",
+        "gameplayRole": "在 NiceChunk 中，金会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Hg": {
+        "short": "汞是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于液态金属设备、传感器、毒性陷阱和密封特殊装备。",
+        "gameplayRole": "在 NiceChunk 中，汞会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Tl": {
+        "short": "铊是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，铊会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pb": {
+        "short": "铅是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于辐射屏蔽、配重、低熔点合金和危险封装方块。",
+        "gameplayRole": "在 NiceChunk 中，铅会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Bi": {
+        "short": "铋是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，铋会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Po": {
+        "short": "钋是 NiceChunk 材料和锻造词汇表中的类金属资源基础，可用于半导体、玻璃、陶瓷晶体、光学部件和精密电子。",
+        "gameplayRole": "在 NiceChunk 中，钋会作为类金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "At": {
+        "short": "砹是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于腐蚀化学、盐类、蚀刻、毒性武器和高风险工业反应。",
+        "gameplayRole": "在 NiceChunk 中，砹会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Rn": {
+        "short": "氡是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于放射性气体陷阱、衰变检测和密封危险研究。",
+        "gameplayRole": "在 NiceChunk 中，氡会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Fr": {
+        "short": "钫是 NiceChunk 材料和锻造词汇表中的碱金属资源基础，可用于电池、高反应化学、能量单元和密封储存路线。",
+        "gameplayRole": "在 NiceChunk 中，钫会作为碱金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ra": {
+        "short": "镭是 NiceChunk 材料和锻造词汇表中的碱土金属资源基础，可用于矿物、陶瓷、结构化合物、合金和生物矿物循环。",
+        "gameplayRole": "在 NiceChunk 中，镭会作为碱土金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ac": {
+        "short": "锕是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锕会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Th": {
+        "short": "钍是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，钍会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pa": {
+        "short": "镤是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，镤会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "U": {
+        "short": "铀是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核燃料、辐射系统、终局能源和屏蔽工业链。",
+        "gameplayRole": "在 NiceChunk 中，铀会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Np": {
+        "short": "镎是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，镎会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Pu": {
+        "short": "钚是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于反应堆燃料、禁忌武器研究、高风险能源循环和后期协议材料。",
+        "gameplayRole": "在 NiceChunk 中，钚会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Am": {
+        "short": "镅是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，镅会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cm": {
+        "short": "锔是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锔会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Bk": {
+        "short": "锫是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锫会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cf": {
+        "short": "锎是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锎会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Es": {
+        "short": "锿是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锿会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Fm": {
+        "short": "镄是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，镄会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Md": {
+        "short": "钔是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，钔会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "No": {
+        "short": "锘是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，锘会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Lr": {
+        "short": "铹是 NiceChunk 材料和锻造词汇表中的锕系元素资源基础，可用于核能、辐射系统、屏蔽研究和终局危险材料。",
+        "gameplayRole": "在 NiceChunk 中，铹会作为锕系元素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Rf": {
+        "short": "𬬻是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬬻会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Db": {
+        "short": "𬭊是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬭊会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Sg": {
+        "short": "𬭳是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬭳会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Bh": {
+        "short": "𬭛是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬭛会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Hs": {
+        "short": "𬭶是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬭶会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Mt": {
+        "short": "鿏是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，鿏会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ds": {
+        "short": "𫟼是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𫟼会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Rg": {
+        "short": "𬬭是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，𬬭会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Cn": {
+        "short": "鎶是 NiceChunk 材料和锻造词汇表中的过渡金属资源基础，可用于工业机器、武器、工具、合金、结构部件和导电系统。",
+        "gameplayRole": "在 NiceChunk 中，鎶会作为过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Nh": {
+        "short": "鉨是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，鉨会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Fl": {
+        "short": "鈇是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，鈇会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Mc": {
+        "short": "镆是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，镆会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Lv": {
+        "short": "鉝是 NiceChunk 材料和锻造词汇表中的后过渡金属资源基础，可用于特殊合金、软金属、屏蔽、低熔点配方和电子材料。",
+        "gameplayRole": "在 NiceChunk 中，鉝会作为后过渡金属材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Ts": {
+        "short": "鿬是 NiceChunk 材料和锻造词汇表中的卤素资源基础，可用于腐蚀化学、盐类、蚀刻、毒性武器和高风险工业反应。",
+        "gameplayRole": "在 NiceChunk 中，鿬会作为卤素材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      },
+      "Og": {
+        "short": "鿫是 NiceChunk 材料和锻造词汇表中的稀有气体资源基础，可用于不稳定的终局世界规则碎片、放射性异常和实验性协议材料。",
+        "gameplayRole": "在 NiceChunk 中，鿫会作为稀有气体材料参与平衡：它定义加工路线、合成亲和、视觉资源基因，以及玩家在种子 Chunk 中发现它时面对的价值与风险。"
+      }
+    },
+    "process": {
+      "alloy": "合金化",
+      "battery_grade_refine": "电池级精炼",
+      "capture": "捕集",
+      "cast": "铸造",
+      "compress": "压缩",
+      "corrosion_resistant_container": "耐腐蚀容器",
+      "crush": "破碎",
+      "cryogenic_separate": "低温分离",
+      "crystallize": "结晶",
+      "distill": "蒸馏",
+      "electrolyze": "电解",
+      "forge": "锻造",
+      "high_temp_sinter": "高温烧结",
+      "inert_atmosphere_process": "惰性气氛加工",
+      "ionize": "电离",
+      "isotope_separate": "同位素分离",
+      "mine": "开采",
+      "nuclear_refine": "核级精炼",
+      "oxidize": "氧化",
+      "precision_machine": "精密加工",
+      "quench": "淬火",
+      "radiation_shielding": "辐射屏蔽",
+      "reduce": "还原",
+      "refine": "精炼",
+      "sealed_capture": "密封捕集",
+      "semiconductor_refine": "半导体级精炼",
+      "sinter": "烧结",
+      "smelt": "熔炼",
+      "temper": "回火",
+      "vacuum_refine": "真空精炼",
+      "wash": "洗选"
+    },
+    "visual": {
+      "ceramic_crystal": "陶瓷晶体",
+      "copper_metal": "铜金属",
+      "corrosive_gas": "腐蚀性气体",
+      "faceted_crystal": "切面晶体",
+      "gold_metal": "金属金",
+      "graphite_carbon": "石墨碳",
+      "liquid_metal": "液态金属",
+      "matte_solid": "哑光固体",
+      "metalloid_crystal": "类金属晶体",
+      "neon_glow_gas": "霓虹发光气体",
+      "noble_gas": "稀有气体",
+      "plasma_gas": "等离子气体",
+      "radioactive_silver_metal": "放射性银灰金属",
+      "rough_crystal": "粗糙晶体",
+      "silver_metal": "银白金属",
+      "silvery_metal": "银白金属",
+      "solid_powder": "固体粉末",
+      "toxic_halogen": "毒性卤素",
+      "uranium_silver_metal": "铀银灰金属",
+      "volatile_liquid": "挥发性液体",
+      "white_silvery_metal": "白银色金属",
+      "yellow_crystal": "黄色晶体",
+      "acid_gas": "酸性气体",
+      "brushed_metal": "拉丝金属",
+      "clear_gas": "透明气体",
+      "corrosive_liquid": "腐蚀性液体",
+      "fresh_cut_metal": "新切金属",
+      "glowing_rare_earth_veins": "发光稀土矿脉",
+      "halide_crystal": "卤化物晶体",
+      "mineral_metal": "矿物金属",
+      "powdered_solid": "粉末固体",
+      "radioactive_veins": "放射性矿脉",
+      "soft_brushed_metal": "软质拉丝金属",
+      "crystal_ore": "晶体矿石",
+      "metallic_ore_veins": "金属矿脉",
+      "mineral_ore": "矿物矿石",
+      "powder_veins": "粉末矿脉",
+      "radioactive_cracked_ore": "放射性裂纹矿石",
+      "rare_earth_veins": "稀土矿脉",
+      "reactive_salt_ore": "活泼盐类矿石",
+      "sealed_gas_pocket": "密封气体囊",
+      "soft_metal_ore": "软金属矿石",
+      "corrosive_vapor": "腐蚀性蒸汽",
+      "glowing_dust": "发光尘埃",
+      "mineral_sparks": "矿物火花",
+      "radioactive_sparks": "放射性火花",
+      "soft_glow_mist": "柔和发光雾",
+      "pulse": "脉冲",
+      "slow_flow": "缓慢流动",
+      "subtle_shimmer": "轻微闪烁",
+      "unstable_flicker": "不稳定闪变"
+    },
+    "nav": {
+      "aria": "主导航",
+      "home": "首页",
+      "roadbook": "路书",
+      "world": "世界",
+      "worldRules": "世界规则",
+      "economy": "经济",
+      "fairness": "公平",
+      "resources": "资源",
+      "elements": "元素",
+      "proofOfFrontier": "证明",
+      "guardians": "守护者",
+      "docs": "文档",
+      "enterWorld": "进入世界"
+    },
+    "page": {
+      "title": "NiceChunk 元素",
+      "shortTitle": "元素",
+      "navAria": "元素导航",
+      "enterWorld": "进入世界",
+      "resourceRules": "资源规则",
+      "eyebrow": "元素资源基础",
+      "heading": "元素会成为资源。",
+      "body": "NiceChunk 使用 118 个真实化学元素作为未来资源、锻造、材质视觉和可验证游戏规则的公开词汇。",
+      "statsAria": "元素模型状态",
+      "tableEyebrow": "周期表接口",
+      "tableTitle": "开放元素地图",
+      "filterAria": "元素分类筛选",
+      "filterAll": "全部",
+      "protocolAria": "元素协议说明",
+      "stat": {
+        "discovered": "已发现元素",
+        "elements": "真实化学元素",
+        "categories": "资源类别",
+        "natural": "天然候选元素",
+        "versioned": "规则集状态"
+      },
+      "protocol": {
+        "resourceGene": {
+          "title": "资源基因",
+          "body": "每个元素都可以成为挖掘掉落、方块配方和未来资产元数据里的确定性材料身份。"
+        },
+        "forgingInput": {
+          "title": "锻造输入",
+          "body": "原子和物理特征会映射到未来的加工等级、温度要求、风险和工站逻辑。"
+        },
+        "visualGene": {
+          "title": "视觉基因",
+          "body": "颜色、金属度、粗糙度、发光、矿脉、颗粒和裂纹等特征可以驱动体素材质表现。"
+        },
+        "verification": {
+          "title": "公开验证",
+          "body": "这张表会作为公开规则数据，让玩家在链上提交前检查资源如何被分类。"
+        }
+      },
+      "tableAria": "化学元素周期表",
+      "legendAria": "元素类别",
+      "detailsEyebrow": "元素详情",
+      "detailsTitle": "点击一个元素，查看它的属性和加工要求。",
+      "detailsBody": "下面的加工要求是面向游戏的占位规则，用来定义元素类别未来如何成为挖掘资源、加工材料和可构造方块。",
+      "detailListAria": "元素详情列表",
+      "elementAria": "{name}，符号 {symbol}，原子序数 {atomicNumber}",
+      "detailHeading": "{name} ({symbol})",
+      "summary": "{name} 是第 {atomicNumber} 号元素。在 Nicechunk 里，它代表一种{category}资源，未来可以通过破坏方块发现，并进入方块构造规则。",
+      "blockValue": "{block} 区块",
+      "processingTitle": "加工要求",
+      "constructionHint": "{name} 可以作为基础{category}组件，在未来配方里参与构造新的可放置方块。"
+    },
+    "detail": {
+      "back": "返回元素表",
+      "documentTitle": "NiceChunk 元素档案 | {symbol} {name}",
+      "missingTitle": "NiceChunk 元素档案 | {symbol}",
+      "fileEyebrow": "元素档案",
+      "missingZh": "这个元素档案暂时不存在。",
+      "missingEn": "这个元素档案暂时不存在。",
+      "yes": "是",
+      "no": "否",
+      "notAvailable": "未知",
+      "sections": {
+        "identity": "基础身份",
+        "atomic": "原子属性",
+        "physical": "物理属性",
+        "chemical": "化学属性",
+        "game": "游戏属性",
+        "processing": "加工属性",
+        "affinity": "合成倾向",
+        "visualGene": "视觉基因",
+        "description": "资源说明"
+      },
+      "field": {
+        "id": "元素 ID",
+        "atomicNumber": "原子序数",
+        "symbol": "符号",
+        "name": "名称",
+        "category": "元素类别",
+        "period": "周期",
+        "group": "族",
+        "block": "电子区块",
+        "standardState": "标准状态",
+        "naturalOccurrence": "自然存在",
+        "atomicMass": "原子质量",
+        "atomicRadiusPm": "原子半径",
+        "covalentRadiusPm": "共价半径",
+        "electronConfig": "电子排布",
+        "valenceElectrons": "价电子",
+        "commonOxidationStates": "常见氧化态",
+        "maxOxidationState": "最高氧化态",
+        "minOxidationState": "最低氧化态",
+        "densityKgM3": "密度",
+        "referenceDimensions": "参考尺寸",
+        "referenceMassKg": "参考质量",
+        "meltingPointC": "熔点",
+        "boilingPointC": "沸点",
+        "hardness": "硬度",
+        "toughness": "韧性",
+        "ductility": "延展性",
+        "brittleness": "脆性",
+        "electricalConductivity": "导电性",
+        "thermalConductivity": "导热性",
+        "heatResistance": "耐热性",
+        "magnetism": "磁性",
+        "transparencyTendency": "透明倾向",
+        "electronegativity": "电负性",
+        "reactivity": "反应性",
+        "stability": "稳定性",
+        "oxidationTendency": "氧化倾向",
+        "corrosiveness": "腐蚀性",
+        "toxicity": "毒性",
+        "radioactivity": "放射性",
+        "flammability": "可燃性",
+        "explosiveTendency": "爆炸倾向",
+        "acidBaseTendency": "酸碱倾向",
+        "rarity": "稀有度",
+        "baseValue": "基础价值",
+        "miningDifficulty": "开采难度",
+        "refiningDifficulty": "精炼难度",
+        "processingDifficulty": "加工难度",
+        "industrialValue": "工业价值",
+        "weaponValue": "武器价值",
+        "technologyValue": "科技价值",
+        "buildingValue": "建筑价值",
+        "energyValue": "能源价值",
+        "biologicalValue": "生物价值",
+        "hazardLevel": "危险等级",
+        "requiredTemperatureC": "所需温度",
+        "minFurnaceTier": "最低熔炉等级",
+        "minToolTier": "最低工具等级",
+        "requiredFuelTier": "所需燃料等级",
+        "oxygenSensitive": "对氧敏感",
+        "waterSensitive": "对水敏感",
+        "requiresInertAtmosphere": "需要惰性气氛",
+        "forgeable": "可锻造",
+        "castable": "可铸造",
+        "crystallizable": "可结晶",
+        "alloyable": "可合金化",
+        "preferredProcesses": "推荐工艺",
+        "risk": {
+          "oxidation": "氧化风险",
+          "explosion": "爆炸风险",
+          "vaporization": "汽化风险",
+          "contamination": "污染风险",
+          "brittleness": "脆化风险"
+        },
+        "metalAffinity": "金属亲和",
+        "alloyAffinity": "合金亲和",
+        "oxygenAffinity": "氧亲和",
+        "carbonAffinity": "碳亲和",
+        "hydrogenAffinity": "氢亲和",
+        "siliconAffinity": "硅亲和",
+        "sulfurAffinity": "硫亲和",
+        "halogenAffinity": "卤素亲和",
+        "crystalAffinity": "晶体亲和",
+        "ceramicAffinity": "陶瓷亲和",
+        "organicAffinity": "有机亲和",
+        "gasAffinity": "气体亲和",
+        "energyAffinity": "能量亲和",
+        "magneticMaterialAffinity": "磁性材料亲和",
+        "structuralMaterialAffinity": "结构材料亲和",
+        "opticalMaterialAffinity": "光学材料亲和",
+        "electronicMaterialAffinity": "电子材料亲和",
+        "baseColor": "基础颜色",
+        "secondaryColor": "辅助颜色",
+        "oxidizedColor": "氧化颜色",
+        "darkStateColor": "暗态颜色",
+        "emissionColor": "发光颜色",
+        "materialLook": "材质外观",
+        "textureType": "纹理类型",
+        "oreTextureType": "矿石纹理",
+        "metallic": "金属度",
+        "roughness": "粗糙度",
+        "transparency": "透明度",
+        "emissionStrength": "发光强度",
+        "grain": "颗粒感",
+        "scratchDensity": "划痕密度",
+        "veinDensity": "矿脉密度",
+        "crackDensity": "裂纹密度",
+        "oxidationPattern": "氧化纹理",
+        "particleEffect": "粒子效果",
+        "animationEffect": "动画效果"
+      }
+    },
+    "category": {
+      "nonmetal": "非金属",
+      "noble_gas": "稀有气体",
+      "alkali_metal": "碱金属",
+      "alkaline_earth_metal": "碱土金属",
+      "metalloid": "类金属",
+      "halogen": "卤素",
+      "post_transition_metal": "后过渡金属",
+      "transition_metal": "过渡金属",
+      "lanthanide": "镧系元素",
+      "actinide": "锕系元素",
+      "unknown_properties": "未知属性"
+    },
+    "state": {
+      "solid": "固态",
+      "liquid": "液态",
+      "gas": "气态",
+      "unknown": "未知"
+    },
+    "phase": {
+      "solid": "固态",
+      "liquid": "液态",
+      "gas": "气态",
+      "unknown": "未知"
+    },
+    "property": {
+      "atomicNumber": "原子序数",
+      "symbol": "符号",
+      "atomicMass": "原子量",
+      "category": "类别",
+      "phase": "状态",
+      "group": "族",
+      "period": "周期",
+      "block": "电子区块"
+    },
+    "processing": {
+      "tier": "加工等级",
+      "tierValue": "{tier} 级",
+      "station": {
+        "separator": "分离器",
+        "cryogenicTrap": "低温捕集器",
+        "stabilizer": "稳定器",
+        "kiln": "窑炉",
+        "refiner": "精炼器",
+        "sealedReactor": "密封反应器",
+        "smelter": "熔炼炉",
+        "alloyForge": "合金锻炉",
+        "magneticSeparator": "磁选器",
+        "shieldedReactor": "屏蔽反应器"
+      },
+      "heat": {
+        "low": "低温",
+        "medium": "中温",
+        "high": "高温",
+        "extreme": "极高温"
+      },
+      "binder": {
+        "none": "不需要粘结剂",
+        "pressureCell": "压力舱",
+        "sealedCapsule": "密封胶囊",
+        "flux": "助熔剂",
+        "silicateMatrix": "硅酸盐基质",
+        "saltMatrix": "盐基质",
+        "ingotMold": "铸锭模具",
+        "carbonFlux": "碳助熔剂",
+        "rareEarthFlux": "稀土助熔剂",
+        "containmentCore": "约束核心"
+      }
+    }
+  },
+  "forging": {
+    "title": "Nicechunk 锻造台",
+    "appName": "锻造台",
+    "sceneLabel": "锻造场景",
+    "runtimeEngine": "CHUNK.JS · NATIVE WEBGL2 · FIXED-POINT",
+    "runtimeNode": "FORGE NODE: NGINX_STANDALONE",
+    "addMaterial": "添加材料",
+    "previewMaterial": "预览材料",
+    "proofDesignHash": "设计哈希",
+    "proofByteLength": "字节长度",
+    "proofMaterialVolume": "材料体积",
+    "proofMaterialDurability": "材料耐久度",
+    "proofClientVerified": "客户端已验证",
+    "proofChainVerified": "链上已验证",
+    "rendererUnsupported": "无法使用 WebGL2。此锻造台需要兼容的浏览器与 GPU。",
+    "materialGenericName": "材料 {code}",
+    "equipmentPreview": "装备预览",
+    "toolSlots": "工具格子",
+    "chainCode": "链代码",
+    "resetView": "重置视角",
+    "panelEyebrow": "MVP 工作台",
+    "panelTitle": "工具锻造",
+    "hammer": "铁锤",
+    "tool": {
+      "gloves": "手套",
+      "hammer": "铁锤",
+      "saw": "锯子",
+      "handDrill": "手钻",
+      "grip": "握把",
+      "axe": "斧头",
+      "paintBrush": "画笔",
+      "empty": "空"
+    },
+    "toolMenu": {
+      "sawTitle": "锯子设置",
+      "drillTitle": "手钻设置",
+      "paintTitle": "画笔设置",
+      "palette": "调色板",
+      "paletteColor": "调色板颜色",
+      "customColor": "自定义颜色",
+      "brushSize": "画笔大小",
+      "paintMode": "模式",
+      "paintModeDraw": "绘制",
+      "paintModeErase": "擦除",
+      "cutMode": "切割",
+      "cutKerf": "切缝",
+      "cutTrim": "修边",
+      "angle": "角度",
+      "angleValue": "{value} 度",
+      "direction": "方向",
+      "directionAuto": "自动",
+      "directionA": "方向 A",
+      "directionB": "方向 B",
+      "profile": "孔型",
+      "profileRound": "圆孔",
+      "profileSquare": "方孔",
+      "profileSlot": "长槽",
+      "size": "大小",
+      "sizeSmall": "1 格",
+      "sizeMedium": "3 格",
+      "sizeLarge": "5 格",
+      "depth": "深度",
+      "depthThrough": "贯通",
+      "depthHalf": "半深",
+      "depthShallow": "浅孔",
+      "gripTitle": "握把设置",
+      "gripRotation": "表面旋转",
+      "gripRotationValue": "{value}°"
+    },
+    "axis": {
+      "front": "前",
+      "up": "上",
+      "right": "右"
+    },
+    "resources": "资源",
+    "drafts": "草稿",
+    "draftList": "草稿列表",
+    "draftMenu": "草稿操作",
+    "saveDraft": "保存草稿",
+    "newDraft": "新建草稿",
+    "noDrafts": "暂无草稿",
+    "draftName": "草稿 {index}",
+    "renameDraft": "设置名字",
+    "deleteDraft": "删除草稿",
+    "draftRenamePrompt": "设置草稿名字",
+    "draftDeleteConfirm": "确定删除草稿“{name}”？",
+    "workpiece": "工件",
+    "material": "材料",
+    "heat": "热度",
+    "mass": "重量",
+    "shape": "形状",
+    "normalize": "整形",
+    "rotateX": "旋转 X",
+    "rotateY": "旋转 Y",
+    "rotateZ": "旋转 Z",
+    "rotateObject": "旋转对象",
+    "removeObject": "移除对象",
+    "cast": "铸造",
+    "clear": "清空",
+    "chainCodeTitle": "铸造链代码",
+    "chainCodeHint": "提交的链代码会自动选用更短的标准组件或烘焙表面表示；可编辑草稿仍保留在本机。",
+    "chainCodePlaceholder": "粘贴链代码即可生成可编辑工件。",
+    "generateCode": "生成",
+    "saveCode": "保存",
+    "copyCode": "复制代码",
+    "forgeOnChain": "锻造上链",
+    "close": "关闭",
+    "percent": "{value}%",
+    "massValue": "{value} 单位",
+    "shapeValue": "{x} x {y} x {z}",
+    "attributes": "属性",
+    "attributeWeight": "重量",
+    "attributeVolume": "实体体积",
+    "attributeDensity": "密度",
+    "componentCount": "{count} 个组件",
+    "singleComponent": "单一组件",
+    "resource": {
+      "iron": {
+        "name": "铁矿",
+        "detail": "坚硬工具核心"
+      },
+      "copper": {
+        "name": "铜矿",
+        "detail": "柔软导电金属"
+      },
+      "tin": {
+        "name": "锡矿",
+        "detail": "轻量合金材料"
+      },
+      "handle": {
+        "name": "握把",
+        "detail": "可绑定到手部的握持点"
+      },
+      "coal": {
+        "name": "煤炭",
+        "detail": "提升锻造热度"
+      }
+    },
+    "status": {
+      "ready": "就绪",
+      "hammerReady": "铁锤启用",
+      "glovesReady": "手套启用",
+      "sawReady": "锯子启用",
+      "drillReady": "手钻启用",
+      "gripReady": "握把选择启用",
+      "paintReady": "画笔启用",
+      "paintApplied": "已绘制",
+      "paintErased": "已擦除",
+      "toolPending": "此工具在当前模式不可用",
+      "orbitReady": "仅旋转视角",
+      "dropReady": "放到铁砧上",
+      "resourceAdded": "已加入资源",
+      "heatAdded": "热度提升",
+      "empty": "请先加入矿石",
+      "miss": "未击中面",
+      "hit": "面已压缩",
+      "deformationLimit": "已在加工网格极限停止变形",
+      "gripSet": "握把已设置",
+      "gripTooLarge": "截面大于手掌尺寸",
+      "gripBlocked": "握把会与角色碰撞",
+      "gripInvalid": "请将握把设在外露且手掌大小的表面",
+      "sawCut": "切口加深",
+      "sawComplete": "切口已打开",
+      "drillCut": "孔洞加深",
+      "drillThrough": "孔洞已打穿",
+      "drillPocket": "盲孔已加工",
+      "castComplete": "物品已铸造",
+      "castLocked": "铸造物品会作为整体移动",
+      "castDisconnected": "工件必须接触后才能铸造",
+      "draftSaved": "草稿已保存",
+      "draftLoaded": "草稿已载入",
+      "draftRenamed": "草稿名字已更新",
+      "draftDeleted": "草稿已删除",
+      "shapeSettled": "已重建切割后主体",
+      "shapeSplit": "切割已分离成工件",
+      "pieceRemoved": "工件已移除",
+      "noChainCode": "请先铸造物品",
+      "chainCopied": "链代码已复制",
+      "chainSaved": "铸造物品已保存",
+      "chainSubmitting": "正在将装备锻造上链...",
+      "chainSubmitted": "装备已锻造并存入背包",
+      "chainSubmitFailed": "锻造上链失败",
+      "chainCodeTooLarge": "链代码超过锻造物品存储容量",
+      "chainCodeOutOfSync": "请先将这段链代码载入工作台，再锻造上链",
+      "chainMaterialRequired": "请先从背包选择材料再锻造上链",
+      "chainMaterialMismatch": "背包材料已经变化，请同步材料后重新锻造",
+      "chainDesignMaterialMismatch": "当前造型超过所选材料承载能力，请使用更强材料或简化造型",
+      "chainHotbarFull": "工具栏已满，请先空出一格再锻造",
+      "chainBackpackFull": "背包已满，请先空出一格再锻造",
+      "chainHotbarQueueFailed": "已完成上链锻造，但无法加入工具栏队列",
+      "chainLoaded": "链代码已载入",
+      "invalidChainCode": "链代码无效",
+      "normalized": "形状已整形",
+      "rotated": "工件已旋转",
+      "cleared": "工件已清空",
+      "materialsSynced": "背包材料已同步",
+      "materialLoadFailed": "无法加载背包材料",
+      "locationChanged": "锻造位置已切换",
+      "chainDesignMaterialMismatchPanel": "材料承载检查失败，请查看右侧承载表。",
+      "chainDesignMaterialMismatchDetailed": "材料承载检查失败：造型需求等级 {requested}，高于材料允许等级 {allowed}（材料承载 {capacity}，缺口 {deficit}）。主要问题：{issue}。造型需求：重量 {mass}，实体体积 {designVolume}，最高属性 {attribute} {attributeScore}/100。所选材料：{materialCount} 件，有效耐久 {effectiveDurability}，体积 {materialVolume}。当前缺口：耐久 {missingDurability}，体积 {missingVolume}。",
+      "chainWalletUnavailable": "钱包不可用，请先连接钱包",
+      "chainNoBackpack": "没有已装备的背包，请先装备背包",
+      "inspectModeReady": "查看模式：选择不会修改工件",
+      "objectModeReady": "对象模式：移动、旋转、整形或移除所选材料",
+      "surfaceModeReady": "表面施工模式：选择工具和精确表面",
+      "objectModeRequired": "此操作需要切换到对象模式",
+      "moved": "工件已移动",
+      "axeReady": "斧头已启用",
+      "axeComplete": "表面已削斜",
+      "undone": "已撤销上一个锻造编辑",
+      "redone": "已重做锻造编辑",
+      "appearanceReadOnly": "压缩表面链代码仅供查看；要修改组件请加载本机可编辑草稿",
+      "dyeSelected": "已选择{material}",
+      "dyeRequired": "已绘制的表面需要背包中具备对应染料。",
+      "dyeMissing": "背包中需要{material}。",
+      "dyeColorUnsupported": "此绘制颜色没有对应的锻造染料。",
+      "tooManyForgeInputs": "此设计需要 {count} 个材料输入；链上上限为 {max} 个。"
+    },
+    "panelTabs": "锻造面板分区",
+    "materialsTab": "材料",
+    "propertiesTab": "属性",
+    "sceneLive": "实时锻造场景",
+    "anvilGrid": "世界地形",
+    "randomLocation": "随机位置",
+    "locationLoading": "定位中",
+    "locationValue": "X {x} Z {z}",
+    "materials": "材料",
+    "syncMaterials": "同步",
+    "materialList": "材料列表",
+    "chainActionReady": "准备好后点击锻造上链。",
+    "chainActionPreparing": "正在检查链代码和背包材料...",
+    "selectMaterialPrompt": "选择材料",
+    "selectMaterialPromptDetail": "按住一个背包材料，把它拖进锻造场景。",
+    "materialSlot": "格子",
+    "materialType": "类型",
+    "materialMass": "重量",
+    "materialVolume": "体积",
+    "materialDensity": "密度",
+    "materialDimensions": "尺寸",
+    "materialHardness": "硬度",
+    "materialHeat": "热度",
+    "materialComposition": "成分",
+    "materialSyncing": "正在同步背包",
+    "materialSyncingDetail": "正在读取已装备背包里的材料。",
+    "materialNoBackpack": "未装备背包",
+    "materialNoBackpackDetail": "装备带有锻造材料的背包后才能使用工作台。",
+    "materialEmpty": "没有材料",
+    "materialEmptyDetail": "先把采集资源熔炼成材料，再回来锻造。",
+    "materialLoadFailed": "材料同步失败",
+    "materialLoadFailedDetail": "无法从链上读取背包材料。",
+    "materialCardDetail": "{type} · x{count}",
+    "materialFuelDetail": "燃料 · 热量等级 {tier} · x{count}",
+    "attributeHardness": "硬度",
+    "attributeDurability": "耐久",
+    "attributeToughness": "韧性",
+    "attributeWorkability": "工艺性",
+    "attributeGripForce": "力量要求",
+    "attributeTorque": "握把力矩",
+    "attributeCenterOfMass": "质心",
+    "materialBreakdown": "材料构成",
+    "materialShareValue": "{mass} · {volume} · {percent}%",
+    "gripNotSet": "先设置握把",
+    "gripRequirementValue": "{force} / {kgf}",
+    "workpieceEmpty": "没有工件",
+    "workpieceEmptyDetail": "先把材料加入或拖到工作台。",
+    "dimensionsValue": "{x} x {y} x {z}",
+    "scoreValue": "{value}/100",
+    "volumeCm3Value": "{value} cm3",
+    "vectorValue": "{x}, {y}, {z}",
+    "capacityDiagnosticsTitle": "材料承载",
+    "capacityDiagnosticsSummary": "造型等级 {requested} / 允许 {allowed}。材料承载 {capacity}，缺口 {deficit}。主要问题：{issue}。",
+    "capacityDiagnosticsPass": "合格",
+    "capacityDiagnosticsFail": "不合格",
+    "capacityDiagnosticTableCheck": "检查项",
+    "capacityDiagnosticTableCurrent": "当前",
+    "capacityDiagnosticTableRequired": "要求",
+    "capacityDiagnosticTableResult": "结果",
+    "capacityDiagnosticNoGap": "无缺口",
+    "capacityDiagnosticGap": "缺口 {value}",
+    "capacityMeta": {
+      "designMass": "造型重量",
+      "designVolume": "实体体积",
+      "topAttribute": "最高属性",
+      "topAttributeValue": "{attribute} {score}/100",
+      "materialCapacity": "材料承载",
+      "tolerance": "容差",
+      "mainIssue": "主要问题"
+    },
+    "capacityCheck": {
+      "level": "等级允许值",
+      "effectiveDurability": "有效耐久",
+      "volume": "材料体积",
+      "materialCount": "材料数量"
+    },
+    "capacityAttribute": {
+      "ductility": "延展性",
+      "brittleness": "脆性",
+      "heatResistance": "耐热",
+      "corrosionResistance": "耐腐蚀",
+      "conductivity": "导电",
+      "thermalConductivity": "导热",
+      "magnetism": "磁性"
+    },
+    "capacityIssue": {
+      "noMaterial": "没有选择材料",
+      "materialDurability": "所选材料有效耐久不足",
+      "materialVolume": "所选材料体积不足",
+      "materialCapacity": "所选材料承载等级不足",
+      "designMass": "造型重量过高",
+      "designVolume": "造型体积过大",
+      "designAttributes": "造型属性要求过高"
+    },
+    "undo": "撤销",
+    "redo": "重做",
+    "editMode": {
+      "label": "编辑模式",
+      "inspect": "查看",
+      "object": "对象",
+      "surface": "表面施工",
+      "inspectHint": "只选择材料和表面，不修改工件。",
+      "objectHint": "拖动材料或使用轴向控制，然后旋转、整形或移除。",
+      "surfaceHint": "选择工具，再选择要施工的精确表面。"
+    },
+    "materialQuantityShort": "x{count}",
+    "materialQuantity": "数量",
+    "valueUnavailable": "无数据",
+    "materialSlotValue": "格子 #{value}",
+    "materialMassGramsValue": "{value} g",
+    "materialDurability": "耐久",
+    "materialDurabilityValue": "{current} / {max}",
+    "materialEffectiveDurability": "有效耐久",
+    "materialQuality": "品质",
+    "materialQualityValue": "{value}%",
+    "materialGrade": "品级",
+    "materialItemLevel": "物品等级",
+    "materialParameterAttributes": "材料属性",
+    "materialTypeValue": "锻造材料",
+    "materialClass": {
+      "alloy": "合金",
+      "carbon": "碳材",
+      "ceramic": "陶瓷",
+      "chemical": "化学材料",
+      "composite": "复合材料",
+      "crystal": "晶体",
+      "fiber": "纤维",
+      "glass": "玻璃",
+      "metal": "金属",
+      "polymer": "聚合物"
+    },
+    "inheritedProperties": "继承属性",
+    "densityKgM3Value": "{value} kg/m³",
+    "materialInputVolume": "输入体积",
+    "materialUsedVolume": "使用体积",
+    "materialUnusedVolume": "剩余体积",
+    "finalInheritedAttributes": "最终继承属性",
+    "inheritanceModeMassWeighted": "质量加权",
+    "inheritanceModeEmbedded": "内嵌 NCF1 结果",
+    "inheritanceEmbeddedDescription": "导入的链代码会保留已编码的最终质量、体积和属性。使用当前材料开始编辑前，无法显示各材料来源的贡献。",
+    "inheritanceRuleDescription": "每项属性都按确定性的质量权重继承：使用的实体体积乘以材料密度。可以投入更多材料，但只有工件保留的实体体积会参与继承。",
+    "componentMaterialName": "组件 {index} · {material}",
+    "componentEditorEmpty": "未选择组件",
+    "componentEditorEmptyDetail": "请在锻造场景中选择一个工件组件。",
+    "selectedComponent": "已选组件 {index}",
+    "selectedFaceValue": "已选表面：{axis} {side}",
+    "selectedFaceNone": "未选择施工表面",
+    "axisName": {
+      "x": "X 轴",
+      "y": "Y 轴",
+      "z": "Z 轴"
+    },
+    "faceSide": {
+      "positive": "正向",
+      "negative": "负向"
+    },
+    "moveObject": "移动对象",
+    "moveAxis": "{axis} {direction}",
+    "precision": {
+      "ariaLabel": "精确坐标",
+      "title": "精确目标",
+      "axisX": "X",
+      "axisY": "Y",
+      "axisZ": "Z",
+      "objectPosition": "位置 · X {x} · Y {y} · Z {z}",
+      "objectQ": "固定 Q · X {x} · Y {y} · Z {z}",
+      "freeMove": "自由移动 · X/Z 平面",
+      "moveAxis": "限定轴移动 · {axis} 轴",
+      "gridCell": "格子 · X {x}/{maxX} · Y {y}/{maxY} · Z {z}/{maxZ}",
+      "surfaceFace": "表面 · {axis}{side} · 平面 {plane}",
+      "surfacePoint": "坐标 · X {x} · Y {y} · Z {z}"
+    },
+    "proofEditableByteLength": "可编辑字节",
+    "proofBytesSaved": "节省字节",
+    "proofSavingsValue": "{bytes} B · {percent}%",
+    "proofNoSavings": "已是最短格式",
+    "compactSurfaceRepresentation": "压缩表面",
+    "appearanceInspectOnly": "压缩表面预览",
+    "appearanceInspectOnlyDetail": "此表示可供查看和渲染，但不包含组件编辑历史。要继续编辑，请加载本机草稿。",
+    "surfaceQuadCount": "{count} 个表面四边形",
+    "inheritanceAppearanceDescription": "压缩表面会保留已编码的质量、体积、继承属性、材料、涂装和握把；组件历史只留在本机草稿。",
+    "physicalInertia": "惯性分布",
+    "inertiaQ2Value": "{x}, {y}, {z} Q²",
+    "torqueMgQValue": "{value} mg·Q",
+    "physicsAdvisoryNote": "仅为确定性的操作手感估算，绝不影响链上材料验证。",
+    "materialItem": {
+      "charcoal": {
+        "name": "木炭",
+        "description": "碳化木质材料，可作为燃料、还原剂和早期合金辅助材料。"
+      },
+      "biochar_compost": {
+        "name": "生物炭堆肥",
+        "description": "由树叶、苔藓和泥浆低温制成的碳与养分材料，可用于土壤系统和生物站点。"
+      },
+      "resin_binder": {
+        "name": "树脂粘结剂",
+        "description": "由松木和藤蔓提取的树脂浓缩物，可粘合纤维、密封容器，并支持低温复合材料。"
+      },
+      "ceramic_brick": {
+        "name": "陶瓷砖",
+        "description": "由黏土和沙烧制成的材料，可用于炉壁、模具和基础建造配方。"
+      },
+      "lime_ceramic": {
+        "name": "石灰陶瓷",
+        "description": "由贝壳层石灰和黏土制成的陶瓷，可作为耐热粘结剂和耐火添加物。"
+      },
+      "quicklime": {
+        "name": "生石灰",
+        "description": "由贝壳和珊瑚烧制出的富钙活性石灰，可作为助熔剂、砂浆基底和化学试剂。"
+      },
+      "salt_flux": {
+        "name": "盐助熔剂",
+        "description": "由盐滩和火山灰制成的助熔材料，可帮助熔炼分离炉渣并稳定更干净的金属批次。"
+      },
+      "ash_cement": {
+        "name": "灰质水泥",
+        "description": "由火山灰、黏土和贝壳石灰制成的粘结材料，可用于砌体、炉壳和耐热建造。"
+      },
+      "glass_ingot": {
+        "name": "玻璃锭",
+        "description": "富硅玻璃坯料，可用于镜片、窗片、仪表和易碎技术部件。"
+      },
+      "obsidian_glass": {
+        "name": "黑曜玻璃",
+        "description": "由硅质沙和玄武岩在熔岩高热下形成的暗色火山玻璃，适合耐用光学件和密封窗片。"
+      },
+      "silicon_wafer": {
+        "name": "硅晶片",
+        "description": "用碳还原得到的纯化硅片，可用于电路、传感器和未来信号装置。"
+      },
+      "ice_crystal": {
+        "name": "冰晶",
+        "description": "由冰、雪和盐稳定出的晶体，可用于冷却单元、冰霜工具和热控组件。"
+      },
+      "iron_bloom": {
+        "name": "铁海绵坯",
+        "description": "从深层石和石头中还原出的可锻铁质坯料，煤炭负责供碳和还原。"
+      },
+      "copper_bloom": {
+        "name": "铜海绵坯",
+        "description": "从砾石和玄武岩的痕量金属倾向中富集出的导电金属坯。"
+      },
+      "alumina_plate": {
+        "name": "氧化铝板",
+        "description": "由黏土和深层石制成的富铝陶瓷板，可用于抗冲击面板和绝缘配件。"
+      },
+      "nickel_iron": {
+        "name": "镍铁合金",
+        "description": "从深层石和玄武岩痕量金属中精炼出的磁性铁合金，可用于电机和高级机构。"
+      },
+      "carbon_plate": {
+        "name": "碳板",
+        "description": "由煤炭和深层石压制出的碳材料，可用于轻量加固和嵌件。"
+      },
+      "carbon_steel": {
+        "name": "碳钢坯",
+        "description": "高阶钢材坯料，来自深层石的铁倾向和煤炭的控碳。"
+      },
+      "basalt_fiber": {
+        "name": "玄武岩纤维",
+        "description": "由玄武岩和熔岩高热拉制的火山纤维，适合隔热板和炉体部件。"
+      },
+      "basalt_composite": {
+        "name": "玄武岩复合板",
+        "description": "由高热玄武岩、碳和树脂方向形成的复合材料，可用于护甲板、盾牌和耐用外壳。"
+      },
+      "geopolymer_block": {
+        "name": "地聚物块",
+        "description": "由火山灰、玄武岩和盐激发形成的石质复合材料，可用于高强砌体和窑炉主体。"
+      },
+      "coral_lime": {
+        "name": "珊瑚石灰",
+        "description": "由珊瑚、死珊瑚和沙制成的富钙陶瓷，可用于海洋砌体、砂浆和耐热块。"
+      },
+      "toxic_glass": {
+        "name": "毒性玻璃",
+        "description": "由毒水、盐和硅质沙制成的密封危险玻璃，用于封存容器和风险工具。"
+      },
+      "cotton": {
+        "name": "棉花"
+      },
+      "flowerWhite": {
+        "name": "白花"
+      },
+      "flowerYellow": {
+        "name": "黄花"
+      },
+      "flowerRed": {
+        "name": "红花"
+      },
+      "flowerBlue": {
+        "name": "蓝花"
+      },
+      "flowerPink": {
+        "name": "粉红花"
+      },
+      "cotton_cloth": {
+        "name": "棉布",
+        "description": "以棉花和干草织成的布料，可制作柔软的锻造装备与具有动效的布面。"
+      },
+      "white_dye": {
+        "name": "白色染料",
+        "description": "锻造时用于绘制布料的浅色花朵颜料。"
+      },
+      "yellow_dye": {
+        "name": "黄色染料",
+        "description": "锻造时用于绘制布料的暖黄色花朵颜料。"
+      },
+      "red_dye": {
+        "name": "红色染料",
+        "description": "锻造时用于绘制布料的鲜红色花朵颜料。"
+      },
+      "blue_dye": {
+        "name": "蓝色染料",
+        "description": "锻造时用于绘制布料的冷蓝色花朵颜料。"
+      },
+      "pink_dye": {
+        "name": "粉红色染料",
+        "description": "锻造时用于绘制布料的柔粉色花朵颜料。"
+      },
+      "wooden_plank": {
+        "name": "木板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "wooden_stick": {
+        "name": "木条",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "squared_timber": {
+        "name": "方木",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "clear_glass_panel": {
+        "name": "透明玻璃板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "ice_blue_glass_panel": {
+        "name": "冰蓝玻璃板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "amber_glass_panel": {
+        "name": "琥珀玻璃板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "basalt_reinforced_glass": {
+        "name": "玄武岩强化玻璃",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "fired_clay_brick": {
+        "name": "烧制黏土砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "adobe_brick": {
+        "name": "土坯砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "stone_brick": {
+        "name": "石砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "deep_stone_brick": {
+        "name": "深层石砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "basalt_brick": {
+        "name": "玄武岩砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "sandstone_block": {
+        "name": "切割砂岩块",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "cobblestone": {
+        "name": "鹅卵石",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "polished_stone_slab": {
+        "name": "抛光石板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "lime_plaster": {
+        "name": "石灰抹灰",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "clay_plaster": {
+        "name": "黏土抹灰",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "rammed_earth": {
+        "name": "夯土",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "shell_terrazzo": {
+        "name": "贝壳水磨石板",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "white_ceramic_tile": {
+        "name": "白色陶瓷砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "blue_ceramic_tile": {
+        "name": "蓝色陶瓷砖",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "volcanic_ash_concrete": {
+        "name": "火山灰混凝土",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "salt_crystal_block": {
+        "name": "盐晶块",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_terracotta": {
+        "name": "赤陶屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_ice_blue": {
+        "name": "冰蓝釉面屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_shell_white": {
+        "name": "贝白釉面屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_charcoal": {
+        "name": "炭黑釉面屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_ash_gray": {
+        "name": "火山灰釉面屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "roof_tile_mycelium": {
+        "name": "菌丝发光釉面屋瓦",
+        "description": "具备标准链上配方、物理属性与专用低多边形模型的 NCM3 合成建筑材料。"
+      },
+      "blasting_charge": {
+        "name": "爆破药包",
+        "description": "以树脂粘结的紧凑型矿用药包，用于受控的多方块开挖；NiceChunk 配方为刻意虚构的游戏设定。"
+      }
+    },
+    "selectDye": "选择染料",
+    "selectDyeNamed": "选择{material}",
+    "dyeInventory": "染料库存",
+    "dyeSelected": "已选染料",
+    "dyeUsed": "已用于设计",
+    "dyeAvailable": "可用于绘制",
+    "avatarPreviewAria": "角色装备预览",
+    "avatarPreviewTitle": "装备预览",
+    "avatarPreviewEmpty": "请设置有效握把",
+    "avatarPreviewEquipped": "握把已装备",
+    "avatarPreviewError": "无法显示预览",
+    "avatarPreviewHint": "拖动旋转"
+  },
+  "mining": {
+    "title": "Nicechunk 挖矿",
+    "canvasLabel": "地下矿洞",
+    "player": {
+      "title": "新手矿工",
+      "wallet": "钱包"
+    },
+    "panel": {
+      "kicker": "当前矿洞",
+      "title": "在线用户",
+      "depth": "矿洞深度",
+      "ore": "矿石",
+      "oreCount": "剩余 {count}",
+      "contractAddress": "矿洞合约地址",
+      "hashrate": "总算力",
+      "blockTime": "平均出块时间",
+      "totalBlocks": "总区块",
+      "minedBlocks": "已挖区块",
+      "remainingBlocks": "剩余区块",
+      "hashrateH": "{value} H/s",
+      "hashrateKh": "{value} KH/s",
+      "seconds": "{value} 秒",
+      "meters": "{value} 米"
+    },
+    "controls": {
+      "label": "挖矿控制",
+      "mine": "挖矿"
+    },
+    "inventory": {
+      "ore": "矿石",
+      "energy": "体力"
+    },
+    "status": {
+      "label": "状态",
+      "ready": "准备挖矿",
+      "noTarget": "请瞄准发光矿脉",
+      "mined": "已采出矿石"
+    },
+    "userStatus": {
+      "mining": "正在中心矿脉附近挖矿",
+      "drilling": "正在钻探侧壁",
+      "hauling": "正在搬运矿车",
+      "scanning": "正在扫描矿石品质",
+      "resting": "正在恢复体力",
+      "yield": "{count} 矿石"
+    },
+    "system": {
+      "label": "电脑信息",
+      "cpu": "CPU",
+      "memory": "内存",
+      "cores": "{count} 核心",
+      "memoryGb": "{value} GB",
+      "unknown": "未知"
+    },
+    "tools": {
+      "label": "工具",
+      "slot": "第 {slot} 格：{item}",
+      "drill": "采矿钻机",
+      "scanner": "矿石扫描器",
+      "lantern": "矿洞提灯",
+      "hammer": "岩石锤"
+    },
+    "account": {
+      "guest": "访客",
+      "level": "Lv. {level}",
+      "notConnected": "未连接"
+    },
+    "hotbarSlot": {
+      "empty": "第 {slot} 格：空"
+    }
+  }
+}

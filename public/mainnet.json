@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "app": {
+    "id": "nicechunk",
+    "name": "NICECHUNK",
+    "version": "0.1.69",
+    "minClientVersion": "0.1.21",
+    "network": "mainnet"
+  },
+  "updatePolicy": {
+    "entry": "/mainnet.json",
+    "strategy": "version-compare",
+    "cacheStorage": "localStorage",
+    "notes": "High-frequency game runtime index for world, chain, and resource configuration only."
+  },
+  "world": {
+    "seed": "nicechunk-mainnet-001",
+    "configVersion": "world-002",
+    "generator": "voxel-seeded-terrain-v2",
+    "chunkSize": 16,
+    "renderDistance": 7,
+    "seaLevel": 96,
+    "minBuildY": -32,
+    "maxBuildY": 320,
+    "maxTerrainHeight": 240
+  },
+  "chain": {
+    "cluster": "devnet",
+    "programs": {
+      "core": "9EhMCRYMJej1F21KzaA5Zao3khGGc5aJbDGbnxaogQHu",
+      "player": "CHZHsBCGn58ih2WrPfKSYhvCEjMPGhArTiYCH7AWWBkB",
+      "chunk": "GnVKn442KDTDgCyjVG7SEtCQQLjaCiLvrEZDWSU13wbj",
+      "building": "39UMTUWXQkuomkFNbDPF5NGZnJmG6pDkJHVSkZyqVwWx",
+      "backpack": "6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7",
+      "market": "6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7",
+      "smelting": "6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7"
+    },
+    "smelting": {
+      "ruleSet": "nicechunk-smelting-v1",
+      "rulesUrl": "/rules/smelting-rules.json",
+      "recipeTables": [
+        {
+          "tableId": 220,
+          "address": "E8CtkK8VQHExofe83isN2KDQdUuSWjw7JhgpT9NVeCQG",
+          "recipeRange": [
+            1001,
+            1010
+          ]
+        },
+        {
+          "tableId": 221,
+          "address": "HCavVTnjYT1ovC14f5HPDjnef24Vrq28WAHWZPfY78yH",
+          "recipeRange": [
+            1011,
+            1020
+          ]
+        },
+        {
+          "tableId": 222,
+          "address": "6MXrWyBqhaimPPmwGRE94DPqMvzPLMCaaiEUDn7duPWd",
+          "recipeRange": [
+            1021,
+            1030
+          ]
+        },
+        {
+          "tableId": 223,
+          "address": "3AsnopvUeY56Sst2LPwH2wPEN9vN9UsZYnr6uTwmWw45",
+          "recipeRange": [
+            1031,
+            1040
+          ]
+        },
+        {
+          "tableId": 224,
+          "address": "91A4z6tFC7VKg9y4sGRDVCqQBFxEj6yKCWGjsLZ1MLAj",
+          "recipeRange": [
+            1041,
+            1050
+          ]
+        },
+        {
+          "tableId": 225,
+          "address": "G8hZeRXdsgTGpXjA1La8KnAQwfJYZg5jSnCz4sjYRNfo",
+          "recipeRange": [
+            1051,
+            1060
+          ]
+        },
+        {
+          "tableId": 320,
+          "address": "J275g7jRLpTkNHbxJT8Jfw1mbUFwTCprVJ9rFYnfjopr",
+          "recipeRange": [
+            2001,
+            2010
+          ]
+        },
+        {
+          "tableId": 321,
+          "address": "J5zLCGNsicKKtZuUJrLp2CgPp8aXP8YXsi87XQBMi5dB",
+          "recipeRange": [
+            2011,
+            2020
+          ]
+        },
+        {
+          "tableId": 322,
+          "address": "8JFKnxGbpAEuyHdXU45QU4BPhPEdK7HM17DdbVtAAre7",
+          "recipeRange": [
+            2021,
+            2030
+          ]
+        },
+        {
+          "tableId": 323,
+          "address": "FYT444kftVR6pWdju2i6Remxdb4PbJ1WxcGdMwUCzWtm",
+          "recipeRange": [
+            2031,
+            2040
+          ]
+        },
+        {
+          "tableId": 324,
+          "address": "HyM8MBD8QmpvjLKRJ2eie8vHx7uCBFnQ2TkcvNmDwBUf",
+          "recipeRange": [
+            2041,
+            2050
+          ]
+        },
+        {
+          "tableId": 325,
+          "address": "J2KqD7Amp2oQ53UUZx8wxFSNi2ZDUkWwXoaQsM3Sxt8m",
+          "recipeRange": [
+            2051,
+            2060
+          ]
+        }
+      ]
+    }
+  },
+  "resources": {
+    "manifests": {},
+    "assets": {}
+  }
+}

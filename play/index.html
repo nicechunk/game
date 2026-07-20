@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en" data-i18n-scope="play">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#8fc9ef" />
+    <meta name="color-scheme" content="light" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <title>NiceChunk Play</title>
+    <script>
+      (() => {
+        try {
+          const wallet = localStorage.getItem("nicechunk.walletAddress");
+          const boundAt = localStorage.getItem("nicechunk.walletBoundAt");
+          if (wallet && boundAt) return;
+        } catch {
+          // A game session cannot be maintained when browser storage is unavailable.
+        }
+        document.documentElement.hidden = true;
+        const loginUrl = new URL("/login/", location.origin);
+        loginUrl.searchParams.set("redirect", `${location.pathname}${location.search}${location.hash}` || "/play/");
+        location.replace(loginUrl);
+      })();
+    </script>
+    <script vite-ignore src="/play/play-loader.js" fetchpriority="high" data-nicechunk-loader></script>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=0.1.53" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=0.1.53" />
+    <link rel="shortcut icon" href="/favicon.ico?v=0.1.53" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=0.1.53" />
+    <link rel="manifest" href="/site.webmanifest?v=0.1.53" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="worldCanvas" aria-label="NiceChunk WebGL2 voxel world"></canvas>
+    <button class="account-hud" id="accountHud" type="button" aria-label="Open player profile">
+      <span class="account-avatar" aria-hidden="true"></span>
+      <span class="account-copy">
+        <span class="account-row"><strong id="accountName">Sora</strong><b id="accountLevel">Lv. 1</b></span>
+        <span id="accountTitle">Local preview</span>
+        <span class="account-balance" id="accountBalance" data-state="disconnected">
+          <svg class="account-solana-icon" viewBox="0 0 32 27" role="img" aria-label="Solana">
+            <defs>
+              <linearGradient id="accountSolanaGradient" x1="4" y1="28" x2="28" y2="4" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#9945ff" />
+                <stop offset="0.52" stop-color="#39d9e6" />
+                <stop offset="1" stop-color="#14f195" />
+              </linearGradient>
+            </defs>
+            <path fill="url(#accountSolanaGradient)" d="M7.2 4.5a1.7 1.7 0 0 1 1.2-.5h18.2c.8 0 1.2 1 .6 1.6l-3.7 3.7a1.7 1.7 0 0 1-1.2.5H4.1c-.8 0-1.2-1-.6-1.6l3.7-3.7Z" />
+            <path fill="url(#accountSolanaGradient)" d="M24.8 11.1a1.7 1.7 0 0 0-1.2-.5H5.4c-.8 0-1.2 1-.6 1.6l3.7 3.7a1.7 1.7 0 0 0 1.2.5h18.2c.8 0 1.2-1 .6-1.6l-3.7-3.7Z" />
+            <path fill="url(#accountSolanaGradient)" d="M7.2 17.7a1.7 1.7 0 0 1 1.2-.5h18.2c.8 0 1.2 1 .6 1.6l-3.7 3.7a1.7 1.7 0 0 1-1.2.5H4.1c-.8 0-1.2-1-.6-1.6l3.7-3.7Z" />
+          </svg>
+          <span id="accountBalanceValue">0 SOL</span>
+        </span>
+        <span id="accountSessionBalance">Session: not funded</span>
+      </span>
+    </button>
+    <div class="game-status" id="gameStatus" role="status" aria-live="polite">Booting standalone chunk.js renderer...</div>
+    <button class="minimap-panel" id="minimapPanel" type="button" aria-label="Open map">
+      <canvas id="minimap" width="240" height="240"></canvas>
+      <span class="minimap-coordinate minimap-coordinate-world" id="minimapWorldCoord">0, 0</span>
+      <span class="minimap-coordinate minimap-coordinate-chunk" id="minimapChunkCoord">C 0, 0</span>
+      <span class="guardian-connection-indicator" id="guardianConnectionIndicator" data-state="disconnected" aria-hidden="true"></span>
+    </button>
+    <section class="blueprint-guide" id="blueprintGuide" aria-label="Building guide" data-i18n-aria-label="main.blueprint.guideAria" hidden>
+      <header>
+        <span class="blueprint-guide-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="blueprint-guide-title">
+          <strong data-i18n="main.blueprint.guideTitle">BUILDING GUIDE</strong>
+          <small id="blueprintIdentity"></small>
+        </span>
+      </header>
+      <div class="blueprint-mode-switch" role="tablist" aria-label="Blueprint mode" data-i18n-aria-label="main.blueprint.modeAria">
+        <button id="blueprintModeFoundation" type="button" role="tab" data-blueprint-mode="foundation" data-i18n="main.blueprint.foundationTab">FOUNDATION</button>
+        <button id="blueprintModeBuilding" type="button" role="tab" data-blueprint-mode="building" data-i18n="main.blueprint.buildingTab">BUILDING</button>
+      </div>
+      <div class="blueprint-editor" id="foundationEditor">
+        <ol>
+          <li data-blueprint-step="1"><b>1</b><span data-i18n="main.blueprint.stepEquip">Equip Blueprint Tool</span></li>
+          <li data-blueprint-step="2"><b>2</b><span data-i18n="main.blueprint.stepSize">Set Foundation Size</span></li>
+          <li data-blueprint-step="3"><b>3</b><span data-i18n="main.blueprint.stepPlace">Place Foundation</span></li>
+          <li data-blueprint-step="4"><b>4</b><span data-i18n="main.blueprint.stepConfirm">Secure Foundation</span></li>
+          <li data-blueprint-step="5"><b>5</b><span data-i18n="main.blueprint.stepBuild">Build on Foundation</span></li>
+        </ol>
+        <div class="blueprint-dimensions">
+          <label>
+            <span data-i18n="main.blueprint.length">LENGTH</span>
+            <span class="blueprint-stepper">
+              <button type="button" data-blueprint-dimension="width" data-blueprint-delta="-1" aria-label="Decrease length" data-i18n-aria-label="main.blueprint.decreaseLength">−</button>
+              <input id="blueprintWidth" type="number" min="2" step="1" value="12" inputmode="numeric" aria-label="Foundation length" data-i18n-aria-label="main.blueprint.lengthInput" />
+              <button type="button" data-blueprint-dimension="width" data-blueprint-delta="1" aria-label="Increase length" data-i18n-aria-label="main.blueprint.increaseLength">+</button>
+            </span>
+          </label>
+          <span class="blueprint-dimension-cross" aria-hidden="true">×</span>
+          <label>
+            <span data-i18n="main.blueprint.width">WIDTH</span>
+            <span class="blueprint-stepper">
+              <button type="button" data-blueprint-dimension="depth" data-blueprint-delta="-1" aria-label="Decrease width" data-i18n-aria-label="main.blueprint.decreaseWidth">−</button>
+              <input id="blueprintDepth" type="number" min="2" step="1" value="8" inputmode="numeric" aria-label="Foundation width" data-i18n-aria-label="main.blueprint.widthInput" />
+              <button type="button" data-blueprint-dimension="depth" data-blueprint-delta="1" aria-label="Increase width" data-i18n-aria-label="main.blueprint.increaseWidth">+</button>
+            </span>
+          </label>
+        </div>
+        <p class="blueprint-status" id="blueprintStatus" role="status" data-i18n="main.blueprint.chooseGround">Click a flat area to place the blueprint.</p>
+        <div class="blueprint-actions">
+          <button id="blueprintCancel" type="button" data-i18n="main.blueprint.cancel">Cancel</button>
+          <button id="blueprintConfirm" type="button" disabled><i aria-hidden="true"></i><span data-i18n="main.blueprint.confirm">Create Foundation</span></button>
+        </div>
+      </div>
+      <div class="blueprint-editor blueprint-building-editor" id="buildingEditor" hidden>
+        <label class="blueprint-building-field">
+          <span><b>NCM3</b> <small data-i18n="main.blueprint.exactScale">EXACT 1:1 VOXELS</small></span>
+          <textarea id="buildingCode" rows="5" spellcheck="false" autocomplete="off" placeholder="Paste NCM3 code" data-i18n-placeholder="main.blueprint.codePlaceholder" aria-label="NCM3 building code" data-i18n-aria-label="main.blueprint.codeAria"></textarea>
+        </label>
+        <div class="blueprint-building-transform">
+          <button id="buildingPreview" type="button" data-i18n="main.blueprint.previewBuilding">Preview</button>
+          <button id="buildingRotateLeft" type="button" aria-label="Rotate left" data-i18n-aria-label="main.blueprint.rotateLeft">↶</button>
+          <span><small data-i18n="main.blueprint.rotation">ROTATION</small><b id="buildingRotation">0°</b></span>
+          <button id="buildingRotateRight" type="button" aria-label="Rotate right" data-i18n-aria-label="main.blueprint.rotateRight">↷</button>
+        </div>
+        <div class="blueprint-building-position">
+          <label>
+            <span data-i18n="main.blueprint.offsetX">X OFFSET</span>
+            <input id="buildingOffsetX" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building X offset" data-i18n-aria-label="main.blueprint.offsetX" />
+          </label>
+          <label>
+            <span data-i18n="main.blueprint.offsetZ">Z OFFSET</span>
+            <input id="buildingOffsetZ" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building Z offset" data-i18n-aria-label="main.blueprint.offsetZ" />
+          </label>
+        </div>
+        <div class="blueprint-building-metrics" id="buildingMetrics" hidden></div>
+        <p class="blueprint-status" id="buildingStatus" role="status" data-i18n="main.blueprint.enterCode">Paste an NCM3 building code first.</p>
+        <div class="blueprint-actions blueprint-building-actions">
+          <button id="buildingConfirm" type="button"><i aria-hidden="true"></i><span data-i18n="main.blueprint.createBuilding">Create Building</span></button>
+        </div>
+      </div>
+    </section>
+    <div class="blueprint-step-hint" id="blueprintStepHint" hidden>
+      <b id="blueprintStepNumber">2</b>
+      <span><strong data-i18n="main.blueprint.mode">BLUEPRINT MODE</strong><small id="blueprintStepText" data-i18n="main.blueprint.stepSizeDetail">Set the foundation size, then click flat ground.</small></span>
+    </div>
+    <div class="foundation-measurements" id="foundationMeasurements" aria-hidden="true" hidden>
+      <span id="foundationMeasureWidth">12</span>
+      <span id="foundationMeasureDepth">8</span>
+    </div>
+    <div class="map-overlay" id="mapOverlay" aria-hidden="true">
+      <div class="map-modal" role="dialog" aria-label="Map">
+        <div class="map-guardian-status" id="mapStatus">Deterministic NiceChunk world map · visual only</div>
+        <canvas id="largeMinimap" width="640" height="640"></canvas>
+        <form class="map-teleport" id="mapTeleportForm">
+          <label>
+            <span>World X</span>
+            <input id="mapTeleportX" type="number" step="0.1" inputmode="decimal" aria-label="World X" />
+          </label>
+          <label>
+            <span>World Z</span>
+            <input id="mapTeleportZ" type="number" step="0.1" inputmode="decimal" aria-label="World Z" />
+          </label>
+          <button type="submit">Load</button>
+          <span class="map-teleport-status" id="mapTeleportStatus" aria-live="polite"></span>
+        </form>
+      </div>
+    </div>
+    <section class="rpc-config-panel" id="rpcConfigPanel" role="dialog" aria-modal="true" aria-live="polite" hidden>
+      <div class="rpc-config-dialog">
+        <div class="rpc-config-copy">
+          <strong>Public RPC is overloaded</strong>
+          <p>Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions. This changes the browser gateway only; it cannot spend SOL.</p>
+          <a href="https://www.helius.dev" target="_blank" rel="noreferrer">Get a Helius API key</a>
+          <div class="rpc-config-explainer" aria-label="RPC setting details">
+            <article><span>Chain gateway</span><strong>RPC transports signed Solana requests</strong><p>NiceChunk uses RPC for chunk PDA reads, world state refreshes, and submitted mining transactions.</p></article>
+            <article><span>Cost boundary</span><strong>The key is not a NiceChunk payment</strong><p>The API key is stored locally in your browser and only builds your RPC URL.</p></article>
+          </div>
+        </div>
+        <form id="rpcConfigForm" class="rpc-config-form">
+          <label for="rpcConfigApiKey">Helius API key</label>
+          <div class="rpc-config-row">
+            <input id="rpcConfigApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Helius API key" />
+            <button type="submit">Save RPC</button>
+            <button id="rpcConfigDismiss" type="button" aria-label="Dismiss RPC warning">×</button>
+          </div>
+          <span id="rpcConfigStatus" class="rpc-config-status"></span>
+        </form>
+      </div>
+    </section>
+    <div class="session-funding-overlay" id="sessionFundingOverlay" aria-hidden="true" hidden></div>
+    <section class="session-funding-panel" id="sessionFundingPanel" role="dialog" aria-modal="true" aria-labelledby="sessionFundingTitle" hidden>
+      <form id="sessionFundingForm">
+        <span class="session-funding-eyebrow">Mining Session</span>
+        <h2 id="sessionFundingTitle">Set mining session SOL</h2>
+        <p>Mining uses integer world coordinates and chunk PDA deltas. This amount is a client-side top-up target for a separate plugin-wallet session key. It is not escrow, a transaction spending cap, or an authorization limit. Local Game Wallet mode uses the Game Wallet balance directly.</p>
+        <ul>
+          <li>Rendering never decides resource ownership or mining legality.</li>
+          <li>Only integer coordinate proof data is prepared for chain verification.</li>
+          <li>Pending deltas can be confirmed or rolled back without changing base world data.</li>
+        </ul>
+        <label for="sessionFundingAmount">
+          <span>Session funding amount</span>
+          <input id="sessionFundingAmount" type="number" min="0.1" step="0.01" inputmode="decimal" value="0.1" />
+        </label>
+        <div class="session-funding-meta">
+          <span id="sessionFundingMinimum">Minimum: 0.1 SOL</span>
+          <span id="sessionFundingCurrent">Current session balance: unknown</span>
+        </div>
+        <div class="session-funding-actions">
+          <button type="button" id="sessionFundingCancel">Cancel</button>
+          <button type="submit">Confirm and continue mining</button>
+        </div>
+      </form>
+    </section>
+    <section class="wallet-panel" id="walletPanel" role="dialog" aria-modal="true" aria-labelledby="walletPanelTitle" aria-hidden="true" hidden>
+      <div class="wallet-dialog">
+        <header>
+          <div>
+            <span class="wallet-eyebrow">Wallet Login</span>
+            <h2 id="walletPanelTitle">Connect or create wallet</h2>
+          </div>
+          <button id="walletPanelClose" type="button" aria-label="Close wallet panel">×</button>
+        </header>
+        <p id="walletCurrent" class="wallet-current">No wallet connected</p>
+        <div class="wallet-actions">
+          <button id="walletConnectPlugin" type="button">Connect plugin wallet</button>
+          <button id="walletCreateLocal" type="button">Create game wallet</button>
+          <button id="walletContinueLocal" type="button">Use local game wallet</button>
+          <button id="walletOpenLogin" type="button">Open full login</button>
+          <button id="walletDisconnect" type="button">Disconnect</button>
+        </div>
+        <label class="wallet-field">
+          <span>Wallet address</span>
+          <input id="walletAddressValue" type="text" readonly autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="wallet-field wallet-secret-row" id="walletSecretRow" hidden>
+          <span>Local game wallet private key</span>
+          <div class="wallet-secret-input">
+            <input id="walletSecretValue" type="text" readonly autocomplete="off" spellcheck="false" />
+            <button id="walletCopySecret" type="button">Copy</button>
+          </div>
+          <small>Store this key securely before funding the wallet. The browser cannot recover it if local storage is cleared.</small>
+        </label>
+        <p class="wallet-status" id="walletStatus">Choose a plugin wallet or create a local NiceChunk game wallet.</p>
+      </div>
+    </section>
+    <aside class="hud" id="debugHud" hidden>
+      <button class="hud-toggle" id="hudToggle" type="button" aria-expanded="false" aria-controls="hudDetails">
+        <span>NiceChunk WebGL2 Play</span>
+        <strong id="fpsValue">0 FPS</strong>
+        <b>Details</b>
+      </button>
+      <div class="hud-details" id="hudDetails">
+        <dl>
+          <div><dt>Rebuild</dt><dd id="buildValue">-</dd></div>
+          <div><dt>Chunk count</dt><dd id="chunkValue">-</dd></div>
+          <div><dt>Visible</dt><dd id="visibleValue">-</dd></div>
+          <div><dt>Triangles</dt><dd id="triangleValue">-</dd></div>
+          <div><dt>Draw calls</dt><dd id="drawValue">-</dd></div>
+          <div><dt>GPU buffers</dt><dd id="gpuValue">-</dd></div>
+          <div><dt>Position</dt><dd id="positionValue">0, 0, 0</dd></div>
+          <div class="pose-card"><dt>Pose</dt><dd id="poseValue">-</dd></div>
+        </dl>
+        <div class="pose-control">
+          <input id="poseInput" type="text" autocomplete="off" spellcheck="false" aria-label="Camera and player pose" />
+          <button id="copyPoseButton" type="button">Copy</button>
+          <button id="loadPoseButton" type="button">Load</button>
+        </div>
+        <label class="range-control" for="viewRangeInput">
+          <span>Render range</span>
+          <input id="viewRangeInput" type="range" min="2" max="20" step="1" value="7" />
+          <b id="viewRangeValue">7 chunks</b>
+        </label>
+        <div class="flight-control">
+          <button id="flightToggleButton" type="button" aria-pressed="false">Flight Off</button>
+          <button id="flightUpButton" type="button">Up</button>
+          <button id="flightDownButton" type="button">Down</button>
+        </div>
+        <div class="tool-range-control">
+          <span class="tool-range-copy">
+            <b>Tool activity range</b>
+            <small id="toolRangeValue">Select a mining tool</small>
+          </span>
+          <button id="toolRangeToggleButton" type="button" aria-pressed="false">Off</button>
+        </div>
+        <div class="bulk-mining-control" id="bulkMiningControl">
+          <span class="bulk-mining-copy">
+            <b data-i18n="main.bulkMining.title">Bulk mining</b>
+            <small id="bulkMiningValue" data-i18n="main.bulkMining.inactive">Off · debug only</small>
+          </span>
+          <button id="bulkMiningToggleButton" type="button" aria-pressed="false" data-i18n="main.bulkMining.off">Off</button>
+          <span class="bulk-mining-actions">
+            <button id="bulkMiningConfirmButton" type="button" disabled data-i18n="main.bulkMining.confirm">Confirm batch</button>
+            <button id="bulkMiningCancelButton" type="button" disabled data-i18n="main.bulkMining.cancel">Cancel</button>
+          </span>
+        </div>
+        <section class="render-log-panel" aria-label="Chunk render log">
+          <div class="render-log-actions">
+            <span>Render log</span>
+            <button id="renderLogToggleButton" type="button">Off</button>
+            <button id="copyRenderLogButton" type="button">Copy</button>
+            <button id="clearRenderLogButton" type="button">Clear</button>
+          </div>
+          <pre id="renderLogPreview">OFF</pre>
+        </section>
+        <div class="actions">
+          <button id="mineButton" type="button">Mine pending</button>
+          <button id="placeButton" type="button">Place pending</button>
+          <button id="confirmButton" type="button">Confirm</button>
+          <button id="rollbackButton" type="button">Rollback</button>
+        </div>
+        <p id="statusText">Booting standalone chunk.js renderer...</p>
+        <p class="controls">WASD / joystick move character · Space jump / fly up · C/Ctrl fly down · Shift 5x sprint · drag look · F mine/place</p>
+      </div>
+    </aside>
+    <section class="play-panel backpack-panel" id="backpackPanel" aria-label="Inventory" data-inventory-mode="inventory" hidden>
+      <header class="backpack-header">
+        <span class="backpack-heading backpack-heading-inventory">
+          <i class="backpack-heading-icon" aria-hidden="true"></i>
+          <strong data-i18n="main.smelting.tabInventory">Inventory</strong>
+        </span>
+        <span class="backpack-heading backpack-heading-smelting" aria-hidden="true">
+          <i class="smelting-heading-icon" aria-hidden="true"><b></b><b></b><b></b></i>
+          <strong data-i18n="main.smelting.tabSmelting">Smelting</strong>
+        </span>
+        <nav class="inventory-mode-switch" role="tablist" data-i18n-aria-label="main.smelting.modeTabsAria" aria-label="Inventory production views">
+          <button class="active" id="inventoryModeButton" type="button" role="tab" aria-selected="true" aria-controls="backpackInventoryView" data-inventory-mode-target="inventory">
+            <span class="inventory-mode-icon inventory-mode-icon-pack" aria-hidden="true"></span>
+            <span data-i18n="main.smelting.tabInventory">Inventory</span>
+          </button>
+          <button id="smeltingModeButton" type="button" role="tab" aria-selected="false" aria-controls="smeltingPanel" data-inventory-mode-target="smelting">
+            <span class="inventory-mode-icon inventory-mode-icon-fire" aria-hidden="true"></span>
+            <span data-i18n="main.smelting.tabSmelting">Smelting</span>
+          </button>
+        </nav>
+        <span class="backpack-header-actions">
+          <span class="panel-meta" id="backpackMeta"><span class="backpack-meta-stacks">0 / 50</span><span class="backpack-meta-items">0 items</span></span>
+          <button id="closeBackpackButton" type="button" data-i18n-aria-label="main.backpack.close" aria-label="Close backpack">×</button>
+        </span>
+      </header>
+      <div class="inventory-mode-view backpack-inventory-view" id="backpackInventoryView" role="tabpanel" aria-labelledby="inventoryModeButton">
+        <div class="backpack-layout">
+          <nav class="backpack-categories" id="backpackCategories" aria-label="Inventory categories">
+            <button class="active" type="button" data-backpack-category="all" aria-pressed="true">
+              <i class="backpack-category-icon category-all" aria-hidden="true"></i><span>All</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="blocks" aria-pressed="false">
+              <i class="backpack-category-icon category-blocks" aria-hidden="true"></i><span>Blocks</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="tools" aria-pressed="false">
+              <i class="backpack-category-icon category-tools" aria-hidden="true"></i><span>Tools</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="combat" aria-pressed="false">
+              <i class="backpack-category-icon category-combat" aria-hidden="true"></i><span>Combat</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="resources" aria-pressed="false">
+              <i class="backpack-category-icon category-resources" aria-hidden="true"></i><span>Resources</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="food" aria-pressed="false">
+              <i class="backpack-category-icon category-food" aria-hidden="true"></i><span>Food</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="materials" aria-pressed="false">
+              <i class="backpack-category-icon category-materials" aria-hidden="true"></i><span>Materials</span><b>0</b>
+            </button>
+            <button type="button" data-backpack-category="misc" aria-pressed="false">
+              <i class="backpack-category-icon category-misc" aria-hidden="true"></i><span>Misc</span><b>0</b>
+            </button>
+          </nav>
+          <div class="backpack-inventory">
+            <div class="backpack-actions" id="backpackActions">
+              <button id="selectAllBackpackButton" type="button">Select all</button>
+              <button id="discardSelectedBackpackButton" type="button">Discard selected</button>
+              <button id="cancelBackpackSelectionButton" type="button">Cancel</button>
+            </div>
+            <div class="backpack-grid" id="backpackGrid"></div>
+          </div>
+          <aside class="backpack-detail" id="backpackDetail">
+            <strong>No item selected</strong>
+            <span>Choose a slot to inspect its item and proof data.</span>
+          </aside>
+        </div>
+      </div>
+      <div class="inventory-mode-view nice-smelting-view" id="smeltingPanel" role="tabpanel" aria-labelledby="smeltingModeButton" hidden>
+        <div class="nice-smelting-intro">
+          <span class="nice-smelting-title-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>
+            <strong data-i18n="main.smelting.title">Smelting Station</strong>
+            <small data-i18n="main.smelting.smeltingSubtitle">Combine mined resources through public on-chain recipes.</small>
+          </span>
+        </div>
+        <nav class="nice-smelting-mobile-tabs" role="tablist" data-i18n-aria-label="main.smelting.mobileTabsAria" aria-label="Smelting sections">
+          <button class="active" type="button" role="tab" aria-selected="true" data-smelting-section="backpack" data-i18n="main.smelting.tabBackpack">Backpack</button>
+          <button type="button" role="tab" aria-selected="false" data-smelting-section="furnace" data-i18n="main.smelting.tabFurnace">Furnace</button>
+          <button type="button" role="tab" aria-selected="false" data-smelting-section="recipes" data-i18n="main.smelting.tabRecipes">Recipes</button>
+        </nav>
+        <div class="nice-smelting-layout">
+          <aside class="nice-smelting-card nice-smelting-inventory" data-smelting-section-panel="backpack">
+            <header class="nice-smelting-card-head">
+              <strong data-i18n="main.smelting.tabBackpack">Backpack</strong>
+              <span id="smeltingResourceMeta">0 / 50</span>
+            </header>
+            <div class="nice-smelting-filters" role="group" data-i18n-aria-label="main.smelting.filterAria" aria-label="Smelting resource filters">
+              <button class="active" type="button" data-smelting-resource-filter="all" data-i18n="main.smelting.filterAll">All</button>
+              <button type="button" data-smelting-resource-filter="raw" data-i18n="main.smelting.filterRaw">Raw</button>
+              <button type="button" data-smelting-resource-filter="fuel" data-i18n="main.smelting.filterFuel">Fuel</button>
+            </div>
+            <div class="nice-smelting-resource-grid" id="smeltingResourceGrid"></div>
+            <p class="nice-smelting-chain-note"><i aria-hidden="true"></i><span data-i18n="main.smelting.chainAuthoritative">Only confirmed PDA backpack slots are shown.</span></p>
+          </aside>
+
+          <main class="nice-smelting-card nice-smelting-workbench" data-smelting-section-panel="furnace">
+            <header class="nice-smelting-card-head">
+              <strong data-i18n="main.smelting.smeltingArea">Smelting Area</strong>
+              <span id="smeltingCoreLabel" data-i18n="main.smelting.statusIdle">Select input and fuel.</span>
+            </header>
+            <section class="nice-smelting-input-area">
+              <div class="nice-smelting-section-label">
+                <span data-i18n="main.smelting.inputMaterials">Input Materials</span>
+                <small data-i18n="main.smelting.inputMaterialsLimit">Up to 5 ingredient groups</small>
+              </div>
+              <div class="nice-smelting-input-slots" id="smeltingInputSlot"></div>
+              <div class="nice-smelting-flow-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><b></b></div>
+            </section>
+            <section class="nice-smelting-furnace-row">
+              <div class="nice-smelting-furnace-wrap">
+                <div class="nice-smelting-core-visual" id="smeltingCoreVisual" aria-hidden="true">
+                  <span class="nice-smelting-furnace-shell"><i></i><b></b></span>
+                </div>
+                <span class="nice-smelting-fuel-label" data-i18n="main.smelting.fuelTitle">Fuel</span>
+                <div class="nice-smelting-fuel-slot" id="smeltingFuelSlot"></div>
+              </div>
+              <span class="nice-smelting-output-arrow" aria-hidden="true"></span>
+              <div class="nice-smelting-output" id="smeltingOutput"></div>
+            </section>
+            <section class="nice-smelting-progress">
+              <div><span id="smeltingStatus" data-i18n="main.smelting.statusNoInput">Select a mined resource.</span><strong id="smeltingProgressValue">0%</strong></div>
+              <i><b id="smeltingProgressBar"></b></i>
+            </section>
+            <button class="nice-smelting-start" id="smeltingStart" type="button" disabled><i aria-hidden="true"></i><span data-i18n="main.smelting.start">Start Smelting</span></button>
+            <div class="nice-smelting-actions">
+              <button id="smeltingAutoFill" type="button"><i class="auto-fill-icon" aria-hidden="true"></i><span data-i18n="main.smelting.autoFill">Auto Fill</span></button>
+              <button id="smeltingClear" type="button"><i class="clear-icon" aria-hidden="true"></i><span data-i18n="main.smelting.clear">Clear</span></button>
+            </div>
+          </main>
+
+          <aside class="nice-smelting-recipes-column" data-smelting-section-panel="recipes">
+            <section class="nice-smelting-card nice-smelting-recipes">
+              <header class="nice-smelting-card-head">
+                <strong data-i18n="main.smelting.tabRecipes">Recipes</strong>
+                <span data-i18n="main.smelting.onChain">On-chain</span>
+              </header>
+              <div class="nice-smelting-filters nice-smelting-recipe-filters" role="group" data-i18n-aria-label="main.smelting.recipeFilterAria" aria-label="Smelting recipe filters">
+                <button class="active" type="button" data-smelting-recipe-filter="all" data-i18n="main.smelting.filterAll">All</button>
+                <button type="button" data-smelting-recipe-filter="ready" data-i18n="main.smelting.filterReady">Ready</button>
+                <button type="button" data-smelting-recipe-filter="missing" data-i18n="main.smelting.filterMissing">Missing</button>
+                <button type="button" data-smelting-recipe-filter="fuel" data-i18n="main.smelting.filterFuel">Fuel</button>
+                <button type="button" data-smelting-recipe-filter="building" data-i18n="main.smelting.filterBuilding">Building</button>
+              </div>
+              <div class="nice-smelting-recipe-list" id="smeltingRecipeList"></div>
+            </section>
+            <section class="nice-smelting-card nice-smelting-details" id="smeltingRecipeDetails"></section>
+          </aside>
+        </div>
+      </div>
+    </section>
+    <section class="play-panel market-panel" id="marketPanel" hidden>
+      <header>
+        <span>Market</span>
+        <div class="market-header-meta">
+          <span id="marketWallet">Local wallet</span>
+          <span id="marketBackpack">0 / 50</span>
+          <button class="market-refresh" id="marketRefreshButton" type="button" aria-label="Refresh market listings">↻</button>
+          <button id="closeMarketButton" type="button" aria-label="Close market">×</button>
+        </div>
+      </header>
+      <div class="market-tabs" role="tablist" aria-label="Market sections">
+        <button class="market-tab active" type="button" role="tab" aria-selected="true" data-market-tab="browse">Browse</button>
+        <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="sell">Sell</button>
+        <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="orders">Orders</button>
+      </div>
+      <p class="market-status" id="marketStatus" role="status" aria-live="polite" hidden></p>
+      <div class="market-body">
+        <aside class="market-sidebar">
+          <label class="market-search" for="marketSearch">
+            <span>Search</span>
+            <input id="marketSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Resource, material, proof hash" />
+            <small id="marketSearchMeta" aria-live="polite"></small>
+          </label>
+          <label>
+            <span>Sort</span>
+            <select id="marketSort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="price-asc">Price low to high</option>
+              <option value="price-desc">Price high to low</option>
+            </select>
+          </label>
+          <label>
+            <span>Currency</span>
+            <select id="marketCurrencyFilter">
+              <option value="all">All currencies</option>
+              <option value="NCK">NCK</option>
+              <option value="SOL">SOL</option>
+            </select>
+          </label>
+          <div class="market-filter-grid" aria-label="Market filters">
+            <button class="active" type="button" data-market-category="all">All</button>
+            <button type="button" data-market-category="raw">Raw</button>
+            <button type="button" data-market-category="equipment">Equipment</button>
+            <button type="button" data-market-category="building">Building</button>
+            <button type="button" data-market-category="clothing">Clothing</button>
+          </div>
+          <div class="market-rate-card">
+            <span>Market Fee</span>
+            <strong>1%</strong>
+            <p>Local preview now. Future settlement uses market PDA proof data.</p>
+          </div>
+        </aside>
+        <div class="market-content">
+          <section class="market-tab-panel active" data-market-tab-panel="browse">
+            <div class="market-listing-grid" id="marketListingGrid"></div>
+            <div class="market-pagination" id="marketListingPager" aria-label="Browse listings pages"></div>
+          </section>
+          <section class="market-tab-panel" data-market-tab-panel="sell" hidden>
+            <div class="market-step-rail">
+              <span>1. Select Item</span>
+              <span>2. Create Listing</span>
+            </div>
+            <div class="market-sell-flow">
+              <div class="market-inventory-panel">
+                <strong>Backpack Items</strong>
+                <div class="market-inventory-grid" id="marketInventoryGrid"></div>
+              </div>
+              <form class="market-listing-form" id="marketListingForm">
+                <strong id="marketSelectedItem">No item selected</strong>
+                <label>
+                  <span>Category</span>
+                  <select id="marketListingCategory">
+                    <option value="raw">Raw Materials</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="building">Building Materials</option>
+                    <option value="clothing">Clothing</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Currency</span>
+                  <select id="marketListingCurrency">
+                    <option value="NCK">NCK</option>
+                    <option value="SOL">SOL</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Price</span>
+                  <input id="marketListingPrice" type="number" min="0" step="0.000001" inputmode="decimal" placeholder="0.00" />
+                </label>
+                <button class="market-submit" id="marketCreateListing" type="submit" disabled>Create Listing</button>
+                <p id="marketFormStatus" aria-live="polite">Select an item, set category and price, then create a chain-ready listing.</p>
+              </form>
+            </div>
+          </section>
+          <section class="market-tab-panel" data-market-tab-panel="orders" hidden>
+            <div class="market-listing-grid" id="marketOrdersGrid"></div>
+            <div class="market-pagination" id="marketOrdersPager" aria-label="Order pages"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+    <section class="play-panel profile-panel" id="profilePanel" role="dialog" aria-modal="true" aria-labelledby="profilePanelTitle" hidden>
+      <header class="profile-panel-header">
+        <span class="profile-panel-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><circle cx="16" cy="7" r="4"/><path d="M9 28v-8l3-5v-4h8v4l3 5v8M7 14l5 2M25 14l-5 2M12 28v-7M20 28v-7"/></svg>
+        </span>
+        <strong id="profilePanelTitle" data-i18n="main.profile.characterTitle">CHARACTER</strong>
+        <button id="closeProfileButton" type="button" data-i18n-aria-label="main.profile.close" aria-label="Close player panel">×</button>
+      </header>
+
+      <div class="profile-shell">
+        <nav class="profile-tabs" role="tablist" data-i18n-aria-label="main.profile.tabs" aria-label="Player profile sections">
+          <button class="profile-tab active" type="button" role="tab" aria-selected="true" data-profile-tab="attributes">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="6"/><path d="M6 28c1-7 5-11 10-11s9 4 10 11"/></svg>
+            <span data-i18n="main.profile.attributesTab">Overview</span>
+          </button>
+          <button class="profile-tab" type="button" role="tab" aria-selected="false" data-profile-tab="skills">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 25L25 6M19 5l8 8M5 19l8 8M10 20l2 2M20 10l2 2"/></svg>
+            <span data-i18n="main.profile.skillsTab">Skills</span>
+          </button>
+          <button class="profile-tab" type="button" role="tab" aria-selected="false" data-profile-tab="equipment">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 5h12l4 7-3 15H9L6 12l4-7zM12 5l4 6 4-6M16 11v16"/></svg>
+            <span data-i18n="main.profile.equipmentTab">Equipment</span>
+          </button>
+          <button class="profile-tab" type="button" role="tab" aria-selected="false" data-profile-tab="settings">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l3 3M21.5 21.5l3 3M24.5 7.5l-3 3M10.5 21.5l-3 3"/></svg>
+            <span data-i18n="main.profile.settingsTab">Settings</span>
+          </button>
+        </nav>
+
+        <div class="profile-workspace">
+          <section class="profile-tab-panel profile-attributes" data-profile-panel="attributes">
+            <aside class="profile-summary-column">
+              <div class="profile-section-title">
+                <span data-i18n="main.profile.basicInfo">BASIC INFO</span><i></i>
+              </div>
+              <div class="profile-identity-card">
+                <span class="profile-portrait" aria-hidden="true"></span>
+                <div class="profile-identity-copy">
+                  <strong id="profileAvatarPreviewName">Local Miner</strong>
+                  <span id="profileAvatarPreviewMeta">Explorer</span>
+                  <span class="profile-identity-balance" id="profileIdentityBalance">0 SOL</span>
+                </div>
+              </div>
+              <dl class="profile-basic-facts">
+                <div><dt data-i18n="main.profile.level">Level</dt><dd id="profileLevelValue">1</dd></div>
+                <div><dt data-i18n="main.profile.reputation">Reputation</dt><dd id="profileReputationValue">0</dd></div>
+                <div><dt data-i18n="main.profile.worldRegion">World / Region</dt><dd id="profileRegionValue">NiceChunk / 0, 0</dd></div>
+                <div><dt data-i18n="main.profile.backpack">Backpack</dt><dd id="profileBackpackValue">0 / 0</dd></div>
+              </dl>
+
+              <div class="profile-section-title profile-stats-title">
+                <span data-i18n="main.profile.stats">STATS</span><i></i>
+              </div>
+              <div class="profile-grid" id="profileGrid"></div>
+              <button class="profile-view-skills" id="profileViewSkills" type="button">
+                <span data-i18n="main.profile.viewSkills">View Skills</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>
+              </button>
+            </aside>
+
+            <section class="profile-character-column">
+              <div class="profile-section-title profile-equipment-title">
+                <i></i><span data-i18n="main.profile.equipmentTitle">EQUIPMENT</span><i></i>
+              </div>
+              <section class="profile-avatar-preview" id="profileAvatarPreview" data-i18n-aria-label="main.profile.avatarPreview" aria-label="Player avatar preview">
+                <div class="profile-avatar-aura" aria-hidden="true"></div>
+                <div class="profile-avatar-drag-hint" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 9c2-4 10-5 14-1M19 8l-1-4M19 8l-4 1M19 15c-2 4-10 5-14 1M5 16l1 4M5 16l4-1"/></svg>
+                  <span data-i18n="main.profile.rotateAvatar">Drag to rotate</span>
+                </div>
+              </section>
+              <div class="profile-equipment-list" id="profileEquipmentList"></div>
+            </section>
+
+            <aside class="equipment-card profile-equipment-detail" id="equipmentPanel"></aside>
+          </section>
+
+          <section class="profile-tab-panel profile-skills" data-profile-panel="skills" hidden>
+            <div class="profile-skills-header">
+              <span class="profile-eyebrow" data-i18n="main.profile.skillsEyebrow">Skill Matrix</span>
+              <p data-i18n="main.profile.skillsIntro">Skills define how precisely the character gathers, carries, smelts, forges, moves, and explores.</p>
+            </div>
+            <div class="profile-skills-layout">
+              <div class="profile-skills-grid" id="profileSkillsGrid"></div>
+              <aside class="profile-skill-detail" id="profileSkillDetail" hidden></aside>
+            </div>
+          </section>
+
+          <section class="profile-tab-panel profile-equipment" data-profile-panel="equipment" hidden>
+            <div class="profile-skills-header">
+              <span class="profile-eyebrow" data-i18n="main.profile.equipmentEyebrow">Equipment Loadout</span>
+              <p data-i18n="main.profile.equipmentIntro">Inspect every equipped slot and the physical tool currently used by the character.</p>
+            </div>
+            <div class="profile-equipment-browser">
+              <div class="profile-equipment-browser-list" id="profileEquipmentBrowserList"></div>
+              <aside class="equipment-card profile-equipment-detail" id="profileEquipmentBrowserDetail"></aside>
+            </div>
+          </section>
+
+          <section class="profile-tab-panel profile-settings" data-profile-panel="settings" hidden>
+            <header class="profile-settings-header">
+              <span class="profile-eyebrow" data-i18n="main.profile.settings">SETTINGS</span>
+              <p data-i18n="main.profile.settingsIntro">Manage wallet access, network connection, and interface language.</p>
+            </header>
+            <div class="profile-settings-grid">
+              <section class="profile-settings-card profile-settings-account">
+                <header class="profile-settings-card-header">
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 9h16M16 13h4v3h-4z"/></svg></span>
+                  <div><strong data-i18n="main.profile.accountSettings">Account</strong><small data-i18n="main.profile.accountSettingsHint">Your active game wallet session.</small></div>
+                </header>
+                <div class="profile-settings-wallet">
+                  <span data-i18n="main.profile.walletAddress">Wallet address</span>
+                  <code id="profileWalletValue">Not connected</code>
+                  <button id="profileWalletCopy" type="button" data-i18n="main.profile.copy" disabled>Copy</button>
+                </div>
+                <p id="profileWalletHint" data-i18n="main.profile.walletDisconnectedHint">Connect a wallet to use on-chain game features.</p>
+                <button class="profile-logout-button" id="profileLogoutButton" type="button" disabled>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
+                  <span data-i18n="main.profile.logOut">Log out</span>
+                </button>
+              </section>
+
+              <section class="profile-settings-card">
+                <header class="profile-settings-card-header">
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.2 3.6 4.9 3.6 8s-1.2 5.8-3.6 8c-2.4-2.2-3.6-4.9-3.6-8S9.6 6.2 12 4z"/></svg></span>
+                  <div><strong data-i18n="main.profile.rpcSettings">RPC Connection</strong><small data-i18n="main.profile.rpcSettingsHint">Configure the Solana data gateway used by this browser.</small></div>
+                </header>
+                <div class="profile-rpc-row">
+                  <span data-i18n="main.profile.rpc">RPC</span>
+                  <div>
+                    <strong id="profileRpcValue">Public RPC</strong>
+                    <small id="profileRpcHint">Set a Helius key for steadier mining.</small>
+                  </div>
+                  <button id="profileRpcAction" type="button" data-i18n="main.profile.rpcSet">Set</button>
+                </div>
+              </section>
+
+              <section class="profile-settings-card">
+                <header class="profile-settings-card-header">
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h10v11H4zM7 8h4M7 11h4M17 8h3v11H10v-3M14 12h6"/></svg></span>
+                  <div><strong data-i18n="main.profile.languageSettings">Interface Language</strong><small data-i18n="main.profile.languageHint">Choose the game interface language.</small></div>
+                </header>
+                <label class="profile-language-row" for="profileLanguageSelect">
+                  <span class="profile-language-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.2 3.6 4.9 3.6 8s-1.2 5.8-3.6 8c-2.4-2.2-3.6-4.9-3.6-8S9.6 6.2 12 4z"/></svg>
+                  </span>
+                  <span class="profile-language-copy">
+                    <strong data-i18n="main.profile.language">Language</strong>
+                    <small data-i18n="main.profile.languageHint">Choose the game interface language.</small>
+                  </span>
+                  <select id="profileLanguageSelect" data-i18n-language-select></select>
+                </label>
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+    <div class="backpack-create-overlay" id="backpackCreateOverlay" aria-hidden="true" hidden>
+      <section class="backpack-create-panel" id="backpackCreatePanel" role="dialog" aria-modal="true" aria-labelledby="backpackCreateTitle">
+        <header class="backpack-create-header">
+          <span class="backpack-create-header-icon" id="backpackCreateHeaderIcon" aria-hidden="true"></span>
+          <h2 id="backpackCreateTitle" data-i18n="main.backpackCreate.title">CREATE YOUR BACKPACK</h2>
+          <button class="backpack-create-close" id="backpackCreateClose" type="button" aria-label="Close backpack creation">×</button>
+        </header>
+        <div class="backpack-create-body">
+          <aside class="backpack-create-hero">
+            <div class="backpack-create-rays" aria-hidden="true"></div>
+            <div class="backpack-create-hero-visual" id="backpackCreateHeroVisual" aria-hidden="true"></div>
+            <strong class="backpack-create-capacity" data-i18n="main.backpackCreate.capacity">50 SLOTS</strong>
+            <p data-i18n="main.backpackCreate.capacityDetail">Expand storage for all your adventures.</p>
+            <div class="backpack-create-warning">
+              <span aria-hidden="true">!</span>
+              <b data-i18n="main.backpackCreate.warning">Mining unavailable until backpack is created.</b>
+            </div>
+          </aside>
+          <div class="backpack-create-content">
+            <p class="backpack-create-intro" data-i18n="main.backpackCreate.intro">A backpack is required to store mined resources, tools, fuel, and crafted materials. Create one to unlock mining.</p>
+            <div class="backpack-create-benefits">
+              <article>
+                <div class="backpack-create-feature-icon backpack-create-resource-icon" id="backpackCreateResourceIcon" aria-hidden="true"></div>
+                <h3 data-i18n="main.backpackCreate.storeTitle">STORE RESOURCES</h3>
+                <p data-i18n="main.backpackCreate.storeDetail">Collect and store all the resources you find.</p>
+              </article>
+              <article>
+                <div class="backpack-create-feature-icon" id="backpackCreateMiningIcon" aria-hidden="true"></div>
+                <h3 data-i18n="main.backpackCreate.miningTitle">UNLOCK MINING</h3>
+                <p data-i18n="main.backpackCreate.miningDetail">Mining is locked until you have a backpack.</p>
+              </article>
+              <article>
+                <div class="backpack-create-feature-icon" id="backpackCreateMaterialIcon" aria-hidden="true"></div>
+                <h3 data-i18n="main.backpackCreate.materialTitle">CARRY MATERIALS</h3>
+                <p data-i18n="main.backpackCreate.materialDetail">Carry tools, materials, and crafted items.</p>
+              </article>
+            </div>
+            <section class="backpack-create-preview" aria-label="Backpack slot preview">
+              <header>
+                <strong data-i18n="main.backpackCreate.previewTitle">BACKPACK PREVIEW</strong>
+                <b data-i18n="main.backpackCreate.previewCapacity">50 / 50 SLOTS</b>
+              </header>
+              <div class="backpack-create-slot-grid" id="backpackCreateSlotGrid"></div>
+            </section>
+            <p class="backpack-create-learn-copy" data-i18n="main.backpackCreate.learnDetail">The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.</p>
+            <div class="backpack-create-actions">
+              <button class="backpack-create-submit" id="backpackCreateSubmit" type="button">
+                <span class="backpack-create-submit-icon" aria-hidden="true"></span>
+                <strong id="backpackCreateSubmitLabel" data-i18n="main.backpackCreate.submit">CREATE BACKPACK</strong>
+              </button>
+              <button class="backpack-create-learn" id="backpackCreateLearn" type="button" aria-expanded="false">
+                <span aria-hidden="true">i</span>
+                <strong data-i18n="main.backpackCreate.learn">LEARN MORE</strong>
+              </button>
+            </div>
+            <p class="backpack-create-status" id="backpackCreateStatus" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="backpack-create-hotbar-callout" id="backpackCreateCallout" hidden>
+      <span data-i18n="main.backpackCreate.hotbarHint">Your backpack will appear here after creation!</span>
+    </div>
+    <section class="chain-event-log" id="chainEventLog" role="log" aria-label="Chain event log" aria-live="polite" aria-relevant="additions"></section>
+    <div class="hotbar" id="hotbar" aria-label="Hotbar"></div>
+    <form class="command-line" id="commandForm" hidden>
+      <input id="commandInput" type="text" autocomplete="off" spellcheck="false" aria-label="Message or debug command" placeholder="Message or /command" data-i18n-aria-label="main.chat.input" data-i18n-placeholder="main.chat.placeholder" />
+    </form>
+    <div class="joystick" id="joystick" aria-hidden="true"><i id="joystickKnob"></i></div>
+    <button
+      class="mobile-chat-trigger"
+      id="mobileChatTrigger"
+      type="button"
+      aria-label="Open chat and commands"
+      aria-controls="mobileChatOverlay"
+      aria-expanded="false"
+      data-i18n-aria-label="main.chat.open"
+    >
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M7.2 7.6h17.6a3.6 3.6 0 0 1 3.6 3.6v8.5a3.6 3.6 0 0 1-3.6 3.6H15l-6.2 4.1.9-4.1H7.2a3.6 3.6 0 0 1-3.6-3.6v-8.5a3.6 3.6 0 0 1 3.6-3.6Z" />
+        <path d="M10 15.4h.1m5.9 0h.1m5.9 0h.1" />
+      </svg>
+    </button>
+    <div class="mobile-chat-overlay" id="mobileChatOverlay" aria-hidden="true" hidden>
+      <button class="mobile-chat-backdrop" id="mobileChatBackdrop" type="button" tabindex="-1" aria-hidden="true"></button>
+      <section class="mobile-chat-panel" role="dialog" aria-modal="true" aria-labelledby="mobileChatTitle">
+        <header class="mobile-chat-header">
+          <span class="mobile-chat-header-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5.4 5.8h13.2a2.7 2.7 0 0 1 2.7 2.7v6.4a2.7 2.7 0 0 1-2.7 2.7h-7.4l-4.7 3.1.7-3.1H5.4a2.7 2.7 0 0 1-2.7-2.7V8.5a2.7 2.7 0 0 1 2.7-2.7Z" /></svg>
+          </span>
+          <strong id="mobileChatTitle" data-i18n="main.chat.input">Message or debug command</strong>
+          <button class="mobile-chat-close" id="mobileChatClose" type="button" aria-label="Close chat" data-i18n-aria-label="main.chat.close">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10m0-10L5 15" /></svg>
+          </button>
+        </header>
+        <form class="mobile-chat-form" id="mobileChatForm">
+          <input
+            id="mobileChatInput"
+            type="text"
+            maxlength="80"
+            enterkeyhint="send"
+            autocomplete="off"
+            autocapitalize="sentences"
+            spellcheck="true"
+            aria-label="Message or debug command"
+            placeholder="Message or /command"
+            data-i18n-aria-label="main.chat.input"
+            data-i18n-placeholder="main.chat.placeholder"
+          />
+          <button class="mobile-chat-send" id="mobileChatSend" type="submit" disabled aria-label="Send" data-i18n-aria-label="main.chat.send">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3.2-6.3L15 12l-7.8-1.7L4 4Z" /></svg>
+          </button>
+        </form>
+        <p class="mobile-chat-hint" data-i18n="main.chat.commandHint">Debug commands can be entered directly, for example /debug.</p>
+        <p class="mobile-chat-status" id="mobileChatStatus" role="status" aria-live="polite" hidden></p>
+      </section>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
