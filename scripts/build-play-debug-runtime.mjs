@@ -13,7 +13,9 @@ const playLoaderSource = resolve(playSource, "play-loader.js");
 const playOnboardingLoaderSource = resolve(playSource, "play-onboarding-loader.js");
 const chunkSource = resolve(root, "chunk.js");
 const playLocaleSource = resolve(root, "public/play/locales");
+const chainAssetsSource = resolve(root, "dist/assets");
 const chainBundleSource = resolve(root, "dist/assets/nicechunkChain.js");
+const chainAssetFiles = (await collectFiles(chainAssetsSource)).filter((file) => file.endsWith(".js"));
 const sharedRuntimeFiles = [
   resolve(root, "src/i18n.js"),
   resolve(root, "src/data/smeltingRules.js"),
@@ -46,14 +48,14 @@ const chunkRuntimeFiles = ((await Promise.all(chunkRuntimeEntries.map((entry) =>
   .filter((file) => !chunkRuntimeExcludedFiles.has(relative(chunkSource, file)));
 const playRuntimeFiles = (await collectFiles(playSource))
   .filter((file) => !playRuntimeExcludedPrefixes.some((prefix) => relative(playSource, file).startsWith(prefix)));
-const sourceFiles = [
+const sourceFiles = [...new Set([
   ...playRuntimeFiles,
   ...(await collectFiles(playLocaleSource)),
   ...chunkRuntimeFiles,
   ...sharedRuntimeFiles,
   ...chainVersionFiles,
-  chainBundleSource,
-].sort();
+  ...chainAssetFiles,
+])].sort();
 const version = await contentVersion(sourceFiles);
 const runtimeRoot = resolve(outputRoot, "runtime", version);
 // Mirror the production document root: /assets/* is served from dist/assets.
@@ -109,8 +111,17 @@ await viteBuild({
   },
 });
 
-await mkdir(runtimeAssets, { recursive: true });
+await mkdir(dirname(runtimeAssets), { recursive: true });
+await cp(chainAssetsSource, runtimeAssets, { recursive: true });
 await cp(chainBundleSource, resolve(runtimeAssets, `nicechunkChain.${version}.js`));
+const packagedChainAssetPaths = (await collectFiles(runtimeAssets))
+  .filter((file) => file.endsWith(".js"))
+  .map((file) => `/assets/${relative(runtimeAssets, file).replaceAll("\\", "/")}`)
+  .sort();
+if (!packagedChainAssetPaths.includes(`/assets/nicechunkChain.${version}.js`)
+  || chainAssetFiles.some((file) => !packagedChainAssetPaths.includes(`/assets/${relative(chainAssetsSource, file).replaceAll("\\", "/")}`))) {
+  throw new Error("Play runtime is missing a chain bundle dependency.");
+}
 
 const viteManifest = JSON.parse(await readFile(resolve(runtimeRoot, ".vite/manifest.json"), "utf8"));
 const playEntryRecord = viteManifest["play/index.html"];
@@ -235,6 +246,7 @@ await writeFile(resolve(outputRoot, "play-runtime.json"), `${JSON.stringify({
   version,
   runtimePrefix,
   chainModulePath: `/assets/nicechunkChain.${version}.js`,
+  chainAssetPaths: packagedChainAssetPaths,
   loadingManifestPath: loadingManifestUrl,
   loaderPath: loaderUrl,
   onboardingLoaderPath: onboardingLoaderUrl,

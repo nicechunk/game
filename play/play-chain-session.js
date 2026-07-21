@@ -20,10 +20,13 @@ const WALLET_BOUND_AT_STORAGE_KEY = "nicechunk.walletBoundAt";
 const SESSION_FUNDING_PREFIX = "nicechunk.sessionFundingLamports.v1.";
 const SESSION_ACK_PREFIX = "nicechunk.sessionFundingAcknowledged.v1.";
 const LOCAL_WALLET_MODULE_MANIFEST_URLS = Object.freeze([
-  "/dist/.vite/manifest.json",
   "/.vite/manifest.json",
+  "/dist/.vite/manifest.json",
 ]);
-const DEFAULT_LOCAL_WALLET_MODULE_URLS = Object.freeze([]);
+const PLAY_RUNTIME_VERSION = String(globalThis.document?.documentElement?.dataset?.i18nBuildVersion || "").trim();
+const PROD_LOCAL_WALLET_MODULE_URLS = Object.freeze(PLAY_RUNTIME_VERSION
+  ? [`/assets/localGameWallet.js?v=${encodeURIComponent(PLAY_RUNTIME_VERSION)}`]
+  : []);
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const MINIMUM_SESSION_SOL = 0.1;
 const BALANCE_CACHE_TTL_MS = 30_000;
@@ -911,8 +914,10 @@ async function loadLocalWalletModule() {
 async function importFirstLocalWalletModule() {
   const urls = [];
   pushUrl(urls, globalThis.NICECHUNK_LOCAL_WALLET_MODULE_URL);
-  for (const url of await discoverBuiltLocalWalletModuleUrls()) pushUrl(urls, url);
-  for (const url of DEFAULT_LOCAL_WALLET_MODULE_URLS) pushUrl(urls, url);
+  for (const url of PROD_LOCAL_WALLET_MODULE_URLS) pushUrl(urls, url);
+  if (!PLAY_RUNTIME_VERSION) {
+    for (const url of await discoverBuiltLocalWalletModuleUrls()) pushUrl(urls, url);
+  }
   const failures = [];
   for (const url of urls) {
     try {

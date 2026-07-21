@@ -1,8 +1,8 @@
 const LEGACY_CHAIN_SYNC_STORAGE_KEY = "nicechunk.chainSync";
 const CHAIN_MODULE_URL_STORAGE_KEY = "nicechunk.chainModuleUrl";
 const CHAIN_MODULE_MANIFEST_URLS = Object.freeze([
-  "/dist/.vite/manifest.json",
   "/.vite/manifest.json",
+  "/dist/.vite/manifest.json",
 ]);
 const LOCAL_CHAIN_MODULE_URLS = Object.freeze([]);
 const PLAY_RUNTIME_VERSION = String(globalThis.document?.documentElement?.dataset?.i18nBuildVersion || "").trim();
@@ -201,7 +201,9 @@ async function configuredChainModuleUrls() {
   pushUrl(urls, globalThis.NICECHUNK_CHAIN_MODULE_URL);
   pushUrl(urls, loadString(CHAIN_MODULE_URL_STORAGE_KEY));
   for (const url of defaultChainModuleUrls()) pushUrl(urls, url);
-  for (const url of await discoverBuiltChainModuleUrls()) pushUrl(urls, url);
+  if (!PLAY_RUNTIME_VERSION) {
+    for (const url of await discoverBuiltChainModuleUrls()) pushUrl(urls, url);
+  }
   return urls;
 }
 
