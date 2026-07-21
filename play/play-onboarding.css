@@ -958,8 +958,8 @@
   }
 
   .nc-onboarding-header button {
-    width: 44px;
-    height: 44px;
+    width: 45px;
+    height: 45px;
     margin: -5px -5px -5px 0;
   }
 
@@ -1010,7 +1010,7 @@
   }
 
   .nc-onboarding-feature-action button {
-    min-height: 44px;
+    min-height: 45px;
   }
 
   .nc-onboarding-warning {
@@ -1052,8 +1052,8 @@
   }
 
   .nc-onboarding-actions button {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 45px;
+    min-height: 45px;
     padding: 0 9px;
   }
 
@@ -1120,8 +1120,8 @@
 
   .nc-onboarding-header button,
   .nc-onboarding-actions button {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 45px;
+    min-height: 45px;
   }
 }
 

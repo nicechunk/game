@@ -296,6 +296,9 @@ test("small-screen guides keep controls visible and clear of the highlighted tar
     });
     await page.goto(`${origin}/session`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector('.nc-onboarding[data-feature="session"].is-visible');
+    const enteringControls = await page.evaluate(() => [...document.querySelectorAll(".nc-onboarding-header button, .nc-onboarding-actions button")]
+      .map((element) => element.getBoundingClientRect().toJSON()));
+    assert.ok(enteringControls.every((control) => control.width >= 44 && control.height >= 44));
     await page.waitForTimeout(250);
     const layout = await page.evaluate(() => {
       const rect = (element) => element.getBoundingClientRect().toJSON();
