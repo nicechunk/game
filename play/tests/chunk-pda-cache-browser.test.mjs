@@ -23,6 +23,8 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
       let rpcAccount = chunkBrokenAccount(delta);
       let rpcSlot = 101;
       const persistentWrites = [];
+      let finishPersistentClear;
+      const persistentClear = new Promise((resolve) => { finishPersistentClear = resolve; });
       const cache = {
         async getVerifiedSnapshots(targets) {
           return targets.some((target) => target.id === "0,0")
@@ -33,7 +35,9 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
           persistentWrites.push(...structuredClone(snapshots));
           return snapshots.length;
         },
-        async clearScope() {},
+        clearScope() {
+          return persistentClear;
+        },
         snapshot() {
           return { test: true };
         },
@@ -153,6 +157,16 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
         persistedDeltaCount: persistentWrites.at(-1)?.deltas?.length,
       };
 
+      let cacheClearCompleted = false;
+      const clearing = sync.clearLocalCache({ clearRenderDeltas: true, clearPersistent: true }).then(() => {
+        cacheClearCompleted = true;
+      });
+      await Promise.resolve();
+      const clearWait = { beforePersistentDelete: cacheClearCompleted };
+      finishPersistentClear();
+      await clearing;
+      clearWait.afterPersistentDelete = cacheClearCompleted;
+
       const indexedScope = `browser-cache-${Date.now()}-${Math.random()}`;
       const indexedWriter = createPlayChainChunkCache({ getScope: () => indexedScope });
       await indexedWriter.putVerifiedSnapshots([{ id: "8,9", chunkX: 8, chunkZ: 9, contextSlot: 444, deltas: [
@@ -166,6 +180,7 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
         afterWarm,
         afterSame,
         afterDelete,
+        clearWait,
         indexedDb: {
           hits: indexedHits.length,
           blockId: indexedHits[0]?.deltas?.[0]?.blockId,
@@ -214,6 +229,7 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
     assert.equal(result.afterDelete.deltaCount, 0);
     assert.equal(result.afterDelete.changedChunks, 1);
     assert.equal(result.afterDelete.persistedDeltaCount, 0);
+    assert.deepEqual(result.clearWait, { beforePersistentDelete: false, afterPersistentDelete: true });
     assert.deepEqual(result.indexedDb, { hits: 1, blockId: 33, contextSlot: 444 });
   } finally {
     await browser.close();

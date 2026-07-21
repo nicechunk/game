@@ -159,7 +159,7 @@
     return true;
   }
 
-  function reset(feature = "") {
+  function reset(feature = "", { deferUntilReload = false } = {}) {
     if (feature && supportedFeatures.includes(feature)) {
       completed.delete(feature);
       dismissed.delete(feature);
@@ -168,6 +168,13 @@
       completed = new Set();
       dismissed.clear();
       localStorage.removeItem(storageKey(walletAddress));
+    }
+    if (deferUntilReload) {
+      observer.disconnect();
+      observing = false;
+      cancelAnimationFrame(checkFrame);
+      checkFrame = 0;
+      return;
     }
     updateObservation();
     scheduleCheck();

@@ -10194,6 +10194,10 @@ body {
   grid-column: 1 / -1;
 }
 
+.profile-settings-cache {
+  grid-column: 1 / -1;
+}
+
 .profile-settings-card-header {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
@@ -10338,6 +10342,112 @@ body {
 .profile-settings-card .profile-rpc-row,
 .profile-settings-card .profile-language-row {
   margin-top: 11px;
+}
+
+.profile-cache-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 11px;
+  padding: 10px;
+  border: 1px solid rgba(28, 112, 178, 0.17);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.30);
+}
+
+.profile-cache-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.profile-cache-copy strong {
+  color: #174f78;
+  font-size: 0.66rem;
+  font-weight: 950;
+}
+
+.profile-cache-copy small {
+  color: #527791;
+  font-size: 0.57rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.play-panel #profileClearCacheButton {
+  min-width: 116px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(20, 108, 166, 0.34);
+  border-radius: 7px;
+  color: #0d639d;
+  background: rgba(255, 255, 255, 0.76);
+  font-size: 0.62rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.play-panel #profileClearCacheButton[data-confirming="true"] {
+  border-color: rgba(198, 119, 24, 0.52);
+  color: #8b510c;
+  background: rgba(255, 244, 217, 0.90);
+}
+
+.play-panel #profileClearCacheButton:not(:disabled):hover {
+  color: #fff;
+  background: linear-gradient(180deg, #2b9bd0, #1472aa);
+}
+
+.play-panel #profileClearCacheButton:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.profile-cache-preserved,
+.profile-cache-status {
+  margin: 8px 2px 0;
+  font-size: 0.57rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.profile-cache-preserved {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #2d735d;
+}
+
+.profile-cache-preserved svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  fill: rgba(37, 139, 104, 0.08);
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profile-cache-status {
+  color: #4e7089;
+}
+
+.profile-cache-status[data-state="confirm"] {
+  color: #8b510c;
+}
+
+.profile-cache-status[data-state="success"] {
+  color: #197453;
+}
+
+.profile-cache-status[data-state="error"] {
+  color: #a72f43;
+}
+
+.profile-cache-status[hidden] {
+  display: none;
 }
 
 .profile-panel .profile-grid {
@@ -11316,8 +11426,22 @@ body {
     grid-column: auto;
   }
 
+  .profile-settings-cache {
+    grid-column: auto;
+  }
+
   .profile-settings-card {
     padding: 10px;
+  }
+
+  .profile-cache-row {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .play-panel #profileClearCacheButton {
+    width: 100%;
+    min-height: 46px;
   }
 
   .profile-character-column {

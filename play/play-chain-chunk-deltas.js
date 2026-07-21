@@ -151,13 +151,17 @@ export function createPlayChainChunkDeltaSync({
     state.persistentWriteById.clear();
     if (clearRenderDeltas) chunks?.clearChainDeltas?.();
     if (clearPersistent && persistentScope) {
-      const clearing = Promise.resolve(durableCache.clearScope?.(persistentScope));
+      const previousClear = state.persistentClearPromise;
+      const clearing = Promise.resolve(previousClear)
+        .catch(() => {})
+        .then(() => durableCache.clearScope?.(persistentScope));
       const pendingClear = clearing.finally(() => {
         if (state.persistentClearPromise === pendingClear) state.persistentClearPromise = null;
       });
       state.persistentClearPromise = pendingClear;
     }
     appendEvent(`${clearPersistent ? "Persistent and in-memory" : "In-memory"} chunk PDA cache cleared. Chain accounts will be re-read from RPC.`);
+    return state.persistentClearPromise ?? Promise.resolve();
   }
 
   function invalidateChunk(idOrChunk) {

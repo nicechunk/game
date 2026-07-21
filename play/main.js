@@ -65,6 +65,7 @@ import { createPlayProfileSession } from "./play-profile-session.js";
 import { createPlayStartupLogger } from "./play-startup-logger.js";
 import { createPlaySurfaceDecorationSync } from "./play-surface-decoration-sync.js";
 import { createPlayItemName } from "./play-item-name.js";
+import { createPlayCacheMaintenance } from "./play-cache-maintenance.js";
 import { createMobileChatController } from "./play-mobile-chat.js";
 import { hydrateForgedPresentationSlot } from "./forged-hotbar-compat.js";
 import { createFoundationSpatialIndex } from "./foundation-spatial-index.js";
@@ -251,6 +252,8 @@ const elements = {
   profileWalletCopy: document.querySelector("#profileWalletCopy"),
   profileWalletHint: document.querySelector("#profileWalletHint"),
   profileLogoutButton: document.querySelector("#profileLogoutButton"),
+  profileClearCacheButton: document.querySelector("#profileClearCacheButton"),
+  profileClearCacheStatus: document.querySelector("#profileClearCacheStatus"),
   profileViewSkills: document.querySelector("#profileViewSkills"),
   profileTabs: document.querySelectorAll("[data-profile-tab]"),
   profileTabPanels: document.querySelectorAll("[data-profile-panel]"),
@@ -880,6 +883,12 @@ async function boot() {
     batchSize: 100,
     persistentScopeHint: DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT,
   });
+  const cacheMaintenance = createPlayCacheMaintenance({
+    elements,
+    clearChunkCache: (options) => chainChunkDeltas?.clearLocalCache?.(options),
+    getWalletAddress: () => chainSession?.snapshot?.()?.walletAddress || initialWalletSession.walletAddress || "guest",
+    translate: translateWithFallback,
+  });
   surfaceDecorationSync = createPlaySurfaceDecorationSync({
     chunks,
     worldSeed: PLAYABLE_WORLD_SEED,
@@ -1316,6 +1325,7 @@ async function boot() {
     smelting.bind();
     market.bind();
     mobileChat.bind();
+    cacheMaintenance.bind();
   });
   startupLogger.step("chain delta memory cache reset", () => chainChunkDeltas.clearLocalCache({ clearRenderDeltas: true }));
   startupLogger.track("chunk delta persistent cache warm", chainChunkDeltas.preloadPersistentCache({ reason: "startup-cache" }));
