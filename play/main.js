@@ -489,6 +489,25 @@ let statusQuietTimer = 0;
 let lastFrameMinimapAt = 0;
 let minimapUpdatePending = false;
 let firstMinimapUpdatePending = true;
+let onboardingHighlightedBlock = null;
+
+const onboardingGameApi = Object.freeze({
+  getPlayer: () => player,
+  getPlayerPosition: () => player ? playerWorldFloat() : null,
+  getCamera: () => camera,
+  getCanvas: () => elements.canvas,
+  getChunks: () => chunks,
+  getMotion: () => motion,
+  isBlockingBlock,
+  setHighlightedBlock(block) {
+    onboardingHighlightedBlock = normalizeOnboardingBlock(block);
+  },
+});
+
+window.addEventListener("nicechunk:onboarding-game-api-request", (event) => {
+  event?.detail?.accept?.(onboardingGameApi);
+});
+window.addEventListener("nicechunk:onboarding-open-rpc", () => chainSession?.openRpcPanel?.());
 
 initI18n(document).then(({ dictionary }) => {
   globalThis.NiceChunkLoading?.setDictionary?.(dictionary);
@@ -1124,6 +1143,15 @@ async function boot() {
     onPending: (pending) => {
       lastWorldDeltaKind = "mine";
       pending.playerChainPosition = playerSession?.currentPlayerChainPosition();
+      dispatchEvent(new CustomEvent("nicechunk:mining-submission-pending", {
+        detail: {
+          txId: pending.txId,
+          worldX: pending.worldX,
+          worldY: pending.worldY,
+          worldZ: pending.worldZ,
+          blockId: pending.blockId,
+        },
+      }));
       if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
       else guardian?.sendDig(pending, 1);
       chainSession?.handlePendingMine(pending, {
@@ -1470,6 +1498,17 @@ function updateNameChatOverlayForFrame(now) {
 
 function handleCanvasActionPointer(event) {
   lastHit = actionHit?.handleCanvasPointer(event) ?? { hit: false };
+  if (lastHit.hit) {
+    dispatchEvent(new CustomEvent("nicechunk:onboarding-real-block-click", {
+      detail: {
+        hit: true,
+        worldX: lastHit.worldX,
+        worldY: lastHit.worldY,
+        worldZ: lastHit.worldZ,
+        blockId: lastHit.blockId,
+      },
+    }));
+  }
   inputActions?.useSelectedHotbarAction();
 }
 
@@ -1575,10 +1614,35 @@ function invalidateMiningChunks(pending) {
 function buildActionOverlays(hit, now = performance.now()) {
   return [
     ...(actionOverlayBuilder?.build(hit, now) ?? []),
+    ...buildOnboardingWorldOverlays(now),
     ...(bulkMining?.overlays?.() ?? []),
     ...(forgedPlacement?.overlays?.(hit) ?? []),
     ...(foundationController?.overlays?.() ?? []),
   ];
+}
+
+function buildOnboardingWorldOverlays(now = performance.now()) {
+  const target = onboardingHighlightedBlock;
+  if (!target) return [];
+  const wave = 0.5 + Math.sin(now * 0.0065) * 0.5;
+  return [{
+    worldX: target.worldX,
+    worldY: target.worldY,
+    worldZ: target.worldZ,
+    expand: 0.016 + wave * 0.009,
+    fillColor: [0.63, 1.0, 0.12, 0.09 + wave * 0.08],
+    lineColor: [0.84, 1.0, 0.28, 0.62 + wave * 0.34],
+  }];
+}
+
+function normalizeOnboardingBlock(block) {
+  if (!block) return null;
+  const worldX = Math.trunc(Number(block.worldX));
+  const worldY = Math.trunc(Number(block.worldY));
+  const worldZ = Math.trunc(Number(block.worldZ));
+  const blockId = Math.trunc(Number(block.blockId));
+  if (![worldX, worldY, worldZ, blockId].every(Number.isFinite) || blockId === BLOCK_ID.air) return null;
+  return { worldX, worldY, worldZ, blockId };
 }
 
 function setForgedPlacementStatus(reason, preview = null) {

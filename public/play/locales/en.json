@@ -1148,19 +1148,23 @@
           "steps": {
             "move": {
               "title": "Move to the glowing tile",
-              "body": "Use the movement controls while keeping the camera pointed at your route."
+              "body": "Follow the green arrow to the highlighted reachable tile. This step completes when your character stands on it."
             },
             "look": {
               "title": "Orbit the camera",
-              "body": "Drag across the world to rotate the camera without changing your movement direction."
+              "body": "Drag across the world to orbit the camera. The guide continues as soon as it detects a real camera rotation."
             },
             "lookMobile": {
-              "title": "Swipe to look",
-              "body": "Swipe the world view with one finger. The joystick remains dedicated to movement."
+              "title": "Swipe to orbit",
+              "body": "Swipe the world view with one finger while the joystick remains dedicated to movement."
             },
             "select": {
-              "title": "Select a real block",
-              "body": "Click a block inside tool range. Only the clicked voxel receives the white selection outline."
+              "title": "Click a real block",
+              "body": "Click any real block inside tool range. This is the final step and closes immediately before the block action continues."
+            },
+            "selectMobile": {
+              "title": "Tap a real block",
+              "body": "Tap any real block inside tool range. This final step closes immediately before the block action continues."
             },
             "firstPerson": {
               "title": "Switch camera view",
@@ -1169,6 +1173,22 @@
             "toolMobile": {
               "title": "Tap a tool",
               "body": "Tap a hotbar slot to trigger or equip it. The backpack slot opens the backpack instead of staying selected."
+            }
+          }
+        },
+        "mining": {
+          "eyebrow": "First on-chain mine",
+          "title": "Block submission started",
+          "formulaTitle": "Solana transaction fee formula",
+          "formula": "fee SOL = [5,000 x signatures + ceil(CU limit x CU price in micro-lamports / 1,000,000)] / 1,000,000,000",
+          "formulaNote": "PDA rent is separate and applies only when account storage is created or expanded. Your wallet confirmation is the authoritative amount.",
+          "rpcRecommendation": "RPC latency controls how quickly submission and confirmation are observed. For steadier play, use your own Helius devnet RPC; the Free plan is normally enough.",
+          "heliusLink": "Get a free Helius RPC key",
+          "rpcAction": "Open RPC settings",
+          "steps": {
+            "pending": {
+              "title": "Your mined resource is being saved on Solana",
+              "body": "Each mined resource is verified and persisted on chain. Submission takes time and pays the Solana network fee; confirmation speed varies with RPC latency and network load."
             }
           }
         },

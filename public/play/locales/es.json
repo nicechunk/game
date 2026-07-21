@@ -1148,19 +1148,23 @@
           "steps": {
             "move": {
               "title": "Muévete a la casilla luminosa",
-              "body": "Usa los controles de movimiento mientras mantienes la cámara orientada hacia tu ruta."
+              "body": "Sigue la flecha verde hasta la casilla accesible resaltada. El paso termina cuando el personaje se coloca encima."
             },
             "look": {
               "title": "Orbita la cámara",
-              "body": "Arrastra sobre el mundo para girar la cámara sin cambiar la dirección de movimiento."
+              "body": "Arrastra sobre el mundo para orbitar la cámara. La guía continúa al detectar un giro real."
             },
             "lookMobile": {
-              "title": "Desliza para mirar",
+              "title": "Desliza para orbitar",
               "body": "Desliza la vista con un dedo; el joystick queda dedicado al movimiento."
             },
             "select": {
-              "title": "Selecciona un bloque real",
-              "body": "Haz clic en un bloque dentro del alcance. Solo el vóxel pulsado recibe el contorno blanco."
+              "title": "Haz clic en un bloque real",
+              "body": "Haz clic en cualquier bloque real al alcance. Este último paso se cierra antes de continuar la acción del bloque."
+            },
+            "selectMobile": {
+              "title": "Toca un bloque real",
+              "body": "Toca cualquier bloque real al alcance. Este último paso se cierra antes de continuar la acción del bloque."
             },
             "firstPerson": {
               "title": "Cambia la cámara",
@@ -1169,6 +1173,22 @@
             "toolMobile": {
               "title": "Toca una herramienta",
               "body": "Toca una ranura para activarla. La mochila abre su panel y no queda seleccionada."
+            }
+          }
+        },
+        "mining": {
+          "eyebrow": "Primera extracción on-chain",
+          "title": "Envío del bloque iniciado",
+          "formulaTitle": "Fórmula de comisión de Solana",
+          "formula": "comisión SOL = [5.000 x firmas + ceil(límite CU x precio CU en micro-lamports / 1.000.000)] / 1.000.000.000",
+          "formulaNote": "El alquiler de PDA es independiente y solo se aplica al crear o ampliar almacenamiento. La confirmación de la cartera muestra el importe definitivo.",
+          "rpcRecommendation": "La latencia RPC determina cuándo se observan el envío y la confirmación. Para mayor estabilidad usa tu propio RPC devnet de Helius; el plan gratuito suele bastar.",
+          "heliusLink": "Obtener una clave RPC gratuita de Helius",
+          "rpcAction": "Abrir ajustes RPC",
+          "steps": {
+            "pending": {
+              "title": "Tu recurso se está guardando en Solana",
+              "body": "Cada recurso extraído se verifica y persiste on-chain. El envío tarda y paga la comisión de red de Solana; la confirmación varía según la latencia RPC y la carga de red."
             }
           }
         },

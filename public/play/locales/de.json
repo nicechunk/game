@@ -1148,19 +1148,23 @@
           "steps": {
             "move": {
               "title": "Zum leuchtenden Feld bewegen",
-              "body": "Nutze die Bewegungstasten und halte die Kamera auf deinen Weg gerichtet."
+              "body": "Folge dem grünen Pfeil zum markierten erreichbaren Feld. Der Schritt endet, sobald deine Figur darauf steht."
             },
             "look": {
               "title": "Kamera umkreisen",
-              "body": "Ziehe über die Welt, um die Kamera zu drehen, ohne die Laufrichtung zu ändern."
+              "body": "Ziehe über die Welt, um die Kamera zu drehen. Die Anleitung geht nach einer echten Kameradrehung weiter."
             },
             "lookMobile": {
-              "title": "Zum Umsehen wischen",
-              "body": "Wische mit einem Finger über die Welt; der Joystick bleibt für Bewegung."
+              "title": "Zum Drehen wischen",
+              "body": "Wische mit einem Finger; der Joystick bleibt ausschließlich für die Bewegung."
             },
             "select": {
-              "title": "Einen echten Block wählen",
-              "body": "Klicke einen Block in Reichweite. Nur der angeklickte Voxel erhält den weißen Rahmen."
+              "title": "Einen echten Block anklicken",
+              "body": "Klicke einen echten Block in Reichweite an. Dieser letzte Schritt schließt vor der weiteren Blockaktion."
+            },
+            "selectMobile": {
+              "title": "Einen echten Block antippen",
+              "body": "Tippe einen echten Block in Reichweite an. Dieser letzte Schritt schließt vor der weiteren Blockaktion."
             },
             "firstPerson": {
               "title": "Kameraansicht wechseln",
@@ -1169,6 +1173,22 @@
             "toolMobile": {
               "title": "Werkzeug antippen",
               "body": "Tippe einen Slot zum Auslösen an; der Rucksack öffnet sein Fenster und bleibt nicht gewählt."
+            }
+          }
+        },
+        "mining": {
+          "eyebrow": "Erster On-Chain-Abbau",
+          "title": "Blockübermittlung gestartet",
+          "formulaTitle": "Solana-Gebührenformel",
+          "formula": "Gebühr SOL = [5.000 x Signaturen + ceil(CU-Limit x CU-Preis in Mikro-Lamports / 1.000.000)] / 1.000.000.000",
+          "formulaNote": "PDA-Miete ist separat und fällt nur beim Erstellen oder Erweitern von Speicher an. Maßgeblich ist die Bestätigung deines Wallets.",
+          "rpcRecommendation": "Die RPC-Latenz bestimmt, wie schnell Übermittlung und Bestätigung sichtbar werden. Nutze für stabileres Spielen einen eigenen Helius-Devnet-RPC; der kostenlose Tarif reicht normalerweise aus.",
+          "heliusLink": "Kostenlosen Helius-RPC-Schlüssel holen",
+          "rpcAction": "RPC-Einstellungen öffnen",
+          "steps": {
+            "pending": {
+              "title": "Deine Ressource wird auf Solana gespeichert",
+              "body": "Jede abgebaute Ressource wird geprüft und On-Chain gespeichert. Die Übermittlung dauert und zahlt Solana-Netzwerkgebühren; die Bestätigung hängt von RPC-Latenz und Netzlast ab."
             }
           }
         },

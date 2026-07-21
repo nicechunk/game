@@ -166,20 +166,20 @@
     <section class="rpc-config-panel" id="rpcConfigPanel" role="dialog" aria-modal="true" aria-live="polite" hidden>
       <div class="rpc-config-dialog">
         <div class="rpc-config-copy">
-          <strong>Public RPC is overloaded</strong>
-          <p>Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions. This changes the browser gateway only; it cannot spend SOL.</p>
-          <a href="https://www.helius.dev" target="_blank" rel="noreferrer">Get a Helius API key</a>
-          <div class="rpc-config-explainer" aria-label="RPC setting details">
-            <article><span>Chain gateway</span><strong>RPC transports signed Solana requests</strong><p>NiceChunk uses RPC for chunk PDA reads, world state refreshes, and submitted mining transactions.</p></article>
-            <article><span>Cost boundary</span><strong>The key is not a NiceChunk payment</strong><p>The API key is stored locally in your browser and only builds your RPC URL.</p></article>
+          <strong data-i18n="main.rpcConfig.title">Public RPC is overloaded</strong>
+          <p data-i18n="main.rpcConfig.body">Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.</p>
+          <a href="https://www.helius.dev" target="_blank" rel="noreferrer" data-i18n="main.rpcConfig.link">Get a Helius API key</a>
+          <div class="rpc-config-explainer" data-i18n-aria-label="main.rpcConfig.explainerAria" aria-label="RPC setting details">
+            <article><span data-i18n="main.rpcConfig.pointGatewayLabel">Chain gateway</span><strong data-i18n="main.rpcConfig.pointGatewayTitle">RPC decides how the browser reaches Solana</strong><p data-i18n="main.rpcConfig.pointGatewayBody">NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions.</p></article>
+            <article><span data-i18n="main.rpcConfig.pointCostLabel">Cost boundary</span><strong data-i18n="main.rpcConfig.pointCostTitle">The key is not a payment to NiceChunk</strong><p data-i18n="main.rpcConfig.pointCostBody">The API key is stored locally in your browser and used only to build your RPC URL.</p></article>
           </div>
         </div>
         <form id="rpcConfigForm" class="rpc-config-form">
-          <label for="rpcConfigApiKey">Helius API key</label>
+          <label for="rpcConfigApiKey" data-i18n="main.rpcConfig.inputLabel">Helius API key</label>
           <div class="rpc-config-row">
-            <input id="rpcConfigApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Helius API key" />
-            <button type="submit">Save RPC</button>
-            <button id="rpcConfigDismiss" type="button" aria-label="Dismiss RPC warning">×</button>
+            <input id="rpcConfigApiKey" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="main.rpcConfig.placeholder" placeholder="Paste your Helius API key" />
+            <button type="submit" data-i18n="main.rpcConfig.save">Save RPC</button>
+            <button id="rpcConfigDismiss" type="button" data-i18n-aria-label="main.rpcConfig.dismiss" aria-label="Dismiss RPC warning">×</button>
           </div>
           <span id="rpcConfigStatus" class="rpc-config-status"></span>
         </form>

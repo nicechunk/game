@@ -1148,19 +1148,23 @@
           "steps": {
             "move": {
               "title": "Allez sur la case lumineuse",
-              "body": "Utilisez les commandes de déplacement en gardant la caméra orientée vers votre trajet."
+              "body": "Suivez la flèche verte jusqu'à la case accessible en surbrillance. L'étape se termine lorsque le personnage se tient dessus."
             },
             "look": {
               "title": "Faites pivoter la caméra",
-              "body": "Glissez sur le monde pour tourner la caméra sans changer la direction de marche."
+              "body": "Glissez sur le monde pour faire pivoter la caméra. Le guide continue dès qu'une rotation réelle est détectée."
             },
             "lookMobile": {
-              "title": "Glissez pour regarder",
-              "body": "Glissez la vue d’un doigt ; le joystick reste réservé au déplacement."
+              "title": "Glissez pour pivoter",
+              "body": "Glissez avec un doigt ; le joystick reste réservé au déplacement."
             },
             "select": {
-              "title": "Sélectionnez un vrai bloc",
-              "body": "Cliquez un bloc à portée. Seul le voxel cliqué reçoit le contour blanc."
+              "title": "Cliquez un bloc réel",
+              "body": "Cliquez n'importe quel bloc réel à portée. Cette dernière étape se ferme avant la poursuite de l'action."
+            },
+            "selectMobile": {
+              "title": "Touchez un bloc réel",
+              "body": "Touchez n'importe quel bloc réel à portée. Cette dernière étape se ferme avant la poursuite de l'action."
             },
             "firstPerson": {
               "title": "Changez de caméra",
@@ -1169,6 +1173,22 @@
             "toolMobile": {
               "title": "Touchez un outil",
               "body": "Touchez un emplacement pour l’activer ; le sac ouvre son panneau sans rester sélectionné."
+            }
+          }
+        },
+        "mining": {
+          "eyebrow": "Première extraction on-chain",
+          "title": "Envoi du bloc démarré",
+          "formulaTitle": "Formule des frais Solana",
+          "formula": "frais SOL = [5 000 x signatures + ceil(limite CU x prix CU en micro-lamports / 1 000 000)] / 1 000 000 000",
+          "formulaNote": "Le loyer PDA est séparé et ne s'applique qu'à la création ou à l'extension du stockage. La confirmation du portefeuille fait foi.",
+          "rpcRecommendation": "La latence RPC détermine la vitesse d'observation de l'envoi et de la confirmation. Pour plus de stabilité, utilisez votre propre RPC devnet Helius ; l'offre gratuite suffit généralement.",
+          "heliusLink": "Obtenir une clé RPC Helius gratuite",
+          "rpcAction": "Ouvrir les réglages RPC",
+          "steps": {
+            "pending": {
+              "title": "Votre ressource est enregistrée sur Solana",
+              "body": "Chaque ressource extraite est vérifiée et conservée on-chain. L'envoi prend du temps et paie les frais réseau Solana ; la confirmation varie selon la latence RPC et la charge du réseau."
             }
           }
         },

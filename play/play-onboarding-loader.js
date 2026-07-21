@@ -5,10 +5,14 @@
 
   const script = document.currentScript;
   const scope = document.documentElement.dataset.i18nScope === "forging" ? "forging" : "play";
-  const featureOrder = scope === "forging"
+  const autoFeatureOrder = scope === "forging"
     ? ["forging"]
     : ["equipment", "session", "foundation", "smelting", "market", "basics"];
+  const supportedFeatures = scope === "forging"
+    ? autoFeatureOrder
+    : [...autoFeatureOrder, "mining"];
   const statePrefix = "nicechunk.onboarding.v1.";
+  const forceReset = new URLSearchParams(location.search).get("onboarding") === "reset";
   const moduleUrl = script?.dataset.module || new URL("play-onboarding.js", script?.src || location.href).href;
   const styleUrl = script?.dataset.style || new URL("play-onboarding.css", script?.src || location.href).href;
   const dismissed = new Set();
@@ -19,8 +23,9 @@
   let checkFrame = 0;
   let basicsReadyAt = 0;
   let observing = false;
+  let pendingMiningContext = null;
 
-  if (new URLSearchParams(location.search).get("onboarding") === "reset") {
+  if (forceReset) {
     localStorage.removeItem(storageKey(walletAddress));
     completed = new Set();
   }
@@ -49,19 +54,20 @@
     if (event.key === "nicechunk.walletAddress") handleWalletChange();
   });
   addEventListener("nicechunk:forging-ready", scheduleCheck);
+  if (scope === "play") addEventListener("nicechunk:mining-submission-pending", handleMiningPending);
   scheduleCheck();
 
   function scheduleCheck() {
     if (checkFrame || activeFeature) return;
     checkFrame = requestAnimationFrame(() => {
       checkFrame = 0;
-      const feature = featureOrder.find((candidate) => isEligible(candidate));
+      const feature = autoFeatureOrder.find((candidate) => isEligible(candidate));
       if (feature) void trigger(feature);
     });
   }
 
   function updateObservation() {
-    const shouldObserve = featureOrder.some((feature) => !completed.has(feature));
+    const shouldObserve = autoFeatureOrder.some((feature) => !completed.has(feature));
     if (shouldObserve && !observing) {
       observer.observe(document.documentElement, {
         childList: true,
@@ -117,12 +123,12 @@
     return document.querySelector(selector)?.getAttribute("aria-selected") === "true";
   }
 
-  async function trigger(feature) {
-    if (!featureOrder.includes(feature) || completed.has(feature) || activeFeature) return false;
+  async function trigger(feature, context = null) {
+    if (!supportedFeatures.includes(feature) || completed.has(feature) || activeFeature) return false;
     activeFeature = feature;
     try {
       const runtime = await loadRuntime();
-      const result = await runtime.openOnboarding({ feature, scope, walletAddress });
+      const result = await runtime.openOnboarding({ feature, scope, walletAddress, context });
       if (result === "complete" || result === "skip") complete(feature);
       else dismissed.add(feature);
       return result;
@@ -132,12 +138,17 @@
       return false;
     } finally {
       activeFeature = "";
+      if (pendingMiningContext && !completed.has("mining") && !dismissed.has("mining")) {
+        const queuedContext = pendingMiningContext;
+        pendingMiningContext = null;
+        queueMicrotask(() => void trigger("mining", queuedContext));
+      }
       scheduleCheck();
     }
   }
 
   function complete(feature) {
-    if (!featureOrder.includes(feature)) return false;
+    if (!supportedFeatures.includes(feature)) return false;
     completed.add(feature);
     dismissed.delete(feature);
     writeCompleted(walletAddress, completed);
@@ -149,7 +160,7 @@
   }
 
   function reset(feature = "") {
-    if (feature && featureOrder.includes(feature)) {
+    if (feature && supportedFeatures.includes(feature)) {
       completed.delete(feature);
       dismissed.delete(feature);
       writeCompleted(walletAddress, completed);
@@ -166,11 +177,22 @@
     const nextWallet = String(event?.detail?.walletAddress || readWalletAddress()).trim() || "guest";
     if (nextWallet === walletAddress) return;
     walletAddress = nextWallet;
+    if (forceReset) localStorage.removeItem(storageKey(walletAddress));
     completed = readCompleted(walletAddress);
     dismissed.clear();
+    pendingMiningContext = null;
     basicsReadyAt = 0;
     updateObservation();
     scheduleCheck();
+  }
+
+  function handleMiningPending(event) {
+    if (completed.has("mining") || dismissed.has("mining")) return;
+    if (activeFeature) {
+      if (activeFeature !== "mining") pendingMiningContext = event?.detail ?? null;
+      return;
+    }
+    void trigger("mining", event?.detail ?? null);
   }
 
   function loadRuntime() {
@@ -219,7 +241,7 @@
   function readCompleted(wallet) {
     try {
       const parsed = JSON.parse(localStorage.getItem(storageKey(wallet)) || "{}");
-      return new Set(Array.isArray(parsed.completed) ? parsed.completed.filter((item) => featureOrder.includes(item)) : []);
+      return new Set(Array.isArray(parsed.completed) ? parsed.completed.filter((item) => supportedFeatures.includes(item)) : []);
     } catch {
       return new Set();
     }
