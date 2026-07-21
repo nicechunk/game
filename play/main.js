@@ -81,11 +81,30 @@ import {
   redirectToWalletLogin,
   walletSessionKeys,
 } from "./play-auth-session.js";
+import {
+  enforcePlayCharacterAccess,
+  hasVerifiedPlayCharacterAccess,
+} from "./play-character-access-gate.js";
 
 const params = new URLSearchParams(location.search);
 const initialWalletSession = getWalletSession();
-const playSessionReady = hasBoundWallet(initialWalletSession);
-if (!playSessionReady) redirectToWalletLogin({ autoConnect: false });
+const initialWalletReady = hasBoundWallet(initialWalletSession);
+if (!initialWalletReady) redirectToWalletLogin({ autoConnect: false });
+const initialCharacterAccess = initialWalletReady
+  ? hasVerifiedPlayCharacterAccess(initialWalletSession.walletAddress)
+    ? { allowed: true }
+    : await enforcePlayCharacterAccess({
+        walletAddress: initialWalletSession.walletAddress,
+        fetchAppearance: async (owner) => {
+          const chain = await loadPlayChainModule();
+          if (typeof chain?.fetchPlayerAppearanceForOwner !== "function") {
+            throw new Error("character-verification-unavailable");
+          }
+          return chain.fetchPlayerAppearanceForOwner(owner);
+        },
+      })
+  : { allowed: false };
+const playSessionReady = initialWalletReady && initialCharacterAccess.allowed;
 const startupLogger = createPlayStartupLogger({ enabled: params.get("loadLog") !== "0" });
 const PLAYABLE_MAX_VIEW_DISTANCE = 20;
 const DEFAULT_PLAY_VIEW_DISTANCE = 7;
@@ -515,6 +534,22 @@ let walletSwitchSerial = 0;
 
 async function handleWalletSessionChanged(walletAddress) {
   const nextWallet = String(walletAddress || "").trim();
+  if (!nextWallet) {
+    redirectToWalletLogin({ autoConnect: false });
+    return;
+  }
+  if (nextWallet === gameState.ownerAddress) return;
+  const access = await enforcePlayCharacterAccess({
+    walletAddress: nextWallet,
+    fetchAppearance: async (owner) => {
+      const chain = await loadPlayChainModule();
+      if (typeof chain?.fetchPlayerAppearanceForOwner !== "function") {
+        throw new Error("character-verification-unavailable");
+      }
+      return chain.fetchPlayerAppearanceForOwner(owner);
+    },
+  });
+  if (!access.allowed) return;
   const switched = gameState.setOwnerAddress(nextWallet);
   if (!switched.changed) return;
   const serial = ++walletSwitchSerial;

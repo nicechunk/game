@@ -96,7 +96,10 @@ await viteBuild({
     sourcemap: false,
     chunkSizeWarningLimit: 1100,
     rollupOptions: {
-      input: resolve(playSource, "index.html"),
+      input: {
+        play: resolve(playSource, "index.html"),
+        character: resolve(playSource, "play-character-entry.js"),
+      },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
         chunkFileNames: "assets/[name]-[hash].js",
@@ -111,7 +114,8 @@ await cp(chainBundleSource, resolve(runtimeAssets, `nicechunkChain.${version}.js
 
 const viteManifest = JSON.parse(await readFile(resolve(runtimeRoot, ".vite/manifest.json"), "utf8"));
 const playEntryRecord = viteManifest["play/index.html"];
-if (!playEntryRecord?.file) {
+const characterEntryRecord = viteManifest["play/play-character-entry.js"];
+if (!playEntryRecord?.file || !characterEntryRecord?.file) {
   throw new Error("Play runtime manifest is missing the game entry.");
 }
 const loaderSource = await readFile(playLoaderSource, "utf8");
@@ -139,8 +143,12 @@ if (/^\s*import\s/m.test(onboardingLoaderBuild.code) || Buffer.byteLength(onboar
 const onboardingLoaderHash = createHash("sha256").update(onboardingLoaderBuild.code).digest("hex").slice(0, 8);
 const onboardingLoaderFile = `assets/play-onboarding-loader-${onboardingLoaderHash}.js`;
 await writeFile(resolve(runtimeRoot, onboardingLoaderFile), onboardingLoaderBuild.code);
-const entry = await runtimeDescriptor(playEntryRecord.file, "module", "critical");
-const styles = await Promise.all((playEntryRecord.css || []).map((file) => runtimeDescriptor(file, "style", "critical")));
+const gameEntry = await runtimeDescriptor(playEntryRecord.file, "module", "game");
+const entry = await runtimeDescriptor(characterEntryRecord.file, "module", "critical");
+if (entry.bytes > 20_000 || gameEntry.url === entry.url || !characterEntryRecord.dynamicImports?.length) {
+  throw new Error("Play character verification must remain a small deferred-game entry.");
+}
+const styles = await Promise.all((playEntryRecord.css || []).map((file) => runtimeDescriptor(file, "style", "game")));
 const startupWorkers = (await readdir(resolve(runtimeRoot, "assets")))
   .filter((file) => /^(?:chunk-build-worker|play-chain-pda-worker|play-minimap-worker)-.+\.js$/.test(file))
   .sort();
@@ -149,9 +157,9 @@ const startupFiles = [
     url: `/assets/nicechunkChain.${version}.js`,
     bytes: (await stat(chainBundleSource)).size,
     type: "module",
-    phase: "startup",
+    phase: "game",
   },
-  ...await Promise.all(startupWorkers.map((file) => runtimeDescriptor(`assets/${file}`, "worker", "startup"))),
+  ...await Promise.all(startupWorkers.map((file) => runtimeDescriptor(`assets/${file}`, "worker", "game"))),
 ];
 const locales = Object.fromEntries(await Promise.all((await readdir(playLocaleSource))
   .filter((file) => file.endsWith(".json"))
@@ -189,7 +197,7 @@ const runtimeIndexPath = resolve(runtimeRoot, "play", "index.html");
 const bundledIndex = await readFile(runtimeIndexPath, "utf8");
 const loaderUrl = `${runtimePrefix}/${loaderFile}`;
 const onboardingLoaderUrl = `${runtimePrefix}/${onboardingLoaderFile}`;
-const deployedIndex = removeBootAssetTags(bundledIndex, entry, styles)
+const deployedIndex = removeBootAssetTags(bundledIndex, gameEntry, styles)
   .replace(
     "<!-- nicechunk-play-loader -->",
     `<script src="${loaderUrl}" fetchpriority="high" data-nicechunk-loader data-manifest="${loadingManifestUrl}"></script>`,
@@ -213,7 +221,8 @@ if (
   !deployedIndex.includes(`src="${onboardingLoaderUrl}"`) ||
   deployedIndex.includes("nicechunk-play-loader -->") ||
   deployedIndex.includes("nicechunk-play-onboarding-loader -->") ||
-  deployedIndex.includes(`src="${entry.url}"`) ||
+  deployedIndex.includes(`src="${gameEntry.url}"`) ||
+  deployedIndex.includes('rel="modulepreload"') ||
   styles.some((file) => deployedIndex.includes(`href="${file.url}"`))
 ) {
   throw new Error("Bundled Play index Loader references were not stamped.");
@@ -292,6 +301,7 @@ function removeBootAssetTags(html, entry, styles) {
     new RegExp(`<script\\b[^>]*\\bsrc="${escapeRegExp(entry.url)}"[^>]*><\\/script>\\s*`),
     "",
   );
+  output = output.replace(/<link\b[^>]*\brel="modulepreload"[^>]*>\s*/g, "");
   for (const style of styles) {
     output = output.replace(
       new RegExp(`<link\\b[^>]*\\bhref="${escapeRegExp(style.url)}"[^>]*>\\s*`),
