@@ -11,11 +11,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "green",
     xpBase: 90,
     xpGrowth: 1.52,
+    effect: { key: "precisionGatheringBps", base: 1000, perLevel: 1000, max: 10000 },
     description: "Controls how much verified resource yield is recovered from each mined resource block.",
     xpSource: "Gains XP from confirmed mining and collected resources.",
     metrics(level) {
-      const percent = Math.min(100, 10 + level * 10);
-      const nextPercent = Math.min(100, 10 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 10);
+      const percent = profileSkillEffectValue(this, level) / 100;
+      const nextPercent = profileSkillEffectValue(this, level + 1) / 100;
       return {
         current: `${formatSkillNumber(percent)}% gathered · ${formatSkillNumber(percent / 100, 2)} L per resource block`,
         next: `Next level: ${formatSkillNumber(nextPercent)}% · ${formatSkillNumber(nextPercent / 100, 2)} L per block`,
@@ -30,11 +31,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "amber",
     xpBase: 130,
     xpGrowth: 1.58,
+    effect: { key: "safeCarryKg", base: 30, perLevel: 10, max: 130 },
     description: "Defines safe carry capacity for mined resources, tools, and future equipment mass.",
     xpSource: "Gains XP from hauling mined and crafted items.",
     metrics(level) {
-      const kg = 30 + level * 10;
-      const nextKg = 30 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 10;
+      const kg = profileSkillEffectValue(this, level);
+      const nextKg = profileSkillEffectValue(this, level + 1);
       return {
         current: `${kg} kg safe carry capacity`,
         next: `Next level: ${nextKg} kg`,
@@ -49,13 +51,14 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "red",
     xpBase: 120,
     xpGrowth: 1.56,
+    effect: { key: "smeltingOutputBps", base: 7000, perLevel: 300, max: 10000 },
     description: "Improves ore processing efficiency for local and chain-backed material output.",
     xpSource: "Gains XP from smelting runs and confirmed output materials.",
     metrics(level) {
-      const yieldPercent = Math.min(100, 70 + level * 3);
-      const lossPercent = Math.max(0, 30 - level * 3);
-      const nextYield = Math.min(100, 70 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 3);
-      const nextLoss = Math.max(0, 30 - Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 3);
+      const yieldPercent = profileSkillEffectValue(this, level) / 100;
+      const lossPercent = 100 - yieldPercent;
+      const nextYield = profileSkillEffectValue(this, level + 1) / 100;
+      const nextLoss = 100 - nextYield;
       return {
         current: `${yieldPercent}% yield · ${lossPercent}% loss`,
         next: `Next level: ${nextYield}% yield · ${nextLoss}% loss`,
@@ -70,11 +73,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "steel",
     xpBase: 140,
     xpGrowth: 1.6,
+    effect: { key: "forgingDurabilityBonusBps", base: 0, perLevel: 500, max: 5000 },
     description: "Improves forged equipment durability and future tool quality calculations.",
     xpSource: "Gains XP from forging-ready material output and future forged equipment actions.",
     metrics(level) {
-      const bonus = level * 5;
-      const nextBonus = Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 5;
+      const bonus = profileSkillEffectValue(this, level) / 100;
+      const nextBonus = profileSkillEffectValue(this, level + 1) / 100;
       return {
         current: `+${bonus}% forged item durability`,
         next: `Next level: +${nextBonus}% durability`,
@@ -89,11 +93,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "cyan",
     xpBase: 180,
     xpGrowth: 1.66,
+    effect: { key: "craftsmanshipTier", base: 1, perLevel: 0.5, max: 6, rounding: "floor" },
     description: "Unlocks more advanced build, assembly, and civilization production tiers.",
     xpSource: "Gains XP from placement and material production.",
     metrics(level) {
-      const tier = 1 + Math.floor(level / 2);
-      const nextTier = 1 + Math.floor(Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) / 2);
+      const tier = profileSkillEffectValue(this, level);
+      const nextTier = profileSkillEffectValue(this, level + 1);
       return {
         current: `Process tier ${tier} available`,
         next: `Next level: process tier ${nextTier}`,
@@ -108,11 +113,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "blue",
     xpBase: 110,
     xpGrowth: 1.5,
+    effect: { key: "movementSpeedMultiplier", base: 1, perLevel: 0.03, max: 1.3 },
     description: "Improves movement efficiency without changing chain-verifiable world rules.",
     xpSource: "Gains XP from traversal-like activity such as mining and placement sessions.",
     metrics(level) {
-      const speed = 100 + level * 3;
-      const nextSpeed = 100 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 3;
+      const speed = Math.round(profileSkillEffectValue(this, level) * 100);
+      const nextSpeed = Math.round(profileSkillEffectValue(this, level + 1) * 100);
       return {
         current: `${speed}% movement speed`,
         next: `Next level: ${nextSpeed}% movement speed`,
@@ -127,11 +133,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "violet",
     xpBase: 125,
     xpGrowth: 1.57,
+    effect: { key: "rareRollWeightBps", base: 0, perLevel: 1000, max: 10000 },
     description: "Improves future rare discovery rolls while keeping resource truth coordinate based.",
     xpSource: "Gains XP from confirmed mines and rare extra-drop events.",
     metrics(level) {
-      const chance = level * 10;
-      const nextChance = Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 10;
+      const chance = profileSkillEffectValue(this, level) / 100;
+      const nextChance = profileSkillEffectValue(this, level + 1) / 100;
       return {
         current: `+${chance}% rare extra-drop roll weight`,
         next: `Next level: +${nextChance}% rare roll weight`,
@@ -146,11 +153,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "lime",
     xpBase: 105,
     xpGrowth: 1.5,
+    effect: { key: "fatigueCostMultiplier", base: 1, perLevel: -0.04, min: 0.6 },
     description: "Reduces repeated action fatigue for mining, movement, and future work loops.",
     xpSource: "Gains XP from mining and placement actions.",
     metrics(level) {
-      const reduction = level * 4;
-      const nextReduction = Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 4;
+      const reduction = Math.round((1 - profileSkillEffectValue(this, level)) * 100);
+      const nextReduction = Math.round((1 - profileSkillEffectValue(this, level + 1)) * 100);
       return {
         current: `${reduction}% lower mining and movement fatigue`,
         next: `Next level: ${nextReduction}% lower fatigue`,
@@ -165,11 +173,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "orange",
     xpBase: 145,
     xpGrowth: 1.59,
+    effect: { key: "oneHandLiftKg", base: 8, perLevel: 4, max: 48 },
     description: "Controls one-hand equipment handling for future physically validated tools.",
     xpSource: "Gains XP from mining actions and heavy material handling.",
     metrics(level) {
-      const liftKg = 8 + level * 4;
-      const nextLiftKg = 8 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1) * 4;
+      const liftKg = profileSkillEffectValue(this, level);
+      const nextLiftKg = profileSkillEffectValue(this, level + 1);
       return {
         current: `${liftKg} kg one-hand lift control`,
         next: `Next level: ${nextLiftKg} kg one-hand control`,
@@ -184,11 +193,12 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "gold",
     xpBase: 160,
     xpGrowth: 1.62,
+    effect: { key: "visibleMaterialTraits", base: 2, perLevel: 1, max: 12 },
     description: "Reveals material traits for rare resources, markets, and civilization rules.",
     xpSource: "Gains XP from confirmed resources and processed materials.",
     metrics(level) {
-      const traits = 2 + level;
-      const nextTraits = 2 + Math.min(PROFILE_SKILL_MAX_LEVEL, level + 1);
+      const traits = profileSkillEffectValue(this, level);
+      const nextTraits = profileSkillEffectValue(this, level + 1);
       return {
         current: `Reveals ${traits} material traits`,
         next: `Next level: reveals ${nextTraits} traits`,
@@ -197,7 +207,22 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
       };
     },
   },
-]);
+].map((skill) => Object.freeze({
+  ...skill,
+  effect: Object.freeze({ ...skill.effect }),
+})));
+
+export function profileSkillEffectValue(skill, level) {
+  const effect = skill?.effect;
+  if (!effect?.key) return 0;
+  const safeLevel = Math.round(clamp(Number(level) || 0, 0, PROFILE_SKILL_MAX_LEVEL));
+  let value = (Number(effect.base) || 0) + (Number(effect.perLevel) || 0) * safeLevel;
+  if (Number.isFinite(Number(effect.min))) value = Math.max(Number(effect.min), value);
+  if (Number.isFinite(Number(effect.max))) value = Math.min(Number(effect.max), value);
+  if (effect.rounding === "floor") value = Math.floor(value);
+  if (effect.rounding === "round") value = Math.round(value);
+  return value;
+}
 
 export function profileSkillExperienceRequirement(skill, level) {
   if (level >= PROFILE_SKILL_MAX_LEVEL) return 0;
@@ -261,10 +286,39 @@ export function profileSkillEffectiveLevel(levels, skill, xpBySkill) {
   return profileSkillLevel(levels, skill.id);
 }
 
-export function buildProfileSkillState({ owner = "guest", profile = {}, chainXp = null } = {}) {
+export function profileSkillStateLevel(state, skill) {
+  if (!skill) return 0;
+  if (Object.prototype.hasOwnProperty.call(state?.resolvedLevels || {}, skill.id)) {
+    return profileSkillLevel(state.resolvedLevels, skill.id);
+  }
+  return profileSkillEffectiveLevel(state?.levels || {}, skill, state?.xpBySkill || {});
+}
+
+export function buildProfileSkillState({
+  owner = "guest",
+  profile = {},
+  chainXp = null,
+  chainLevels = null,
+  chainAuthoritative = false,
+} = {}) {
+  if (chainAuthoritative) {
+    const levels = normalizeSkillLevels(chainLevels);
+    const xpBySkill = mergeSkillXp(chainXp || {});
+    return {
+      levels,
+      xpBySkill,
+      resolvedLevels: resolveSkillLevels(levels, xpBySkill, { preferLevels: true }),
+      source: "chain",
+    };
+  }
   const levels = loadProfileSkillLevels(owner);
   const xpBySkill = mergeSkillXp(deriveProfileSkillXp(profile), loadProfileSkillXp(owner), chainXp || {});
-  return { levels, xpBySkill };
+  return {
+    levels,
+    xpBySkill,
+    resolvedLevels: resolveSkillLevels(levels, xpBySkill),
+    source: "legacy",
+  };
 }
 
 export function deriveProfileSkillXp(profile = {}) {
@@ -339,6 +393,31 @@ function mergeSkillXp(...sources) {
     }
   }
   return result;
+}
+
+function normalizeSkillLevels(source) {
+  const levels = {};
+  if (!source || typeof source !== "object") return levels;
+  for (const skill of PLAYER_SKILL_DEFINITIONS) {
+    if (!Object.prototype.hasOwnProperty.call(source, skill.id)) continue;
+    levels[skill.id] = profileSkillLevel(source, skill.id);
+  }
+  return levels;
+}
+
+function resolveSkillLevels(levels, xpBySkill, { preferLevels = false } = {}) {
+  return Object.fromEntries(PLAYER_SKILL_DEFINITIONS.map((skill) => {
+    const hasLevel = Object.prototype.hasOwnProperty.call(levels, skill.id);
+    const hasXp = Number.isFinite(Number(xpBySkill?.[skill.id]));
+    const level = preferLevels && hasLevel
+      ? profileSkillLevel(levels, skill.id)
+      : hasXp
+        ? profileSkillLevelFromXp(skill, xpBySkill[skill.id])
+        : hasLevel
+          ? profileSkillLevel(levels, skill.id)
+          : 0;
+    return [skill.id, level];
+  }));
 }
 
 function positiveInt(value) {

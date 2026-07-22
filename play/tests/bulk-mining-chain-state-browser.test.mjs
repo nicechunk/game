@@ -70,7 +70,7 @@ async function runScenario({ result, delayMs = 0, walletAddress = "Wallet1111111
     contentType: "text/html",
     body: "<!doctype html><html lang=\"en\" data-i18n-scope=\"play\"><body><div id=\"events\"></div></body></html>",
   }));
-  await page.route(`${origin}/play/tests/fake-bulk-chain-module.js`, (route) => route.fulfill({
+  await page.route(`${origin}/play/tests/fake-bulk-chain-module.js*`, (route) => route.fulfill({
     contentType: "text/javascript",
     body: [
       "export async function recordBulkMineOnChain(blocks) {",

@@ -36,6 +36,7 @@ export function createPlayChainPlayerSync({
     appearance: null,
     progress: null,
     skillXp: null,
+    skillLevels: null,
     nameMutation: {
       saving: false,
       lastAttemptAt: 0,
@@ -108,6 +109,7 @@ export function createPlayChainPlayerSync({
       appearance: state.appearance,
       progress: state.progress,
       skillXp: state.skillXp,
+      skillLevels: state.skillLevels,
       nameMutation: nameMutationSnapshot(),
       appearanceMutation: appearanceMutationSnapshot(),
       positionSync: positionSyncSnapshot(),
@@ -153,6 +155,7 @@ export function createPlayChainPlayerSync({
       const nextAppearance = settledValue(appearanceResult);
       const nextProgress = settledValue(progressResult);
       const nextSkillXp = skillXpFromProgress(nextProgress, nextProfile);
+      const nextSkillLevels = nextProfile?.initialized === false ? null : nextProfile?.skillLevels || null;
       const previousSignature = stateSignature(state);
       state.profile = nextProfile?.initialized === false ? null : nextProfile;
       state.equipmentReadKnown = equipmentResult?.status === "fulfilled";
@@ -160,6 +163,7 @@ export function createPlayChainPlayerSync({
       state.appearance = nextAppearance?.initialized === false ? null : nextAppearance;
       state.progress = nextProgress;
       state.skillXp = nextSkillXp;
+      state.skillLevels = nextSkillLevels;
       state.lastError = firstRejectedReason(profileResult, equipmentResult, appearanceResult, progressResult);
       state.lastSyncAt = performance.now();
       applyEquipmentSnapshot();
@@ -172,7 +176,16 @@ export function createPlayChainPlayerSync({
         appendEvent(`Player PDA synced for ${label}.`);
         onStatus(`Player PDA synced: ${label}.`);
       }
-      return { ok: true, changed, profile: state.profile, equipment: state.equipment, appearance: state.appearance, progress: state.progress, skillXp: state.skillXp };
+      return {
+        ok: true,
+        changed,
+        profile: state.profile,
+        equipment: state.equipment,
+        appearance: state.appearance,
+        progress: state.progress,
+        skillXp: state.skillXp,
+        skillLevels: state.skillLevels,
+      };
     } catch (error) {
       const reason = readableError(error);
       state.lastError = reason;
@@ -188,7 +201,7 @@ export function createPlayChainPlayerSync({
   }
 
   function clearState(reason = "") {
-    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skillXp || state.lastError);
+    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skillXp || state.skillLevels || state.lastError);
     state.owner = "";
     state.profile = null;
     state.equipment = null;
@@ -196,6 +209,7 @@ export function createPlayChainPlayerSync({
     state.appearance = null;
     state.progress = null;
     state.skillXp = null;
+    state.skillLevels = null;
     state.nameMutation.lastReason = reason;
     state.nameMutation.lastError = "";
     state.nameMutation.lastSignature = "";
@@ -734,6 +748,7 @@ function stateSignature(state) {
       position: state.profile.position,
       equippedBackpack: state.profile.equippedBackpack,
       forgingXp: state.profile.forgingXp,
+      skillLevels: state.profile.skillLevels,
     } : null,
     equipment: state.equipment ? {
       publicKey: state.equipment.publicKey,
@@ -766,6 +781,7 @@ function stateSignature(state) {
       explorationXp: state.progress.explorationXp,
     } : null,
     skillXp: state.skillXp,
+    skillLevels: state.skillLevels,
     equipmentMutation: equipmentMutationSignature(state.equipmentMutation),
     lastError: state.lastError,
   });

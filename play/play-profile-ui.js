@@ -7,10 +7,13 @@ import {
   PROFILE_SKILL_MAX_LEVEL,
   buildProfileSkillState,
   formatProfileSkillXp,
-  profileSkillEffectiveLevel,
+  profileSkillEffectValue,
   profileSkillExperienceProgress,
   profileSkillExperienceRequirement,
+  profileSkillStateLevel,
 } from "./play-profile-skills.js";
+
+const PLAYER_SKILL_BY_ID = Object.freeze(Object.fromEntries(PLAYER_SKILL_DEFINITIONS.map((skill) => [skill.id, skill])));
 
 export function createPlayProfileUi({
   elements,
@@ -56,7 +59,13 @@ export function createPlayProfileUi({
     const profile = gameState.playerProfile || {};
     const chain = getChainSnapshot?.() ?? {};
     const owner = chain.walletAddress || profile.name || "guest";
-    const skillState = buildProfileSkillState({ owner, profile, chainXp: chain.playerSkillXp || chain.skillXp || null });
+    const skillState = buildProfileSkillState({
+      owner,
+      profile,
+      chainXp: chain.playerSkillXp || chain.skillXp || null,
+      chainLevels: chain.playerSkillLevels || chain.skillLevels || null,
+      chainAuthoritative: true,
+    });
     renderAvatarPreview(profile, chain);
     renderOverview(profile, chain, skillState);
     renderSettings(chain);
@@ -185,12 +194,12 @@ export function createPlayProfileUi({
   function renderStats(skillState) {
     const levels = effectiveSkillLevels(skillState);
     const stats = [
-      { id: "gathering", label: ui("main.profile.statGathering", "Gathering"), value: `${Math.min(100, 10 + levels.precisionGathering * 10)}%` },
-      { id: "carry", label: ui("main.profile.statCarry", "Carry"), value: `${30 + levels.burden * 10} kg` },
-      { id: "smelting", label: ui("main.profile.statSmelting", "Smelting"), value: `${Math.min(100, 70 + levels.smelting * 3)}%` },
-      { id: "speed", label: ui("main.profile.statSpeed", "Speed"), value: `${100 + levels.swiftness * 3}%` },
-      { id: "strength", label: ui("main.profile.statStrength", "Strength"), value: `${8 + levels.strength * 4} kg` },
-      { id: "crafting", label: ui("main.profile.statCrafting", "Crafting"), value: `T${1 + Math.floor(levels.craftsmanship / 2)}` },
+      { id: "gathering", label: ui("main.profile.statGathering", "Gathering"), value: `${skillEffectValue("precisionGathering", levels.precisionGathering) / 100}%` },
+      { id: "carry", label: ui("main.profile.statCarry", "Carry"), value: `${skillEffectValue("burden", levels.burden)} kg` },
+      { id: "smelting", label: ui("main.profile.statSmelting", "Smelting"), value: `${skillEffectValue("smelting", levels.smelting) / 100}%` },
+      { id: "speed", label: ui("main.profile.statSpeed", "Speed"), value: `${Math.round(skillEffectValue("swiftness", levels.swiftness) * 100)}%` },
+      { id: "strength", label: ui("main.profile.statStrength", "Strength"), value: `${skillEffectValue("strength", levels.strength)} kg` },
+      { id: "crafting", label: ui("main.profile.statCrafting", "Crafting"), value: `T${skillEffectValue("craftsmanship", levels.craftsmanship)}` },
     ];
     if (elements.profileGrid) {
       elements.profileGrid.replaceChildren(...stats.map(profileStatItem));
@@ -200,9 +209,13 @@ export function createPlayProfileUi({
   function effectiveSkillLevels(skillState = {}) {
     const result = {};
     for (const skill of PLAYER_SKILL_DEFINITIONS) {
-      result[skill.id] = profileSkillEffectiveLevel(skillState.levels || {}, skill, skillState.xpBySkill || {});
+      result[skill.id] = profileSkillStateLevel(skillState, skill);
     }
     return result;
+  }
+
+  function skillEffectValue(skillId, level) {
+    return profileSkillEffectValue(PLAYER_SKILL_BY_ID[skillId], level);
   }
 
   function positionSyncLabel(sync = {}) {
@@ -234,10 +247,10 @@ export function createPlayProfileUi({
     if (!PLAYER_SKILL_DEFINITIONS.some((skill) => skill.id === selectedSkillId)) {
       selectedSkillId = PLAYER_SKILL_DEFINITIONS[0]?.id ?? "";
     }
-    const { levels, xpBySkill } = skillState;
+    const { xpBySkill } = skillState;
     const cards = [];
     for (const skill of PLAYER_SKILL_DEFINITIONS) {
-      const level = profileSkillEffectiveLevel(levels, skill, xpBySkill);
+      const level = profileSkillStateLevel(skillState, skill);
       const xpProgress = profileSkillExperienceProgress(skill, level, xpBySkill);
       const copy = profileSkillCopy(skill, level);
       const selected = skill.id === selectedSkillId;
@@ -257,7 +270,7 @@ export function createPlayProfileUi({
       card.classList.toggle("active", selected);
       card.setAttribute("aria-pressed", String(selected));
     }
-    const level = profileSkillEffectiveLevel(skillState.levels, skill, skillState.xpBySkill);
+    const level = profileSkillStateLevel(skillState, skill);
     const xpProgress = profileSkillExperienceProgress(skill, level, skillState.xpBySkill);
     const copy = profileSkillCopy(skill, level);
     renderSkillDetail(skill, copy, level, copy.metrics, xpProgress);
@@ -391,18 +404,21 @@ export function createPlayProfileUi({
 
   function skillMetricParams(skillId, level) {
     if (skillId === "precisionGathering") {
-      const percent = Math.min(100, 10 + level * 10);
+      const percent = skillEffectValue(skillId, level) / 100;
       return { percent, liters: formatDecimal(percent / 100, 2) };
     }
-    if (skillId === "burden") return { kg: 30 + level * 10 };
-    if (skillId === "smelting") return { yieldPercent: Math.min(100, 70 + level * 3), lossPercent: Math.max(0, 30 - level * 3) };
-    if (skillId === "forging") return { bonus: level * 5 };
-    if (skillId === "craftsmanship") return { tier: 1 + Math.floor(level / 2) };
-    if (skillId === "swiftness") return { speed: 100 + level * 3 };
-    if (skillId === "exploration") return { chance: level * 10 };
-    if (skillId === "stamina") return { reduction: level * 4 };
-    if (skillId === "strength") return { kg: 8 + level * 4 };
-    if (skillId === "appraisal") return { traits: 2 + level };
+    if (skillId === "burden") return { kg: skillEffectValue(skillId, level) };
+    if (skillId === "smelting") {
+      const yieldPercent = skillEffectValue(skillId, level) / 100;
+      return { yieldPercent, lossPercent: 100 - yieldPercent };
+    }
+    if (skillId === "forging") return { bonus: skillEffectValue(skillId, level) / 100 };
+    if (skillId === "craftsmanship") return { tier: skillEffectValue(skillId, level) };
+    if (skillId === "swiftness") return { speed: Math.round(skillEffectValue(skillId, level) * 100) };
+    if (skillId === "exploration") return { chance: skillEffectValue(skillId, level) / 100 };
+    if (skillId === "stamina") return { reduction: Math.round((1 - skillEffectValue(skillId, level)) * 100) };
+    if (skillId === "strength") return { kg: skillEffectValue(skillId, level) };
+    if (skillId === "appraisal") return { traits: skillEffectValue(skillId, level) };
     return {};
   }
 

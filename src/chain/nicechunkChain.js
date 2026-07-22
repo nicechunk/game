@@ -23,6 +23,7 @@ import {
 import { createNicechunkRpcFetch, getNicechunkRpcUrl, reportRpcError, rpcConfigChangedEventName } from "../rpcConfig.js";
 import { assertNicechunkWalletNetwork, solanaClusterLabel } from "../solanaNetwork.js";
 import { submitSupportCollapseBatches } from "./supportCollapseSubmission.js";
+import { decodePlayerProfileSkillLevels } from "./playerSkillLevels.js";
 import {
   BULK_MINING_BATCH_SIZE,
   BULK_MINING_MAX_SELECTION_BLOCKS,
@@ -4478,6 +4479,7 @@ function decodePlayerProfile(data) {
     bestForgedGrade: data.readUInt8(461),
     bestForgedItemLevel: data.readUInt8(462),
     playerName: decodePlayerName(data),
+    skillLevels: decodePlayerProfileSkillLevels(data),
   };
 }
 

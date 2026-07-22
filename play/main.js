@@ -49,6 +49,7 @@ import { applyGuardianConnectionState } from "./play-guardian-connection.js";
 import { createGuardianAppearanceMeshCache } from "./play-guardian-appearance.js";
 import { createNameChatOverlay } from "./play-name-chat-overlay.js";
 import { createProfileSkillEffects } from "./play-skill-effects.js";
+import { applyPlayerMovementSpeeds, PLAYER_MOVEMENT_CONFIG } from "./play-movement-speed.js";
 import { hasSpawnParam, parsePoseText, spawnCoord, spawnCoordOrNull } from "./pose-utils.js";
 import { createTreeMiningPlanner } from "./tree-mining-plan.js";
 import { createSupportCollapseMiningPlanner } from "./support-collapse-plan.js";
@@ -182,7 +183,6 @@ const FIRST_PERSON_EYE_HEIGHT_BLOCKS = metersToBlocks(1.52);
 const FIRST_PERSON_CAMERA_BACK_DISTANCE = 0.16;
 const DEFAULT_CAMERA_PITCH = -0.42;
 const AVATAR_FOOT_OFFSET = 0;
-const BASE_PLAYER_SPEED = 14.8;
 const elements = {
   canvas: document.querySelector("#worldCanvas"),
   fps: document.querySelector("#fpsValue"),
@@ -808,7 +808,8 @@ async function boot() {
   });
   resolvePlayerPenetration();
   controls = new ThirdPersonPlayerControls(elements.canvas, camera, player, {
-    speed: BASE_PLAYER_SPEED,
+    speed: PLAYER_MOVEMENT_CONFIG.baseSpeed,
+    sprintMultiplier: PLAYER_MOVEMENT_CONFIG.sprintMultiplier,
     pitchMin: CAMERA_PITCH_MIN,
     pitchMax: CAMERA_PITCH_MAX,
     firstPersonPitchMin: CAMERA_PITCH_MIN,
@@ -1627,8 +1628,10 @@ function refreshProfileSkillEffects() {
     owner: snapshot.walletAddress || gameState.playerProfile?.name || "guest",
     profile: gameState.playerProfile,
     chainXp: snapshot.playerSkillXp || snapshot.skillXp || null,
+    chainLevels: snapshot.playerSkillLevels || snapshot.skillLevels || null,
+    chainAuthoritative: true,
   });
-  if (controls) controls.speed = BASE_PLAYER_SPEED * (profileSkillEffects.movementSpeedMultiplier || 1);
+  applyPlayerMovementSpeeds(controls, profileSkillEffects);
   return profileSkillEffects;
 }
 
@@ -1771,6 +1774,7 @@ function chainSnapshot() {
     chainChunkDeltas: chainChunkDeltas?.snapshot?.() ?? null,
     chainPlayer: playerSnapshot,
     playerSkillXp: playerSnapshot?.skillXp ?? null,
+    playerSkillLevels: playerSnapshot?.skillLevels ?? null,
     guardian: guardian?.snapshot?.() ?? null,
   };
 }
