@@ -16,6 +16,8 @@ const DEFAULT_RPC_URL = "https://explorer-api.devnet.solana.com";
 const GAME_API_REQUEST_EVENT = "nicechunk:onboarding-game-api-request";
 const REAL_BLOCK_CLICK_EVENT = "nicechunk:onboarding-real-block-click";
 const OPEN_RPC_EVENT = "nicechunk:onboarding-open-rpc";
+const STEP_EXIT_MS = 65;
+const STEP_ENTER_MS = 190;
 const rentCache = new Map();
 let activeSession = null;
 
@@ -48,6 +50,8 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
   let sceneTargetSearchAt = 0;
   let sceneCameraState = null;
   let gameApi = null;
+  let stepTransitionTimer = 0;
+  let stepTransitioning = false;
   const layoutObserver = new MutationObserver((mutations) => {
     if (root && mutations.every((mutation) => root.contains(mutation.target))) return;
     schedulePosition();
@@ -319,8 +323,31 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
       finish("complete");
       return;
     }
-    stepIndex += 1;
-    render();
+    transitionToStep(stepIndex + 1);
+  }
+
+  function transitionToStep(nextStepIndex) {
+    if (!root || stepTransitioning) return;
+    const next = clamp(Math.trunc(nextStepIndex), 0, definition.steps.length - 1);
+    if (next === stepIndex) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stepIndex = next;
+      render();
+      return;
+    }
+    clearTimeout(stepTransitionTimer);
+    root.classList.remove("is-step-entering");
+    root.classList.add("is-step-leaving");
+    stepTransitioning = true;
+    stepTransitionTimer = setTimeout(() => {
+      if (!root || completed) return;
+      root.classList.remove("is-step-leaving");
+      stepIndex = next;
+      render();
+      stepTransitioning = false;
+      root.classList.add("is-step-entering");
+      stepTransitionTimer = setTimeout(() => root?.classList.remove("is-step-entering"), STEP_ENTER_MS);
+    }, STEP_EXIT_MS);
   }
 
   function activateStep(step) {
@@ -522,18 +549,25 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
     const preference = mobile
       ? (portrait ? ["above", "below", "top-left", "bottom-left", "left", "right"] : ["left", "right", "above", "below"])
       : ["right", "left", "below", "above"];
-    const obstacles = cardObstacles(feature);
+    const obstacles = cardObstacles(feature, gameApi, mobile);
     const best = uniqueCandidates(candidates)
       .map((item) => {
         const overlap = rects.reduce((total, rect) => total + intersectionArea(item, rect), 0);
         const obstacleOverlap = obstacles.reduce((total, rect) => total + intersectionArea(item, rect), 0);
         const distance = Math.hypot(item.x + cardWidth / 2 - centerX, item.y + cardHeight / 2 - centerY);
         const rank = preference.indexOf(item.name);
-        return { ...item, score: overlap * 1_000_000 + obstacleOverlap * 20_000 + distance + (rank < 0 ? preference.length : rank) * 18 };
+        return {
+          ...item,
+          targetOverlap: overlap,
+          obstacleOverlap,
+          score: (overlap + obstacleOverlap) * 1_000_000 + distance + (rank < 0 ? preference.length : rank) * 18,
+        };
       })
       .sort((a, b) => a.score - b.score)[0];
     root.dataset.cardPositioned = "true";
     root.dataset.cardPlacement = best.name;
+    root.dataset.cardTargetOverlap = String(best.targetOverlap);
+    root.dataset.cardObstacleOverlap = String(best.obstacleOverlap);
     card.style.setProperty("--nc-guide-card-left", `${best.x}px`);
     card.style.setProperty("--nc-guide-card-top", `${best.y}px`);
     card.style.setProperty("--nc-guide-card-width", `${cardWidth}px`);
@@ -618,6 +652,7 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
     if (completed) return;
     completed = true;
     cancelAnimationFrame(resizeFrame);
+    clearTimeout(stepTransitionTimer);
     layoutObserver.disconnect();
     stopSceneStep();
     removeEventListener("resize", schedulePosition);
@@ -990,6 +1025,47 @@ function projectTileToScreen(gameApi, target) {
   };
 }
 
+function projectPlayerRect(gameApi, mobile) {
+  if (gameApi?.getPlayer?.()?.firstPersonCamera) return null;
+  const position = gameApi?.getPlayerPosition?.();
+  if (!validPosition(position)) return null;
+  const [worldX, worldY, worldZ] = position;
+  const feet = projectWorldPointToScreen(gameApi, worldX, worldY + 0.08, worldZ);
+  const head = projectWorldPointToScreen(gameApi, worldX, worldY + 2.85, worldZ);
+  if (!feet?.onScreen && !head?.onScreen) return null;
+  const centerX = ((feet?.x ?? head.x) + (head?.x ?? feet.x)) * 0.5;
+  const top = Math.min(feet?.y ?? head.y, head?.y ?? feet.y) - (mobile ? 14 : 20);
+  const bottom = Math.max(feet?.y ?? head.y, head?.y ?? feet.y) + (mobile ? 18 : 24);
+  const projectedHeight = Math.max(74, bottom - top);
+  const halfWidth = clamp(projectedHeight * 0.27, mobile ? 30 : 36, mobile ? 52 : 62);
+  return paddedRect(clipToViewport(makeRect(centerX - halfWidth, top, centerX + halfWidth, bottom)), mobile ? 10 : 16);
+}
+
+function projectWorldPointToScreen(gameApi, worldX, worldY, worldZ) {
+  const camera = gameApi?.getCamera?.();
+  const canvas = gameApi?.getCanvas?.();
+  const rect = canvas?.getBoundingClientRect?.();
+  if (!camera || !rect?.width || !rect?.height) return null;
+  const matrix = cameraViewProjection(camera);
+  const origin = cameraOrigin(camera);
+  const x = worldX - origin.worldX;
+  const y = worldY - origin.worldY;
+  const z = worldZ - origin.worldZ;
+  const clipX = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12];
+  const clipY = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13];
+  const clipZ = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14];
+  const clipW = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+  if (Math.abs(clipW) < 0.0001) return null;
+  const ndcX = clipX / clipW;
+  const ndcY = clipY / clipW;
+  const ndcZ = clipZ / clipW;
+  return {
+    x: rect.left + (ndcX * 0.5 + 0.5) * rect.width,
+    y: rect.top + (1 - (ndcY * 0.5 + 0.5)) * rect.height,
+    onScreen: clipW > 0 && ndcZ >= -1 && ndcZ <= 1 && Math.abs(ndcX) <= 1 && Math.abs(ndcY) <= 1,
+  };
+}
+
 function initialCameraGuideState(gameApi) {
   const angles = cameraGuideAngles(gameApi);
   return angles ? { ...angles, yawTravel: 0, pitchTravel: 0 } : null;
@@ -1103,12 +1179,19 @@ function guideFeatures() {
   return ["basics", "equipment", "session", "foundation", "smelting", "market", "forging", "mining"];
 }
 
-function cardObstacles(feature) {
+function cardObstacles(feature, gameApi, mobile) {
   if (feature !== "basics") return [];
-  return ["#joystick", "#hotbar", ".account-hud", ".minimap-panel"]
+  const interfaceObstacles = ["#joystick", "#hotbar", ".account-hud", ".minimap-panel"]
     .flatMap((selector) => [...document.querySelectorAll(selector)])
     .filter(isVisibleTarget)
     .map((element) => paddedRect(clipToViewport(element.getBoundingClientRect()), 6));
+  const player = projectPlayerRect(gameApi, mobile) || makeRect(
+    innerWidth * (mobile ? 0.38 : 0.43),
+    innerHeight * 0.36,
+    innerWidth * (mobile ? 0.62 : 0.57),
+    innerHeight * 0.76,
+  );
+  return [...interfaceObstacles, player];
 }
 
 function uniqueCandidates(candidates) {

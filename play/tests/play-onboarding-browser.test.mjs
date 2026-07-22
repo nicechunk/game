@@ -82,6 +82,10 @@ test("the first world visit loads the guide on demand and saves completion per w
         arrowVisible: !document.querySelector("[data-onboarding-tile-arrow]").hidden,
         focusCount: document.querySelectorAll(".nc-onboarding-focus").length,
         curtainArea,
+        cardWidth: document.querySelector(".nc-onboarding-card").getBoundingClientRect().width,
+        cardBackground: getComputedStyle(document.querySelector(".nc-onboarding-card")).backgroundImage,
+        targetOverlap: Number(document.querySelector(".nc-onboarding").dataset.cardTargetOverlap),
+        obstacleOverlap: Number(document.querySelector(".nc-onboarding").dataset.cardObstacleOverlap),
       };
     });
     assert.ok(moveStep.distance >= 3 && moveStep.distance <= 5.01);
@@ -90,13 +94,19 @@ test("the first world visit loads the guide on demand and saves completion per w
     assert.equal(moveStep.arrowVisible, true);
     assert.equal(moveStep.focusCount, 0);
     assert.equal(moveStep.curtainArea, 0);
+    assert.ok(moveStep.cardWidth <= 320);
+    assert.match(moveStep.cardBackground, /rgba\([^)]*, 0\.(?:64|7|74)\)/);
+    assert.equal(moveStep.targetOverlap, 0);
+    assert.equal(moveStep.obstacleOverlap, 0);
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("nc-onboarding-card")), true);
 
     await page.evaluate(() => {
       const target = globalThis.__onboardingGameState.highlightedBlock;
       globalThis.__onboardingGameState.position = [target.worldX + 0.5, target.worldY + 1, target.worldZ + 0.5];
     });
+    await page.waitForSelector(".nc-onboarding.is-step-leaving");
     await page.waitForFunction(() => document.querySelector("[data-onboarding-step-title]")?.textContent === "Orbit the camera");
+    assert.equal(await page.locator(".nc-onboarding").evaluate((element) => element.classList.contains("is-step-entering")), true);
     const orbitState = await page.evaluate(() => {
       const cue = document.querySelector("[data-onboarding-orbit-cue]");
       const rect = cue.getBoundingClientRect();
@@ -244,8 +254,12 @@ test("mobile onboarding remains clear of the joystick and hotbar", async () => {
         scrollWidth: document.documentElement.scrollWidth,
       };
     });
-    assert.ok(layout.card.left >= 0 && layout.card.right <= layout.viewport.width);
+    assert.ok(
+      layout.card.left >= 0 && layout.card.right <= layout.viewport.width,
+      `mobile guide must remain inside the viewport: ${JSON.stringify(layout)}`,
+    );
     assert.ok(layout.card.top >= 0 && layout.card.bottom <= layout.viewport.height);
+    assert.ok(layout.card.width <= 300);
     assert.ok(layout.card.bottom < layout.joystick.top);
     assert.ok(layout.card.bottom < layout.hotbar.top);
     assert.ok(layout.scrollWidth <= layout.viewport.width);
