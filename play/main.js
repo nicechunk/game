@@ -69,9 +69,7 @@ import { createPlayCacheMaintenance } from "./play-cache-maintenance.js";
 import { createMobileChatController } from "./play-mobile-chat.js";
 import { hydrateForgedPresentationSlot } from "./forged-hotbar-compat.js";
 import { createFoundationSpatialIndex } from "./foundation-spatial-index.js";
-import { createFoundationController } from "./foundation-controller.js";
 import { createPlayChainFoundationSync } from "./play-chain-foundations.js";
-import { createPlayBlueprintUi } from "./play-blueprint-ui.js";
 import { createBuildingController } from "./building-controller.js";
 import { createPlayChainBuildingSync } from "./play-chain-buildings.js";
 import { createPlayBuildingCache } from "./play-building-cache.js";
@@ -482,10 +480,10 @@ let actionHit = null;
 let profileSession = null;
 let surfaceDecorationSync = null;
 let foundationSync = null;
-let foundationController = null;
 let buildingSync = null;
 let buildingController = null;
-let blueprintActions = null;
+let blueprintConstruction = null;
+let blueprintConstructionPromise = null;
 let blueprintUi = null;
 let lastWorldDeltaKind = null;
 let statusQuietTimer = 0;
@@ -493,6 +491,11 @@ let lastFrameMinimapAt = 0;
 let minimapUpdatePending = false;
 let firstMinimapUpdatePending = true;
 let onboardingHighlightedBlock = null;
+const blueprintActions = Object.freeze({
+  selectAtHit: (hit) => dispatchBlueprintConstructionAction("selectAtHit", hit),
+  confirm: () => dispatchBlueprintConstructionAction("confirm"),
+  cancel: () => dispatchBlueprintConstructionAction("cancel"),
+});
 
 const onboardingGameApi = Object.freeze({
   getPlayer: () => player,
@@ -1045,25 +1048,6 @@ async function boot() {
     onStatus: setStatus,
     translate: translateWithFallback,
   });
-  foundationController = createFoundationController({
-    index: foundationIndex,
-    getChunks: () => chunks,
-    getPlayerPosition: playerWorldFloat,
-    getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
-    getSelectedBlueprint: () => buildingController?.mode?.() !== "building"
-      ? gameState.getSelectedBlueprintSlot?.()
-      : null,
-    isBlueprintModeActive: () => gameState.isBlueprintSelected?.() === true,
-    isBlockingBlock,
-    isFluidBlock,
-    blockAirId: BLOCK_ID.air,
-    submitFoundation: (payload) => foundationSync?.create?.(payload),
-    submitFoundationResize: (payload) => foundationSync?.resize?.(payload),
-    refreshFoundations: (options) => foundationSync?.refresh?.(options),
-    onChanged: () => blueprintUi?.render?.({ force: true }),
-    onStatus: setStatus,
-    translate: translateWithFallback,
-  });
   buildingController = createBuildingController({
     index: foundationIndex,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
@@ -1097,26 +1081,6 @@ async function boot() {
     onStatus: setStatus,
     translate: translateWithFallback,
   });
-  blueprintActions = {
-    selectAtHit: (hit) => buildingController?.mode?.() === "building"
-      ? buildingController?.selectAtHit?.(hit)
-      : foundationController?.selectAtHit?.(hit),
-    confirm: () => buildingController?.mode?.() === "building"
-      ? buildingController?.confirm?.()
-      : foundationController?.confirm?.(),
-    cancel: () => buildingController?.mode?.() === "building"
-      ? buildingController?.cancel?.()
-      : foundationController?.cancel?.(),
-  };
-  blueprintUi = createPlayBlueprintUi({
-    elements,
-    getController: () => foundationController,
-    getBuildingController: () => buildingController,
-    getCamera: () => camera,
-    canvas: elements.canvas,
-    onBuildingModeOpen: () => buildingSync?.refresh?.({ force: true, quiet: true }),
-    translate: translateWithFallback,
-  });
   const treeMiningPlanner = createTreeMiningPlanner({ chunks, blockDef, blockAirId: BLOCK_ID.air });
   const supportCollapseMiningPlanner = createSupportCollapseMiningPlanner({
     chunks,
@@ -1141,7 +1105,7 @@ async function boot() {
     blockAirId: BLOCK_ID.air,
     canMine: () => gameState.isBackpackAvailable() || "no-backpack",
     onMiningBlocked: (detail) => backpackCreation?.open({ ...detail, source: "mining" }),
-    isBlockProtected: (block) => foundationController?.isBlockProtected?.(block) === true,
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block),
     onStatus: setStatus,
     onChanged: renderGameUi,
     onSwingStart: (swing) => avatarSession?.startMiningSwing(swing),
@@ -1192,7 +1156,7 @@ async function boot() {
     isFluidBlock,
     isMineableBlock,
     blockAirId: BLOCK_ID.air,
-    isBlockProtected: (block) => foundationController?.isBlockProtected?.(block) === true,
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block),
     submitBlocks: (blocks, { authorization } = {}) => mining?.queueBatchMine?.(blocks, { authorization }),
     onStatus: setStatus,
     onChanged: (snapshot) => debugController?.updateBulkMiningHud?.(snapshot),
@@ -1316,7 +1280,6 @@ async function boot() {
   globalThis.NiceChunkLoading?.stage?.("engine", 0.68);
   startupLogger.step("UI and input event bindings", () => {
     inputActions.bind();
-    blueprintUi.bind();
     inventory.bind();
     chainSession.bind();
     backpackCreation.bind();
@@ -1342,6 +1305,7 @@ async function boot() {
     }
   });
   startupLogger.step("initial game UI render", () => renderGameUi());
+  maybeLoadBlueprintConstruction();
   if (params.get("debug") === "1") {
     const controller = await ensureDebugController();
     controller?.setDebugVisible?.(true);
@@ -1467,7 +1431,7 @@ function frame(now) {
   updateActionHitForFrame(now);
   markFrameProbe(frameProbe, "action-hit");
   buildingController?.activate?.();
-  foundationController?.setHoverHit?.(lastHit);
+  blueprintConstruction?.setHoverHit?.(lastHit);
   effects?.update(now, dt);
   markFrameProbe(frameProbe, "particles");
   frameAvatars.length = 0;
@@ -1478,7 +1442,7 @@ function frame(now) {
   if (forgedPlacementPreview) frameAvatars.push(forgedPlacementPreview);
   const renderStats = renderer.render(camera, visibleChunks, frameAvatars, buildActionOverlays(lastHit, now));
   markFrameProbe(frameProbe, "render");
-  blueprintUi?.update?.();
+  blueprintConstruction?.update?.();
   markFrameProbe(frameProbe, "blueprint-ui");
   const sample = fps.frame(now, renderStats);
   if (sample) playHud?.update(sample, renderStats, uploadStats);
@@ -1584,6 +1548,67 @@ function getActionHit() {
   return hit;
 }
 
+function hasEquippedBlueprint() {
+  return gameState.hotbarSlots.some((slot) => (
+    slot?.itemId === "blueprint_tool" && Boolean(String(slot.blueprintId || "").trim())
+  ));
+}
+
+function maybeLoadBlueprintConstruction() {
+  if (!hasEquippedBlueprint()) return null;
+  return ensureBlueprintConstruction();
+}
+
+function ensureBlueprintConstruction({ force = false } = {}) {
+  if (blueprintConstruction) return Promise.resolve(blueprintConstruction);
+  if (!force && !hasEquippedBlueprint()) return Promise.resolve(null);
+  if (!chunks || !foundationSync || !buildingController || !buildingSync) return Promise.resolve(null);
+  if (blueprintConstructionPromise) return blueprintConstructionPromise;
+  blueprintConstructionPromise = import("./play-blueprint-construction.js")
+    .then(({ createPlayBlueprintConstruction }) => {
+      blueprintConstruction = createPlayBlueprintConstruction({
+        index: foundationIndex,
+        elements,
+        canvas: elements.canvas,
+        getChunks: () => chunks,
+        getPlayerPosition: playerWorldFloat,
+        getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
+        getSelectedBlueprint: () => gameState.getSelectedBlueprintSlot?.(),
+        isBlueprintModeActive: () => gameState.isBlueprintSelected?.() === true,
+        isBlockingBlock,
+        isFluidBlock,
+        blockAirId: BLOCK_ID.air,
+        submitFoundation: (payload) => foundationSync?.create?.(payload),
+        submitFoundationResize: (payload) => foundationSync?.resize?.(payload),
+        refreshFoundations: (options) => foundationSync?.refresh?.(options),
+        buildingController,
+        refreshBuildings: (options) => buildingSync?.refresh?.(options),
+        getCamera: () => camera,
+        onStatus: setStatus,
+        translate: translateWithFallback,
+      });
+      blueprintUi = blueprintConstruction.blueprintUi;
+      blueprintConstruction.setHoverHit(lastHit);
+      blueprintConstruction.render({ force: true });
+      return blueprintConstruction;
+    })
+    .catch((error) => {
+      blueprintConstruction = null;
+      blueprintUi = null;
+      blueprintConstructionPromise = null;
+      console.error("[NiceChunk Blueprint Construction] Dynamic module failed to load.", error);
+      return null;
+    });
+  return blueprintConstructionPromise;
+}
+
+function dispatchBlueprintConstructionAction(action, ...args) {
+  if (blueprintConstruction) return blueprintConstruction.actions?.[action]?.(...args);
+  return ensureBlueprintConstruction({ force: true }).then((construction) => (
+    construction?.actions?.[action]?.(...args) ?? null
+  ));
+}
+
 function renderGameUi() {
   refreshProfileSkillEffects();
   playUi?.renderGameUi();
@@ -1593,6 +1618,7 @@ function renderGameUi() {
   if (market?.isOpen()) market.render();
   avatarSession?.syncEquipment();
   blueprintUi?.render?.();
+  maybeLoadBlueprintConstruction();
 }
 
 function refreshProfileSkillEffects() {
@@ -1627,7 +1653,7 @@ function buildActionOverlays(hit, now = performance.now()) {
     ...buildOnboardingWorldOverlays(now),
     ...(bulkMining?.overlays?.() ?? []),
     ...(forgedPlacement?.overlays?.(hit) ?? []),
-    ...(foundationController?.overlays?.() ?? []),
+    ...(blueprintConstruction?.overlays?.() ?? []),
   ];
 }
 
@@ -1678,6 +1704,7 @@ function renderHotbar() {
   avatarSession?.syncEquipment();
   debugController?.updateToolRangeHud?.();
   blueprintUi?.render?.({ force: true });
+  maybeLoadBlueprintConstruction();
 }
 
 function renderProfile() {
