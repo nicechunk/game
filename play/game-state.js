@@ -42,6 +42,8 @@ export function createPlayGameState({
     hotbarSlots: loadHotbarSlots(initialOwnerAddress),
     backpackSlots: [],
     backpackCapacity: BACKPACK_CAPACITY,
+    backpackMassInitialized: false,
+    backpackTotalMassGrams: "0",
     backpackAvailable: false,
     backpackStatusKnown: false,
     playerProfile: loadPlayerProfile(initialOwnerAddress),
@@ -58,6 +60,8 @@ export function createPlayGameState({
       this.playerProfile = loadPlayerProfile(nextOwner);
       this.backpackSlots = [];
       this.backpackCapacity = BACKPACK_CAPACITY;
+      this.backpackMassInitialized = false;
+      this.backpackTotalMassGrams = "0";
       this.backpackAvailable = false;
       this.backpackStatusKnown = false;
       this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
@@ -506,8 +510,15 @@ export function createPlayGameState({
     confirmBackpackResourceForTx(txId) {
       return 0;
     },
-    mergeChainBackpackSlots(chainSlots = [], { source = "chain", capacity = BACKPACK_CAPACITY } = {}) {
+    mergeChainBackpackSlots(chainSlots = [], {
+      source = "chain",
+      capacity = BACKPACK_CAPACITY,
+      massInitialized = false,
+      totalMassGrams = "0",
+    } = {}) {
       const nextCapacity = clampInt(capacity, 1, BACKPACK_MAX_CAPACITY);
+      const nextMassInitialized = massInitialized === true;
+      const nextTotalMassGrams = normalizeMassGramsString(totalMassGrams);
       const nextSlots = chainSlots
         .map(normalizeBackpackSlot)
         .filter((slot) => slot && !slot.pending && slot.source === source)
@@ -515,22 +526,33 @@ export function createPlayGameState({
       const previousSignature = backpackSlotsSignature(this.backpackSlots);
       const nextSignature = backpackSlotsSignature(nextSlots);
       const capacityChanged = this.backpackCapacity !== nextCapacity;
+      const massChanged = this.backpackMassInitialized !== nextMassInitialized
+        || this.backpackTotalMassGrams !== nextTotalMassGrams;
       this.backpackCapacity = nextCapacity;
+      this.backpackMassInitialized = nextMassInitialized;
+      this.backpackTotalMassGrams = nextTotalMassGrams;
       this.backpackSlots = nextSlots;
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true });
-      if (previousSignature === nextSignature && !hotbarChanged && !capacityChanged) return { changed: false, count: nextSlots.length };
+      if (previousSignature === nextSignature && !hotbarChanged && !capacityChanged && !massChanged) {
+        return { changed: false, count: nextSlots.length };
+      }
       this.saveBackpackSlots();
       this.saveHotbarSlots();
       return { changed: true, count: nextSlots.length };
     },
     clearBackpackSlots() {
       const backpackChanged = this.backpackSlots.length > 0;
+      const backpackMetadataChanged = this.backpackCapacity !== BACKPACK_CAPACITY
+        || this.backpackMassInitialized
+        || this.backpackTotalMassGrams !== "0";
       this.backpackSlots = [];
       this.backpackCapacity = BACKPACK_CAPACITY;
+      this.backpackMassInitialized = false;
+      this.backpackTotalMassGrams = "0";
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true, clearAll: true });
       this.saveBackpackSlots();
       this.saveHotbarSlots();
-      return { changed: backpackChanged || hotbarChanged, count: 0 };
+      return { changed: backpackChanged || backpackMetadataChanged || hotbarChanged, count: 0 };
     },
   };
   function equipmentMutationChange(index, before, after) {
@@ -866,6 +888,15 @@ function normalizeU64String(value) {
   }
 }
 
+function normalizeMassGramsString(value) {
+  try {
+    const normalized = BigInt(value ?? 0);
+    return (normalized >= 0n ? normalized : 0n).toString();
+  } catch {
+    return "0";
+  }
+}
+
 function clearLegacyBackpackCache() {
   try {
     localStorage.removeItem(BACKPACK_STORAGE_KEY);
@@ -896,6 +927,7 @@ function normalizeBackpackSlot(slot) {
     yieldBps: Number.isFinite(slot.yieldBps) ? clampInt(slot.yieldBps, 1, 10000) : null,
     volumeMm3: Number.isFinite(slot.volumeMm3) ? clampInt(slot.volumeMm3, 0, 0xffffffff) : null,
     volumeMilliLiters: Number.isFinite(slot.volumeMilliLiters) ? clampInt(slot.volumeMilliLiters, 0, 1000000) : null,
+    massGrams: Number.isFinite(slot.massGrams) ? clampInt(slot.massGrams, 0, 0xffffffff) : null,
     metadata: clampInt(slot.metadata, 0, 0xffffffff),
     ...surfaceDecorationFields(slot),
   };
@@ -1230,6 +1262,7 @@ function normalizePdaItemFields(slot) {
     itemCode: clampInt(slot.itemCode, 0, 65535),
     itemPda: String(slot.itemPda || ""),
     volumeMm3: clampInt(slot.volumeMm3, 0, 0xffffffff),
+    massGrams: clampInt(slot.massGrams, 0, 0xffffffff),
     durabilityCurrent: clampInt(slot.durabilityCurrent, 0, 0xffffffff),
     durabilityMax: clampInt(slot.durabilityMax, 0, 0xffffffff),
     grade: clampInt(slot.grade, 0, 255),
@@ -1347,6 +1380,7 @@ function backpackSlotsSignature(slots) {
     slot?.yieldBps ?? "",
     slot?.volumeMilliLiters ?? "",
     slot?.volumeMm3 ?? "",
+    slot?.massGrams ?? "",
     slot?.source || "",
     slot?.chainBackpack || "",
     slot?.chainIndex ?? "",

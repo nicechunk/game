@@ -604,7 +604,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "Weight: {weight}",
+      "totalWeight": "総重量：{weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -616,7 +616,8 @@
       "materialPropertyLine": "{grade} grade · Purity {purity}/100",
       "equipped": "装備中",
       "equippedSlot": "ホットバーのスロット {slot} に装備中",
-      "equippedLocked": "ホットバーのスロット {slot} に装備中です。選択、移動、破棄する前に装備を外してください。"
+      "equippedLocked": "ホットバーのスロット {slot} に装備中です。選択、移動、破棄する前に装備を外してください。",
+      "weightPending": "重量を計算中"
     },
     "loading": {
       "eyebrow": "World Gateway",

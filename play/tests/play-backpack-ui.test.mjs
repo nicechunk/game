@@ -62,6 +62,45 @@ test("equipped backpack cells render a locked equipment marker", () => {
   }
 });
 
+test("backpack metadata renders authoritative mass without duplicating pending labels", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const backpackGrid = document.createElement("div");
+    const backpackMeta = document.createElement("span");
+    const gameState = {
+      backpackSlots: [],
+      backpackCapacity: 50,
+      backpackMassInitialized: true,
+      backpackTotalMassGrams: "12550",
+      totalBackpackItems: () => 0,
+    };
+    const ui = createPlayBackpackUi({
+      elements: {
+        backpackGrid,
+        backpackMeta,
+        backpackPanel: { hidden: false },
+        backpackCategoryButtons: [],
+      },
+      gameState,
+      createVoxelItemIconCanvas: () => document.createElement("canvas"),
+      voxelItemLabel: () => "Item",
+      translate: (_key, fallback, params = {}) => String(fallback).replace("{weight}", String(params.weight)),
+    });
+
+    ui.render({ force: true });
+    assert.equal(backpackMeta.children[2].textContent, "Weight 12.6 kg");
+
+    gameState.backpackMassInitialized = false;
+    ui.render({ force: true });
+    assert.equal(backpackMeta.children[2].textContent, "Weight pending");
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
 class FakeDocument {
   createElement(tagName) {
     return new FakeElement(tagName);

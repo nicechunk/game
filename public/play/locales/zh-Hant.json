@@ -616,7 +616,8 @@
       "materialPropertyLine": "{grade}品級 · 純度 {purity}/100",
       "equipped": "已裝備",
       "equippedSlot": "已裝備至工具欄第 {slot} 格",
-      "equippedLocked": "已裝備至工具欄第 {slot} 格。卸下裝備後才能選取、移動或丟棄。"
+      "equippedLocked": "已裝備至工具欄第 {slot} 格。卸下裝備後才能選取、移動或丟棄。",
+      "weightPending": "重量計算中"
     },
     "loading": {
       "eyebrow": "世界閘道",

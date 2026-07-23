@@ -35,6 +35,7 @@ export function createPlayChainPlayerSync({
     equipmentReadKnown: false,
     appearance: null,
     progress: null,
+    skills: null,
     skillXp: null,
     skillLevels: null,
     nameMutation: {
@@ -108,6 +109,7 @@ export function createPlayChainPlayerSync({
       equipmentReadKnown: state.equipmentReadKnown,
       appearance: state.appearance,
       progress: state.progress,
+      skills: state.skills,
       skillXp: state.skillXp,
       skillLevels: state.skillLevels,
       nameMutation: nameMutationSnapshot(),
@@ -144,27 +146,36 @@ export function createPlayChainPlayerSync({
     state.owner = wallet;
     try {
       const module = await loadPlayChainModule();
-      const [profileResult, equipmentResult, appearanceResult, progressResult] = await Promise.allSettled([
+      const [profileResult, equipmentResult, appearanceResult, progressResult, skillsResult] = await Promise.allSettled([
         typeof module.fetchPlayerProfileForOwner === "function" ? module.fetchPlayerProfileForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerEquipmentForOwner === "function" ? module.fetchPlayerEquipmentForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerAppearanceForOwner === "function" ? module.fetchPlayerAppearanceForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerProgress === "function" ? module.fetchPlayerProgress(wallet) : Promise.resolve(null),
+        typeof module.fetchPlayerSkillsForOwner === "function" ? module.fetchPlayerSkillsForOwner(wallet) : Promise.resolve(null),
       ]);
       const nextProfile = settledValue(profileResult);
       const nextEquipment = settledValue(equipmentResult);
       const nextAppearance = settledValue(appearanceResult);
       const nextProgress = settledValue(progressResult);
-      const nextSkillXp = skillXpFromProgress(nextProgress, nextProfile);
-      const nextSkillLevels = nextProfile?.initialized === false ? null : nextProfile?.skillLevels || null;
+      const nextSkills = settledValue(skillsResult);
+      const nextSkillXp = nextSkills?.initialized
+        ? nextSkills.xp
+        : skillXpFromProgress(nextProgress, nextProfile);
+      const nextSkillLevels = nextSkills?.initialized
+        ? nextSkills.levels
+        : nextProfile?.initialized === false
+          ? null
+          : nextProfile?.skillLevels || null;
       const previousSignature = stateSignature(state);
       state.profile = nextProfile?.initialized === false ? null : nextProfile;
       state.equipmentReadKnown = equipmentResult?.status === "fulfilled";
       state.equipment = nextEquipment?.initialized === false ? null : nextEquipment;
       state.appearance = nextAppearance?.initialized === false ? null : nextAppearance;
       state.progress = nextProgress;
+      state.skills = nextSkills?.initialized === false ? null : nextSkills;
       state.skillXp = nextSkillXp;
       state.skillLevels = nextSkillLevels;
-      state.lastError = firstRejectedReason(profileResult, equipmentResult, appearanceResult, progressResult);
+      state.lastError = firstRejectedReason(profileResult, equipmentResult, appearanceResult, progressResult, skillsResult);
       state.lastSyncAt = performance.now();
       applyEquipmentSnapshot();
       migrateEquipmentIfNeeded();
@@ -183,6 +194,7 @@ export function createPlayChainPlayerSync({
         equipment: state.equipment,
         appearance: state.appearance,
         progress: state.progress,
+        skills: state.skills,
         skillXp: state.skillXp,
         skillLevels: state.skillLevels,
       };
@@ -201,13 +213,14 @@ export function createPlayChainPlayerSync({
   }
 
   function clearState(reason = "") {
-    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skillXp || state.skillLevels || state.lastError);
+    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skills || state.skillXp || state.skillLevels || state.lastError);
     state.owner = "";
     state.profile = null;
     state.equipment = null;
     state.equipmentReadKnown = false;
     state.appearance = null;
     state.progress = null;
+    state.skills = null;
     state.skillXp = null;
     state.skillLevels = null;
     state.nameMutation.lastReason = reason;
@@ -779,6 +792,11 @@ function stateSignature(state) {
       precisionGatheringXp: state.progress.precisionGatheringXp,
       smeltingXp: state.progress.smeltingXp,
       explorationXp: state.progress.explorationXp,
+    } : null,
+    skills: state.skills ? {
+      publicKey: state.skills.publicKey,
+      updatedSlot: state.skills.updatedSlot,
+      ruleRevision: state.skills.ruleRevision,
     } : null,
     skillXp: state.skillXp,
     skillLevels: state.skillLevels,

@@ -5,6 +5,7 @@ import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   createExecuteSmeltingInstruction,
   deriveGlobalConfigPda,
+  deriveMaterialPhysicsPda,
   isValidSmeltingSubmissionSelection,
 } from "../../src/chain/nicechunkChain.js";
 
@@ -23,6 +24,7 @@ test("browser smelting instruction derives player progress under the smelting pr
     fuelIndexes: [1],
   });
   const globalConfig = deriveGlobalConfigPda();
+  const [materialPhysics] = deriveMaterialPhysicsPda();
   const [expectedProgress] = PublicKey.findProgramAddressSync([
     Buffer.from("player-progress"),
     globalConfig.toBuffer(),
@@ -34,14 +36,15 @@ test("browser smelting instruction derives player progress under the smelting pr
     owner.toBuffer(),
   ], chunkProgramId);
 
-  assert.equal(instruction.keys.length, 8);
+  assert.equal(instruction.keys.length, 9);
   assert.equal(instruction.keys[0].pubkey.toBase58(), owner.toBase58());
   assert.equal(instruction.keys[1].pubkey.toBase58(), recipeTable.toBase58());
   assert.equal(instruction.keys[2].pubkey.toBase58(), backpack.toBase58());
   assert.equal(instruction.keys[3].pubkey.toBase58(), expectedProgress.toBase58());
   assert.notEqual(instruction.keys[3].pubkey.toBase58(), incorrectChunkProgress.toBase58());
   assert.equal(instruction.keys[4].pubkey.toBase58(), globalConfig.toBase58());
-  assert.equal(instruction.keys[7].pubkey.toBase58(), SystemProgram.programId.toBase58());
+  assert.equal(instruction.keys[5].pubkey.toBase58(), materialPhysics.toBase58());
+  assert.equal(instruction.keys[8].pubkey.toBase58(), SystemProgram.programId.toBase58());
   assert.deepEqual([...instruction.data.subarray(0, 2)], [3, 2]);
 });
 

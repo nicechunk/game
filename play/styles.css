@@ -4393,7 +4393,8 @@ body {
   text-shadow: 0 2px 4px rgba(0, 34, 84, 0.44);
 }
 
-.backpack-meta-items::before {
+.backpack-meta-items::before,
+.backpack-meta-weight::before {
   content: "·";
   margin-right: 8px;
   opacity: 0.72;
@@ -7779,9 +7780,27 @@ body {
     min-width: 0;
   }
 
-  .play-panel .backpack-heading strong,
-  .play-panel .backpack-header .panel-meta {
+  .play-panel .backpack-heading strong {
     display: none;
+  }
+
+  .play-panel .backpack-header .panel-meta {
+    display: inline-flex;
+    min-height: 28px;
+    max-width: none;
+    padding-inline: 6px;
+    font-size: 0.58rem;
+  }
+
+  .play-panel .backpack-header .backpack-meta-stacks,
+  .play-panel .backpack-header .backpack-meta-items,
+  .play-panel .backpack-header .panel-meta::before {
+    display: none;
+  }
+
+  .play-panel .backpack-header .backpack-meta-weight::before {
+    content: none;
+    margin: 0;
   }
 
   .backpack-panel .inventory-mode-switch {
@@ -7798,7 +7817,7 @@ body {
 
   .play-panel .backpack-header-actions {
     min-width: 0;
-    gap: 0;
+    gap: 4px;
   }
 
   .play-panel .backpack-header #closeBackpackButton {

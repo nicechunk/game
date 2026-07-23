@@ -604,7 +604,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "Weight: {weight}",
+      "totalWeight": "총 무게: {weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -616,7 +616,8 @@
       "materialPropertyLine": "{grade} grade · Purity {purity}/100",
       "equipped": "장착 중",
       "equippedSlot": "단축바 {slot}번 슬롯에 장착 중",
-      "equippedLocked": "단축바 {slot}번 슬롯에 장착 중입니다. 선택, 이동 또는 버리기 전에 장착을 해제하세요."
+      "equippedLocked": "단축바 {slot}번 슬롯에 장착 중입니다. 선택, 이동 또는 버리기 전에 장착을 해제하세요.",
+      "weightPending": "무게 계산 중"
     },
     "loading": {
       "eyebrow": "World Gateway",

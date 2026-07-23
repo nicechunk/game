@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createSmeltingMergeRecipe,
+  smeltingMaterialPhysicalProfile,
   smeltingRules,
 } from "../../src/data/smeltingRules.js";
 import {
@@ -24,6 +25,24 @@ test("every primary and merge recipe resolves its canonical chain identity", () 
       recipeTableId: material.mergeRecipeTableId,
     });
   }
+});
+
+test("every manufactured material has a canonical volume and density", () => {
+  for (const material of smeltingRules.materials) {
+    const physical = smeltingMaterialPhysicalProfile(material);
+    assert.ok(physical.unitVolumeMm3 > 0, material.id);
+    assert.ok(physical.densityKgM3 > 0, material.id);
+    assert.ok(physical.massKg > 0, material.id);
+  }
+
+  assert.deepEqual(
+    pickPhysical(smeltingMaterialPhysicalProfile("stone_brick")),
+    { unitVolumeMm3: 31_250, densityKgM3: 2_400, massKg: 0.075 },
+  );
+  assert.deepEqual(
+    pickPhysical(smeltingMaterialPhysicalProfile("blasting_charge")),
+    { unitVolumeMm3: 750_000, densityKgM3: 1_250, massKg: 0.9375 },
+  );
 });
 
 test("blasting charge uses the last free slots in recipe tables 225 and 325", () => {
@@ -50,3 +69,11 @@ test("an exact merge match remains selected instead of reverting to the primary 
   assert.equal(resolveSelectedSmeltingRecipe(primary, match, 2), merge);
   assert.equal(resolveSelectedSmeltingRecipe(primary, match, 1), primary);
 });
+
+function pickPhysical(profile) {
+  return {
+    unitVolumeMm3: profile.unitVolumeMm3,
+    densityKgM3: profile.densityKgM3,
+    massKg: profile.massKg,
+  };
+}

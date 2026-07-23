@@ -76,7 +76,14 @@ export function createPlayBackpackUi({
       const itemMeta = document.createElement("span");
       itemMeta.className = "backpack-meta-items";
       itemMeta.textContent = `${totalItems} items`;
-      elements.backpackMeta.replaceChildren(stackMeta, itemMeta);
+      const weightMeta = document.createElement("span");
+      weightMeta.className = "backpack-meta-weight";
+      weightMeta.textContent = gameState.backpackMassInitialized
+        ? ui("main.backpack.totalWeight", "Weight {weight}", {
+            weight: formatBackpackMass(gameState.backpackTotalMassGrams),
+          })
+        : ui("main.backpack.weightPending", "Weight pending");
+      elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
     }
     updateCategoryButtons(slots);
 
@@ -243,4 +250,24 @@ function formatMessage(template, params = {}) {
   return String(template || "").replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => (
     Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
   ));
+}
+
+function formatBackpackMass(value) {
+  let grams = 0;
+  try {
+    grams = Number(BigInt(value ?? 0));
+  } catch {
+    grams = 0;
+  }
+  if (!Number.isFinite(grams) || grams <= 0) return "0 kg";
+  if (grams < 1_000) return `${Math.round(grams)} g`;
+  if (grams < 1_000_000) return `${formatMassNumber(grams / 1_000, grams < 10_000 ? 2 : 1)} kg`;
+  return `${formatMassNumber(grams / 1_000_000, 2)} t`;
+}
+
+function formatMassNumber(value, maximumFractionDigits) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  }).format(value);
 }

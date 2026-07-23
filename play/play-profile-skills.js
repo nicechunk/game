@@ -4,13 +4,61 @@ export const PROFILE_SKILL_XP_REQUIREMENT_MULTIPLIER = 10;
 const PROFILE_SKILL_STORAGE_PREFIX = "nicechunk.playerSkills.";
 const PROFILE_SKILL_XP_STORAGE_PREFIX = "nicechunk.playerSkillXp.";
 
+export const PLAYER_SKILL_XP_SOURCE_DEFINITIONS = Object.freeze([
+  xpSource("minedBlock", "Verified mined block", "block", {
+    precisionGathering: 115,
+    burden: 18,
+    exploration: 44,
+    stamina: 9,
+    strength: 18,
+    appraisal: 22,
+  }),
+  xpSource("rareDrop", "Verified rare resource drop", "drop", {
+    burden: 5,
+    exploration: 100,
+    stamina: 2,
+    strength: 2,
+    appraisal: 45,
+  }),
+  xpSource("exploredChunk", "First verified chunk discovery", "chunk", {
+    exploration: 75,
+    stamina: 8,
+    appraisal: 15,
+  }),
+  xpSource("miningTravel", "Verified mining travel", "160-block mine", {
+    swiftness: 1,
+  }),
+  xpSource("smeltingInput", "Consumed smelting input", "input", {
+    burden: 12,
+    smelting: 250,
+    forging: 38,
+    craftsmanship: 28,
+    stamina: 6,
+    appraisal: 36,
+  }),
+  xpSource("forgingQualityXp", "Verified forging quality XP", "quality XP", {
+    burden: 5,
+    forging: 100,
+    craftsmanship: 20,
+    stamina: 10,
+    strength: 10,
+    appraisal: 15,
+  }, 100),
+  xpSource("forgedItem", "Completed forged item", "item", {
+    burden: 8,
+    craftsmanship: 120,
+    stamina: 15,
+    strength: 20,
+    appraisal: 50,
+  }),
+]);
+
 export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
   {
     id: "precisionGathering",
     name: "Precision Gathering",
     tone: "green",
-    xpBase: 90,
-    xpGrowth: 1.52,
+    xp: { base: 90, growth: 1.52 },
     effect: { key: "precisionGatheringBps", base: 1000, perLevel: 1000, max: 10000 },
     description: "Controls how much verified resource yield is recovered from each mined resource block.",
     xpSource: "Gains XP from confirmed mining and collected resources.",
@@ -29,8 +77,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "burden",
     name: "Burden",
     tone: "amber",
-    xpBase: 130,
-    xpGrowth: 1.58,
+    xp: { base: 130, growth: 1.58 },
     effect: { key: "safeCarryKg", base: 30, perLevel: 10, max: 130 },
     description: "Defines safe carry capacity for mined resources, tools, and future equipment mass.",
     xpSource: "Gains XP from hauling mined and crafted items.",
@@ -49,8 +96,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "smelting",
     name: "Smelting",
     tone: "red",
-    xpBase: 120,
-    xpGrowth: 1.56,
+    xp: { base: 120, growth: 1.56 },
     effect: { key: "smeltingOutputBps", base: 7000, perLevel: 300, max: 10000 },
     description: "Improves ore processing efficiency for local and chain-backed material output.",
     xpSource: "Gains XP from smelting runs and confirmed output materials.",
@@ -71,8 +117,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "forging",
     name: "Forging",
     tone: "steel",
-    xpBase: 140,
-    xpGrowth: 1.6,
+    xp: { base: 140, growth: 1.6 },
     effect: { key: "forgingDurabilityBonusBps", base: 0, perLevel: 500, max: 5000 },
     description: "Improves forged equipment durability and future tool quality calculations.",
     xpSource: "Gains XP from forging-ready material output and future forged equipment actions.",
@@ -91,8 +136,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "craftsmanship",
     name: "Craftsmanship",
     tone: "cyan",
-    xpBase: 180,
-    xpGrowth: 1.66,
+    xp: { base: 180, growth: 1.66 },
     effect: { key: "craftsmanshipTier", base: 1, perLevel: 0.5, max: 6, rounding: "floor" },
     description: "Unlocks more advanced build, assembly, and civilization production tiers.",
     xpSource: "Gains XP from placement and material production.",
@@ -111,8 +155,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "swiftness",
     name: "Swiftness",
     tone: "blue",
-    xpBase: 110,
-    xpGrowth: 1.5,
+    xp: { base: 110, growth: 1.5 },
     effect: { key: "movementSpeedMultiplier", base: 1, perLevel: 0.03, max: 1.3 },
     description: "Improves movement efficiency without changing chain-verifiable world rules.",
     xpSource: "Gains XP from traversal-like activity such as mining and placement sessions.",
@@ -131,8 +174,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "exploration",
     name: "Exploration",
     tone: "violet",
-    xpBase: 125,
-    xpGrowth: 1.57,
+    xp: { base: 125, growth: 1.57 },
     effect: { key: "rareRollWeightBps", base: 0, perLevel: 1000, max: 10000 },
     description: "Improves future rare discovery rolls while keeping resource truth coordinate based.",
     xpSource: "Gains XP from confirmed mines and rare extra-drop events.",
@@ -151,8 +193,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "stamina",
     name: "Stamina",
     tone: "lime",
-    xpBase: 105,
-    xpGrowth: 1.5,
+    xp: { base: 105, growth: 1.5 },
     effect: { key: "fatigueCostMultiplier", base: 1, perLevel: -0.04, min: 0.6 },
     description: "Reduces repeated action fatigue for mining, movement, and future work loops.",
     xpSource: "Gains XP from mining and placement actions.",
@@ -171,8 +212,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "strength",
     name: "Strength",
     tone: "orange",
-    xpBase: 145,
-    xpGrowth: 1.59,
+    xp: { base: 145, growth: 1.59 },
     effect: { key: "oneHandLiftKg", base: 8, perLevel: 4, max: 48 },
     description: "Controls one-hand equipment handling for future physically validated tools.",
     xpSource: "Gains XP from mining actions and heavy material handling.",
@@ -191,8 +231,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "appraisal",
     name: "Appraisal",
     tone: "gold",
-    xpBase: 160,
-    xpGrowth: 1.62,
+    xp: { base: 160, growth: 1.62 },
     effect: { key: "visibleMaterialTraits", base: 2, perLevel: 1, max: 12 },
     description: "Reveals material traits for rare resources, markets, and civilization rules.",
     xpSource: "Gains XP from confirmed resources and processed materials.",
@@ -207,10 +246,25 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
       };
     },
   },
-].map((skill) => Object.freeze({
-  ...skill,
-  effect: Object.freeze({ ...skill.effect }),
-})));
+].map((skill) => {
+  const sources = PLAYER_SKILL_XP_SOURCE_DEFINITIONS
+    .filter((source) => Number(source.rewards[skill.id]) > 0)
+    .map((source) => Object.freeze({
+      id: source.id,
+      name: source.name,
+      unit: source.unit,
+      rate: source.rewards[skill.id],
+      divisor: source.divisor,
+      xpPerUnit: source.rewards[skill.id] / source.divisor,
+    }));
+  return Object.freeze({
+    ...skill,
+    xpBase: skill.xp.base,
+    xpGrowth: skill.xp.growth,
+    xp: Object.freeze({ ...skill.xp, sources: Object.freeze(sources) }),
+    effect: Object.freeze({ ...skill.effect }),
+  });
+}));
 
 export function profileSkillEffectValue(skill, level) {
   const effect = skill?.effect;
@@ -227,7 +281,9 @@ export function profileSkillEffectValue(skill, level) {
 export function profileSkillExperienceRequirement(skill, level) {
   if (level >= PROFILE_SKILL_MAX_LEVEL) return 0;
   const nextLevel = Math.max(1, Math.min(PROFILE_SKILL_MAX_LEVEL, Math.trunc(level) + 1));
-  return Math.round((skill?.xpBase ?? 100) * PROFILE_SKILL_XP_REQUIREMENT_MULTIPLIER * Math.pow(nextLevel, skill?.xpGrowth ?? 1.55));
+  return Math.round((skill?.xp?.base ?? skill?.xpBase ?? 100)
+    * PROFILE_SKILL_XP_REQUIREMENT_MULTIPLIER
+    * Math.pow(nextLevel, skill?.xp?.growth ?? skill?.xpGrowth ?? 1.55));
 }
 
 export function profileSkillTotalExperienceForLevel(skill, level) {
@@ -427,4 +483,14 @@ function positiveInt(value) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function xpSource(id, name, unit, rewards, divisor = 1) {
+  return Object.freeze({
+    id,
+    name,
+    unit,
+    divisor,
+    rewards: Object.freeze({ ...rewards }),
+  });
 }

@@ -1595,6 +1595,40 @@ export const smeltingMaterialAttributeProfiles = {
   blasting_charge: { hardness: 18, durability: 42, toughness: 30, ductility: 24, brittleness: 50, density: 38, heatResistance: 6, corrosionResistance: 34, conductivity: 8, thermalConductivity: 12, magnetism: 0, workability: 26 },
 };
 
+// These values describe one canonical inventory unit in its rendered bulk form.
+export const smeltingMaterialPhysicalProfiles = Object.freeze({
+  charcoal: Object.freeze({ unitVolumeMm3: 750000, densityKgM3: 250, thermalConductivityWMK: 0.12, waterAbsorptionPct: 18 }),
+  biochar_compost: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 450, thermalConductivityWMK: 0.18, waterAbsorptionPct: 45 }),
+  resin_binder: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 1100, thermalConductivityWMK: 0.2, waterAbsorptionPct: 0.5 }),
+  ceramic_brick: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 1900, thermalConductivityWMK: 0.9, waterAbsorptionPct: 12, compressiveStrengthMpa: 35, flexuralStrengthMpa: 5 }),
+  lime_ceramic: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 1750, thermalConductivityWMK: 0.75, waterAbsorptionPct: 16, compressiveStrengthMpa: 28, flexuralStrengthMpa: 4 }),
+  quicklime: Object.freeze({ unitVolumeMm3: 500000, densityKgM3: 900, thermalConductivityWMK: 0.35, waterAbsorptionPct: 100 }),
+  salt_flux: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 1200, thermalConductivityWMK: 0.55, waterAbsorptionPct: 25 }),
+  ash_cement: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 1300, thermalConductivityWMK: 0.4, waterAbsorptionPct: 22 }),
+  glass_ingot: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 2500, thermalConductivityWMK: 1.0, waterAbsorptionPct: 0, compressiveStrengthMpa: 1000, flexuralStrengthMpa: 45 }),
+  obsidian_glass: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 2400, thermalConductivityWMK: 1.3, waterAbsorptionPct: 0.1, compressiveStrengthMpa: 900, flexuralStrengthMpa: 40 }),
+  silicon_wafer: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 2330, thermalConductivityWMK: 148, waterAbsorptionPct: 0, compressiveStrengthMpa: 7000, flexuralStrengthMpa: 170 }),
+  ice_crystal: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 917, thermalConductivityWMK: 2.2, waterAbsorptionPct: 0, compressiveStrengthMpa: 5, flexuralStrengthMpa: 1 }),
+  iron_bloom: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 7000, thermalConductivityWMK: 55, waterAbsorptionPct: 2, compressiveStrengthMpa: 180, flexuralStrengthMpa: 120 }),
+  copper_bloom: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 8200, thermalConductivityWMK: 360, waterAbsorptionPct: 1, compressiveStrengthMpa: 210, flexuralStrengthMpa: 170 }),
+  alumina_plate: Object.freeze({ unitVolumeMm3: 60000, densityKgM3: 3900, thermalConductivityWMK: 30, waterAbsorptionPct: 0, compressiveStrengthMpa: 2200, flexuralStrengthMpa: 350 }),
+  nickel_iron: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 8100, thermalConductivityWMK: 28, waterAbsorptionPct: 0, compressiveStrengthMpa: 650, flexuralStrengthMpa: 480 }),
+  carbon_plate: Object.freeze({ unitVolumeMm3: 60000, densityKgM3: 1600, thermalConductivityWMK: 8, waterAbsorptionPct: 0.3, compressiveStrengthMpa: 500, flexuralStrengthMpa: 350 }),
+  carbon_steel: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 7850, thermalConductivityWMK: 45, waterAbsorptionPct: 0, compressiveStrengthMpa: 600, flexuralStrengthMpa: 500 }),
+  basalt_fiber: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 2670, thermalConductivityWMK: 0.04, waterAbsorptionPct: 0.5, flexuralStrengthMpa: 1000 }),
+  basalt_composite: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 2100, thermalConductivityWMK: 0.45, waterAbsorptionPct: 0.4, compressiveStrengthMpa: 420, flexuralStrengthMpa: 520 }),
+  geopolymer_block: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 2200, thermalConductivityWMK: 1.1, waterAbsorptionPct: 5, compressiveStrengthMpa: 70, flexuralStrengthMpa: 8 }),
+  coral_lime: Object.freeze({ unitVolumeMm3: 500000, densityKgM3: 900, thermalConductivityWMK: 0.35, waterAbsorptionPct: 35 }),
+  toxic_glass: Object.freeze({ unitVolumeMm3: 250000, densityKgM3: 2550, thermalConductivityWMK: 0.95, waterAbsorptionPct: 0, compressiveStrengthMpa: 950, flexuralStrengthMpa: 42 }),
+  cotton_cloth: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 150, thermalConductivityWMK: 0.04, waterAbsorptionPct: 27, flexuralStrengthMpa: 0.04 }),
+  white_dye: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 1200, thermalConductivityWMK: 0.25, waterAbsorptionPct: 8 }),
+  yellow_dye: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 1100, thermalConductivityWMK: 0.22, waterAbsorptionPct: 10 }),
+  red_dye: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 1150, thermalConductivityWMK: 0.23, waterAbsorptionPct: 9 }),
+  blue_dye: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 1250, thermalConductivityWMK: 0.27, waterAbsorptionPct: 8 }),
+  pink_dye: Object.freeze({ unitVolumeMm3: 20000, densityKgM3: 1120, thermalConductivityWMK: 0.22, waterAbsorptionPct: 10 }),
+  blasting_charge: Object.freeze({ unitVolumeMm3: 750000, densityKgM3: 1250, thermalConductivityWMK: 0.18, waterAbsorptionPct: 2 }),
+});
+
 for (const material of BUILDING_MATERIAL_RULES) {
   smeltingMaterialAttributeProfiles[material.id] = material.attributes;
 }
@@ -1627,6 +1661,8 @@ export const SMELTING_RECIPE_YIELD_BPS_DENOMINATOR = 10_000;
 export const SMELTING_DEFAULT_INPUT_VOLUME_MM3 = 1_000_000;
 
 for (const material of smeltingRules.materials) {
+  const physical = smeltingMaterialPhysicalProfiles[material.id];
+  if (physical) Object.assign(material, physical);
   material.itemCode = smeltingMaterialItemCode(material.id);
   material.recipeId = smeltingRecipeIdForMaterialId(material.id);
   material.mergeRecipeId = smeltingMergeRecipeIdForMaterialId(material.id);
@@ -1635,6 +1671,30 @@ for (const material of smeltingRules.materials) {
   material.attributes = smeltingMaterialBaseAttributes(material);
   material.yieldBps = smeltingRecipeYieldBps(material);
   material.mergeYieldBps = SMELTING_RECIPE_YIELD_BPS_DENOMINATOR;
+}
+
+export function smeltingMaterialPhysicalProfile(materialOrId, rules = smeltingRules) {
+  const material = typeof materialOrId === "string" ? smeltingMaterialById(materialOrId, rules) : materialOrId;
+  if (!material) return null;
+  const unitVolumeMm3 = Math.max(0, Math.trunc(Number(material.unitVolumeMm3) || 0));
+  const densityKgM3 = Math.max(0, Number(material.densityKgM3) || 0);
+  const volumeM3 = unitVolumeMm3 / 1_000_000_000;
+  return Object.freeze({
+    unitDimensionsVu: Array.isArray(material.unitDimensionsVu) ? Object.freeze([...material.unitDimensionsVu]) : null,
+    unitVolumeMm3,
+    volumeM3,
+    densityKgM3,
+    massKg: densityKgM3 * volumeM3,
+    thermalConductivityWMK: finitePhysicalValue(material.thermalConductivityWMK),
+    waterAbsorptionPct: finitePhysicalValue(material.waterAbsorptionPct),
+    compressiveStrengthMpa: finitePhysicalValue(material.compressiveStrengthMpa),
+    flexuralStrengthMpa: finitePhysicalValue(material.flexuralStrengthMpa),
+  });
+}
+
+function finitePhysicalValue(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
 }
 
 
@@ -1839,12 +1899,19 @@ export function validateSmeltingRules(rules = smeltingRules) {
     if (!Number.isInteger(material.yieldBps) || material.yieldBps < 1 || material.yieldBps > SMELTING_RECIPE_YIELD_BPS_DENOMINATOR) {
       throw new Error(`Material ${material.id} has invalid yieldBps`);
     }
-    if (material.unitVolumeMm3 !== undefined && (
-      !Number.isInteger(material.unitVolumeMm3)
+    if (!Number.isInteger(material.unitVolumeMm3)
       || material.unitVolumeMm3 < 1
       || material.unitVolumeMm3 > 0xffffffff
-    )) {
+    ) {
       throw new Error(`Material ${material.id} has invalid unitVolumeMm3`);
+    }
+    if (!Number.isFinite(material.densityKgM3) || material.densityKgM3 <= 0) {
+      throw new Error(`Material ${material.id} has invalid densityKgM3`);
+    }
+    for (const key of ["thermalConductivityWMK", "waterAbsorptionPct"]) {
+      if (!Number.isFinite(material[key]) || material[key] < 0) {
+        throw new Error(`Material ${material.id} has invalid ${key}`);
+      }
     }
     if (material.buildingMaterialId !== undefined) {
       if (!Array.isArray(material.unitDimensionsVu) || material.unitDimensionsVu.length !== 3

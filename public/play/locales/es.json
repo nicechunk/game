@@ -604,7 +604,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "Weight: {weight}",
+      "totalWeight": "Peso total: {weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -616,7 +616,8 @@
       "materialPropertyLine": "{grade} grade · Purity {purity}/100",
       "equipped": "Equipado",
       "equippedSlot": "Equipado en la ranura {slot} de la barra",
-      "equippedLocked": "Equipado en la ranura {slot} de la barra. Quítalo antes de seleccionarlo, moverlo o descartarlo."
+      "equippedLocked": "Equipado en la ranura {slot} de la barra. Quítalo antes de seleccionarlo, moverlo o descartarlo.",
+      "weightPending": "Peso pendiente"
     },
     "loading": {
       "eyebrow": "World Gateway",

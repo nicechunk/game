@@ -32,6 +32,8 @@ export function createPlayChainBackpackSync({
     backpackAddress: "",
     capacity: 0,
     itemCount: 0,
+    massInitialized: false,
+    totalMassGrams: "0",
     updatedSlot: "0",
     syncedSlots: 0,
     available: false,
@@ -39,6 +41,7 @@ export function createPlayChainBackpackSync({
   };
   let requestSerial = 0;
   let loadedBackpack = null;
+  const massMigrationAttempts = new Set();
 
   return {
     refresh,
@@ -61,6 +64,8 @@ export function createPlayChainBackpackSync({
       state.backpackAddress = "";
       state.capacity = 0;
       state.itemCount = 0;
+      state.massInitialized = false;
+      state.totalMassGrams = "0";
       state.updatedSlot = "0";
       state.syncedSlots = 0;
       state.lastError = "wallet-unavailable";
@@ -78,6 +83,8 @@ export function createPlayChainBackpackSync({
       state.backpackAddress = "";
       state.capacity = 0;
       state.itemCount = 0;
+      state.massInitialized = false;
+      state.totalMassGrams = "0";
       state.updatedSlot = "0";
       state.syncedSlots = 0;
       state.lastSyncAt = 0;
@@ -101,6 +108,8 @@ export function createPlayChainBackpackSync({
         state.backpackAddress = "";
         state.capacity = 0;
         state.itemCount = 0;
+        state.massInitialized = false;
+        state.totalMassGrams = "0";
         state.updatedSlot = "0";
         state.syncedSlots = 0;
         state.lastError = "no-equipped-backpack";
@@ -112,7 +121,8 @@ export function createPlayChainBackpackSync({
         if (!quiet) appendEvent("No equipped chain backpack found for this wallet.");
         return { ok: false, reason: "no-equipped-backpack", changed: Boolean(cleared?.changed || availability.changed) };
       }
-      const backpack = await loadBackpack(module, status.backpack);
+      let backpack = await loadBackpack(module, status.backpack);
+      backpack = await migrateBackpackMassIfNeeded(module, backpack, wallet, quiet);
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
       const applied = applyBackpack(backpack, status.backpack.publicKey);
       if (!quiet) onStatus(`Synced chain backpack PDA: ${applied.chainSlots.length}/${state.capacity || 50} slots.`);
@@ -177,10 +187,14 @@ export function createPlayChainBackpackSync({
     const merged = gameState?.mergeChainBackpackSlots?.(chainSlots, {
       source: CHAIN_BACKPACK_SOURCE,
       capacity,
+      massInitialized: backpack.massInitialized === true,
+      totalMassGrams: backpack.totalMassGrams ?? "0",
     });
     state.backpackAddress = String(backpack.publicKey || fallbackAddress || "");
     state.capacity = capacity;
     state.itemCount = Math.max(0, Math.trunc(Number(backpack.itemCount) || 0));
+    state.massInitialized = backpack.massInitialized === true;
+    state.totalMassGrams = normalizeUnsignedIntegerString(backpack.totalMassGrams);
     state.updatedSlot = String(backpack.updatedSlot ?? "0");
     state.syncedSlots = chainSlots.length;
     state.lastError = "";
@@ -188,6 +202,28 @@ export function createPlayChainBackpackSync({
     const availability = setAvailability(true, true);
     if (merged?.changed || availability.changed) onChanged();
     return { chainSlots, changed: Boolean(merged?.changed || availability.changed) };
+  }
+
+  async function migrateBackpackMassIfNeeded(module, backpack, wallet, quiet) {
+    if (!backpack?.publicKey || backpack.massInitialized === true) return backpack;
+    const address = String(backpack.publicKey || "");
+    const migrationKey = `${wallet}:${address}`;
+    if (massMigrationAttempts.has(migrationKey) || typeof module.migrateBackpackMassOnChain !== "function") {
+      return backpack;
+    }
+    massMigrationAttempts.add(migrationKey);
+    const result = await module.migrateBackpackMassOnChain({ backpackAddress: address });
+    if (!result?.submitted && result?.reason !== "already-initialized") {
+      if (!quiet) onStatus(`Backpack weight migration failed: ${result?.reason || "not-submitted"}.`);
+      return backpack;
+    }
+    if (typeof module.fetchBackpack !== "function") return backpack;
+    const migrated = await module.fetchBackpack(address);
+    if (migrated?.massInitialized) {
+      appendEvent(`Backpack weight initialized${result?.signature ? `: ${shortSignature(result.signature)}` : "."}`);
+      return migrated;
+    }
+    return backpack;
   }
 
   function isCurrentRequest(requestId, wallet) {
@@ -329,6 +365,7 @@ export function chainSlotsFromBackpack(backpack, {
       chainIndex: index,
       volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
       volumeMilliLiters: Math.max(0, Math.trunc((Number(slot.volumeMm3) || 0) / 1000)),
+      massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
       metadata,
       ...decoration,
       proof: {
@@ -402,6 +439,7 @@ function chainItemSlot(slot, index, address, owner) {
       blueprintOwner: owner,
       locked: false,
       volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
+      massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
       metadata: Math.max(0, Math.trunc(Number(slot.metadata) || 0)),
       proofHash: itemPda,
     };
@@ -430,6 +468,7 @@ function chainItemSlot(slot, index, address, owner) {
     itemCode,
     itemPda: String(slot.itemPda || ""),
     volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
+    massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
     durabilityCurrent: Math.max(0, Math.trunc(Number(slot.durabilityCurrent) || 0)),
     durabilityMax: Math.max(0, Math.trunc(Number(slot.durabilityMax) || 0)),
     grade: Math.max(0, Math.trunc(Number(slot.grade) || 0)),
@@ -490,6 +529,15 @@ function normalizeDiscardItems(items = []) {
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length <= 12 ? value : `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function normalizeUnsignedIntegerString(value) {
+  try {
+    const normalized = BigInt(value ?? 0);
+    return (normalized >= 0n ? normalized : 0n).toString();
+  } catch {
+    return "0";
+  }
 }
 
 function parseSlot(value) {

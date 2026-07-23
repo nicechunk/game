@@ -616,7 +616,8 @@
       "materialPropertyLine": "{grade}品级 · 纯度 {purity}/100",
       "equipped": "已装备",
       "equippedSlot": "已装备至工具栏第 {slot} 格",
-      "equippedLocked": "已装备至工具栏第 {slot} 格。取下装备后才能选择、移动或丢弃。"
+      "equippedLocked": "已装备至工具栏第 {slot} 格。取下装备后才能选择、移动或丢弃。",
+      "weightPending": "重量计算中"
     },
     "loading": {
       "eyebrow": "世界网关",
