@@ -31,6 +31,7 @@ import { createPositionPersistence, loadSavedPlayerPosition } from "./position-p
 import { createPlayerMotionController } from "./player-motion-controller.js";
 import { createPlayChainBackpackSync } from "./play-chain-backpack.js";
 import { createPlayBackpackCreation } from "./play-backpack-creation.js";
+import { resolveBackpackReadState } from "./backpack-read-state.js";
 import {
   createPlayChainChunkDeltaSync,
   DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT,
@@ -595,11 +596,15 @@ async function handleWalletSessionChanged(walletAddress) {
   chainSession?.render?.();
 }
 
-function setStatus(message, { quiet = true } = {}) {
+function setStatus(message, options = {}) {
+  const settings = options && typeof options === "object" ? options : {};
+  const quiet = settings.quiet !== false;
+  const tone = typeof options === "string" ? options : String(settings.tone || "info");
   const text = String(message || "");
   if (elements.status) elements.status.textContent = text;
   if (elements.gameStatus) {
     elements.gameStatus.textContent = text;
+    elements.gameStatus.dataset.tone = tone;
     elements.gameStatus.classList.remove("is-quiet", "is-hidden");
     clearTimeout(statusQuietTimer);
     if (quiet) {
@@ -832,8 +837,12 @@ async function boot() {
     getPlayerPosition: () => player ? playerWorldFloat() : [0, 0, 0],
     getPendingCount: () => (mining?.pendingCount() ?? 0) + (placement?.pendingCount() ?? 0),
     getChainSnapshot: chainSnapshot,
+    getBackpackSnapshot: () => chainBackpack?.snapshot?.() ?? null,
     getAvatarEquipment: currentAvatarEquipment,
-    onBackpackPanelOpened: () => smelting?.showInventory?.(),
+    onOpenBackpack: openBackpackPanel,
+    onBackpackPanelOpened: () => {
+      smelting?.showInventory?.();
+    },
     onBackpackPanelClosed: () => {
       smelting?.closePanel?.();
       inventory?.clearSelection?.({ silent: true });
@@ -952,11 +961,17 @@ async function boot() {
       chainPlayer?.applyEquipmentSnapshot?.();
       chainPlayer?.migrateEquipmentIfNeeded?.();
       renderGameUi();
+      openCreationAfterConfirmedBackpackAbsence();
     },
     onStatus: setStatus,
     appendEvent: (message) => chainSession?.appendChainEvent?.(message),
     chunkSize: chunks.chunkSize || 16,
     resolveSurfaceDecoration: (resource) => surfaceDecorationSync?.resolveBackpackDecoration?.(resource),
+    onSyncStateChanged: () => {
+      playUi?.renderBackpack?.();
+      backpackCreation?.render?.();
+    },
+    translate: translateWithFallback,
   });
   backpackCreation = createPlayBackpackCreation({
     elements,
@@ -969,6 +984,7 @@ async function boot() {
     onCreated: () => renderGameUi(),
     onStatus: setStatus,
     appendEvent: (message) => chainSession?.appendChainEvent?.(message),
+    translate: translateWithFallback,
   });
   chainFrameSync = createPlayChainFrameSync({
     getChainBackpack: () => chainBackpack,
@@ -1874,23 +1890,42 @@ function localOverlayTarget() {
 }
 
 function toggleBackpackPanel() {
-  if (!gameState.isBackpackAvailable()) {
-    backpackCreation?.open({ source: "backpack" });
+  if (elements.backpackPanel && !elements.backpackPanel.hidden) {
+    playUi?.closeBackpackPanel();
     return;
   }
-  playUi?.toggleBackpackPanel();
+  openBackpackPanel();
 }
 
 function openBackpackPanel() {
-  if (!gameState.isBackpackAvailable()) {
+  const readState = currentBackpackReadState();
+  if (readState.known && !readState.available) {
     backpackCreation?.open({ source: "backpack" });
     return;
   }
   playUi?.openBackpackPanel();
   inventory?.refresh();
-  chainBackpack?.refresh({ quiet: false }).then((result) => {
+  const snapshot = chainBackpack?.snapshot?.();
+  const force = snapshot?.statusKnown !== true
+    || Boolean(snapshot?.lastError && snapshot.lastError !== "no-equipped-backpack");
+  chainBackpack?.refresh({ force, quiet: false }).then((result) => {
     if (result?.ok) renderGameUi();
   });
+}
+
+function currentBackpackReadState() {
+  return resolveBackpackReadState({
+    gameState,
+    snapshot: chainBackpack?.snapshot?.(),
+  });
+}
+
+function openCreationAfterConfirmedBackpackAbsence() {
+  if (elements.backpackPanel?.hidden) return;
+  const readState = currentBackpackReadState();
+  if (!readState.known || readState.available) return;
+  playUi?.closeBackpackPanel();
+  backpackCreation?.open({ source: "backpack" });
 }
 
 function chainBackpackAnimationTarget() {

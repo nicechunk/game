@@ -9,7 +9,6 @@ import {
   createCancelMarketListingInstruction,
   createFellTreeWithRewardsInstruction,
   createMineBlockWithRewardsInstruction,
-  createMigrateBackpackMassInstruction,
   createRangeMineWithRewardsInstruction,
   createTransferPlayerEquipmentSlotInstruction,
   decodeBackpack,
@@ -24,26 +23,16 @@ const backpack = Keypair.generate().publicKey;
 const listing = Keypair.generate().publicKey;
 const materialPhysics = deriveMaterialPhysicsPda()[0];
 
-test("browser backpack v3 decoder exposes authoritative mass fields and per-slot mass", () => {
+test("browser backpack v4 decoder exposes authoritative mass fields and per-slot mass", () => {
   const data = backpackFixture();
   const decoded = decodeBackpack(data);
 
-  assert.equal(decoded.massInitialized, true);
   assert.equal(decoded.totalMassGrams, "12550");
   assert.equal(decoded.lastMinePreMassGrams, "10000");
   assert.equal(decoded.lastMineActionId, "998877");
   assert.equal(decoded.mineSequence, "42");
   assert.equal(decoded.slots[0].massGrams, 2600);
   assert.equal(decoded.slots[1].massGrams, 625);
-});
-
-test("backpack mass migration uses the canonical MaterialPhysics PDA", () => {
-  const instruction = createMigrateBackpackMassInstruction({ owner, backpack });
-
-  assert.equal(instruction.keys.length, 4);
-  assert.equal(instruction.keys[1].pubkey.toBase58(), backpack.toBase58());
-  assert.equal(instruction.keys[2].pubkey.toBase58(), materialPhysics.toBase58());
-  assert.equal(instruction.keys[3].pubkey.toBase58(), deriveGlobalConfigPda().toBase58());
 });
 
 test("all mining instruction variants pass MaterialPhysics at the Rust account index", () => {
@@ -141,7 +130,7 @@ test("market cancel and both purchase currencies preserve destination mass accou
 function backpackFixture() {
   const data = Buffer.alloc(8048);
   data.write("NCKBPK01", 0, "utf8");
-  data.writeUInt16LE(3, 8);
+  data.writeUInt16LE(4, 8);
   data.writeUInt8(1, 11);
   data.writeBigUInt64LE(7n, 12);
   owner.toBuffer().copy(data, 20);

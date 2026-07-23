@@ -1,0 +1,791 @@
+{
+  "schemaVersion": 2,
+  "revision": 1,
+  "seed": "material-physics-v2",
+  "units": {
+    "volume": "mm3",
+    "density": "kg/m3",
+    "mass": "g"
+  },
+  "massFormula": "round(volumeMm3 * densityKgM3 / 1000000)",
+  "ruleCount": 111,
+  "rules": [
+    {
+      "kind": "block",
+      "id": 1,
+      "name": "grass",
+      "densityKgM3": 1200,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 2,
+      "name": "dirt",
+      "densityKgM3": 1300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 3,
+      "name": "stone",
+      "densityKgM3": 2600,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 4,
+      "name": "deepStone",
+      "densityKgM3": 2900,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 5,
+      "name": "sand",
+      "densityKgM3": 1600,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 6,
+      "name": "gravel",
+      "densityKgM3": 1700,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 7,
+      "name": "clay",
+      "densityKgM3": 1600,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 8,
+      "name": "mud",
+      "densityKgM3": 1700,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 9,
+      "name": "dryDirt",
+      "densityKgM3": 1200,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 10,
+      "name": "saltFlat",
+      "densityKgM3": 2160,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 11,
+      "name": "snow",
+      "densityKgM3": 300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 12,
+      "name": "ice",
+      "densityKgM3": 917,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 13,
+      "name": "frozenSoil",
+      "densityKgM3": 1700,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 14,
+      "name": "basalt",
+      "densityKgM3": 3000,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 15,
+      "name": "ash",
+      "densityKgM3": 900,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 17,
+      "name": "water",
+      "densityKgM3": 1000,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 18,
+      "name": "swampWater",
+      "densityKgM3": 1010,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 19,
+      "name": "toxicWater",
+      "densityKgM3": 1050,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 20,
+      "name": "lava",
+      "densityKgM3": 2600,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 21,
+      "name": "quicksand",
+      "densityKgM3": 1900,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 22,
+      "name": "trunk",
+      "densityKgM3": 650,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 23,
+      "name": "leaves",
+      "densityKgM3": 250,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 24,
+      "name": "pineTrunk",
+      "densityKgM3": 500,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 25,
+      "name": "pineLeaves",
+      "densityKgM3": 220,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 26,
+      "name": "deadWood",
+      "densityKgM3": 450,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 27,
+      "name": "giantRoot",
+      "densityKgM3": 700,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 28,
+      "name": "grassPlant",
+      "densityKgM3": 180,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 29,
+      "name": "dryGrass",
+      "densityKgM3": 120,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 30,
+      "name": "bush",
+      "densityKgM3": 300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 31,
+      "name": "deadBush",
+      "densityKgM3": 200,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 32,
+      "name": "cactus",
+      "densityKgM3": 700,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 33,
+      "name": "reed",
+      "densityKgM3": 180,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 34,
+      "name": "swampGrass",
+      "densityKgM3": 220,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 35,
+      "name": "snowBush",
+      "densityKgM3": 300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 36,
+      "name": "thorn",
+      "densityKgM3": 350,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 37,
+      "name": "moss",
+      "densityKgM3": 250,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 38,
+      "name": "lichen",
+      "densityKgM3": 500,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 39,
+      "name": "vine",
+      "densityKgM3": 350,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 40,
+      "name": "glowMycelium",
+      "densityKgM3": 300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 41,
+      "name": "mushroom",
+      "densityKgM3": 350,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 42,
+      "name": "seaweed",
+      "densityKgM3": 200,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 43,
+      "name": "aquaticPlant",
+      "densityKgM3": 180,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 44,
+      "name": "coral",
+      "densityKgM3": 1600,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 45,
+      "name": "deadCoral",
+      "densityKgM3": 1500,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 46,
+      "name": "shellBed",
+      "densityKgM3": 1500,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 47,
+      "name": "coal",
+      "densityKgM3": 1400,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 48,
+      "name": "cotton",
+      "densityKgM3": 120,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 49,
+      "name": "flowerWhite",
+      "densityKgM3": 140,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 50,
+      "name": "flowerYellow",
+      "densityKgM3": 140,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 51,
+      "name": "flowerRed",
+      "densityKgM3": 140,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 52,
+      "name": "flowerBlue",
+      "densityKgM3": 140,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "block",
+      "id": 53,
+      "name": "flowerPink",
+      "densityKgM3": 140,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1001,
+      "name": "charcoal",
+      "densityKgM3": 250,
+      "standardVolumeMm3": 750000
+    },
+    {
+      "kind": "item",
+      "id": 1002,
+      "name": "biochar_compost",
+      "densityKgM3": 450,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1004,
+      "name": "resin_binder",
+      "densityKgM3": 1100,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1005,
+      "name": "ceramic_brick",
+      "densityKgM3": 1900,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1006,
+      "name": "lime_ceramic",
+      "densityKgM3": 1750,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1007,
+      "name": "quicklime",
+      "densityKgM3": 900,
+      "standardVolumeMm3": 500000
+    },
+    {
+      "kind": "item",
+      "id": 1008,
+      "name": "salt_flux",
+      "densityKgM3": 1200,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1009,
+      "name": "ash_cement",
+      "densityKgM3": 1300,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1010,
+      "name": "glass_ingot",
+      "densityKgM3": 2500,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1011,
+      "name": "obsidian_glass",
+      "densityKgM3": 2400,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1012,
+      "name": "silicon_wafer",
+      "densityKgM3": 2330,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1013,
+      "name": "ice_crystal",
+      "densityKgM3": 917,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1014,
+      "name": "iron_bloom",
+      "densityKgM3": 7000,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1015,
+      "name": "copper_bloom",
+      "densityKgM3": 8200,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1016,
+      "name": "alumina_plate",
+      "densityKgM3": 3900,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1017,
+      "name": "nickel_iron",
+      "densityKgM3": 8100,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1018,
+      "name": "carbon_plate",
+      "densityKgM3": 1600,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1019,
+      "name": "carbon_steel",
+      "densityKgM3": 7850,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1020,
+      "name": "basalt_fiber",
+      "densityKgM3": 2670,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1021,
+      "name": "basalt_composite",
+      "densityKgM3": 2100,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1022,
+      "name": "geopolymer_block",
+      "densityKgM3": 2200,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1023,
+      "name": "coral_lime",
+      "densityKgM3": 900,
+      "standardVolumeMm3": 500000
+    },
+    {
+      "kind": "item",
+      "id": 1024,
+      "name": "toxic_glass",
+      "densityKgM3": 2550,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1025,
+      "name": "cotton_cloth",
+      "densityKgM3": 150,
+      "standardVolumeMm3": 1000000
+    },
+    {
+      "kind": "item",
+      "id": 1026,
+      "name": "white_dye",
+      "densityKgM3": 1200,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1027,
+      "name": "yellow_dye",
+      "densityKgM3": 1100,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1028,
+      "name": "red_dye",
+      "densityKgM3": 1150,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1029,
+      "name": "blue_dye",
+      "densityKgM3": 1250,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1030,
+      "name": "pink_dye",
+      "densityKgM3": 1120,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1031,
+      "name": "wooden_plank",
+      "densityKgM3": 550,
+      "standardVolumeMm3": 20000
+    },
+    {
+      "kind": "item",
+      "id": 1032,
+      "name": "wooden_stick",
+      "densityKgM3": 550,
+      "standardVolumeMm3": 4900
+    },
+    {
+      "kind": "item",
+      "id": 1033,
+      "name": "squared_timber",
+      "densityKgM3": 520,
+      "standardVolumeMm3": 48400
+    },
+    {
+      "kind": "item",
+      "id": 1034,
+      "name": "clear_glass_panel",
+      "densityKgM3": 2500,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1035,
+      "name": "ice_blue_glass_panel",
+      "densityKgM3": 2520,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1036,
+      "name": "amber_glass_panel",
+      "densityKgM3": 2520,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1037,
+      "name": "basalt_reinforced_glass",
+      "densityKgM3": 2600,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1038,
+      "name": "fired_clay_brick",
+      "densityKgM3": 1800,
+      "standardVolumeMm3": 31250
+    },
+    {
+      "kind": "item",
+      "id": 1039,
+      "name": "adobe_brick",
+      "densityKgM3": 1700,
+      "standardVolumeMm3": 31250
+    },
+    {
+      "kind": "item",
+      "id": 1040,
+      "name": "stone_brick",
+      "densityKgM3": 2400,
+      "standardVolumeMm3": 31250
+    },
+    {
+      "kind": "item",
+      "id": 1041,
+      "name": "deep_stone_brick",
+      "densityKgM3": 2700,
+      "standardVolumeMm3": 31250
+    },
+    {
+      "kind": "item",
+      "id": 1042,
+      "name": "basalt_brick",
+      "densityKgM3": 2900,
+      "standardVolumeMm3": 31250
+    },
+    {
+      "kind": "item",
+      "id": 1043,
+      "name": "sandstone_block",
+      "densityKgM3": 2200,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1044,
+      "name": "cobblestone",
+      "densityKgM3": 2500,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1045,
+      "name": "polished_stone_slab",
+      "densityKgM3": 2600,
+      "standardVolumeMm3": 60000
+    },
+    {
+      "kind": "item",
+      "id": 1046,
+      "name": "lime_plaster",
+      "densityKgM3": 1600,
+      "standardVolumeMm3": 80000
+    },
+    {
+      "kind": "item",
+      "id": 1047,
+      "name": "clay_plaster",
+      "densityKgM3": 1700,
+      "standardVolumeMm3": 80000
+    },
+    {
+      "kind": "item",
+      "id": 1048,
+      "name": "rammed_earth",
+      "densityKgM3": 1900,
+      "standardVolumeMm3": 500000
+    },
+    {
+      "kind": "item",
+      "id": 1049,
+      "name": "shell_terrazzo",
+      "densityKgM3": 2400,
+      "standardVolumeMm3": 100000
+    },
+    {
+      "kind": "item",
+      "id": 1050,
+      "name": "white_ceramic_tile",
+      "densityKgM3": 2200,
+      "standardVolumeMm3": 10000
+    },
+    {
+      "kind": "item",
+      "id": 1051,
+      "name": "blue_ceramic_tile",
+      "densityKgM3": 2250,
+      "standardVolumeMm3": 10000
+    },
+    {
+      "kind": "item",
+      "id": 1052,
+      "name": "volcanic_ash_concrete",
+      "densityKgM3": 2300,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1053,
+      "name": "salt_crystal_block",
+      "densityKgM3": 2160,
+      "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "item",
+      "id": 1054,
+      "name": "roof_tile_terracotta",
+      "densityKgM3": 1900,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1055,
+      "name": "roof_tile_ice_blue",
+      "densityKgM3": 2050,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1056,
+      "name": "roof_tile_shell_white",
+      "densityKgM3": 2070,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1057,
+      "name": "roof_tile_charcoal",
+      "densityKgM3": 2040,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1058,
+      "name": "roof_tile_ash_gray",
+      "densityKgM3": 2120,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1059,
+      "name": "roof_tile_mycelium",
+      "densityKgM3": 2030,
+      "standardVolumeMm3": 40000
+    },
+    {
+      "kind": "item",
+      "id": 1060,
+      "name": "blasting_charge",
+      "densityKgM3": 1250,
+      "standardVolumeMm3": 750000
+    }
+  ]
+}

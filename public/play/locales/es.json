@@ -2,8 +2,8 @@
   "_meta": {
     "language": "es",
     "label": "Spanish",
-    "version": "play-locale-es-ba1aace683a4e446",
-    "contentHash": "ba1aace683a4e446"
+    "version": "play-locale-es-9834b1488d4a87c6",
+    "contentHash": "9834b1488d4a87c6"
   },
   "siteFooter": {
     "tagline": "Un protocolo de mundo voxel con semillas en Solana.",
@@ -617,7 +617,13 @@
       "equipped": "Equipado",
       "equippedSlot": "Equipado en la ranura {slot} de la barra",
       "equippedLocked": "Equipado en la ranura {slot} de la barra. Quítalo antes de seleccionarlo, moverlo o descartarlo.",
-      "weightPending": "Peso pendiente"
+      "loading": "Cargando mochila...",
+      "unavailable": "Mochila no disponible",
+      "readFailed": "Error al leer la mochila: {reason}",
+      "readFailedShort": "No se pudieron cargar los datos de la mochila. Vuelve a abrirla para reintentar.",
+      "openAria": "Abrir mochila",
+      "loadingAria": "Cargando mochila",
+      "createAria": "Crear mochila"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "Esta billetera ya tiene una mochila. No se puede crear una segunda mochila.",
+      "checking": "COMPROBANDO MOCHILA...",
+      "creating": "CREANDO EN CADENA...",
+      "alreadyExistsLabel": "LA MOCHILA YA EXISTE",
+      "retryCheck": "REINTENTAR COMPROBACIÓN",
+      "checkingDetail": "Comprobando en la cadena si ya existe una mochila antes de crearla.",
+      "readPending": "Los datos de la mochila aún se están cargando. No se envió la creación.",
+      "readFailed": "La verificación de la mochila falló. No se envió la creación: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

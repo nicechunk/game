@@ -664,10 +664,13 @@ export function createInventoryController({
         rows.push(["PDA Rule", String(slot.decorationRuleId || "-")]);
       }
       rows.push(["Gather Yield", Number.isFinite(slot.yieldBps) ? `${Math.round(slot.yieldBps / 100)}%` : "-"]);
-      rows.push(["Volume", Number.isFinite(slot.volumeMilliLiters) ? `${slot.volumeMilliLiters} ml` : "-"]);
+      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
+      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
     } else if (slot.kind === "smelted_material") {
       rows.push(["Material", slot.materialId || "-"]);
       rows.push(["Quality", Number.isFinite(slot.quality) ? String(slot.quality) : "-"]);
+      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
+      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
       rows.push(["Proof", proofDetailValue(slot.proofHash)]);
     } else if (slot.kind === "forged") {
       rows.push(["Item Code", String(slot.itemCode ?? "-")]);
@@ -676,6 +679,8 @@ export function createInventoryController({
       rows.push(["Grade", String(slot.grade ?? "-")]);
       rows.push(["Item Level", String(slot.itemLevel ?? "-")]);
       rows.push(["Quality", Number.isFinite(slot.qualityBps) ? `${Math.round(slot.qualityBps / 100)}%` : "-"]);
+      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
+      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
     } else if (slot.kind === "blueprint") {
       rows.push(["Blueprint ID", slot.blueprintId || slot.chainItemId || "-"]);
       rows.push(["Blueprint PDA", proofDetailValue(slot.itemPda)]);
@@ -1045,6 +1050,21 @@ function shortAddress(value) {
   const text = String(value || "");
   if (!text) return "-";
   return text.length <= 12 ? text : `${text.slice(0, 4)}...${text.slice(-4)}`;
+}
+
+export function formatVolumeCm3(volumeMm3) {
+  const value = Number(volumeMm3);
+  if (!Number.isFinite(value) || value < 0) return "-";
+  return `${new Intl.NumberFormat("en", { maximumFractionDigits: 3 }).format(value / 1000)} cm³`;
+}
+
+export function formatMassGrams(massGrams) {
+  const value = Number(massGrams);
+  if (!Number.isFinite(value) || value < 0) return "-";
+  if (value >= 1000) {
+    return `${new Intl.NumberFormat("en", { maximumFractionDigits: 3 }).format(value / 1000)} kg`;
+  }
+  return `${new Intl.NumberFormat("en", { maximumFractionDigits: 0 }).format(value)} g`;
 }
 
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;

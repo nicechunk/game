@@ -2,8 +2,8 @@
   "_meta": {
     "language": "en",
     "label": "English",
-    "version": "play-locale-en-4573e8ac8121e8bf",
-    "contentHash": "4573e8ac8121e8bf"
+    "version": "play-locale-en-eb45bc1352db2893",
+    "contentHash": "eb45bc1352db2893"
   },
   "siteFooter": {
     "tagline": "A seeded voxel world protocol on Solana.",
@@ -617,7 +617,13 @@
       "equipped": "Equipped",
       "equippedSlot": "Equipped in hotbar slot {slot}",
       "equippedLocked": "Equipped in hotbar slot {slot}. Unequip it before selecting, moving, or discarding it.",
-      "weightPending": "Weight pending"
+      "loading": "Loading backpack...",
+      "unavailable": "Backpack unavailable",
+      "readFailed": "Backpack read failed: {reason}",
+      "readFailedShort": "Backpack data could not be loaded. Reopen the backpack to retry.",
+      "openAria": "Open backpack",
+      "loadingAria": "Backpack loading",
+      "createAria": "Create backpack"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "This wallet already has a backpack. A second backpack cannot be created.",
+      "checking": "CHECKING BACKPACK...",
+      "creating": "CREATING ON CHAIN...",
+      "alreadyExistsLabel": "BACKPACK ALREADY EXISTS",
+      "retryCheck": "RETRY BACKPACK CHECK",
+      "checkingDetail": "Checking the chain for an existing backpack before creating one.",
+      "readPending": "Backpack data is still loading. Creation was not submitted.",
+      "readFailed": "Backpack verification failed. Creation was not submitted: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3351,7 +3365,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

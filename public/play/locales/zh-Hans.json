@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-863ae18b03db0341",
-    "contentHash": "863ae18b03db0341"
+    "version": "play-locale-zh-Hans-a73afe028d7f3af2",
+    "contentHash": "a73afe028d7f3af2"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -617,7 +617,13 @@
       "equipped": "已装备",
       "equippedSlot": "已装备至工具栏第 {slot} 格",
       "equippedLocked": "已装备至工具栏第 {slot} 格。取下装备后才能选择、移动或丢弃。",
-      "weightPending": "重量计算中"
+      "loading": "正在读取背包...",
+      "unavailable": "背包不可用",
+      "readFailed": "背包读取失败：{reason}",
+      "readFailedShort": "无法读取背包数据。请重新打开背包后重试。",
+      "openAria": "打开背包",
+      "loadingAria": "背包读取中",
+      "createAria": "创建背包"
     },
     "loading": {
       "eyebrow": "世界网关",
@@ -1030,7 +1036,15 @@
       "learnDetail": "背包是钱包持有的 PDA。坐标证明通过链上验证后，挖掘资源才会进入背包。",
       "submit": "创建背包",
       "learn": "了解更多",
-      "hotbarHint": "创建后，背包会显示在这里！"
+      "hotbarHint": "创建后，背包会显示在这里！",
+      "alreadyExists": "该钱包已经拥有一个背包，无法重复创建。",
+      "checking": "正在检查背包...",
+      "creating": "正在链上创建...",
+      "alreadyExistsLabel": "背包已存在",
+      "retryCheck": "重新检查背包",
+      "checkingDetail": "创建前正在检查链上是否已有背包。",
+      "readPending": "背包数据仍在读取，本次未提交创建交易。",
+      "readFailed": "背包验证失败，本次未提交创建交易：{reason}"
     },
     "block": {
       "unknown": "未知方块",
@@ -3395,7 +3409,7 @@
     "workpieceEmptyDetail": "先把材料加入或拖到工作台。",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "材料承载",
     "capacityDiagnosticsSummary": "造型等级 {requested} / 允许 {allowed}。材料承载 {capacity}，缺口 {deficit}。主要问题：{issue}。",

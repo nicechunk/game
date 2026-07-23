@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-84262d95bdda68d9",
-    "contentHash": "84262d95bdda68d9"
+    "version": "play-locale-ja-39656126984e8901",
+    "contentHash": "39656126984e8901"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -617,7 +617,13 @@
       "equipped": "装備中",
       "equippedSlot": "ホットバーのスロット {slot} に装備中",
       "equippedLocked": "ホットバーのスロット {slot} に装備中です。選択、移動、破棄する前に装備を外してください。",
-      "weightPending": "重量を計算中"
+      "loading": "バックパックを読み込み中...",
+      "unavailable": "バックパックを利用できません",
+      "readFailed": "バックパックの読み込みに失敗しました: {reason}",
+      "readFailedShort": "バックパックデータを読み込めませんでした。バックパックを開き直して再試行してください。",
+      "openAria": "バックパックを開く",
+      "loadingAria": "バックパックを読み込み中",
+      "createAria": "バックパックを作成"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "このウォレットにはすでにバックパックがあります。2つ目は作成できません。",
+      "checking": "バックパックを確認中...",
+      "creating": "オンチェーンで作成中...",
+      "alreadyExistsLabel": "バックパックは作成済みです",
+      "retryCheck": "バックパックを再確認",
+      "checkingDetail": "作成前に、既存のバックパックがないかチェーンを確認しています。",
+      "readPending": "バックパックデータを読み込み中です。作成トランザクションは送信されていません。",
+      "readFailed": "バックパックの確認に失敗しました。作成トランザクションは送信されていません: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

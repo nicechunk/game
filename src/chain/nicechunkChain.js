@@ -68,7 +68,7 @@ const playerProgressSeed = "player-progress";
 const playerSkillsSeed = "player-skills-v1";
 const skillRuleTableSeed = "skill-rules-v1";
 const backpackSeed = "backpack";
-const materialPhysicsSeed = "material-physics-v1";
+const materialPhysicsSeed = "material-physics-v2";
 const marketListingSeed = "listing";
 const marketAuthoritySeed = "market-authority";
 const smeltingRecipeTableSeed = "smelting-recipes";
@@ -177,7 +177,7 @@ const playerSkillsLastMineZOffset = 464;
 const playerSkillsMiningFlagsOffset = 468;
 const playerSkillsMiningTravelCountOffset = 472;
 const backpackMagic = "NCKBPK01";
-const backpackVersion = 3;
+const backpackVersion = 4;
 const backpackDefaultCapacity = 50;
 const backpackMaxCapacity = 99;
 const backpackHeaderLength = 128;
@@ -187,7 +187,7 @@ const backpackAccountLength = backpackHeaderLength + backpackMaxCapacity * backp
 const backpackSlotKindBlock = 1;
 const backpackSlotKindItem = 2;
 const backpackItemFlagMassValid = 1 << 15;
-const backpackFlagTotalMassInitialized = 1;
+const backpackFlagMassStateValid = 1;
 const backpackTotalMassGramsOffset = 90;
 const backpackLastMinePreMassGramsOffset = 98;
 const backpackLastMineActionIdOffset = 106;
@@ -3008,39 +3008,6 @@ export async function getEquippedBackpackStatus({ prompt = false } = {}) {
   return { walletAvailable: Boolean(provider), owner: owner.toBase58(), equipped: true, backpack: equippedBackpack };
 }
 
-export async function migrateBackpackMassOnChain({ backpackAddress = null } = {}) {
-  const provider = await connectedWalletProvider({ prompt: true });
-  if (!provider) return { submitted: false, migrated: false, reason: "wallet-unavailable" };
-  const conn = getNicechunkConnection();
-  const backpack = backpackAddress
-    ? await loadBackpackAccountForOwner(backpackAddress, provider.publicKey, conn).catch(() => null)
-    : await loadEquippedBackpackForOwner(provider.publicKey, conn);
-  if (!backpack?.publicKey) return { submitted: false, migrated: false, reason: "no-backpack" };
-  if (backpack.massInitialized) {
-    return {
-      submitted: false,
-      migrated: false,
-      reason: "already-initialized",
-      backpack: backpack.publicKey.toBase58(),
-      totalMassGrams: backpack.totalMassGrams,
-    };
-  }
-  const context = gameContext;
-  const transaction = new Transaction().add(createMigrateBackpackMassInstruction({
-    owner: provider.publicKey,
-    backpack: backpack.publicKey,
-    context,
-  }));
-  const signature = await signAndSendWalletTransaction(provider, transaction, conn);
-  return {
-    submitted: true,
-    migrated: true,
-    signature,
-    backpack: backpack.publicKey.toBase58(),
-    programId: context.backpackProgramId.toBase58(),
-  };
-}
-
 export async function forgeEquipmentOnChain({
   code,
   materialInputs = [],
@@ -4592,6 +4559,9 @@ export function decodeBackpack(data) {
   const capacity = data.readUInt8(52);
   const itemCount = data.readUInt8(53);
   const flags = data.readUInt8(55);
+  if ((flags & backpackFlagMassStateValid) === 0) {
+    throw new Error("Invalid Backpack mass state.");
+  }
   const readableCount = Math.min(itemCount, capacity, backpackMaxCapacity);
   const records = [];
   const slots = [];
@@ -4621,7 +4591,6 @@ export function decodeBackpack(data) {
     createdSlot: data.readBigUInt64LE(66).toString(),
     updatedSlot: data.readBigUInt64LE(74).toString(),
     createdAt: data.readBigInt64LE(82).toString(),
-    massInitialized: (flags & backpackFlagTotalMassInitialized) !== 0,
     totalMassGrams: data.readBigUInt64LE(backpackTotalMassGramsOffset).toString(),
     lastMinePreMassGrams: data.readBigUInt64LE(backpackLastMinePreMassGramsOffset).toString(),
     lastMineActionId: data.readBigUInt64LE(backpackLastMineActionIdOffset).toString(),
@@ -6106,21 +6075,6 @@ function createInitializeBackpackInstruction({ owner, playerProfile, backpack, b
   });
 }
 
-export function createMigrateBackpackMassInstruction({ owner, backpack, context = gameContext }) {
-  const globalConfig = deriveGlobalConfigPda();
-  const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
-  return new TransactionInstruction({
-    programId: context.backpackProgramId,
-    keys: [
-      { pubkey: owner, isSigner: true, isWritable: false },
-      { pubkey: backpack, isSigner: false, isWritable: true },
-      { pubkey: materialPhysics, isSigner: false, isWritable: false },
-      { pubkey: globalConfig, isSigner: false, isWritable: false },
-    ],
-    data: contextInstructionData(context, gameNamespaceBackpack, Buffer.from([14])),
-  });
-}
-
 function createForgeEquipmentVerifiedInstruction({
   owner,
   backpack,
@@ -6617,7 +6571,8 @@ function isCurrentBackpackAccountData(data) {
   return Boolean(
     data?.length === backpackAccountLength &&
     data.subarray(0, 8).toString("utf8") === backpackMagic &&
-    data.readUInt16LE(8) === backpackVersion,
+    data.readUInt16LE(8) === backpackVersion &&
+    (data.readUInt8(55) & backpackFlagMassStateValid) !== 0,
   );
 }
 

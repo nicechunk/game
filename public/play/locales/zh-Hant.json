@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-bdd9e99d071edc5c",
-    "contentHash": "bdd9e99d071edc5c"
+    "version": "play-locale-zh-Hant-d512b2d0d2932a6b",
+    "contentHash": "d512b2d0d2932a6b"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -617,7 +617,13 @@
       "equipped": "已裝備",
       "equippedSlot": "已裝備至工具欄第 {slot} 格",
       "equippedLocked": "已裝備至工具欄第 {slot} 格。卸下裝備後才能選取、移動或丟棄。",
-      "weightPending": "重量計算中"
+      "loading": "正在讀取背包...",
+      "unavailable": "背包無法使用",
+      "readFailed": "背包讀取失敗：{reason}",
+      "readFailedShort": "無法讀取背包資料。請重新開啟背包後再試。",
+      "openAria": "開啟背包",
+      "loadingAria": "背包讀取中",
+      "createAria": "建立背包"
     },
     "loading": {
       "eyebrow": "世界閘道",
@@ -1030,7 +1036,15 @@
       "learnDetail": "背包是錢包持有的 PDA。坐标證明通過鏈上驗證後，挖掘資源才會進入背包。",
       "submit": "建立背包",
       "learn": "了解更多",
-      "hotbarHint": "建立後，背包會顯示在這裡！"
+      "hotbarHint": "建立後，背包會顯示在這裡！",
+      "alreadyExists": "此錢包已經擁有一個背包，無法重複建立。",
+      "checking": "正在檢查背包...",
+      "creating": "正在鏈上建立...",
+      "alreadyExistsLabel": "背包已存在",
+      "retryCheck": "重新檢查背包",
+      "checkingDetail": "建立前正在檢查鏈上是否已有背包。",
+      "readPending": "背包資料仍在讀取，本次未提交建立交易。",
+      "readFailed": "背包驗證失敗，本次未提交建立交易：{reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3395,7 +3409,7 @@
     "workpieceEmptyDetail": "先把材料加入或拖到工作台。",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "材料承載",
     "capacityDiagnosticsSummary": "造型等級 {requested} / 允許 {allowed}。材料承載 {capacity}，缺口 {deficit}。主要問題：{issue}。",

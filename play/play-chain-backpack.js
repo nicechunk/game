@@ -23,6 +23,8 @@ export function createPlayChainBackpackSync({
   appendEvent = () => {},
   chunkSize = DEFAULT_CHUNK_SIZE,
   resolveSurfaceDecoration = null,
+  onSyncStateChanged = () => {},
+  translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   const state = {
     loading: false,
@@ -32,7 +34,6 @@ export function createPlayChainBackpackSync({
     backpackAddress: "",
     capacity: 0,
     itemCount: 0,
-    massInitialized: false,
     totalMassGrams: "0",
     updatedSlot: "0",
     syncedSlots: 0,
@@ -41,7 +42,16 @@ export function createPlayChainBackpackSync({
   };
   let requestSerial = 0;
   let loadedBackpack = null;
-  const massMigrationAttempts = new Set();
+  let lastNotifiedReadError = "";
+  const ui = (key, fallback, params = {}) => {
+    try {
+      const translated = translate(key, fallback, params);
+      if (translated && translated !== key) return String(translated);
+    } catch {
+      // A locale failure must not hide an RPC read failure.
+    }
+    return formatMessage(fallback, params);
+  };
 
   return {
     refresh,
@@ -59,12 +69,11 @@ export function createPlayChainBackpackSync({
     const wallet = String(getWalletAddress() || "");
     if (!wallet) {
       requestSerial += 1;
-      state.loading = false;
+      updateLoading(false);
       state.walletAddress = "";
       state.backpackAddress = "";
       state.capacity = 0;
       state.itemCount = 0;
-      state.massInitialized = false;
       state.totalMassGrams = "0";
       state.updatedSlot = "0";
       state.syncedSlots = 0;
@@ -78,16 +87,16 @@ export function createPlayChainBackpackSync({
     const walletChanged = state.walletAddress !== wallet;
     if (walletChanged) {
       requestSerial += 1;
-      state.loading = false;
+      updateLoading(false);
       state.walletAddress = wallet;
       state.backpackAddress = "";
       state.capacity = 0;
       state.itemCount = 0;
-      state.massInitialized = false;
       state.totalMassGrams = "0";
       state.updatedSlot = "0";
       state.syncedSlots = 0;
       state.lastSyncAt = 0;
+      lastNotifiedReadError = "";
       loadedBackpack = null;
       const availability = setAvailability(false, false);
       const cleared = gameState?.clearBackpackSlots?.();
@@ -97,7 +106,7 @@ export function createPlayChainBackpackSync({
     if (state.loading) return { ok: false, reason: "already-loading" };
     if (!force && now - state.lastSyncAt < CHAIN_BACKPACK_SYNC_INTERVAL_MS) return { ok: false, reason: "cooldown" };
     const requestId = ++requestSerial;
-    state.loading = true;
+    updateLoading(true);
     try {
       const module = await loadPlayChainModule();
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
@@ -108,11 +117,11 @@ export function createPlayChainBackpackSync({
         state.backpackAddress = "";
         state.capacity = 0;
         state.itemCount = 0;
-        state.massInitialized = false;
         state.totalMassGrams = "0";
         state.updatedSlot = "0";
         state.syncedSlots = 0;
         state.lastError = "no-equipped-backpack";
+        lastNotifiedReadError = "";
         loadedBackpack = null;
         state.lastSyncAt = performance.now();
         const availability = setAvailability(false, true);
@@ -121,17 +130,16 @@ export function createPlayChainBackpackSync({
         if (!quiet) appendEvent("No equipped chain backpack found for this wallet.");
         return { ok: false, reason: "no-equipped-backpack", changed: Boolean(cleared?.changed || availability.changed) };
       }
-      let backpack = await loadBackpack(module, status.backpack);
-      backpack = await migrateBackpackMassIfNeeded(module, backpack, wallet, quiet);
+      const backpack = await loadBackpack(module, status.backpack);
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
       const applied = applyBackpack(backpack, status.backpack.publicKey);
       if (!quiet) onStatus(`Synced chain backpack PDA: ${applied.chainSlots.length}/${state.capacity || 50} slots.`);
       return { ok: true, backpack, ...applied };
     } catch (error) {
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
-      return fail(readableError(error), quiet);
+      return fail(readableError(error), quiet, error);
     } finally {
-      if (requestId === requestSerial) state.loading = false;
+      if (requestId === requestSerial) updateLoading(false);
     }
   }
 
@@ -161,7 +169,7 @@ export function createPlayChainBackpackSync({
 
   async function refreshKnownBackpack(wallet, backpackAddress) {
     const requestId = ++requestSerial;
-    state.loading = true;
+    updateLoading(true);
     try {
       const module = await loadPlayChainModule();
       if (typeof module.fetchBackpack !== "function") return { ok: false, reason: "backpack-reader-unavailable" };
@@ -174,9 +182,10 @@ export function createPlayChainBackpackSync({
       return { ok: true, backpack, ...applied };
     } catch (error) {
       state.lastError = readableError(error);
+      notifyReadFailure(state.lastError, true, error);
       return { ok: false, reason: state.lastError };
     } finally {
-      if (requestId === requestSerial) state.loading = false;
+      if (requestId === requestSerial) updateLoading(false);
     }
   }
 
@@ -187,43 +196,20 @@ export function createPlayChainBackpackSync({
     const merged = gameState?.mergeChainBackpackSlots?.(chainSlots, {
       source: CHAIN_BACKPACK_SOURCE,
       capacity,
-      massInitialized: backpack.massInitialized === true,
       totalMassGrams: backpack.totalMassGrams ?? "0",
     });
     state.backpackAddress = String(backpack.publicKey || fallbackAddress || "");
     state.capacity = capacity;
     state.itemCount = Math.max(0, Math.trunc(Number(backpack.itemCount) || 0));
-    state.massInitialized = backpack.massInitialized === true;
     state.totalMassGrams = normalizeUnsignedIntegerString(backpack.totalMassGrams);
     state.updatedSlot = String(backpack.updatedSlot ?? "0");
     state.syncedSlots = chainSlots.length;
     state.lastError = "";
+    lastNotifiedReadError = "";
     state.lastSyncAt = performance.now();
     const availability = setAvailability(true, true);
     if (merged?.changed || availability.changed) onChanged();
     return { chainSlots, changed: Boolean(merged?.changed || availability.changed) };
-  }
-
-  async function migrateBackpackMassIfNeeded(module, backpack, wallet, quiet) {
-    if (!backpack?.publicKey || backpack.massInitialized === true) return backpack;
-    const address = String(backpack.publicKey || "");
-    const migrationKey = `${wallet}:${address}`;
-    if (massMigrationAttempts.has(migrationKey) || typeof module.migrateBackpackMassOnChain !== "function") {
-      return backpack;
-    }
-    massMigrationAttempts.add(migrationKey);
-    const result = await module.migrateBackpackMassOnChain({ backpackAddress: address });
-    if (!result?.submitted && result?.reason !== "already-initialized") {
-      if (!quiet) onStatus(`Backpack weight migration failed: ${result?.reason || "not-submitted"}.`);
-      return backpack;
-    }
-    if (typeof module.fetchBackpack !== "function") return backpack;
-    const migrated = await module.fetchBackpack(address);
-    if (migrated?.massInitialized) {
-      appendEvent(`Backpack weight initialized${result?.signature ? `: ${shortSignature(result.signature)}` : "."}`);
-      return migrated;
-    }
-    return backpack;
   }
 
   function isCurrentRequest(requestId, wallet) {
@@ -241,16 +227,31 @@ export function createPlayChainBackpackSync({
     return { ok: true, changed: Boolean(merged?.changed), chainSlots };
   }
 
-  function fail(reason, quiet) {
+  function fail(reason, quiet, error = null) {
     state.lastError = reason;
     state.lastSyncAt = performance.now();
     const availability = setAvailability(state.available, false);
     if (availability.changed) onChanged();
-    if (!quiet) {
-      appendEvent(`Chain backpack sync failed: ${reason}.`);
-      onStatus(`Chain backpack sync failed: ${reason}.`);
-    }
+    notifyReadFailure(reason, quiet, error);
     return { ok: false, reason, changed: availability.changed };
+  }
+
+  function notifyReadFailure(reason, quiet, error = null) {
+    const readable = readableError(reason);
+    const shouldNotify = !quiet || readable !== lastNotifiedReadError;
+    console.error("[NiceChunk Backpack Read Failed]", error || readable);
+    if (!shouldNotify) return;
+    lastNotifiedReadError = readable;
+    const message = ui("main.backpack.readFailed", "Backpack read failed: {reason}", { reason: readable });
+    appendEvent(message);
+    onStatus(message, "error");
+  }
+
+  function updateLoading(loading) {
+    const next = loading === true;
+    if (state.loading === next) return;
+    state.loading = next;
+    onSyncStateChanged(snapshot());
   }
 
   function setAvailability(available, known) {
@@ -364,7 +365,6 @@ export function chainSlotsFromBackpack(backpack, {
       chainBackpack: address,
       chainIndex: index,
       volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
-      volumeMilliLiters: Math.max(0, Math.trunc((Number(slot.volumeMm3) || 0) / 1000)),
       massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
       metadata,
       ...decoration,
@@ -515,6 +515,12 @@ function chainItemDesignHash(_itemId, metadata) {
 function readableError(error) {
   const message = String(error?.message || error || "unknown error");
   return message.length > 140 ? `${message.slice(0, 137)}...` : message;
+}
+
+function formatMessage(template, params = {}) {
+  return String(template || "").replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => (
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
+  ));
 }
 
 function normalizeDiscardItems(items = []) {

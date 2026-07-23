@@ -1,5 +1,9 @@
 import { BLOCK_ID } from "/chunk.js/play.js";
 import { loadPlayChainModule } from "./play-chain-adapter.js";
+import {
+  resolveBackpackReadState,
+  verifyBackpackCreationEligibility,
+} from "./backpack-read-state.js";
 
 const BACKPACK_CAPACITY = 50;
 const BACKPACK_PREVIEW_SLOT_COUNT = 30;
@@ -16,12 +20,25 @@ export function createPlayBackpackCreation({
   onCreated = () => {},
   onStatus = () => {},
   appendEvent = () => {},
+  purchaseBackpack = defaultPurchaseBackpack,
+  translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   const state = {
     open: false,
     creating: false,
+    phase: "idle",
     learning: false,
     lastNoticeAt: 0,
+    messageMode: "read",
+  };
+  const ui = (key, fallback, params = {}) => {
+    try {
+      const translated = translate(key, fallback, params);
+      if (translated && translated !== key) return String(translated);
+    } catch {
+      // A locale failure must not weaken the backpack creation guard.
+    }
+    return formatMessage(fallback, params);
   };
 
   return {
@@ -53,18 +70,21 @@ export function createPlayBackpackCreation({
   }
 
   function open({ source = "mining" } = {}) {
-    if (gameState?.isBackpackAvailable?.()) return false;
+    if (currentReadState().available) {
+      onStatus(ui("main.backpackCreate.alreadyExists", "This wallet already has a backpack. A second backpack cannot be created."));
+      return false;
+    }
     closePanels();
     state.open = true;
+    state.phase = "idle";
     state.learning = false;
+    state.messageMode = "read";
     if (elements.backpackCreateOverlay) {
       elements.backpackCreateOverlay.hidden = false;
       elements.backpackCreateOverlay.setAttribute("aria-hidden", "false");
     }
     document.body.classList.add("backpack-create-open");
-    setMessage(walletAvailable()
-      ? "Your wallet is ready. Create the 50-slot backpack on chain to unlock mining."
-      : "Connect or create a wallet first, then create your backpack on chain.", "info");
+    setReadMessage(currentReadState());
     render();
     requestAnimationFrame(() => {
       positionHotbarCallout();
@@ -81,6 +101,7 @@ export function createPlayBackpackCreation({
 
   function close({ created = false } = {}) {
     state.open = false;
+    state.phase = "idle";
     state.learning = false;
     if (elements.backpackCreateOverlay) {
       elements.backpackCreateOverlay.hidden = true;
@@ -93,17 +114,26 @@ export function createPlayBackpackCreation({
   }
 
   function render() {
-    const available = gameState?.isBackpackAvailable?.() === true;
+    const readState = currentReadState();
+    const available = readState.available;
     if (available && state.open && !state.creating) close({ created: true });
+    if (state.open && !state.creating && state.messageMode === "read") setReadMessage(readState);
     if (elements.backpackCreateSubmit) {
-      elements.backpackCreateSubmit.disabled = state.creating || available;
-      elements.backpackCreateSubmit.classList.toggle("is-loading", state.creating);
+      const checking = readState.loading || readState.pending;
+      elements.backpackCreateSubmit.disabled = state.creating || available || checking;
+      elements.backpackCreateSubmit.classList.toggle("is-loading", state.creating || checking);
       if (elements.backpackCreateSubmitLabel) {
-        elements.backpackCreateSubmitLabel.textContent = state.creating
-          ? "CREATING ON CHAIN..."
+        elements.backpackCreateSubmitLabel.textContent = state.creating && state.phase === "checking"
+          ? ui("main.backpackCreate.checking", "CHECKING BACKPACK...")
+          : state.creating
+            ? ui("main.backpackCreate.creating", "CREATING ON CHAIN...")
           : available
-            ? "BACKPACK CREATED"
-            : "CREATE BACKPACK";
+            ? ui("main.backpackCreate.alreadyExistsLabel", "BACKPACK ALREADY EXISTS")
+            : checking
+              ? ui("main.backpackCreate.checking", "CHECKING BACKPACK...")
+              : readState.error
+                ? ui("main.backpackCreate.retryCheck", "RETRY BACKPACK CHECK")
+                : ui("main.backpackCreate.submit", "CREATE BACKPACK");
       }
     }
     elements.backpackCreatePanel?.classList.toggle("is-learning", state.learning);
@@ -111,20 +141,42 @@ export function createPlayBackpackCreation({
   }
 
   async function createBackpack() {
-    if (state.creating || gameState?.isBackpackAvailable?.()) return;
+    if (state.creating) return { ok: false, reason: "backpack-creation-pending" };
+    if (currentReadState().available) {
+      const message = ui("main.backpackCreate.alreadyExists", "This wallet already has a backpack. A second backpack cannot be created.");
+      setMessage(message, "warn");
+      onStatus(message);
+      return { ok: false, reason: "backpack-already-exists" };
+    }
     if (!walletAvailable()) {
       setMessage("A wallet is required to own the backpack PDA. Connect a plugin wallet or create a game wallet.", "warn");
       getChainSession()?.openWalletPanel?.();
-      return;
+      return { ok: false, reason: "wallet-unavailable" };
     }
     state.creating = true;
-    setMessage("Preparing the backpack PDA transaction. Confirm it in your wallet.", "pending");
+    state.phase = "checking";
+    state.messageMode = "transaction";
+    setMessage(ui("main.backpackCreate.checkingDetail", "Checking the chain for an existing backpack before creating one."), "pending");
     render();
     try {
-      const module = await loadPlayChainModule();
-      if (typeof module.purchaseDefaultBackpack !== "function") throw new Error("Backpack creation is unavailable in the loaded chain module.");
-      const result = await module.purchaseDefaultBackpack();
-      if (!result?.purchased && result?.reason !== "backpack-already-bound") {
+      const eligibility = await verifyBackpackCreationEligibility({
+        gameState,
+        chainBackpack: getChainBackpack(),
+      });
+      if (!eligibility.ok) return handleIneligibleCreation(eligibility);
+
+      state.phase = "submitting";
+      setMessage("Preparing the backpack PDA transaction. Confirm it in your wallet.", "pending");
+      render();
+      const result = await purchaseBackpack();
+      if (result?.reason === "backpack-already-bound") {
+        const message = ui("main.backpackCreate.alreadyExists", "This wallet already has a backpack. A second backpack cannot be created.");
+        setMessage(message, "warn");
+        await refreshBackpackPda();
+        onStatus(message);
+        return { ok: false, reason: "backpack-already-exists", result };
+      }
+      if (!result?.purchased) {
         throw new Error(readableReason(result?.reason || "transaction-not-submitted"));
       }
 
@@ -137,17 +189,39 @@ export function createPlayBackpackCreation({
         state.creating = false;
         render();
         globalThis.setTimeout?.(() => close({ created: true }), 420);
-        return;
+        return { ok: true, result, sync };
       }
       throw new Error(readableReason(sync?.reason || "backpack-sync-failed"));
     } catch (error) {
       setMessage(`Backpack creation failed: ${readableError(error)}`, "error");
-      onStatus(`Backpack creation failed: ${readableError(error)}`);
+      onStatus(`Backpack creation failed: ${readableError(error)}`, "error");
+      return { ok: false, reason: "backpack-creation-failed", error };
     } finally {
       state.creating = false;
+      state.phase = "idle";
       onChanged();
       render();
     }
+  }
+
+  function handleIneligibleCreation(eligibility) {
+    if (eligibility.reason === "backpack-already-exists") {
+      const message = ui("main.backpackCreate.alreadyExists", "This wallet already has a backpack. A second backpack cannot be created.");
+      setMessage(message, "warn");
+      onStatus(message);
+    } else if (eligibility.reason === "backpack-read-pending") {
+      state.messageMode = "read";
+      setMessage(ui("main.backpackCreate.readPending", "Backpack data is still loading. Creation was not submitted."), "pending");
+    } else {
+      const message = ui(
+        "main.backpackCreate.readFailed",
+        "Backpack verification failed. Creation was not submitted: {reason}",
+        { reason: readableReason(eligibility.detail || eligibility.reason) },
+      );
+      setMessage(message, "error");
+      onStatus(message, "error");
+    }
+    return { ok: false, ...eligibility };
   }
 
   function toggleLearnMore() {
@@ -197,6 +271,29 @@ export function createPlayBackpackCreation({
     return Boolean(getChainSession()?.snapshot?.()?.walletAddress);
   }
 
+  function currentReadState() {
+    return resolveBackpackReadState({
+      gameState,
+      snapshot: getChainBackpack()?.snapshot?.(),
+    });
+  }
+
+  function setReadMessage(readState) {
+    if (!walletAvailable()) {
+      setMessage("Connect or create a wallet first, then create your backpack on chain.", "info");
+    } else if (readState.loading || readState.pending) {
+      setMessage(ui("main.backpackCreate.checkingDetail", "Checking the chain for an existing backpack before creating one."), "pending");
+    } else if (readState.error) {
+      setMessage(ui(
+        "main.backpackCreate.readFailed",
+        "Backpack verification failed. Creation was not submitted: {reason}",
+        { reason: readableReason(readState.error) },
+      ), "error");
+    } else {
+      setMessage("Your wallet is ready. Create the 50-slot backpack on chain to unlock mining.", "info");
+    }
+  }
+
   async function refreshBackpackPda() {
     const chainBackpack = getChainBackpack();
     if (!chainBackpack?.refresh) return { ok: false, reason: "backpack-sync-unavailable" };
@@ -227,6 +324,14 @@ export function createPlayBackpackCreation({
   }
 }
 
+async function defaultPurchaseBackpack() {
+  const module = await loadPlayChainModule();
+  if (typeof module.purchaseDefaultBackpack !== "function") {
+    throw new Error("Backpack creation is unavailable in the loaded chain module.");
+  }
+  return module.purchaseDefaultBackpack();
+}
+
 function readableReason(reason) {
   return String(reason || "unknown-error").replaceAll("-", " ");
 }
@@ -234,6 +339,12 @@ function readableReason(reason) {
 function readableError(error) {
   const message = String(error?.message || error || "unknown error");
   return message.length > 150 ? `${message.slice(0, 147)}...` : message;
+}
+
+function formatMessage(template, params = {}) {
+  return String(template || "").replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => (
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
+  ));
 }
 
 function delay(ms) {

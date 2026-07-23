@@ -36,6 +36,13 @@
       "market": "6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7",
       "smelting": "6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7"
     },
+    "materialPhysics": {
+      "schemaVersion": 2,
+      "revision": 1,
+      "seed": "material-physics-v2",
+      "rulesUrl": "/rules/material-physics-v2.json",
+      "massFormula": "round(volumeMm3 * densityKgM3 / 1000000)"
+    },
     "smelting": {
       "ruleSet": "nicechunk-smelting-v1",
       "rulesUrl": "/rules/smelting-rules.json",

@@ -13,6 +13,7 @@ test("hotbar selection and durability updates preserve rendered icon canvases", 
     const gameState = {
       selectedHotbarSlot: 0,
       backpackAvailable: false,
+      backpackStatusKnown: true,
       hotbarItems: {
         forged_item: { itemId: "forged_item", kind: "forged", label: "Forged Tool" },
         iron_pickaxe: { itemId: "iron_pickaxe", kind: "tool", label: "Pickaxe" },
@@ -65,6 +66,55 @@ test("hotbar selection and durability updates preserve rendered icon canvases", 
     ui.render();
     assert.notEqual(hotbar.children[0], forgedButton);
     assert.equal(iconRenderCount, 3);
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
+test("the backpack entry remains usable while its PDA state is unresolved", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const hotbar = document.createElement("div");
+    let openCount = 0;
+    let iconCount = 0;
+    const gameState = {
+      selectedHotbarSlot: 0,
+      backpackAvailable: false,
+      backpackStatusKnown: false,
+      hotbarItems: {
+        backpack: { itemId: "backpack", kind: "backpack", label: "Backpack" },
+      },
+      hotbarSlots: [{ itemId: "backpack", locked: true }],
+      syncHotbarResourceSlots() {},
+      isBackpackAvailable() { return this.backpackAvailable; },
+      totalBackpackItems() { return 0; },
+      selectHotbarSlot() {},
+    };
+    const ui = createPlayHotbarUi({
+      elements: { hotbar },
+      gameState,
+      createVoxelItemIconCanvas() {
+        iconCount += 1;
+        return document.createElement("canvas");
+      },
+      voxelItemLabel: (item) => item.label,
+      onOpenBackpack: () => { openCount += 1; },
+    });
+
+    ui.render();
+    assert.equal(iconCount, 1);
+    assert.equal(hotbar.children[0].attributes.get("aria-label"), "Backpack loading");
+    hotbar.children[0].dispatch("click");
+    assert.equal(openCount, 1);
+
+    gameState.backpackStatusKnown = true;
+    ui.render();
+    assert.equal(hotbar.children[0].attributes.get("aria-label"), "Create backpack");
+    hotbar.children[0].dispatch("click");
+    assert.equal(openCount, 2);
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;

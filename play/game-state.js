@@ -42,7 +42,6 @@ export function createPlayGameState({
     hotbarSlots: loadHotbarSlots(initialOwnerAddress),
     backpackSlots: [],
     backpackCapacity: BACKPACK_CAPACITY,
-    backpackMassInitialized: false,
     backpackTotalMassGrams: "0",
     backpackAvailable: false,
     backpackStatusKnown: false,
@@ -60,7 +59,6 @@ export function createPlayGameState({
       this.playerProfile = loadPlayerProfile(nextOwner);
       this.backpackSlots = [];
       this.backpackCapacity = BACKPACK_CAPACITY;
-      this.backpackMassInitialized = false;
       this.backpackTotalMassGrams = "0";
       this.backpackAvailable = false;
       this.backpackStatusKnown = false;
@@ -489,7 +487,7 @@ export function createPlayGameState({
       slot.durability = Math.min(slot.maxDurability || DEFAULT_PICKAXE_DURABILITY, Math.trunc(slot.durability || 0) + Math.max(1, Math.trunc(amount || 1)));
       this.saveHotbarSlots();
     },
-    addBackpackResource({ resourceId, blockId, count = 1, pendingTxId = null, yieldBps = 10000, volumeMilliLiters = 1000 }) {
+    addBackpackResource({ resourceId, blockId, count = 1, pendingTxId = null, yieldBps = 10000, volumeMm3 = 1_000_000 }) {
       return null;
     },
     consumeBackpackItems(consumptions = []) {
@@ -513,11 +511,9 @@ export function createPlayGameState({
     mergeChainBackpackSlots(chainSlots = [], {
       source = "chain",
       capacity = BACKPACK_CAPACITY,
-      massInitialized = false,
       totalMassGrams = "0",
     } = {}) {
       const nextCapacity = clampInt(capacity, 1, BACKPACK_MAX_CAPACITY);
-      const nextMassInitialized = massInitialized === true;
       const nextTotalMassGrams = normalizeMassGramsString(totalMassGrams);
       const nextSlots = chainSlots
         .map(normalizeBackpackSlot)
@@ -526,10 +522,8 @@ export function createPlayGameState({
       const previousSignature = backpackSlotsSignature(this.backpackSlots);
       const nextSignature = backpackSlotsSignature(nextSlots);
       const capacityChanged = this.backpackCapacity !== nextCapacity;
-      const massChanged = this.backpackMassInitialized !== nextMassInitialized
-        || this.backpackTotalMassGrams !== nextTotalMassGrams;
+      const massChanged = this.backpackTotalMassGrams !== nextTotalMassGrams;
       this.backpackCapacity = nextCapacity;
-      this.backpackMassInitialized = nextMassInitialized;
       this.backpackTotalMassGrams = nextTotalMassGrams;
       this.backpackSlots = nextSlots;
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true });
@@ -543,11 +537,9 @@ export function createPlayGameState({
     clearBackpackSlots() {
       const backpackChanged = this.backpackSlots.length > 0;
       const backpackMetadataChanged = this.backpackCapacity !== BACKPACK_CAPACITY
-        || this.backpackMassInitialized
         || this.backpackTotalMassGrams !== "0";
       this.backpackSlots = [];
       this.backpackCapacity = BACKPACK_CAPACITY;
-      this.backpackMassInitialized = false;
       this.backpackTotalMassGrams = "0";
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true, clearAll: true });
       this.saveBackpackSlots();
@@ -926,7 +918,6 @@ function normalizeBackpackSlot(slot) {
     proof: slot.proof && typeof slot.proof === "object" ? normalizeProof(slot.proof) : null,
     yieldBps: Number.isFinite(slot.yieldBps) ? clampInt(slot.yieldBps, 1, 10000) : null,
     volumeMm3: Number.isFinite(slot.volumeMm3) ? clampInt(slot.volumeMm3, 0, 0xffffffff) : null,
-    volumeMilliLiters: Number.isFinite(slot.volumeMilliLiters) ? clampInt(slot.volumeMilliLiters, 0, 1000000) : null,
     massGrams: Number.isFinite(slot.massGrams) ? clampInt(slot.massGrams, 0, 0xffffffff) : null,
     metadata: clampInt(slot.metadata, 0, 0xffffffff),
     ...surfaceDecorationFields(slot),
@@ -1086,7 +1077,6 @@ function hotbarSlotFromEquipmentRecord(record, ownerAddress, equipmentSlot) {
       custodySource: "equipment",
       equipmentSlot,
       volumeMm3: Math.max(0, Math.trunc(Number(raw.volumeMm3) || 0)),
-      volumeMilliLiters: Math.max(0, Math.trunc((Number(raw.volumeMm3) || 0) / 1000)),
       metadata,
       decorationId: metadata & 0xffff,
       decorationRuleId: metadata >>> 16,
@@ -1378,7 +1368,6 @@ function backpackSlotsSignature(slots) {
     slot?.pending ? 1 : 0,
     slot?.pendingTxId || "",
     slot?.yieldBps ?? "",
-    slot?.volumeMilliLiters ?? "",
     slot?.volumeMm3 ?? "",
     slot?.massGrams ?? "",
     slot?.source || "",

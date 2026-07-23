@@ -30,7 +30,9 @@ test("equipped backpack cells render a locked equipment marker", () => {
     const gameState = {
       backpackSlots: [slot],
       backpackCapacity: 1,
+      backpackStatusKnown: true,
       totalBackpackItems: () => 1,
+      isBackpackAvailable: () => true,
       getBackpackSlotEquipment: (candidate) => candidate === slot ? { index: 2, slot: { itemId: "forged_item" } } : null,
     };
     const ui = createPlayBackpackUi({
@@ -62,7 +64,7 @@ test("equipped backpack cells render a locked equipment marker", () => {
   }
 });
 
-test("backpack metadata renders authoritative mass without duplicating pending labels", () => {
+test("backpack metadata renders authoritative mass", () => {
   const originalDocument = globalThis.document;
   const document = new FakeDocument();
   globalThis.document = document;
@@ -72,9 +74,10 @@ test("backpack metadata renders authoritative mass without duplicating pending l
     const gameState = {
       backpackSlots: [],
       backpackCapacity: 50,
-      backpackMassInitialized: true,
       backpackTotalMassGrams: "12550",
+      backpackStatusKnown: true,
       totalBackpackItems: () => 0,
+      isBackpackAvailable: () => true,
     };
     const ui = createPlayBackpackUi({
       elements: {
@@ -92,9 +95,55 @@ test("backpack metadata renders authoritative mass without duplicating pending l
     ui.render({ force: true });
     assert.equal(backpackMeta.children[2].textContent, "Weight 12.6 kg");
 
-    gameState.backpackMassInitialized = false;
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
+test("backpack slots render a shared loading animation while the PDA is unresolved", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const backpackGrid = document.createElement("div");
+    const backpackMeta = document.createElement("span");
+    const gameState = {
+      backpackSlots: [],
+      backpackCapacity: 4,
+      backpackStatusKnown: false,
+      totalBackpackItems: () => 0,
+      isBackpackAvailable: () => false,
+    };
+    let snapshot = { loading: false, statusKnown: false, available: false, lastError: "" };
+    const ui = createPlayBackpackUi({
+      elements: {
+        backpackGrid,
+        backpackMeta,
+        backpackPanel: { hidden: false },
+        backpackCategoryButtons: [],
+      },
+      gameState,
+      getBackpackSnapshot: () => snapshot,
+      createVoxelItemIconCanvas: () => document.createElement("canvas"),
+      voxelItemLabel: () => "Item",
+    });
+
     ui.render({ force: true });
-    assert.equal(backpackMeta.children[2].textContent, "Weight pending");
+    assert.equal(backpackGrid.classList.contains("is-loading"), true);
+    assert.equal(backpackGrid.attributes.get("aria-busy"), "true");
+    assert.equal(backpackGrid.children.length, 5);
+    assert.equal(backpackGrid.children[0].classList.contains("loading"), true);
+    assert.equal(backpackGrid.children[4].classList.contains("is-loading"), true);
+    assert.equal(backpackMeta.children[0].textContent, "Loading backpack...");
+
+    snapshot = { loading: false, statusKnown: false, available: false, lastError: "rpc-timeout" };
+    ui.render({ force: true });
+    assert.equal(backpackGrid.classList.contains("is-loading"), false);
+    assert.equal(backpackGrid.classList.contains("is-read-error"), true);
+    assert.equal(backpackGrid.attributes.get("aria-busy"), "false");
+    assert.equal(backpackGrid.children[4].classList.contains("is-error"), true);
+    assert.equal(backpackMeta.children[0].textContent, "Backpack unavailable");
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;

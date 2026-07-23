@@ -164,7 +164,7 @@ export function createMiningController({
       toolDamageBySlot: [],
       requiredDamage: 0,
       gatheringYieldBps: 0,
-      resourceVolumeMilliLiters: 0,
+      resourceVolumeMm3: 0,
       swingStartedAt: performance.now(),
       swingImpactAt: performance.now(),
     };
@@ -360,12 +360,12 @@ export function createMiningController({
     const txId = `local-pending-${txSerial++}`;
     const skillEffects = getSkillEffects?.() ?? {};
     const yieldBps = Math.max(1, Math.min(10000, Math.trunc(skillEffects.precisionGatheringBps || 1000)));
-    const volumeMilliLiters = Math.max(1, Math.floor(1000 * yieldBps / 10000));
+    const volumeMm3 = Math.max(1, Math.floor(1_000_000 * yieldBps / 10000));
     const planBlocks = currentPlanBlocks(swing, hit);
     const plannedRewardBlocks = swing.miningPlan?.rewardBlocks?.length ? swing.miningPlan.rewardBlocks : planBlocks;
     const rewardGroups = rewardGroupsForBlocks(uniqueMiningBlocks([hit, ...plannedRewardBlocks]), {
       yieldBps,
-      volumeMilliLiters,
+      volumeMm3,
     });
 
     const toolDamageBySlot = Array.from(damageState.toolDamageBySlot, ([slotIndex, amount]) => ({
@@ -393,7 +393,7 @@ export function createMiningController({
       toolDamageBySlot,
       requiredDamage,
       gatheringYieldBps: yieldBps,
-      resourceVolumeMilliLiters: volumeMilliLiters,
+      resourceVolumeMm3: volumeMm3,
       swingStartedAt: swing.startedAt,
       swingImpactAt: performance.now(),
     };
@@ -580,12 +580,12 @@ function currentPlanBlocks(swing, hit) {
   return valid.length ? valid : [normalizeMiningBlock(hit)];
 }
 
-function rewardGroupsForBlocks(blocks = [], { yieldBps = 10000, volumeMilliLiters = 1000 } = {}) {
+function rewardGroupsForBlocks(blocks = [], { yieldBps = 10000, volumeMm3 = 1_000_000 } = {}) {
   const groups = new Map();
   for (const block of blocks) {
     const normalized = normalizeMiningBlock(block);
     if (!normalized || normalized.resourceId === 0) continue;
-    const key = `${normalized.resourceId}:${normalized.blockId}:${yieldBps}:${volumeMilliLiters}`;
+    const key = `${normalized.resourceId}:${normalized.blockId}:${yieldBps}:${volumeMm3}`;
     const existing = groups.get(key);
     if (existing) existing.count += 1;
     else groups.set(key, {

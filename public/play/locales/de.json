@@ -2,8 +2,8 @@
   "_meta": {
     "language": "de",
     "label": "German",
-    "version": "play-locale-de-9144e5fcbb5a7c82",
-    "contentHash": "9144e5fcbb5a7c82"
+    "version": "play-locale-de-fa5ded5cac17df04",
+    "contentHash": "fa5ded5cac17df04"
   },
   "siteFooter": {
     "tagline": "Ein Seed-Voxelwelt-Protokoll auf Solana.",
@@ -617,7 +617,13 @@
       "equipped": "Ausgerüstet",
       "equippedSlot": "In Schnellleistenslot {slot} ausgerüstet",
       "equippedLocked": "In Schnellleistenslot {slot} ausgerüstet. Lege es ab, bevor du es auswählst, verschiebst oder wegwirfst.",
-      "weightPending": "Gewicht wird berechnet"
+      "loading": "Rucksack wird geladen...",
+      "unavailable": "Rucksack nicht verfügbar",
+      "readFailed": "Rucksack konnte nicht geladen werden: {reason}",
+      "readFailedShort": "Die Rucksackdaten konnten nicht geladen werden. Öffne den Rucksack erneut, um es noch einmal zu versuchen.",
+      "openAria": "Rucksack öffnen",
+      "loadingAria": "Rucksack wird geladen",
+      "createAria": "Rucksack erstellen"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "Diese Wallet besitzt bereits einen Rucksack. Ein zweiter Rucksack kann nicht erstellt werden.",
+      "checking": "RUCKSACK WIRD GEPRÜFT...",
+      "creating": "WIRD ON-CHAIN ERSTELLT...",
+      "alreadyExistsLabel": "RUCKSACK BEREITS VORHANDEN",
+      "retryCheck": "RUCKSACKPRÜFUNG WIEDERHOLEN",
+      "checkingDetail": "Die Chain wird vor der Erstellung auf einen vorhandenen Rucksack geprüft.",
+      "readPending": "Die Rucksackdaten werden noch geladen. Es wurde keine Erstellung gesendet.",
+      "readFailed": "Die Rucksackprüfung ist fehlgeschlagen. Es wurde keine Erstellung gesendet: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

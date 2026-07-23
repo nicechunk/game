@@ -2,8 +2,8 @@
   "_meta": {
     "language": "fr",
     "label": "French",
-    "version": "play-locale-fr-96e7d7c078200f01",
-    "contentHash": "96e7d7c078200f01"
+    "version": "play-locale-fr-4978066e721e2f44",
+    "contentHash": "4978066e721e2f44"
   },
   "siteFooter": {
     "tagline": "Un protocole de monde voxel seedé sur Solana.",
@@ -617,7 +617,13 @@
       "equipped": "Équipé",
       "equippedSlot": "Équipé dans l’emplacement {slot} de la barre",
       "equippedLocked": "Équipé dans l’emplacement {slot} de la barre. Retirez-le avant de le sélectionner, le déplacer ou le jeter.",
-      "weightPending": "Poids en attente"
+      "loading": "Chargement du sac à dos...",
+      "unavailable": "Sac à dos indisponible",
+      "readFailed": "Échec de lecture du sac à dos : {reason}",
+      "readFailedShort": "Les données du sac à dos n'ont pas pu être chargées. Rouvrez-le pour réessayer.",
+      "openAria": "Ouvrir le sac à dos",
+      "loadingAria": "Chargement du sac à dos",
+      "createAria": "Créer un sac à dos"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "Ce portefeuille possède déjà un sac à dos. Il est impossible d'en créer un second.",
+      "checking": "VÉRIFICATION DU SAC...",
+      "creating": "CRÉATION SUR LA CHAÎNE...",
+      "alreadyExistsLabel": "LE SAC À DOS EXISTE DÉJÀ",
+      "retryCheck": "RÉESSAYER LA VÉRIFICATION",
+      "checkingDetail": "Vérification sur la chaîne de l'existence d'un sac à dos avant sa création.",
+      "readPending": "Les données du sac à dos sont encore en cours de chargement. La création n'a pas été envoyée.",
+      "readFailed": "La vérification du sac à dos a échoué. La création n'a pas été envoyée : {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

@@ -13,6 +13,7 @@ const playLoaderSource = resolve(playSource, "play-loader.js");
 const playOnboardingLoaderSource = resolve(playSource, "play-onboarding-loader.js");
 const chunkSource = resolve(root, "chunk.js");
 const playLocaleSource = resolve(root, "public/play/locales");
+const materialPhysicsRulesSource = resolve(root, "public/rules/material-physics-v2.json");
 const chainAssetsSource = resolve(root, "dist/assets");
 const chainBundleSource = resolve(root, "dist/assets/nicechunkChain.js");
 const chainAssetFiles = (await collectFiles(chainAssetsSource)).filter((file) => file.endsWith(".js"));
@@ -51,6 +52,7 @@ const playRuntimeFiles = (await collectFiles(playSource))
 const sourceFiles = [...new Set([
   ...playRuntimeFiles,
   ...(await collectFiles(playLocaleSource)),
+  materialPhysicsRulesSource,
   ...chunkRuntimeFiles,
   ...sharedRuntimeFiles,
   ...chainVersionFiles,
@@ -242,6 +244,8 @@ await writeFile(runtimeIndexPath, deployedIndex);
 await mkdir(resolve(outputRoot, "play"), { recursive: true });
 await writeFile(resolve(outputRoot, "play", "index.html"), deployedIndex);
 await cp(playLocaleSource, resolve(outputRoot, "play", "locales"), { recursive: true });
+await mkdir(resolve(outputRoot, "rules"), { recursive: true });
+await cp(materialPhysicsRulesSource, resolve(outputRoot, "rules", "material-physics-v2.json"));
 await writeFile(resolve(outputRoot, "play-runtime.json"), `${JSON.stringify({
   version,
   runtimePrefix,

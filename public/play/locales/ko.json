@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ko",
     "label": "Korean",
-    "version": "play-locale-ko-c5026ebbbd0c4a21",
-    "contentHash": "c5026ebbbd0c4a21"
+    "version": "play-locale-ko-83f0b5b8375b16d6",
+    "contentHash": "83f0b5b8375b16d6"
   },
   "siteFooter": {
     "tagline": "Solana 기반 시드형 복셀 월드 프로토콜.",
@@ -617,7 +617,13 @@
       "equipped": "장착 중",
       "equippedSlot": "단축바 {slot}번 슬롯에 장착 중",
       "equippedLocked": "단축바 {slot}번 슬롯에 장착 중입니다. 선택, 이동 또는 버리기 전에 장착을 해제하세요.",
-      "weightPending": "무게 계산 중"
+      "loading": "백팩 불러오는 중...",
+      "unavailable": "백팩을 사용할 수 없음",
+      "readFailed": "백팩 읽기 실패: {reason}",
+      "readFailedShort": "백팩 데이터를 불러오지 못했습니다. 백팩을 다시 열어 재시도하세요.",
+      "openAria": "백팩 열기",
+      "loadingAria": "백팩 불러오는 중",
+      "createAria": "백팩 만들기"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "이 지갑에는 이미 백팩이 있습니다. 두 번째 백팩은 만들 수 없습니다.",
+      "checking": "백팩 확인 중...",
+      "creating": "온체인 생성 중...",
+      "alreadyExistsLabel": "백팩이 이미 존재함",
+      "retryCheck": "백팩 다시 확인",
+      "checkingDetail": "생성 전에 체인에서 기존 백팩을 확인하고 있습니다.",
+      "readPending": "백팩 데이터를 아직 불러오는 중입니다. 생성 요청은 제출되지 않았습니다.",
+      "readFailed": "백팩 확인에 실패했습니다. 생성 요청은 제출되지 않았습니다: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",

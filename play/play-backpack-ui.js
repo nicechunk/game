@@ -1,4 +1,5 @@
 import { BACKPACK_CAPACITY } from "./game-state.js";
+import { resolveBackpackReadState } from "./backpack-read-state.js";
 import { backpackSlotMeta } from "./play-ui-format.js";
 
 const DEFAULT_CATEGORY = "all";
@@ -23,6 +24,7 @@ export function createPlayBackpackUi({
   createVoxelItemIconCanvas,
   resourceName = null,
   voxelItemLabel,
+  getBackpackSnapshot = () => null,
   translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   let activeCategory = DEFAULT_CATEGORY;
@@ -69,36 +71,61 @@ export function createPlayBackpackUi({
     const slots = gameState.backpackSlots;
     const capacity = Math.max(1, Math.trunc(Number(gameState.backpackCapacity) || BACKPACK_CAPACITY));
     const totalItems = gameState.totalBackpackItems();
+    const readState = resolveBackpackReadState({ gameState, snapshot: getBackpackSnapshot() });
+    const blockingLoading = readState.pending && !readState.available;
+    const readFailed = Boolean(readState.error && !readState.available);
     if (elements.backpackMeta) {
-      const stackMeta = document.createElement("span");
-      stackMeta.className = "backpack-meta-stacks";
-      stackMeta.textContent = `${slots.length} / ${capacity}`;
-      const itemMeta = document.createElement("span");
-      itemMeta.className = "backpack-meta-items";
-      itemMeta.textContent = `${totalItems} items`;
-      const weightMeta = document.createElement("span");
-      weightMeta.className = "backpack-meta-weight";
-      weightMeta.textContent = gameState.backpackMassInitialized
-        ? ui("main.backpack.totalWeight", "Weight {weight}", {
-            weight: formatBackpackMass(gameState.backpackTotalMassGrams),
-          })
-        : ui("main.backpack.weightPending", "Weight pending");
-      elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
+      if (blockingLoading || readFailed) {
+        const statusMeta = document.createElement("span");
+        statusMeta.className = `backpack-meta-status ${blockingLoading ? "is-loading" : "is-error"}`;
+        statusMeta.textContent = blockingLoading
+          ? ui("main.backpack.loading", "Loading backpack...")
+          : ui("main.backpack.unavailable", "Backpack unavailable");
+        elements.backpackMeta.replaceChildren(statusMeta);
+      } else {
+        const stackMeta = document.createElement("span");
+        stackMeta.className = "backpack-meta-stacks";
+        stackMeta.textContent = `${slots.length} / ${capacity}`;
+        const itemMeta = document.createElement("span");
+        itemMeta.className = "backpack-meta-items";
+        itemMeta.textContent = `${totalItems} items`;
+        const weightMeta = document.createElement("span");
+        weightMeta.className = "backpack-meta-weight";
+        weightMeta.textContent = ui("main.backpack.totalWeight", "Weight {weight}", {
+          weight: formatBackpackMass(gameState.backpackTotalMassGrams),
+        });
+        elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
+      }
     }
-    updateCategoryButtons(slots);
+    updateCategoryButtons(slots, { disabled: blockingLoading || readFailed });
 
-    const entries = slots.map((slot, index) => ({ slot, index }));
-    const visible = activeCategory === DEFAULT_CATEGORY
-      ? entries
-      : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
-    const cells = visible.map(({ slot, index }, displayIndex) => backpackCell(slot, index, displayIndex));
-    for (let displayIndex = cells.length; displayIndex < capacity; displayIndex += 1) {
-      cells.push(emptyBackpackCell(displayIndex));
+    let cells = [];
+    if (blockingLoading) {
+      cells = Array.from({ length: capacity }, (_, index) => loadingBackpackCell(index));
+      cells.push(backpackGridStatus("loading", ui("main.backpack.loading", "Loading backpack...")));
+    } else {
+      const entries = slots.map((slot, index) => ({ slot, index }));
+      const visible = activeCategory === DEFAULT_CATEGORY
+        ? entries
+        : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
+      cells = visible.map(({ slot, index }, displayIndex) => backpackCell(slot, index, displayIndex));
+      for (let displayIndex = cells.length; displayIndex < capacity; displayIndex += 1) {
+        cells.push(emptyBackpackCell(displayIndex));
+      }
+      if (readFailed) {
+        cells.push(backpackGridStatus(
+          "error",
+          ui("main.backpack.readFailedShort", "Backpack data could not be loaded. Reopen the backpack to retry."),
+        ));
+      }
     }
+    elements.backpackGrid.classList.toggle("is-loading", blockingLoading);
+    elements.backpackGrid.classList.toggle("is-read-error", readFailed);
+    elements.backpackGrid.setAttribute("aria-busy", blockingLoading ? "true" : "false");
     elements.backpackGrid.replaceChildren(...cells);
   }
 
-  function updateCategoryButtons(slots) {
+  function updateCategoryButtons(slots, { disabled = false } = {}) {
     const counts = new Map([[DEFAULT_CATEGORY, slots.length]]);
     for (const slot of slots) {
       const category = backpackCategory(slot);
@@ -107,6 +134,7 @@ export function createPlayBackpackUi({
     elements.backpackCategoryButtons?.forEach((button) => {
       const category = String(button.dataset.backpackCategory || DEFAULT_CATEGORY);
       const selected = category === activeCategory;
+      button.disabled = disabled;
       button.classList.toggle("active", selected);
       button.setAttribute("aria-pressed", selected ? "true" : "false");
       const count = button.querySelector("b");
@@ -183,6 +211,24 @@ export function createPlayBackpackUi({
     slotNumber.textContent = String(displayIndex + 1);
     cell.append(slotNumber);
     return cell;
+  }
+
+  function loadingBackpackCell(displayIndex) {
+    const cell = emptyBackpackCell(displayIndex);
+    cell.classList.add("loading");
+    return cell;
+  }
+
+  function backpackGridStatus(state, label) {
+    const status = document.createElement("div");
+    status.className = `backpack-grid-status is-${state}`;
+    status.setAttribute("role", state === "error" ? "alert" : "status");
+    const mark = document.createElement("i");
+    mark.setAttribute("aria-hidden", "true");
+    const text = document.createElement("span");
+    text.textContent = label;
+    status.append(mark, text);
+    return status;
   }
 
   function togglePanel() {

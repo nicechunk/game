@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-9a483942f87dffdb",
-    "contentHash": "9a483942f87dffdb"
+    "version": "play-locale-ru-3907fe935c711e4e",
+    "contentHash": "3907fe935c711e4e"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -617,7 +617,13 @@
       "equipped": "Экипировано",
       "equippedSlot": "Экипировано в ячейке {slot} панели",
       "equippedLocked": "Экипировано в ячейке {slot} панели. Снимите предмет перед выбором, перемещением или удалением.",
-      "weightPending": "Вес рассчитывается"
+      "loading": "Загрузка рюкзака...",
+      "unavailable": "Рюкзак недоступен",
+      "readFailed": "Не удалось прочитать рюкзак: {reason}",
+      "readFailedShort": "Не удалось загрузить данные рюкзака. Откройте рюкзак снова, чтобы повторить попытку.",
+      "openAria": "Открыть рюкзак",
+      "loadingAria": "Рюкзак загружается",
+      "createAria": "Создать рюкзак"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1030,7 +1036,15 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!"
+      "hotbarHint": "Your backpack will appear here after creation!",
+      "alreadyExists": "У этого кошелька уже есть рюкзак. Создать второй рюкзак нельзя.",
+      "checking": "ПРОВЕРКА РЮКЗАКА...",
+      "creating": "СОЗДАНИЕ В СЕТИ...",
+      "alreadyExistsLabel": "РЮКЗАК УЖЕ СУЩЕСТВУЕТ",
+      "retryCheck": "ПОВТОРИТЬ ПРОВЕРКУ",
+      "checkingDetail": "Перед созданием проверяем в сети наличие существующего рюкзака.",
+      "readPending": "Данные рюкзака ещё загружаются. Создание не было отправлено.",
+      "readFailed": "Проверка рюкзака завершилась ошибкой. Создание не было отправлено: {reason}"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -3393,7 +3407,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm3",
+    "volumeCm3Value": "{value} cm³",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",
