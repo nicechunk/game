@@ -3173,8 +3173,8 @@ body.first-person-camera::after {
 }
 
 .profile-skill-title span,
-.profile-skill-detail-header span,
-.profile-skill-detail-header small {
+.profile-skill-detail-header > div > span,
+.profile-skill-detail-header > div > small {
   display: block;
   margin-top: 3px;
   color: rgba(224, 240, 248, 0.72);
@@ -3299,19 +3299,19 @@ body.first-person-camera::after {
   background: rgba(255, 255, 255, 0.86);
 }
 
-.profile-equipment-item strong,
-.profile-equipment-item span,
-.profile-equipment-item small {
+.profile-equipment-item > div > strong,
+.profile-equipment-item > div > span,
+.profile-equipment-item > div > small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.profile-equipment-item strong {
+.profile-equipment-item > div > strong {
   font-size: 0.78rem;
 }
 
-.profile-equipment-item span {
+.profile-equipment-item > div > span {
   margin-top: 3px;
   color: rgba(224, 240, 248, 0.78);
   font-size: 0.67rem;
@@ -3319,7 +3319,7 @@ body.first-person-camera::after {
   white-space: nowrap;
 }
 
-.profile-equipment-item small {
+.profile-equipment-item > div > small {
   margin-top: 5px;
   color: rgba(224, 240, 248, 0.62);
   font-size: 0.62rem;
@@ -11109,8 +11109,8 @@ body {
 }
 
 .profile-panel .profile-skill-title span,
-.profile-panel .profile-skill-detail-header span,
-.profile-panel .profile-skill-detail-header small {
+.profile-panel .profile-skill-detail-header > div > span,
+.profile-panel .profile-skill-detail-header > div > small {
   color: #52738d;
 }
 
@@ -11182,25 +11182,25 @@ body {
   min-width: 0;
 }
 
-.profile-panel .profile-equipment-item strong,
-.profile-panel .profile-equipment-item span,
-.profile-panel .profile-equipment-item small {
+.profile-panel .profile-equipment-item > div > strong,
+.profile-panel .profile-equipment-item > div > span,
+.profile-panel .profile-equipment-item > div > small {
   display: block;
   margin: 0;
 }
 
-.profile-panel .profile-equipment-item strong {
+.profile-panel .profile-equipment-item > div > strong {
   color: #173f60;
   font-size: 0.72rem;
 }
 
-.profile-panel .profile-equipment-item span {
+.profile-panel .profile-equipment-item > div > span {
   margin-top: 2px;
   color: #286b9d;
   font-size: 0.62rem;
 }
 
-.profile-panel .profile-equipment-item small {
+.profile-panel .profile-equipment-item > div > small {
   display: -webkit-box;
   margin-top: 3px;
   overflow: hidden;

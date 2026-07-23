@@ -8,8 +8,12 @@ try {
   const page = await browser.newPage();
   await page.route(`${origin}/play/tests/profile-lifecycle`, (route) => route.fulfill({
     contentType: "text/html",
-    body: `<!doctype html><html lang="en"><body>
-      <section id="profilePanel" hidden>
+    body: `<!doctype html><html lang="en"><head>
+      <link rel="stylesheet" href="/play/styles.css">
+    </head><body>
+      <section id="profilePanel" class="profile-panel" hidden>
+        <div id="profileSkillsGrid"></div>
+        <div id="profileSkillDetail"></div>
         <div id="profileEquipmentList"></div>
         <div id="profileEquipmentBrowserList"></div>
         <div id="equipmentPanel"></div>
@@ -32,6 +36,8 @@ try {
     const profile = createPlayProfileUi({
       elements: {
         profilePanel: byId("profilePanel"),
+        profileSkillsGrid: byId("profileSkillsGrid"),
+        profileSkillDetail: byId("profileSkillDetail"),
         profileEquipmentList: byId("profileEquipmentList"),
         profileEquipmentBrowserList: byId("profileEquipmentBrowserList"),
         equipmentPanel: byId("equipmentPanel"),
@@ -52,7 +58,20 @@ try {
     profile.render();
     const hiddenInitial = { sources: sourceCanvasCount, children: equipmentList.childElementCount };
     profile.openPanel();
-    const opened = { sources: sourceCanvasCount, children: equipmentList.childElementCount };
+    const iconLayout = [
+      document.querySelector(".profile-skill-detail-header > .profile-skill-icon"),
+      document.querySelector(".profile-equipment-item > .profile-equipment-icon"),
+    ].map((icon) => {
+      const child = icon.firstElementChild;
+      const outer = icon.getBoundingClientRect();
+      const inner = child.getBoundingClientRect();
+      return {
+        display: getComputedStyle(icon).display,
+        deltaX: Math.abs((inner.left + inner.width / 2) - (outer.left + outer.width / 2)),
+        deltaY: Math.abs((inner.top + inner.height / 2) - (outer.top + outer.height / 2)),
+      };
+    });
+    const opened = { sources: sourceCanvasCount, children: equipmentList.childElementCount, iconLayout };
     profile.closePanel();
     const firstChild = equipmentList.firstElementChild;
     profile.render();
@@ -69,6 +88,8 @@ try {
   assert.deepEqual(result.hiddenInitial, { sources: 0, children: 0 });
   assert.ok(result.opened.sources > 0);
   assert.equal(result.opened.children, 12);
+  assert.deepEqual(result.opened.iconLayout.map(({ display }) => display), ["grid", "grid"]);
+  assert.ok(result.opened.iconLayout.every(({ deltaX, deltaY }) => deltaX < 0.01 && deltaY < 0.01));
   assert.equal(result.hiddenRefresh.sources, result.opened.sources);
   assert.equal(result.hiddenRefresh.children, result.opened.children);
   assert.equal(result.hiddenRefresh.preserved, true);
