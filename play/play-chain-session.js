@@ -7,6 +7,7 @@ import {
 import { reconcilePendingMineWithChainResult } from "./play-chain-mining-result.js";
 import { t } from "/src/i18n.js";
 import { buildWalletLoginUrl, clearWalletSession } from "./play-auth-session.js";
+import { formatAccountBalanceValue } from "./play-account-balance.js";
 
 export const RPC_CONFIG_CHANGED_EVENT = "nicechunk:rpc-config-changed";
 export const WALLET_SESSION_CHANGED_EVENT = "nicechunk:wallet-session-changed";
@@ -305,14 +306,11 @@ export function createPlayChainSession({
   function renderWalletBalance() {
     if (!elements.accountBalanceValue) return;
     const status = state.walletAddress ? state.walletBalanceStatus : "disconnected";
-    const hasBalance = status === "ready" || status === "stale";
-    const label = !state.walletAddress
-      ? "0 SOL"
-      : hasBalance
-        ? `${formatWalletSol(state.walletBalanceLamports)} SOL`
-        : status === "loading"
-          ? "Loading..."
-          : "-- SOL";
+    const label = formatAccountBalanceValue({
+      connected: Boolean(state.walletAddress),
+      status,
+      lamports: state.walletBalanceLamports,
+    });
     elements.accountBalanceValue.textContent = label;
     if (elements.accountBalance) {
       elements.accountBalance.dataset.state = status;
@@ -1111,12 +1109,6 @@ function shortAddress(address) {
 
 function formatSol(lamports) {
   return (Math.trunc(lamports || 0) / LAMPORTS_PER_SOL).toFixed(3).replace(/\.?0+$/, "");
-}
-
-function formatWalletSol(lamports) {
-  const sol = Math.max(0, Number(lamports) || 0) / LAMPORTS_PER_SOL;
-  const decimals = sol >= 100 ? 2 : sol >= 1 ? 3 : sol >= 0.01 ? 4 : 6;
-  return sol.toFixed(decimals).replace(/\.?0+$/, "") || "0";
 }
 
 function shortSignature(signature) {

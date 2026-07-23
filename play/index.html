@@ -34,7 +34,7 @@
   <body>
     <canvas id="worldCanvas" aria-label="NiceChunk WebGL2 voxel world"></canvas>
     <button class="account-hud" id="accountHud" type="button" aria-label="Open player profile">
-      <span class="account-avatar" aria-hidden="true"></span>
+      <span class="account-avatar" id="accountAvatar" aria-hidden="true"></span>
       <span class="account-copy">
         <span class="account-row"><strong id="accountName">Sora</strong><b id="accountLevel">Lv. 1</b></span>
         <span id="accountTitle">Local preview</span>
@@ -51,7 +51,7 @@
             <path fill="url(#accountSolanaGradient)" d="M24.8 11.1a1.7 1.7 0 0 0-1.2-.5H5.4c-.8 0-1.2 1-.6 1.6l3.7 3.7a1.7 1.7 0 0 0 1.2.5h18.2c.8 0 1.2-1 .6-1.6l-3.7-3.7Z" />
             <path fill="url(#accountSolanaGradient)" d="M7.2 17.7a1.7 1.7 0 0 1 1.2-.5h18.2c.8 0 1.2 1 .6 1.6l-3.7 3.7a1.7 1.7 0 0 1-1.2.5H4.1c-.8 0-1.2-1-.6-1.6l3.7-3.7Z" />
           </svg>
-          <span id="accountBalanceValue">0 SOL</span>
+          <span id="accountBalanceValue">0.000000</span>
         </span>
         <span id="accountSessionBalance">Session: not funded</span>
       </span>

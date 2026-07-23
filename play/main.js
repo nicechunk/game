@@ -60,6 +60,7 @@ import { createPlayHud } from "./play-hud.js";
 import { createPlayInputActions } from "./play-input-actions.js";
 import { createPlayPlayerSession } from "./play-player-session.js";
 import { createPlayAvatarSession } from "./play-avatar-session.js";
+import { createAccountAvatarSnapshot } from "./play-account-avatar.js";
 import { createForgedItemPlacementController } from "./play-forged-item-placement.js";
 import { createPlayActionHit } from "./play-action-hit.js";
 import { createPlayProfileSession } from "./play-profile-session.js";
@@ -280,6 +281,7 @@ const elements = {
   bulkMiningCancel: document.querySelector("#bulkMiningCancelButton"),
   accountHud: document.querySelector("#accountHud"),
   accountName: document.querySelector("#accountName"),
+  accountAvatar: document.querySelector("#accountAvatar"),
   accountLevel: document.querySelector("#accountLevel"),
   accountTitle: document.querySelector("#accountTitle"),
   accountBalance: document.querySelector("#accountBalance"),
@@ -428,6 +430,7 @@ let lastMiningHitUntil = 0;
 let positionPersistence = null;
 let motion = null;
 let avatarSession = null;
+let accountAvatar = null;
 let mining = null;
 let bulkMining = null;
 let placement = null;
@@ -771,6 +774,10 @@ async function boot() {
     renderGameUi,
     setStatus,
     defaultModelCode: DEFAULT_AVATAR_MODEL_CODE,
+  });
+  accountAvatar = createAccountAvatarSnapshot({
+    element: elements.accountAvatar,
+    getModelCode: () => profileSession?.currentAvatarModelCode() || DEFAULT_AVATAR_MODEL_CODE,
   });
   avatarSession = createPlayAvatarSession({
     elements,
@@ -1612,6 +1619,7 @@ function dispatchBlueprintConstructionAction(action, ...args) {
 
 function renderGameUi() {
   refreshProfileSkillEffects();
+  accountAvatar?.render();
   playUi?.renderGameUi();
   backpackCreation?.render();
   inventory?.refresh();
