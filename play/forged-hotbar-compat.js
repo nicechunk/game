@@ -4,7 +4,8 @@ export const LEGACY_FORGED_HOTBAR_QUEUE_KEY = "nicechunk.forged.hotbar.queue.v1"
 export const WALLET_ADDRESS_STORAGE_KEY = "nicechunk.walletAddress";
 export const FORGE_CODE_PREFIX = "NCF1.";
 
-const FORGE_CODE_VERSION = 14;
+const FORGE_CODE_LEGACY_VERSION = 14;
+const FORGE_CODE_VERSION = 15;
 const FORGE_CODE_MIN_RAW_BYTES = 14;
 const FORGE_CODE_MAX_RAW_BYTES = 640;
 const FORGE_CODE_MAX_BASE64URL_LENGTH = Math.ceil(FORGE_CODE_MAX_RAW_BYTES * 4 / 3);
@@ -302,9 +303,10 @@ function forgeBytesToCode(bytes) {
 }
 
 function isCurrentForgeBytes(bytes) {
+  const version = bytes[0] >> 4;
   return bytes.length >= FORGE_CODE_MIN_RAW_BYTES
     && bytes.length <= FORGE_CODE_MAX_RAW_BYTES
-    && (bytes[0] >> 4) === FORGE_CODE_VERSION;
+    && (version === FORGE_CODE_LEGACY_VERSION || version === FORGE_CODE_VERSION);
 }
 
 function base64UrlToBytes(encoded) {

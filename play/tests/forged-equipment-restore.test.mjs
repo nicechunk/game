@@ -30,6 +30,7 @@ const { normalizeForgedHotbarSlot } = await import("../forged-hotbar-compat.js")
 const { setForgedItemRuntime } = await import("../forged-item-interaction.js");
 const { createNiceChunkGuardianClient } = await import("../play-guardian-client.js");
 const {
+  forgePayloadHash,
   forgePayloadIdentity,
   validatedNcf1EquipmentPayload,
 } = await import("../forge-equipment-payload.js");
@@ -121,6 +122,31 @@ assert.equal(
   validatedNcf1EquipmentPayload(Uint8Array.of(0xe0), 0x550c5d1f),
   null,
   "a forged Guardian payload must include the complete 108-bit NCF1 equipment header",
+);
+assert.equal(
+  equipped.slot.bytes[0] >> 4,
+  15,
+  "newly encoded forged equipment must use the fine-volume NCF1 version",
+);
+const legacyPayload = Uint8Array.from(equipped.slot.bytes);
+legacyPayload[0] = (14 << 4) | (legacyPayload[0] & 0x0f);
+const legacyDesignHash = forgePayloadHash(legacyPayload);
+assert.deepEqual(
+  validatedNcf1EquipmentPayload(legacyPayload, legacyDesignHash),
+  legacyPayload,
+  "legacy v14 equipment payloads must remain accepted",
+);
+assert.ok(normalizeForgedHotbarSlot({
+  itemId: "forged_item",
+  bytes: legacyPayload,
+  designHash: legacyDesignHash,
+}), "legacy v14 forged hotbar entries must remain readable");
+const retiredPayload = Uint8Array.from(legacyPayload);
+retiredPayload[0] = (13 << 4) | (retiredPayload[0] & 0x0f);
+assert.equal(
+  validatedNcf1EquipmentPayload(retiredPayload, forgePayloadHash(retiredPayload)),
+  null,
+  "retired NCF1 versions must remain rejected",
 );
 assert.notEqual(
   forgePayloadIdentity(equipped.slot.bytes),
