@@ -217,8 +217,66 @@ test("market requires an explicit owner-funded membership before loading listing
   }
 });
 
+test("market keeps every active chain listing and ignores local fake custody", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
+    await page.route(`${origin}/play/`, (route) => route.fulfill({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body: sourceHtml,
+    }));
+    await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
+    await installMarketHarness(page, { includeLocalOnlySlot: true });
+    await page.locator("#marketButton").click({ force: true });
+    await page.evaluate(() => globalThis.__marketHarness.releaseInitialListingRead());
+    await page.waitForSelector("#marketListingGrid .market-listing-card");
+    assert.equal(await page.locator("#marketInventoryGrid .market-inventory-item").count(), 1);
+
+    await page.evaluate(async () => {
+      globalThis.__marketHarness.setLargeListingSet();
+      await globalThis.__marketHarness.market.refreshChainListings({ force: true, quiet: true });
+    });
+    await page.waitForFunction(() => document.querySelector("#marketSearchMeta")?.textContent.includes("105 listings"));
+    await page.locator('[data-market-tab="orders"]').click();
+    const ownIds = await page.locator("#marketOrdersGrid .market-listing-card").evaluateAll((cards) => (
+      cards.map((card) => card.dataset.listingId)
+    ));
+    assert.deepEqual(ownIds, ["LargeMarketListing104"]);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
+test("a stale market refresh cannot overwrite a newer chain snapshot", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
+    await page.route(`${origin}/play/`, (route) => route.fulfill({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body: sourceHtml,
+    }));
+    await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
+    await installMarketHarness(page);
+    await page.locator("#marketButton").click({ force: true });
+    await page.evaluate(() => globalThis.__marketHarness.releaseInitialListingRead());
+    await page.waitForSelector("#marketListingGrid .market-listing-card");
+    await page.evaluate(() => globalThis.__marketHarness.runRefreshRace());
+    await page.waitForFunction(() => document.querySelector("#marketListingGrid")?.textContent.includes("99 NCK"));
+    assert.equal(await page.locator('#marketListingGrid [data-listing-id="StaleMarketListing"]').count(), 0);
+    assert.equal(await page.locator('#marketListingGrid [data-listing-id="FreshMarketListing"]').count(), 2);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
 async function installMarketHarness(page, options = {}) {
-  await page.evaluate(async ({ failInitialListingRead, marketJoined = true }) => {
+  await page.evaluate(async ({ failInitialListingRead, marketJoined = true, includeLocalOnlySlot = false }) => {
     const [{ createPlayMarket }, chunk] = await Promise.all([
       import("/play/play-market.js"),
       import("/chunk.js/play.js"),
@@ -361,23 +419,31 @@ async function installMarketHarness(page, options = {}) {
         metadata: 0,
       },
     };
+    let listingRecords = [chainListing, ownChainListing, blockChainListing];
+    let listingReadPlan = [];
     const operationCalls = { listing: 0, buy: 0, cancel: 0, join: 0, listingReads: 0 };
     let joinedMarket = marketJoined;
     let failNextBuy = false;
+    const submissionFailures = { listing: "", buy: "", cancel: "" };
     let failListingReads = Boolean(failInitialListingRead);
     let holdInitialListingRead = !failInitialListingRead;
     let releaseInitialListingRead = null;
     const delayOperation = () => new Promise((resolve) => setTimeout(resolve, 360));
     const chainModule = {
-      fetchMarketListingsPageOnChain: async () => {
+      fetchMarketListingsOnChain: async () => {
         operationCalls.listingReads += 1;
+        if (listingReadPlan.length) {
+          const planned = listingReadPlan.shift();
+          await new Promise((resolve) => setTimeout(resolve, planned.delay));
+          return planned.items;
+        }
         if (holdInitialListingRead) {
           await new Promise((resolve) => { releaseInitialListingRead = resolve; });
         } else {
           await new Promise((resolve) => setTimeout(resolve, 120));
         }
         if (failListingReads) throw new Error("RPC HTTP 503");
-        return { items: [chainListing, ownChainListing, blockChainListing] };
+        return listingRecords;
       },
       fetchMarketUserStateOnChain: async () => joinedMarket ? ({
         owner: "BuyerWalletAddress",
@@ -400,6 +466,11 @@ async function installMarketHarness(page, options = {}) {
       createMarketListingOnChain: async () => {
         operationCalls.listing += 1;
         await delayOperation();
+        if (submissionFailures.listing) {
+          const reason = submissionFailures.listing;
+          submissionFailures.listing = "";
+          return { submitted: false, reason };
+        }
         return { submitted: true, signature: "MarketCreateSignature123456789" };
       },
       buyMarketListingOnChain: async () => {
@@ -409,11 +480,21 @@ async function installMarketHarness(page, options = {}) {
           failNextBuy = false;
           throw new Error("simulated purchase rejection");
         }
+        if (submissionFailures.buy) {
+          const reason = submissionFailures.buy;
+          submissionFailures.buy = "";
+          return { submitted: false, reason };
+        }
         return { submitted: true, signature: "MarketBuySignature123456789" };
       },
       cancelMarketListingOnChain: async () => {
         operationCalls.cancel += 1;
         await delayOperation();
+        if (submissionFailures.cancel) {
+          const reason = submissionFailures.cancel;
+          submissionFailures.cancel = "";
+          return { submitted: false, reason };
+        }
         return { submitted: true, signature: "MarketCancelSignature123456789" };
       },
     };
@@ -423,11 +504,34 @@ async function installMarketHarness(page, options = {}) {
     );
     const gameState = {
       backpackCapacity: 50,
-      backpackSlots: [copperSlot],
+      backpackSlots: [
+        copperSlot,
+        ...(includeLocalOnlySlot ? [{
+          ...copperSlot,
+          id: "local-only-copper",
+          source: "local",
+          chainBackpack: "",
+          chainIndex: null,
+        }] : []),
+      ],
       hotbarSlots: [],
+      isBackpackSlotEquipped: () => false,
       addBackpackSlotSnapshot: () => true,
       consumeBackpackItems: () => ({ ok: false, reason: "chain-only-test" }),
     };
+    if (includeLocalOnlySlot) {
+      localStorage.setItem("nicechunk.play.marketListings.v1", JSON.stringify([{
+        id: "fake-local-listing",
+        source: "local",
+        owner: "local-session",
+        status: "active",
+        name: "Fake local custody",
+        category: "raw",
+        currency: "NCK",
+        price: "1",
+        itemSnapshot: gameState.backpackSlots[1],
+      }]));
+    }
     const market = createPlayMarket({
       elements,
       gameState,
@@ -452,11 +556,42 @@ async function installMarketHarness(page, options = {}) {
       market,
       getOperationCalls: () => ({ ...operationCalls }),
       failNextBuy: () => { failNextBuy = true; },
+      failNextSubmission: (action, reason) => { submissionFailures[action] = reason; },
       allowListingReads: () => { failListingReads = false; },
       releaseInitialListingRead: () => {
         holdInitialListingRead = false;
         releaseInitialListingRead?.();
         releaseInitialListingRead = null;
+      },
+      setLargeListingSet: () => {
+        listingRecords = Array.from({ length: 105 }, (_, index) => ({
+          ...chainListing,
+          listing: `LargeMarketListing${index}`,
+          listingId: String(1_000 + index),
+          seller: index === 104 ? "BuyerWalletAddress" : `SellerWalletAddress${index}`,
+          price: String(index + 1),
+          createdAt: String(1_700_000_000 + index),
+          sourceSlot: {
+            ...chainListing.sourceSlot,
+            itemId: String(2_000 + index),
+          },
+        }));
+      },
+      runRefreshRace: async () => {
+        listingReadPlan = [
+          {
+            delay: 180,
+            items: [{ ...chainListing, listing: "StaleMarketListing", listingId: "800", price: "1" }],
+          },
+          {
+            delay: 20,
+            items: [{ ...chainListing, listing: "FreshMarketListing", listingId: "801", price: "99" }],
+          },
+        ];
+        const stale = market.refreshChainListings({ force: true, quiet: true });
+        await Promise.resolve();
+        const fresh = market.refreshChainListings({ force: true, quiet: true });
+        await Promise.all([stale, fresh]);
       },
     };
   }, options);
@@ -509,6 +644,27 @@ async function verifyTransactionProgress(page) {
 
   await page.evaluate(() => globalThis.__marketHarness.failNextBuy());
   await verifyListingActionProgress(page, "buy", "buy", "error");
+
+  await verifyRejectedSubmissionReason(page, "buy", "no-backpack", /Equip a backpack to buy this listing/);
+  await verifyRejectedSubmissionReason(page, "cancel", "no-backpack", /Free one backpack slot before canceling this listing/, ".market-listing-card.own ");
+
+  await page.locator('[data-market-tab="sell"]').click();
+  await page.locator('[data-market-mobile-view="inventory"]').click();
+  await page.locator("#marketInventoryGrid .market-inventory-item").click();
+  await page.locator("#marketListingPrice").fill("3.5");
+  await page.evaluate(() => globalThis.__marketHarness.failNextSubmission("listing", "no-backpack"));
+  await page.locator("#marketCreateListing").click();
+  await page.waitForTimeout(520);
+  assert.match(await page.locator("#marketTradeToastMessage").textContent(), /Listing unavailable/);
+}
+
+async function verifyRejectedSubmissionReason(page, action, reason, expectedMessage, cardPrefix = "") {
+  const selector = `#marketListingGrid ${cardPrefix}button[data-market-action="${action}"]`;
+  await page.evaluate(({ action, reason }) => globalThis.__marketHarness.failNextSubmission(action, reason), { action, reason });
+  await page.locator(selector).first().click();
+  await page.waitForTimeout(520);
+  assert.equal(await page.locator("#marketTradeToast").getAttribute("data-tone"), "error");
+  assert.match(await page.locator("#marketTradeToastMessage").textContent(), expectedMessage);
 }
 
 async function verifyListingActionProgress(page, action, counter, expectedTone, cardPrefix = "") {

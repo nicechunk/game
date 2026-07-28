@@ -7,7 +7,6 @@ import { marketCategoryForBackpackSlot } from "../src/market/marketCategories.js
 import { resourceIdForBlock } from "../src/world/blocks.js";
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
 
-export const MARKET_LISTING_STORAGE_KEY = "nicechunk.play.marketListings.v1";
 const MARKET_RULE_SET = "nicechunk-play-market-v1";
 const MARKET_CATEGORIES = Object.freeze(["all", "raw", "equipment", "building", "clothing"]);
 const MARKET_SORTS = Object.freeze(["newest", "oldest", "price-asc", "price-desc"]);
@@ -33,7 +32,6 @@ export function createPlayMarket({
 } = {}) {
   const ui = (key, fallback, params = {}) => translate(key, fallback, params);
   const state = {
-    listings: loadListings(),
     chainListings: [],
     chainLoading: false,
     chainError: "",
@@ -56,6 +54,7 @@ export function createPlayMarket({
   };
   let tradeToastTimer = 0;
   let membershipRequestId = 0;
+  let chainRequestId = 0;
 
   const api = {
     bind() {
@@ -64,7 +63,6 @@ export function createPlayMarket({
       elements.marketMyListings?.addEventListener("click", () => selectTab("orders"));
       elements.marketViewOrders?.addEventListener("click", () => selectTab("orders"));
       elements.marketRefresh?.addEventListener("click", () => {
-        state.listings = loadListings();
         api.refreshChainListings({ force: true, quiet: false });
         showMarketStatus(ui("main.market.chainListingsSyncing", "Syncing chain listings..."));
         render();
@@ -94,7 +92,10 @@ export function createPlayMarket({
       elements.marketListingForm?.addEventListener("submit", createListing);
       elements.marketListingPrice?.addEventListener("input", renderDraft);
       elements.marketListingCategory?.addEventListener("change", renderDraft);
-      elements.marketListingCurrency?.addEventListener("change", renderDraft);
+      elements.marketListingCurrency?.addEventListener("change", () => {
+        syncListingPriceInput();
+        renderDraft();
+      });
       elements.marketMembershipSubmit?.addEventListener("click", handleMembershipSubmit);
     },
     render,
@@ -118,7 +119,6 @@ export function createPlayMarket({
     state.mobileView = "listings";
     elements.marketPanel.hidden = false;
     elements.marketPanel.dataset.activeMarketTab = state.activeTab;
-    state.listings = loadListings();
     const wallet = currentWalletAddress();
     if (state.membershipStatus === "joined" && state.membershipWallet === wallet) {
       refreshChainListings({ quiet: true });
@@ -329,7 +329,9 @@ export function createPlayMarket({
       render();
       return { ok: true, joined: false, estimate };
     } catch (error) {
-      if (requestId !== membershipRequestId) return { ok: false, reason: "stale" };
+      if (requestId !== membershipRequestId || wallet !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
       state.membershipStatus = "error";
       state.membershipError = ui("main.market.membershipCheckFailed", "Could not check market access: {reason}", {
         reason: readableError(error),
@@ -360,7 +362,9 @@ export function createPlayMarket({
       if (!result?.submitted && result?.reason !== "market-already-joined") {
         throw new Error(marketSubmissionReason(result?.reason, ui));
       }
-      const success = ui("main.market.joinCreated", "Market access created on-chain: {signature}", { signature: shortSignature(result?.signature) });
+      const success = result?.reason === "market-already-joined"
+        ? ui("main.market.alreadyJoined", "This wallet has already joined the market.")
+        : ui("main.market.joinCreated", "Market access created on-chain: {signature}", { signature: shortSignature(result?.signature) });
       showTradeToast(success, "success");
       state.membershipStatus = "checking";
       await refreshMarketMembership({ loadMarket: true });
@@ -383,9 +387,12 @@ export function createPlayMarket({
   }
 
   function ensureMarketMembership() {
-    if (state.membershipStatus === "joined") return true;
+    const wallet = currentWalletAddress();
+    if (state.membershipStatus === "joined" && state.membershipWallet === wallet && wallet) return true;
     showTradeToast(ui("main.market.joinRequired", "Join the market before creating or settling listings."), "warn");
-    if (state.membershipStatus === "idle") void refreshMarketMembership({ loadMarket: false });
+    if (state.membershipStatus !== "checking" && state.membershipStatus !== "submitting") {
+      void refreshMarketMembership({ loadMarket: false });
+    }
     return false;
   }
 
@@ -415,7 +422,9 @@ export function createPlayMarket({
         ));
       }
     } else {
-      if (!findSelectedListing()) state.selectedListingId = listings.items[0]?.id || "";
+      if (state.activeTab === "browse" && !listings.items.some((listing) => listing.id === state.selectedListingId)) {
+        state.selectedListingId = listings.items[0]?.id || "";
+      }
       elements.marketListingGrid.replaceChildren(...listings.items.map((listing) => listingCard(listing)));
     }
     renderPager(elements.marketListingPager, listings, "browse");
@@ -423,13 +432,16 @@ export function createPlayMarket({
 
   function renderOrders() {
     if (!elements.marketOrdersGrid) return;
-    const own = paginate(sortListings(filterListings([...chainOwnListings(), ...activeListings()])), "orders");
+    const own = paginate(sortListings(filterListings(chainOwnListings())), "orders");
     if (!own.items.length) {
       elements.marketOrdersGrid.replaceChildren(emptyState(
         ui("main.market.noOrders", "No active orders"),
         ui("main.market.noOrdersMeta", "Wallet orders will appear here."),
       ));
     } else {
+      if (state.activeTab === "orders" && !own.items.some((listing) => listing.id === state.selectedListingId)) {
+        state.selectedListingId = own.items[0]?.id || "";
+      }
       elements.marketOrdersGrid.replaceChildren(...own.items.map((listing) => listingCard(listing, { order: true })));
     }
     renderPager(elements.marketOrdersPager, own, "orders");
@@ -437,7 +449,7 @@ export function createPlayMarket({
 
   function renderActiveOrders() {
     if (!elements.marketActiveOrdersGrid) return;
-    const own = sortListings([...chainOwnListings(), ...activeListings()]).slice(0, 4);
+    const own = sortListings(chainOwnListings()).slice(0, 4);
     if (!own.length) {
       elements.marketActiveOrdersGrid.replaceChildren(emptyState(
         ui("main.market.noOrders", "No active orders"),
@@ -481,8 +493,10 @@ export function createPlayMarket({
     const item = selectedInventoryItem();
     if (elements.marketSelectedItem) elements.marketSelectedItem.textContent = item ? item.name : ui("main.market.noSelection", "No item selected");
     if (elements.marketListingCategory && item && !elements.marketListingCategory.value) elements.marketListingCategory.value = item.category;
-    const price = Number(elements.marketListingPrice?.value);
-    const validPrice = Number.isFinite(price) && price > 0;
+    syncListingPriceInput();
+    const currency = currencyValue(elements.marketListingCurrency?.value || "NCK", "NCK");
+    const price = normalizeMarketPriceInput(elements.marketListingPrice?.value, currency);
+    const validPrice = price !== null;
     if (elements.marketCreateListing) {
       const pending = state.operation?.type === "listing";
       elements.marketCreateListing.disabled = !item || !validPrice || Boolean(state.operation);
@@ -499,6 +513,16 @@ export function createPlayMarket({
           : ui("main.market.priceRequired", "Set a positive price before creating the listing.")
         : ui("main.market.formHint", "Select an item, set category and price, then create an on-chain listing.");
     }
+  }
+
+  function syncListingPriceInput() {
+    const input = elements.marketListingPrice;
+    if (!input) return;
+    const currency = currencyValue(elements.marketListingCurrency?.value || "NCK", "NCK");
+    const decimals = currency === "SOL" ? 9 : 6;
+    const minimum = `0.${"0".repeat(decimals - 1)}1`;
+    input.min = minimum;
+    input.step = minimum;
   }
 
   function handleInventoryClick(event) {
@@ -553,50 +577,24 @@ export function createPlayMarket({
     }
     if (!ensureMarketMembership()) return;
     const item = selectedInventoryItem();
-    const price = Number(elements.marketListingPrice?.value);
-    if (!item || !Number.isFinite(price) || price <= 0) {
+    const currency = currencyValue(elements.marketListingCurrency?.value || "NCK", "NCK");
+    const price = normalizeMarketPriceInput(elements.marketListingPrice?.value, currency);
+    if (!item || price === null) {
       const message = ui("main.market.invalidListing", "Select an item and enter a valid price.");
       showMarketStatus(message, "warn");
       showTradeToast(message, "warn");
       return;
     }
     const category = categoryValue(elements.marketListingCategory?.value || item.category);
-    const currency = currencyValue(elements.marketListingCurrency?.value || "NCK", "NCK");
     if (isChainBackpackItem(item)) {
       await createChainListing(item, { category, currency, price });
       return;
     }
-
-    const consumed = gameState.consumeBackpackItems([{ id: item.slot.id, count: item.slot.count }]);
-    if (!consumed.ok) {
-      const message = consumed.reason || ui("main.market.listingUnavailable", "Listing unavailable");
-      showMarketStatus(message, "warn");
-      showTradeToast(message, "error");
-      return;
-    }
-    const listing = normalizeListing({
-      id: createListingId(item.slot.id),
-      source: "local",
-      owner: "local-session",
-      status: "active",
-      name: item.name,
-      meta: item.meta,
-      category,
-      currency,
-      price: price.toFixed(currency === "SOL" ? 6 : 2),
-      itemSnapshot: consumed.consumed[0],
-      createdAt: Date.now(),
-      proof: createMarketProof({ item: consumed.consumed[0], category, currency, price }),
-    });
-    state.listings.unshift(listing);
-    saveListings(state.listings);
-    state.selectedItemId = "";
-    if (elements.marketListingPrice) elements.marketListingPrice.value = "";
-    selectTab("orders");
-    showMarketStatus(`Created local listing ${listing.proof.proofHash}. Item is locked until cancellation or chain settlement.`);
-    showTradeToast(ui("main.market.localListingCreated", "Listing created. The item is now in market custody."), "success");
-    onChanged();
-    onStatus(`Market listing created: ${listing.name} for ${listing.price} ${listing.currency}.`);
+    const message = ui("main.market.listingUnavailable", "Listing unavailable");
+    showMarketStatus(message, "warn");
+    showTradeToast(message, "error");
+    await refreshChainInventory().catch(() => null);
+    render();
   }
 
   async function createChainListing(item, { category, currency, price }) {
@@ -631,7 +629,7 @@ export function createPlayMarket({
       if (!result?.submitted) {
         handleMarketAccessReason(result?.reason);
         const message = ui("main.market.listingFailed", "Listing transaction failed: {reason}", {
-          reason: marketSubmissionReason(result?.reason, ui),
+          reason: marketSubmissionReason(result?.reason, ui, "listing"),
         });
         showMarketStatus(message, "warn");
         showTradeToast(message, "error");
@@ -658,24 +656,8 @@ export function createPlayMarket({
 
   async function cancelListing(listingId) {
     if (!ensureMarketMembership()) return null;
-    const listing = state.listings.find((entry) => entry.id === listingId && entry.status === "active");
-    if (!listing) {
-      const chainListing = state.chainListings.find((entry) => entry.id === listingId && entry.status === "active");
-      return chainListing ? cancelChainListing(chainListing) : null;
-    }
-    const returned = gameState.addBackpackSlotSnapshot(listing.itemSnapshot);
-    if (!returned) {
-      const message = ui("main.market.cancelNeedsBackpackSpace", "Free one backpack slot before canceling this listing.");
-      showMarketStatus(message, "warn");
-      showTradeToast(message, "warn");
-      return;
-    }
-    state.listings = state.listings.filter((entry) => entry.id !== listing.id);
-    saveListings(state.listings);
-    showMarketStatus(`Canceled listing ${listing.proof?.proofHash || listing.id}. Item returned to backpack.`);
-    showTradeToast(ui("main.market.cancelCreated", "Listing canceled."), "success");
-    onChanged();
-    render();
+    const listing = state.chainListings.find((entry) => entry.id === listingId && entry.status === "active");
+    return listing ? cancelChainListing(listing) : null;
   }
 
   async function cancelChainListing(listing) {
@@ -703,7 +685,7 @@ export function createPlayMarket({
       if (!result?.submitted) {
         handleMarketAccessReason(result?.reason);
         const message = ui("main.market.cancelFailed", "Cancel transaction failed: {reason}", {
-          reason: result?.reason || "not-submitted",
+          reason: marketSubmissionReason(result?.reason, ui, "cancel"),
         });
         showMarketStatus(message, "warn");
         showTradeToast(message, "error");
@@ -766,7 +748,7 @@ export function createPlayMarket({
       if (!result?.submitted) {
         handleMarketAccessReason(result?.reason);
         const message = ui("main.market.buyFailed", "Buy transaction failed: {reason}", {
-          reason: result?.reason || "not-submitted",
+          reason: marketSubmissionReason(result?.reason, ui, "buy"),
         });
         showMarketStatus(message, "warn");
         showTradeToast(message, "error");
@@ -793,15 +775,20 @@ export function createPlayMarket({
 
   async function refreshChainListings({ force = false, quiet = true } = {}) {
     const now = performance.now();
-    if (state.chainLoading) return { ok: false, reason: "already-loading" };
+    if (state.chainLoading && !force) return { ok: false, reason: "already-loading" };
     if (!force && state.lastChainRefreshAt > 0 && now - state.lastChainRefreshAt < CHAIN_REFRESH_COOLDOWN_MS) {
       return { ok: false, reason: "cooldown" };
     }
+    const requestId = ++chainRequestId;
+    const walletAddress = currentWalletAddress();
     state.chainLoading = true;
     render();
     try {
       const module = await loadChainModule();
-      if (typeof module.fetchMarketListingsPageOnChain !== "function") {
+      if (requestId !== chainRequestId || walletAddress !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
+      if (typeof module.fetchMarketListingsOnChain !== "function") {
         state.chainError = "market-listings-unavailable";
         if (!quiet) showMarketStatus(ui(
           "main.market.chainListingsQueryUnavailable",
@@ -809,18 +796,15 @@ export function createPlayMarket({
         ), "warn");
         return { ok: false, reason: state.chainError };
       }
-      const result = await module.fetchMarketListingsPageOnChain({
-        page: 1,
-        pageSize: 100,
+      const result = await module.fetchMarketListingsOnChain({
         state: "active",
-        category: state.selectedCategory,
-        currency: state.selectedCurrency,
-        query: searchQuery(),
-        sort: state.selectedSort,
       });
-      state.chainListings = (Array.isArray(result?.items) ? result.items : [])
+      if (requestId !== chainRequestId || walletAddress !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
+      state.chainListings = (Array.isArray(result) ? result : [])
         .map((listing) => normalizeMarketChainListing(listing, {
-          walletAddress: getChainSnapshot?.()?.walletAddress || "",
+          walletAddress,
           resourceName,
           voxelItemLabel,
           translate: ui,
@@ -836,6 +820,9 @@ export function createPlayMarket({
       render();
       return { ok: true, count: state.chainListings.length };
     } catch (error) {
+      if (requestId !== chainRequestId || walletAddress !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
       state.chainError = readableError(error);
       if (!quiet) showMarketStatus(ui(
         "main.market.chainListingsFailed",
@@ -844,14 +831,18 @@ export function createPlayMarket({
       ), "warn");
       return { ok: false, reason: state.chainError };
     } finally {
-      state.chainLoading = false;
-      render();
+      if (requestId === chainRequestId) {
+        state.chainLoading = false;
+        render();
+      }
     }
   }
 
   function marketInventoryItems() {
     const backpackItems = gameState.backpackSlots
-      .filter((slot) => isMarketListableSlot(slot))
+      .filter((slot) => isMarketListableSlot(slot, {
+        equipped: Boolean(gameState.isBackpackSlotEquipped?.(slot)),
+      }))
       .map((slot) => ({
         id: slot.id,
         slot,
@@ -860,7 +851,7 @@ export function createPlayMarket({
         meta: itemMeta(slot),
       }));
     const equipmentItems = (gameState.hotbarSlots ?? [])
-      .filter((slot) => isCustodiedMarketEquipment(slot))
+      .filter((slot) => isMarketListableSlot(slot))
       .map((slot) => ({
         id: `market-equipment-${slot.equipmentSlot}-${slot.chainItemId || slot.sourceItemId || slot.itemPda || "item"}`,
         slot,
@@ -875,18 +866,14 @@ export function createPlayMarket({
     return marketInventoryItems().find((item) => item.id === state.selectedItemId) || null;
   }
 
-  function activeListings() {
-    return state.listings.filter((entry) => entry.status === "active");
-  }
-
   function browseListings() {
-    return [...state.chainListings, ...activeListings()];
+    return state.chainListings;
   }
 
   function findSelectedListing() {
     const id = state.selectedListingId;
     if (!id) return null;
-    return [...state.chainListings, ...state.listings].find((entry) => entry.id === id) || null;
+    return state.chainListings.find((entry) => entry.id === id) || null;
   }
 
   function chainOwnListings() {
@@ -899,8 +886,7 @@ export function createPlayMarket({
     return listings.filter((listing) => {
       if (state.selectedCategory !== "all" && listing.category !== state.selectedCategory) return false;
       if (state.selectedCurrency !== "all" && listing.currency !== state.selectedCurrency) return false;
-      if (!query) return true;
-      return [listing.name, listing.meta, listing.category, listing.currency, listing.price, listing.proof?.proofHash].join(" ").toLowerCase().includes(query);
+      return marketListingMatchesQuery(listing, query);
     });
   }
 
@@ -908,8 +894,8 @@ export function createPlayMarket({
     const sorted = [...listings];
     sorted.sort((a, b) => {
       if (state.selectedSort === "oldest") return a.createdAt - b.createdAt;
-      if (state.selectedSort === "price-asc") return Number(a.price) - Number(b.price);
-      if (state.selectedSort === "price-desc") return Number(b.price) - Number(a.price);
+      if (state.selectedSort === "price-asc") return compareMarketPriceValues(a.price, b.price);
+      if (state.selectedSort === "price-desc") return compareMarketPriceValues(b.price, a.price);
       return b.createdAt - a.createdAt;
     });
     return sorted;
@@ -969,7 +955,7 @@ export function createPlayMarket({
 
   function listingCard(listing, { order = false } = {}) {
     const wallet = String(getChainSnapshot?.()?.walletAddress || "");
-    const own = listing.source === "local" || (wallet && listing.owner === wallet);
+    const own = Boolean(wallet && listing.owner === wallet);
     const name = listingDisplayName(listing, ui);
     const card = document.createElement("article");
     card.className = "market-listing-card";
@@ -1067,7 +1053,7 @@ export function createPlayMarket({
       ));
       return;
     }
-    const own = listing.source === "local" || listing.owner === String(getChainSnapshot?.()?.walletAddress || "");
+    const own = listing.owner === String(getChainSnapshot?.()?.walletAddress || "");
     const heading = document.createElement("div");
     heading.className = "market-inspector-heading";
     heading.innerHTML = `<small>${escapeHtml(ui("main.market.detailTitle", "Listing details"))}</small><strong>${escapeHtml(listingDisplayName(listing, ui))}</strong>`;
@@ -1335,23 +1321,6 @@ function listingQuantity(listing) {
   return Math.max(1, Math.trunc(Number(listing?.itemSnapshot?.count || listing?.rawListing?.quantity) || 1));
 }
 
-function loadListings() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(MARKET_LISTING_STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.map(normalizeListing).filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveListings(listings) {
-  try {
-    localStorage.setItem(MARKET_LISTING_STORAGE_KEY, JSON.stringify(listings.map(normalizeListing).filter(Boolean)));
-  } catch {
-    // Storage can be unavailable in private browsing.
-  }
-}
-
 function normalizeListing(listing) {
   if (!listing || typeof listing !== "object") return null;
   const id = String(listing.id || "");
@@ -1360,8 +1329,8 @@ function normalizeListing(listing) {
   if (listing.status && listing.status !== "active") return null;
   return {
     id,
-    source: listing.source === "chain" ? "chain" : listing.source === "local" ? "local" : "sample",
-    owner: String(listing.owner || "local-session"),
+    source: "chain",
+    owner: String(listing.owner || ""),
     status: "active",
     name: String(listing.name || "Listing"),
     meta: String(listing.meta || "Chain-ready item"),
@@ -1664,21 +1633,28 @@ function formatMarketTimestamp(value) {
 }
 
 function isChainBackpackItem(item) {
-  const source = String(item?.slot?.source || "");
   if (isCustodiedMarketEquipment(item?.slot)) return true;
-  return Boolean(
-    item?.slot
-      && (source === "chain" || source === "chain-backpack")
-      && item.slot.chainBackpack
-      && Number.isInteger(item.slot.chainIndex),
-  );
+  return isChainBackpackSlot(item?.slot);
 }
 
-export function isMarketListableSlot(slot) {
+export function isMarketListableSlot(slot, { equipped = false } = {}) {
   return Boolean(slot
     && !slot.pending
+    && !equipped
     && slot.kind !== "blueprint"
-    && slot.itemId !== "blueprint_tool");
+    && slot.itemId !== "blueprint_tool"
+    && (isChainBackpackSlot(slot) || isCustodiedMarketEquipment(slot)));
+}
+
+function isChainBackpackSlot(slot) {
+  const source = String(slot?.source || "");
+  return Boolean(
+    slot
+      && (source === "chain" || source === "chain-backpack")
+      && slot.chainBackpack
+      && Number.isInteger(slot.chainIndex)
+      && slot.chainIndex >= 0,
+  );
 }
 
 function isCustodiedMarketEquipment(slot) {
@@ -1734,10 +1710,6 @@ function createMarketProof({ item, category, currency, price }) {
     price: String(price || "0"),
     proofHash: `0x${hash32(text).toString(16).padStart(8, "0")}`,
   };
-}
-
-function createListingId(slotId) {
-  return `listing-${Date.now().toString(36)}-${hash32(slotId).toString(36)}`;
 }
 
 function categoryForSlot(slot) {
@@ -1818,7 +1790,7 @@ function readableError(error) {
   return message.length > 180 ? `${message.slice(0, 177)}...` : message;
 }
 
-function marketSubmissionReason(reason, translate = fallbackUi) {
+function marketSubmissionReason(reason, translate = fallbackUi, action = "listing") {
   if (reason === "active-listing-limit") {
     return translate("main.market.activeListingLimit", "Each wallet may have at most 50 active listings.");
   }
@@ -1831,7 +1803,102 @@ function marketSubmissionReason(reason, translate = fallbackUi) {
   if (reason === "wallet-unavailable") {
     return translate("main.market.membershipWalletRequired", "Connect your game wallet before joining the market.");
   }
+  if (reason === "no-backpack") {
+    if (action === "cancel") {
+      return translate("main.market.cancelNeedsBackpackSpace", "Free one backpack slot before canceling this listing.");
+    }
+    return action === "buy"
+      ? translate("main.market.buyNeedsBackpack", "Equip a backpack to buy this listing.")
+      : translate("main.market.listingUnavailable", "Listing unavailable");
+  }
+  if (reason === "backpack-full") {
+    if (action === "cancel") {
+      return translate("main.market.cancelNeedsBackpackSpace", "Free one backpack slot before canceling this listing.");
+    }
+    return action === "buy"
+      ? translate("main.market.buyBackpackFull", "Your backpack is full.")
+      : translate("main.market.listingUnavailable", "Listing unavailable");
+  }
+  if (reason === "nck-token-missing") {
+    return translate("main.market.nckTokenMissing", "Wallet has no NCK token account.");
+  }
+  if (reason === "self-purchase") {
+    return translate("main.market.selfPurchase", "Cannot buy your own listing.");
+  }
+  if (reason === "listing-unavailable" || reason === "non-transferable-item" || reason === "equipment-not-custodied") {
+    return translate("main.market.listingUnavailable", "Listing unavailable");
+  }
   return String(reason || "not-submitted");
+}
+
+export function normalizeMarketPriceInput(value, currency = "NCK") {
+  const normalizedCurrency = currencyValue(currency, "NCK");
+  const decimals = normalizedCurrency === "SOL" ? 9 : 6;
+  const text = String(value ?? "").trim();
+  if (text.length > 30) return null;
+  if (!/^\d+(?:\.\d+)?$/u.test(text)) return null;
+  const [whole, fraction = ""] = text.split(".");
+  if (fraction.length > decimals) return null;
+  const scale = 10n ** BigInt(decimals);
+  const amount = BigInt(whole) * scale + BigInt(fraction.padEnd(decimals, "0") || "0");
+  if (amount <= 0n || amount > 2n ** 64n - 1n) return null;
+  return text;
+}
+
+export function compareMarketPriceValues(left, right) {
+  const leftParts = marketDecimalParts(left);
+  const rightParts = marketDecimalParts(right);
+  if (!leftParts || !rightParts) return String(left ?? "").localeCompare(String(right ?? ""));
+  const scale = Math.max(leftParts.scale, rightParts.scale);
+  const leftAmount = leftParts.amount * 10n ** BigInt(scale - leftParts.scale);
+  const rightAmount = rightParts.amount * 10n ** BigInt(scale - rightParts.scale);
+  return leftAmount < rightAmount ? -1 : leftAmount > rightAmount ? 1 : 0;
+}
+
+export function marketListingMatchesQuery(listing, query) {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  if (!normalizedQuery) return true;
+  const item = listing?.itemSnapshot && typeof listing.itemSnapshot === "object" ? listing.itemSnapshot : {};
+  const raw = listing?.rawListing && typeof listing.rawListing === "object" ? listing.rawListing : {};
+  const sourceSlot = raw.sourceSlot && typeof raw.sourceSlot === "object" ? raw.sourceSlot : {};
+  const resource = raw.sourceRecord || sourceSlot.resource || item.proof;
+  const coordinates = resource && [resource.worldX, resource.worldY, resource.worldZ].every((value) => Number.isFinite(Number(value)))
+    ? [resource.worldX, resource.worldY, resource.worldZ].map((value) => Math.trunc(Number(value)))
+    : [];
+  return [
+    listing?.name,
+    listing?.meta,
+    listing?.category,
+    listing?.currency,
+    listing?.price,
+    listing?.owner,
+    listing?.listing,
+    listing?.listingId,
+    listing?.proof?.proofHash,
+    item.resourceId,
+    item.blockId,
+    item.materialId,
+    item.itemCode,
+    item.chainItemId,
+    item.itemPda,
+    sourceSlot.itemCode,
+    sourceSlot.itemId,
+    coordinates.join(","),
+    coordinates.join(", "),
+    coordinates.join(" "),
+  ]
+    .filter((value) => value !== null && value !== undefined && value !== "")
+    .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+}
+
+function marketDecimalParts(value) {
+  const match = /^(\d+)(?:\.(\d+))?$/u.exec(String(value ?? "").trim());
+  if (!match) return null;
+  const fraction = match[2] || "";
+  return {
+    amount: BigInt(`${match[1]}${fraction}`),
+    scale: fraction.length,
+  };
 }
 
 function normalizeMarketMassGrams(value) {

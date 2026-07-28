@@ -5,12 +5,26 @@ import { Keypair } from "@solana/web3.js";
 import { decodeMarketListing } from "../../src/chain/nicechunkChain.js";
 import { marketCategoryForBackpackSlot } from "../../src/market/marketCategories.js";
 import {
+  compareMarketPriceValues,
   marketItemDetailRows,
   marketItemSnapshotFromChainListing,
   marketListingDetailRows,
+  marketListingMatchesQuery,
+  normalizeMarketPriceInput,
   normalizeMarketChainListing,
   solanaExplorerAddressUrl,
 } from "../play-market.js";
+
+test("market price input remains an exact decimal string", () => {
+  assert.equal(normalizeMarketPriceInput("0.000000001", "SOL"), "0.000000001");
+  assert.equal(normalizeMarketPriceInput("0.000001", "NCK"), "0.000001");
+  assert.equal(normalizeMarketPriceInput("1.0000001", "NCK"), null);
+  assert.equal(normalizeMarketPriceInput("1e-9", "SOL"), null);
+  assert.equal(normalizeMarketPriceInput("0", "SOL"), null);
+  assert.equal(normalizeMarketPriceInput("9".repeat(1_000), "SOL"), null);
+  assert.equal(compareMarketPriceValues("18446744073.709551614", "18446744073.709551615"), -1);
+  assert.equal(compareMarketPriceValues("12.5", "12.500000000"), 0);
+});
 
 test("chain material listings preserve their material model and market category", () => {
   const copper = chainItemListing({ itemCode: 1015, itemId: "41" });
@@ -65,6 +79,14 @@ test("chain block listings recover their canonical resource and display name", (
   assert.equal(rows.resource, "Basalt / R7");
   assert.equal(rows["block-id"], "14");
   assert.equal(rows.coordinates, "12, 64, -7");
+});
+
+test("market search includes canonical chain identity and resource coordinates", () => {
+  const normalized = normalizeMarketChainListing(chainBlockListing({ blockId: 14 }));
+  assert.equal(marketListingMatchesQuery(normalized, "12,64,-7"), true);
+  assert.equal(marketListingMatchesQuery(normalized, "SellerAddress"), true);
+  assert.equal(marketListingMatchesQuery(normalized, "BlockMarketListingAddress"), true);
+  assert.equal(marketListingMatchesQuery(normalized, "not-present"), false);
 });
 
 test("market PDA detail links follow the configured Solana cluster", () => {

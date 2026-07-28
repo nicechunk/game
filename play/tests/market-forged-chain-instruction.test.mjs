@@ -3,6 +3,7 @@ import test from "node:test";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 
 import {
+  compareMarketListingPrices,
   createJoinMarketInstruction,
   createMarketListingInstruction,
   decodeBackpack,
@@ -16,12 +17,26 @@ import {
   derivePlayerEquipmentPda,
   derivePlayerProfilePda,
   isNonTransferableMarketSourceSlot,
+  parseMarketPriceBaseUnits,
 } from "../../src/chain/nicechunkChain.js";
 
 const GAME_PROGRAM = new PublicKey("6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7");
 const PLAYER_PROGRAM = new PublicKey("CHZHsBCGn58ih2WrPfKSYhvCEjMPGhArTiYCH7AWWBkB");
 const DEFAULT_KEY = PublicKey.default.toBase58();
 const MASS_VALID_FLAG = 1 << 15;
+
+test("market prices preserve exact token and lamport precision", () => {
+  assert.equal(parseMarketPriceBaseUnits("0.000001", "NCK"), 1n);
+  assert.equal(parseMarketPriceBaseUnits("0.000000001", "SOL"), 1n);
+  assert.equal(parseMarketPriceBaseUnits("18446744073.709551615", "SOL"), 18_446_744_073_709_551_615n);
+  assert.throws(() => parseMarketPriceBaseUnits(0.000000001, "SOL"), /Invalid market listing price/);
+  assert.throws(() => parseMarketPriceBaseUnits("0.0000001", "NCK"), /at most 6 decimal places/);
+  assert.throws(() => parseMarketPriceBaseUnits("9".repeat(1_000), "SOL"), /Invalid market listing price/);
+  assert.equal(compareMarketListingPrices(
+    { currency: "SOL", price: "18446744073.709551614", priceBaseUnits: "18446744073709551614" },
+    { currency: "SOL", price: "18446744073.709551615", priceBaseUnits: "18446744073709551615" },
+  ), -1);
+});
 
 test("market listing instructions use exact final account layouts", () => {
   const seller = Keypair.generate().publicKey;

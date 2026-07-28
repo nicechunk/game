@@ -1197,10 +1197,15 @@ export async function cancelMarketListingOnChain({
     ? new PublicKey(listing)
     : deriveMarketListingPdaForContext(provider.publicKey, BigInt(listingId), gameContext)[0];
   const context = gameContext;
-  const destinationBackpack = sourceInventory
-    || (await loadEquippedBackpackForOwner(provider.publicKey, getNicechunkConnection()))?.publicKey;
-  if (!destinationBackpack) return { submitted: false, reason: "no-backpack" };
   const conn = getNicechunkConnection();
+  const destinationState = sourceInventory
+    ? await loadBackpackAccountForOwner(sourceInventory, provider.publicKey, conn).catch(() => null)
+    : await loadEquippedBackpackForOwner(provider.publicKey, conn);
+  if (!destinationState?.publicKey) return { submitted: false, reason: "no-backpack" };
+  if (destinationState.itemCount >= destinationState.capacity) {
+    return { submitted: false, reason: "backpack-full" };
+  }
+  const destinationBackpack = destinationState.publicKey;
   const marketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
   if (!marketUserState) return { submitted: false, reason: "market-membership-required" };
   const tx = new Transaction().add(createCancelMarketListingInstruction({
@@ -1239,7 +1244,9 @@ export async function buyMarketListingOnChain({ listing, buyerBackpackAddress = 
   const conn = getNicechunkConnection();
   const context = gameContext;
   const buyerBackpack = await fetchBackpack(buyerBackpackAddress);
-  if (!buyerBackpack?.publicKey) return { submitted: false, reason: "no-backpack" };
+  if (!buyerBackpack?.publicKey || buyerBackpack.owner !== provider.publicKey.toBase58()) {
+    return { submitted: false, reason: "no-backpack" };
+  }
   if (buyerBackpack.itemCount >= buyerBackpack.capacity) return { submitted: false, reason: "backpack-full" };
   const [sellerMarketUser, buyerMarketUser] = await Promise.all([
     fetchMarketUserStateOnChain(seller),
@@ -1517,8 +1524,8 @@ function filterAndSortMarketListings(listings, {
   });
   return filtered.sort((a, b) => {
     if (sort === "oldest") return marketListingCreatedAt(a) - marketListingCreatedAt(b);
-    if (sort === "price-asc") return marketListingPriceValue(a) - marketListingPriceValue(b);
-    if (sort === "price-desc") return marketListingPriceValue(b) - marketListingPriceValue(a);
+    if (sort === "price-asc") return compareMarketListingPrices(a, b);
+    if (sort === "price-desc") return compareMarketListingPrices(b, a);
     return marketListingCreatedAt(b) - marketListingCreatedAt(a);
   });
 }
@@ -1528,9 +1535,33 @@ function marketListingCreatedAt(listing) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function marketListingPriceValue(listing) {
-  const value = Number(listing?.price || 0);
-  return Number.isFinite(value) ? value : 0;
+export function compareMarketListingPrices(left, right) {
+  if (left?.currency === right?.currency && left?.priceBaseUnits != null && right?.priceBaseUnits != null) {
+    try {
+      const leftBaseUnits = BigInt(left?.priceBaseUnits ?? 0);
+      const rightBaseUnits = BigInt(right?.priceBaseUnits ?? 0);
+      return leftBaseUnits < rightBaseUnits ? -1 : leftBaseUnits > rightBaseUnits ? 1 : 0;
+    } catch {
+      // Fall through to the formatted decimal comparison.
+    }
+  }
+  return compareUnsignedDecimalStrings(left?.price, right?.price);
+}
+
+function compareUnsignedDecimalStrings(left, right) {
+  const parse = (value) => {
+    const match = /^(\d+)(?:\.(\d+))?$/.exec(String(value ?? "").trim());
+    if (!match) return null;
+    const fraction = match[2] || "";
+    return { amount: BigInt(`${match[1]}${fraction}`), scale: fraction.length };
+  };
+  const leftParts = parse(left);
+  const rightParts = parse(right);
+  if (!leftParts || !rightParts) return String(left ?? "").localeCompare(String(right ?? ""));
+  const scale = Math.max(leftParts.scale, rightParts.scale);
+  const leftAmount = leftParts.amount * 10n ** BigInt(scale - leftParts.scale);
+  const rightAmount = rightParts.amount * 10n ** BigInt(scale - rightParts.scale);
+  return leftAmount < rightAmount ? -1 : leftAmount > rightAmount ? 1 : 0;
 }
 
 function marketListingSearchText(listing) {
@@ -7215,9 +7246,10 @@ function createMarketListingId() {
   return (time << 22n) | random;
 }
 
-function parseMarketPriceBaseUnits(value, currency) {
+export function parseMarketPriceBaseUnits(value, currency) {
   const decimals = marketCurrencyDecimals.get(currency) ?? 6;
   const text = String(value ?? "").trim();
+  if (text.length > 30) throw new Error("Invalid market listing price.");
   if (!/^\d+(\.\d+)?$/.test(text)) throw new Error("Invalid market listing price.");
   const [whole, fraction = ""] = text.split(".");
   if (fraction.length > decimals) {
