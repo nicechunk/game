@@ -72,6 +72,7 @@ const DEFAULT_GUARDIAN_CENTER_CHUNK_X = 0;
 const DEFAULT_GUARDIAN_CENTER_CHUNK_Z = 0;
 const DEFAULT_POSITION_PRECISION = 64;
 const DEFAULT_MOVE_HZ = 20;
+const DEFAULT_MOVE_HEARTBEAT_MS = 5_000;
 const DEFAULT_MAX_FAILED_RECONNECTS = 4;
 const DEFAULT_RECONNECT_JITTER_MS = 350;
 const guardianSessionSpawnStorageKey = "nicechunk.guardian.spawnedSession";
@@ -128,6 +129,10 @@ class NiceChunkGuardianClient {
     this.chunkSize = options.chunkSize || 16;
     this.positionPrecision = options.positionPrecision || DEFAULT_POSITION_PRECISION;
     this.moveIntervalMs = 1000 / (options.moveHz || DEFAULT_MOVE_HZ);
+    this.moveHeartbeatMs = Math.max(
+      this.moveIntervalMs,
+      Number(options.moveHeartbeatMs) || DEFAULT_MOVE_HEARTBEAT_MS,
+    );
     this.centerChunkX = options.centerChunkX ?? DEFAULT_GUARDIAN_CENTER_CHUNK_X;
     this.centerChunkZ = options.centerChunkZ ?? DEFAULT_GUARDIAN_CENTER_CHUNK_Z;
     this.serviceRadiusChunks = options.serviceRadiusChunks ?? DEFAULT_SERVICE_RADIUS_CHUNKS;
@@ -203,6 +208,7 @@ class NiceChunkGuardianClient {
       this.ready = false;
       this.socket = null;
       this.localPlayerId = 0;
+      this.lastMoveSentAt = 0;
       this.lastMovePoseKey = "";
       this.supportsEquipmentSync = false;
       this.supportsDigBatch = false;
@@ -224,6 +230,7 @@ class NiceChunkGuardianClient {
     this.socket = null;
     this.ready = false;
     this.localPlayerId = 0;
+    this.lastMoveSentAt = 0;
     this.lastMovePoseKey = "";
     this.supportsEquipmentSync = false;
     this.supportsDigBatch = false;
@@ -248,6 +255,7 @@ class NiceChunkGuardianClient {
     this.socket?.close();
     this.socket = null;
     this.ready = false;
+    this.lastMoveSentAt = 0;
     this.lastMovePoseKey = "";
     this.supportsEquipmentSync = false;
     this.supportsDigBatch = false;
@@ -260,7 +268,9 @@ class NiceChunkGuardianClient {
     if (now - this.lastMoveSentAt < this.moveIntervalMs) return;
 
     const poseKey = this.encodeMovePoseKey({ x, y, z, yaw, pitch });
-    if (poseKey === this.lastMovePoseKey) return;
+    const poseChanged = poseKey !== this.lastMovePoseKey;
+    const heartbeatDue = now - this.lastMoveSentAt >= this.moveHeartbeatMs;
+    if (!poseChanged && !heartbeatDue) return;
 
     const move = this.encodeMove({ x, y, z, yaw, pitch });
     this.lastMovePoseKey = poseKey;

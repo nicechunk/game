@@ -6,6 +6,7 @@ import {
   createExecuteSmeltingInstruction,
   deriveGlobalConfigPda,
   deriveMaterialPhysicsPda,
+  derivePlayerSkillsPda,
   deriveSmeltingRecipeTablePda,
   isValidSmeltingSubmissionSelection,
 } from "../../src/chain/nicechunkChain.js";
@@ -37,7 +38,7 @@ test("browser smelting instruction derives player progress under the smelting pr
     owner.toBuffer(),
   ], chunkProgramId);
 
-  assert.equal(instruction.keys.length, 9);
+  assert.equal(instruction.keys.length, 10);
   assert.equal(instruction.keys[0].pubkey.toBase58(), owner.toBase58());
   assert.equal(instruction.keys[1].pubkey.toBase58(), recipeTable.toBase58());
   assert.equal(instruction.keys[2].pubkey.toBase58(), backpack.toBase58());
@@ -45,7 +46,8 @@ test("browser smelting instruction derives player progress under the smelting pr
   assert.notEqual(instruction.keys[3].pubkey.toBase58(), incorrectChunkProgress.toBase58());
   assert.equal(instruction.keys[4].pubkey.toBase58(), globalConfig.toBase58());
   assert.equal(instruction.keys[5].pubkey.toBase58(), materialPhysics.toBase58());
-  assert.equal(instruction.keys[8].pubkey.toBase58(), SystemProgram.programId.toBase58());
+  assert.equal(instruction.keys[8].pubkey.toBase58(), derivePlayerSkillsPda(owner)[0].toBase58());
+  assert.equal(instruction.keys[9].pubkey.toBase58(), SystemProgram.programId.toBase58());
   assert.deepEqual([...instruction.data.subarray(0, 2)], [3, 2]);
 });
 
@@ -86,7 +88,7 @@ test("ambient smelting instruction encodes an explicit zero fuel count", () => {
   assert.equal(instruction.data.readUInt8(14), 12);
 });
 
-test("recipe table 221 recipe 1015 keeps its production selection and nine-account ABI", () => {
+test("recipe table 221 recipe 1015 keeps its production selection and ten-account ABI", () => {
   const [recipeTable] = deriveSmeltingRecipeTablePda(221n);
   const instruction = createExecuteSmeltingInstruction({
     owner: Keypair.generate().publicKey,
@@ -99,7 +101,7 @@ test("recipe table 221 recipe 1015 keeps its production selection and nine-accou
   });
   const [materialPhysics] = deriveMaterialPhysicsPda();
 
-  assert.equal(instruction.keys.length, 9);
+  assert.equal(instruction.keys.length, 10);
   assert.equal(instruction.keys[1].pubkey.toBase58(), recipeTable.toBase58());
   assert.equal(instruction.keys[5].pubkey.toBase58(), materialPhysics.toBase58());
   assert.equal(instruction.data.readBigUInt64LE(2), 1015n);

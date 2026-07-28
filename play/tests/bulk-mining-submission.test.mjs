@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  BULK_MINING_GUARANTEED_DEEP_MAX_Y,
   BULK_MINING_MAX_SELECTION_BLOCKS,
+  BULK_MINING_RANGE_MAX_ESTIMATED_WORK,
   encodeBulkMiningRangePayload,
+  estimateBulkMiningRangeWork,
+  isBulkMiningComputeLimitError,
   partitionBulkMiningBlocks,
   partitionBulkMiningRanges,
   submitBulkMiningBatches,
@@ -12,7 +16,7 @@ import {
 
 test("640 selected blocks fit one compressed same-chunk range", () => {
   const blocks = [];
-  for (let y = 20; y < 25; y += 1) {
+  for (let y = BULK_MINING_GUARANTEED_DEEP_MAX_Y - 4; y <= BULK_MINING_GUARANTEED_DEEP_MAX_Y; y += 1) {
     for (let z = 0; z < 8; z += 1) {
       for (let x = 0; x < 16; x += 1) blocks.push(block(x, y, z));
     }
@@ -24,8 +28,51 @@ test("640 selected blocks fit one compressed same-chunk range", () => {
   assert.equal(ranges[0].volume, 640);
   assert.equal(ranges[0].blocks.length, 640);
   const payload = encodeBulkMiningRangePayload(ranges[0]);
-  assert.equal(payload.length, 15 + 80 + 480);
+  assert.equal(payload.length, 15 + 80 + 1 + 1);
   assert.equal(new DataView(payload.buffer).getUint16(12, true), 5);
+  assert.deepEqual([...payload.subarray(95)], [1, 1]);
+});
+
+test("non-deep ranges split before their measured compute workload becomes unsafe", () => {
+  const blocks = Array.from({ length: 16 }, (_unused, x) => block(
+    x,
+    BULK_MINING_GUARANTEED_DEEP_MAX_Y + 1,
+  ));
+  const ranges = partitionBulkMiningRanges(blocks);
+
+  assert.deepEqual(ranges.map((range) => range.blocks.length), [12, 4]);
+  assert.ok(ranges.every((range) => (
+    estimateBulkMiningRangeWork(range.blocks) <= BULK_MINING_RANGE_MAX_ESTIMATED_WORK
+  )));
+});
+
+test("deep ranges retain the full 640-block transaction capacity", () => {
+  const blocks = [];
+  for (let y = -13; y <= BULK_MINING_GUARANTEED_DEEP_MAX_Y; y += 1) {
+    for (let z = 0; z < 8; z += 1) {
+      for (let x = 0; x < 16; x += 1) blocks.push(block(x, y, z));
+    }
+  }
+
+  const ranges = partitionBulkMiningRanges(blocks);
+  assert.equal(ranges.length, 1);
+  assert.equal(ranges[0].blocks.length, 640);
+  assert.ok(estimateBulkMiningRangeWork(ranges[0].blocks) <= BULK_MINING_RANGE_MAX_ESTIMATED_WORK);
+});
+
+test("non-deep vertical selections account for both column and per-block work", () => {
+  const blocks = [];
+  for (let y = -8; y < 16; y += 1) {
+    for (let x = 0; x < 8; x += 1) blocks.push(block(x, y));
+  }
+  assert.equal(blocks.length, 192);
+
+  const ranges = partitionBulkMiningRanges(blocks);
+  assert.ok(ranges.length > 1);
+  assert.equal(ranges.reduce((count, range) => count + range.blocks.length, 0), blocks.length);
+  assert.ok(ranges.every((range) => (
+    estimateBulkMiningRangeWork(range.blocks) <= BULK_MINING_RANGE_MAX_ESTIMATED_WORK
+  )));
 });
 
 test("compressed ranges preserve sparse occupancy and split only at chunk or volume boundaries", () => {
@@ -40,9 +87,22 @@ test("compressed ranges preserve sparse occupancy and split only at chunk or vol
     [1, 0, 1],
   ]);
   const payload = encodeBulkMiningRangePayload(ranges[0]);
-  assert.equal(payload.length, 15 + 32 + 2);
+  assert.equal(payload.length, 15 + 32 + 1 + 1);
   assert.equal(payload[15] & 1, 1);
   assert.equal(payload[15 + 31] & 0x80, 0x80);
+});
+
+test("ranges split at eight canonical block types and keep palette indexes compact", () => {
+  const ranges = partitionBulkMiningRanges(Array.from({ length: 9 }, (_unused, index) => ({
+    ...block(index),
+    blockId: index + 1,
+  })));
+
+  assert.deepEqual(ranges.map((range) => range.blocks.length), [8, 1]);
+  const payload = encodeBulkMiningRangePayload(ranges[0]);
+  assert.equal(payload[16], 8);
+  assert.deepEqual([...payload.subarray(17, 25)], [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(payload.length, 15 + 1 + 1 + 8 + 3);
 });
 
 test("bulk mining batches never cross chunks or exceed two proofs", () => {
@@ -91,6 +151,40 @@ test("range-wide failures stop without expanding into hundreds of single RPC sub
   assert.equal(outcome.failures.length, 2);
   assert.equal(outcome.aborted.length, 1);
   assert.equal(outcome.retryErrors.length, 1);
+});
+
+test("compute-limit failures split only the failed range and preserve one transaction per half", async () => {
+  const ranges = partitionBulkMiningRanges([
+    block(0, -9),
+    block(1, -9),
+    block(2, -9),
+    block(3, -9),
+  ]);
+  const calls = [];
+  const outcome = await submitBulkMiningRanges(ranges, async (range) => {
+    calls.push(range.blocks.length);
+    if (range.blocks.length > 2) {
+      const error = new Error("Program failed to complete");
+      error.logs = ["Program failed: exceeded CUs meter at BPF instruction"];
+      throw error;
+    }
+    return { signature: `sig-${calls.length}` };
+  });
+
+  assert.deepEqual(calls, [4, 2, 2]);
+  assert.equal(outcome.confirmed.length, 4);
+  assert.ok(outcome.confirmed.every((entry) => entry.retried));
+  assert.equal(outcome.failures.length, 0);
+  assert.equal(outcome.aborted.length, 0);
+  assert.equal(outcome.retryErrors.length, 1);
+});
+
+test("compute-limit detection does not classify unrelated program failures", () => {
+  assert.equal(isBulkMiningComputeLimitError(new Error("RPC unavailable")), false);
+  assert.equal(isBulkMiningComputeLimitError({
+    message: "Simulation failed",
+    logs: ["Program failed: exceeded CUs meter at BPF instruction"],
+  }), true);
 });
 
 function block(x, y = 8, z = 0) {

@@ -99,6 +99,9 @@ export function createPlayGameState({
     totalBackpackItems() {
       return this.backpackSlots.reduce((sum, slot) => sum + slot.count, 0);
     },
+    totalBackpackMassGrams() {
+      return this.backpackTotalMassGrams;
+    },
     syncHotbarResourceSlots({ authoritative = this.backpackStatusKnown } = {}) {
       if (!authoritative) return false;
       let changed = false;
@@ -487,7 +490,7 @@ export function createPlayGameState({
       slot.durability = Math.min(slot.maxDurability || DEFAULT_PICKAXE_DURABILITY, Math.trunc(slot.durability || 0) + Math.max(1, Math.trunc(amount || 1)));
       this.saveHotbarSlots();
     },
-    addBackpackResource({ resourceId, blockId, count = 1, pendingTxId = null, yieldBps = 10000, volumeMm3 = 1_000_000 }) {
+    addBackpackResource({ resourceId, blockId, count = 1, pendingTxId = null, yieldBps = 10000, volumeMilliLiters = 1000 }) {
       return null;
     },
     consumeBackpackItems(consumptions = []) {
@@ -511,14 +514,14 @@ export function createPlayGameState({
     mergeChainBackpackSlots(chainSlots = [], {
       source = "chain",
       capacity = BACKPACK_CAPACITY,
-      totalMassGrams = "0",
+      totalMassGrams = null,
     } = {}) {
       const nextCapacity = clampInt(capacity, 1, BACKPACK_MAX_CAPACITY);
-      const nextTotalMassGrams = normalizeMassGramsString(totalMassGrams);
       const nextSlots = chainSlots
         .map(normalizeBackpackSlot)
         .filter((slot) => slot && !slot.pending && slot.source === source)
         .slice(0, nextCapacity);
+      const nextTotalMassGrams = normalizeTotalMassGrams(totalMassGrams, nextSlots);
       const previousSignature = backpackSlotsSignature(this.backpackSlots);
       const nextSignature = backpackSlotsSignature(nextSlots);
       const capacityChanged = this.backpackCapacity !== nextCapacity;
@@ -527,24 +530,21 @@ export function createPlayGameState({
       this.backpackTotalMassGrams = nextTotalMassGrams;
       this.backpackSlots = nextSlots;
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true });
-      if (previousSignature === nextSignature && !hotbarChanged && !capacityChanged && !massChanged) {
-        return { changed: false, count: nextSlots.length };
-      }
+      if (previousSignature === nextSignature && !hotbarChanged && !capacityChanged && !massChanged) return { changed: false, count: nextSlots.length };
       this.saveBackpackSlots();
       this.saveHotbarSlots();
       return { changed: true, count: nextSlots.length };
     },
     clearBackpackSlots() {
       const backpackChanged = this.backpackSlots.length > 0;
-      const backpackMetadataChanged = this.backpackCapacity !== BACKPACK_CAPACITY
-        || this.backpackTotalMassGrams !== "0";
+      const massChanged = this.backpackTotalMassGrams !== "0";
       this.backpackSlots = [];
       this.backpackCapacity = BACKPACK_CAPACITY;
       this.backpackTotalMassGrams = "0";
       const hotbarChanged = this.syncHotbarBackpackSlots({ authoritative: true, clearAll: true });
       this.saveBackpackSlots();
       this.saveHotbarSlots();
-      return { changed: backpackChanged || backpackMetadataChanged || hotbarChanged, count: 0 };
+      return { changed: backpackChanged || hotbarChanged || massChanged, count: 0 };
     },
   };
   function equipmentMutationChange(index, before, after) {
@@ -880,15 +880,6 @@ function normalizeU64String(value) {
   }
 }
 
-function normalizeMassGramsString(value) {
-  try {
-    const normalized = BigInt(value ?? 0);
-    return (normalized >= 0n ? normalized : 0n).toString();
-  } catch {
-    return "0";
-  }
-}
-
 function clearLegacyBackpackCache() {
   try {
     localStorage.removeItem(BACKPACK_STORAGE_KEY);
@@ -918,7 +909,7 @@ function normalizeBackpackSlot(slot) {
     proof: slot.proof && typeof slot.proof === "object" ? normalizeProof(slot.proof) : null,
     yieldBps: Number.isFinite(slot.yieldBps) ? clampInt(slot.yieldBps, 1, 10000) : null,
     volumeMm3: Number.isFinite(slot.volumeMm3) ? clampInt(slot.volumeMm3, 0, 0xffffffff) : null,
-    massGrams: Number.isFinite(slot.massGrams) ? clampInt(slot.massGrams, 0, 0xffffffff) : null,
+    massGrams: normalizeSlotMassGrams(slot.massGrams),
     metadata: clampInt(slot.metadata, 0, 0xffffffff),
     ...surfaceDecorationFields(slot),
   };
@@ -1077,6 +1068,7 @@ function hotbarSlotFromEquipmentRecord(record, ownerAddress, equipmentSlot) {
       custodySource: "equipment",
       equipmentSlot,
       volumeMm3: Math.max(0, Math.trunc(Number(raw.volumeMm3) || 0)),
+      massGrams: normalizeSlotMassGrams(raw.massGrams),
       metadata,
       decorationId: metadata & 0xffff,
       decorationRuleId: metadata >>> 16,
@@ -1104,6 +1096,7 @@ function hotbarSlotFromEquipmentRecord(record, ownerAddress, equipmentSlot) {
       itemCode,
       itemPda: String(raw.itemPda || ""),
       volumeMm3: Math.max(0, Math.trunc(Number(raw.volumeMm3) || 0)),
+      massGrams: normalizeSlotMassGrams(raw.massGrams),
       durabilityCurrent: Math.max(0, Math.trunc(Number(raw.durabilityCurrent) || 0)),
       durabilityMax: Math.max(0, Math.trunc(Number(raw.durabilityMax) || 0)),
       grade: Math.max(0, Math.trunc(Number(raw.grade) || 0)),
@@ -1252,7 +1245,7 @@ function normalizePdaItemFields(slot) {
     itemCode: clampInt(slot.itemCode, 0, 65535),
     itemPda: String(slot.itemPda || ""),
     volumeMm3: clampInt(slot.volumeMm3, 0, 0xffffffff),
-    massGrams: clampInt(slot.massGrams, 0, 0xffffffff),
+    massGrams: normalizeSlotMassGrams(slot.massGrams),
     durabilityCurrent: clampInt(slot.durabilityCurrent, 0, 0xffffffff),
     durabilityMax: clampInt(slot.durabilityMax, 0, 0xffffffff),
     grade: clampInt(slot.grade, 0, 255),
@@ -1395,4 +1388,21 @@ function backpackSlotsSignature(slots) {
 
 function clampInt(value, min, max) {
   return Math.max(min, Math.min(max, Math.trunc(Number.isFinite(value) ? value : min)));
+}
+
+function normalizeSlotMassGrams(value) {
+  const mass = Number(value);
+  return Number.isInteger(mass) && mass >= 0 ? clampInt(mass, 0, 0xffffffff) : null;
+}
+
+function normalizeTotalMassGrams(value, slots = []) {
+  if (value !== null && value !== undefined && value !== "") {
+    try {
+      const mass = BigInt(value);
+      if (mass >= 0n && mass <= 0xffffffffffffffffn) return mass.toString();
+    } catch {
+      // Fall through to the sum of authoritative slot masses.
+    }
+  }
+  return slots.reduce((total, slot) => total + BigInt(slot?.massGrams ?? 0), 0n).toString();
 }

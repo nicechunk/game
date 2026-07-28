@@ -20,6 +20,7 @@ try {
   assert.equal(success.chainCalls, 1);
   assert.equal(success.confirmed, 1);
   assert.equal(success.rolledBack, 0);
+  assert.equal(success.playerRefreshes, 1);
   assert.equal(success.legacyChainSync, null);
   assert.equal(success.cardState, "confirmed");
   assert.equal(success.initialCardState, "pending");
@@ -33,6 +34,7 @@ try {
   assert.equal(rejected.chainCalls, 1);
   assert.equal(rejected.confirmed, 0);
   assert.equal(rejected.rolledBack, 1);
+  assert.equal(rejected.playerRefreshes, 0);
   assert.equal(rejected.cardState, "error");
   assert.match(rejected.cardText, /Mining transaction failed/);
   assert.doesNotMatch(rejected.cardText, /Mining complete/);
@@ -41,6 +43,7 @@ try {
   assert.equal(unsigned.chainCalls, 1);
   assert.equal(unsigned.confirmed, 0);
   assert.equal(unsigned.rolledBack, 1);
+  assert.equal(unsigned.playerRefreshes, 0);
   assert.equal(unsigned.cardState, "error");
   assert.match(unsigned.cardText, /missing-chain-signature/);
 
@@ -48,6 +51,7 @@ try {
   assert.equal(exception.chainCalls, 1);
   assert.equal(exception.confirmed, 0);
   assert.equal(exception.rolledBack, 1);
+  assert.equal(exception.playerRefreshes, 0);
   assert.equal(exception.cardState, "error");
   assert.match(exception.cardText, /simulation failed/);
 
@@ -58,6 +62,7 @@ try {
   assert.equal(walletMissing.chainCalls, 0);
   assert.equal(walletMissing.confirmed, 0);
   assert.equal(walletMissing.rolledBack, 1);
+  assert.equal(walletMissing.playerRefreshes, 0);
   assert.equal(walletMissing.cardState, "error");
   assert.match(walletMissing.cardText, /wallet-needed/);
 } finally {
@@ -127,6 +132,7 @@ async function runScenario({ result, delayMs = 0, walletAddress = "Wallet1111111
     };
     let confirmed = 0;
     let rolledBack = 0;
+    let playerRefreshes = 0;
     let session;
     session = createPlayChainSession({
       elements: { chainEventLog: document.querySelector("#events") },
@@ -135,6 +141,10 @@ async function runScenario({ result, delayMs = 0, walletAddress = "Wallet1111111
         savePlayerProfile() {},
       },
       resourceName: () => "Grass",
+      refreshPlayerProgress() {
+        playerRefreshes += 1;
+        return Promise.resolve({ ok: true });
+      },
     });
     session.handlePendingMine(pending, {
       confirmTx() {
@@ -160,6 +170,7 @@ async function runScenario({ result, delayMs = 0, walletAddress = "Wallet1111111
       chainCalls: globalThis.__bulkChainCalls,
       confirmed,
       rolledBack,
+      playerRefreshes,
       legacyChainSync: localStorage.getItem("nicechunk.chainSync"),
       initialCardState,
       initialCardText,

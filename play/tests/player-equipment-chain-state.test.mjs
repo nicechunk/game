@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createPlayGameState } from "../game-state.js";
-import { equipmentMigrationChanges } from "../play-chain-player.js";
 import { resolveGuardianEquipmentFromChain } from "../play-guardian-equipment.js";
 
 const OWNER = "WalletEquipmentOwner111111111111111111111111";
@@ -68,43 +67,6 @@ test("custodied equipment restores from its embedded record without reading Back
     assert.equal(cleared.changed, true);
     assert.equal(state.hotbarSlots[6], null);
   });
-});
-
-test("legacy wallet-scoped equipment is collected once for PlayerEquipment migration", () => {
-  const references = new Map([
-    [2, { slot: 2, sourceType: "backpack", backpackAddress: BACKPACK, backpackIndex: 4, modelBytes: [] }],
-    [6, { slot: 6, sourceType: "backpack", backpackAddress: BACKPACK, backpackIndex: 5, modelBytes: [0xe0, 1] }],
-  ]);
-  const hotbarSlots = Array.from({ length: 9 }, (_, index) => references.has(index) ? { itemId: `item-${index}` } : null);
-  const changes = equipmentMigrationChanges({
-    hotbarSlots,
-    getHotbarEquipmentChainReference: (index) => references.get(index) ?? null,
-  });
-
-  assert.deepEqual(changes.map((change) => change.index), [2, 6]);
-  assert.equal(changes[0].before, hotbarSlots[2]);
-  assert.equal(changes[1].reference.backpackIndex, 5);
-  assert.equal(changes.every((change) => change.migration), true);
-});
-
-test("initialized legacy records migrate while custodied records are skipped", () => {
-  const references = new Map([
-    [2, { slot: 2, sourceType: "backpack", backpackAddress: BACKPACK, backpackIndex: 4, modelBytes: [] }],
-    [6, { slot: 6, sourceType: "equipment", equipmentSlot: 6, backpackAddress: BACKPACK, backpackIndex: 5, modelBytes: [] }],
-  ]);
-  const equipment = equipmentSnapshot({ slot: 2, chainItemId: "9001", backpackIndex: 4, custodied: false });
-  equipment.slots[6] = {
-    ...equipment.slots[2],
-    slot: 6,
-    backpackIndex: 5,
-    custodied: true,
-  };
-  const changes = equipmentMigrationChanges({
-    hotbarSlots: Array.from({ length: 9 }, (_, index) => references.has(index) ? { itemId: `item-${index}` } : null),
-    getHotbarEquipmentChainReference: (index) => references.get(index) ?? null,
-  }, equipment);
-
-  assert.deepEqual(changes.map((change) => change.index), [2]);
 });
 
 test("hotbar swaps retain the original Equipment PDA slot identity", () => {
@@ -240,7 +202,7 @@ function chainTool(overrides = {}) {
 }
 
 function validNcf1Bytes() {
-  return [0xe0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+  return [0xf0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 }
 
 function fnv1a32(bytes) {

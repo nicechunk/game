@@ -23,8 +23,6 @@ export function createPlayChainBackpackSync({
   appendEvent = () => {},
   chunkSize = DEFAULT_CHUNK_SIZE,
   resolveSurfaceDecoration = null,
-  onSyncStateChanged = () => {},
-  translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   const state = {
     loading: false,
@@ -42,16 +40,6 @@ export function createPlayChainBackpackSync({
   };
   let requestSerial = 0;
   let loadedBackpack = null;
-  let lastNotifiedReadError = "";
-  const ui = (key, fallback, params = {}) => {
-    try {
-      const translated = translate(key, fallback, params);
-      if (translated && translated !== key) return String(translated);
-    } catch {
-      // A locale failure must not hide an RPC read failure.
-    }
-    return formatMessage(fallback, params);
-  };
 
   return {
     refresh,
@@ -69,7 +57,7 @@ export function createPlayChainBackpackSync({
     const wallet = String(getWalletAddress() || "");
     if (!wallet) {
       requestSerial += 1;
-      updateLoading(false);
+      state.loading = false;
       state.walletAddress = "";
       state.backpackAddress = "";
       state.capacity = 0;
@@ -87,7 +75,7 @@ export function createPlayChainBackpackSync({
     const walletChanged = state.walletAddress !== wallet;
     if (walletChanged) {
       requestSerial += 1;
-      updateLoading(false);
+      state.loading = false;
       state.walletAddress = wallet;
       state.backpackAddress = "";
       state.capacity = 0;
@@ -96,7 +84,6 @@ export function createPlayChainBackpackSync({
       state.updatedSlot = "0";
       state.syncedSlots = 0;
       state.lastSyncAt = 0;
-      lastNotifiedReadError = "";
       loadedBackpack = null;
       const availability = setAvailability(false, false);
       const cleared = gameState?.clearBackpackSlots?.();
@@ -106,7 +93,7 @@ export function createPlayChainBackpackSync({
     if (state.loading) return { ok: false, reason: "already-loading" };
     if (!force && now - state.lastSyncAt < CHAIN_BACKPACK_SYNC_INTERVAL_MS) return { ok: false, reason: "cooldown" };
     const requestId = ++requestSerial;
-    updateLoading(true);
+    state.loading = true;
     try {
       const module = await loadPlayChainModule();
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
@@ -121,7 +108,6 @@ export function createPlayChainBackpackSync({
         state.updatedSlot = "0";
         state.syncedSlots = 0;
         state.lastError = "no-equipped-backpack";
-        lastNotifiedReadError = "";
         loadedBackpack = null;
         state.lastSyncAt = performance.now();
         const availability = setAvailability(false, true);
@@ -137,9 +123,9 @@ export function createPlayChainBackpackSync({
       return { ok: true, backpack, ...applied };
     } catch (error) {
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
-      return fail(readableError(error), quiet, error);
+      return fail(readableError(error), quiet);
     } finally {
-      if (requestId === requestSerial) updateLoading(false);
+      if (requestId === requestSerial) state.loading = false;
     }
   }
 
@@ -169,7 +155,7 @@ export function createPlayChainBackpackSync({
 
   async function refreshKnownBackpack(wallet, backpackAddress) {
     const requestId = ++requestSerial;
-    updateLoading(true);
+    state.loading = true;
     try {
       const module = await loadPlayChainModule();
       if (typeof module.fetchBackpack !== "function") return { ok: false, reason: "backpack-reader-unavailable" };
@@ -182,10 +168,9 @@ export function createPlayChainBackpackSync({
       return { ok: true, backpack, ...applied };
     } catch (error) {
       state.lastError = readableError(error);
-      notifyReadFailure(state.lastError, true, error);
       return { ok: false, reason: state.lastError };
     } finally {
-      if (requestId === requestSerial) updateLoading(false);
+      if (requestId === requestSerial) state.loading = false;
     }
   }
 
@@ -196,16 +181,15 @@ export function createPlayChainBackpackSync({
     const merged = gameState?.mergeChainBackpackSlots?.(chainSlots, {
       source: CHAIN_BACKPACK_SOURCE,
       capacity,
-      totalMassGrams: backpack.totalMassGrams ?? "0",
+      totalMassGrams: backpack.totalMassGrams,
     });
     state.backpackAddress = String(backpack.publicKey || fallbackAddress || "");
     state.capacity = capacity;
     state.itemCount = Math.max(0, Math.trunc(Number(backpack.itemCount) || 0));
-    state.totalMassGrams = normalizeUnsignedIntegerString(backpack.totalMassGrams);
+    state.totalMassGrams = normalizeU64String(backpack.totalMassGrams);
     state.updatedSlot = String(backpack.updatedSlot ?? "0");
     state.syncedSlots = chainSlots.length;
     state.lastError = "";
-    lastNotifiedReadError = "";
     state.lastSyncAt = performance.now();
     const availability = setAvailability(true, true);
     if (merged?.changed || availability.changed) onChanged();
@@ -222,36 +206,22 @@ export function createPlayChainBackpackSync({
     const merged = gameState?.mergeChainBackpackSlots?.(chainSlots, {
       source: CHAIN_BACKPACK_SOURCE,
       capacity: state.capacity,
+      totalMassGrams: state.totalMassGrams,
     });
     if (merged?.changed) onChanged();
     return { ok: true, changed: Boolean(merged?.changed), chainSlots };
   }
 
-  function fail(reason, quiet, error = null) {
+  function fail(reason, quiet) {
     state.lastError = reason;
     state.lastSyncAt = performance.now();
     const availability = setAvailability(state.available, false);
     if (availability.changed) onChanged();
-    notifyReadFailure(reason, quiet, error);
+    if (!quiet) {
+      appendEvent(`Chain backpack sync failed: ${reason}.`);
+      onStatus(`Chain backpack sync failed: ${reason}.`);
+    }
     return { ok: false, reason, changed: availability.changed };
-  }
-
-  function notifyReadFailure(reason, quiet, error = null) {
-    const readable = readableError(reason);
-    const shouldNotify = !quiet || readable !== lastNotifiedReadError;
-    console.error("[NiceChunk Backpack Read Failed]", error || readable);
-    if (!shouldNotify) return;
-    lastNotifiedReadError = readable;
-    const message = ui("main.backpack.readFailed", "Backpack read failed: {reason}", { reason: readable });
-    appendEvent(message);
-    onStatus(message, "error");
-  }
-
-  function updateLoading(loading) {
-    const next = loading === true;
-    if (state.loading === next) return;
-    state.loading = next;
-    onSyncStateChanged(snapshot());
   }
 
   function setAvailability(available, known) {
@@ -365,7 +335,7 @@ export function chainSlotsFromBackpack(backpack, {
       chainBackpack: address,
       chainIndex: index,
       volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
-      massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
+      massGrams: normalizeSlotMassGrams(slot.massGrams),
       metadata,
       ...decoration,
       proof: {
@@ -439,7 +409,7 @@ function chainItemSlot(slot, index, address, owner) {
       blueprintOwner: owner,
       locked: false,
       volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
-      massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
+      massGrams: normalizeSlotMassGrams(slot.massGrams),
       metadata: Math.max(0, Math.trunc(Number(slot.metadata) || 0)),
       proofHash: itemPda,
     };
@@ -467,8 +437,9 @@ function chainItemSlot(slot, index, address, owner) {
     chainItemId,
     itemCode,
     itemPda: String(slot.itemPda || ""),
+    bytes: forged && Array.isArray(slot.modelBytes) ? [...slot.modelBytes] : null,
     volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
-    massGrams: Math.max(0, Math.trunc(Number(slot.massGrams) || 0)),
+    massGrams: normalizeSlotMassGrams(slot.massGrams),
     durabilityCurrent: Math.max(0, Math.trunc(Number(slot.durabilityCurrent) || 0)),
     durabilityMax: Math.max(0, Math.trunc(Number(slot.durabilityMax) || 0)),
     grade: Math.max(0, Math.trunc(Number(slot.grade) || 0)),
@@ -498,6 +469,20 @@ function materialPreviewColor(material) {
   })[material?.class] || [150, 170, 180];
 }
 
+function normalizeSlotMassGrams(value) {
+  const mass = Number(value);
+  return Number.isInteger(mass) && mass >= 0 && mass <= 0xffffffff ? mass : null;
+}
+
+function normalizeU64String(value) {
+  try {
+    const normalized = BigInt(value ?? 0);
+    return normalized >= 0n && normalized <= 0xffffffffffffffffn ? normalized.toString() : "0";
+  } catch {
+    return "0";
+  }
+}
+
 function humanize(value) {
   return String(value || "material")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -517,12 +502,6 @@ function readableError(error) {
   return message.length > 140 ? `${message.slice(0, 137)}...` : message;
 }
 
-function formatMessage(template, params = {}) {
-  return String(template || "").replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => (
-    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
-  ));
-}
-
 function normalizeDiscardItems(items = []) {
   return (items ?? [])
     .map((item) => ({
@@ -535,15 +514,6 @@ function normalizeDiscardItems(items = []) {
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length <= 12 ? value : `${value.slice(0, 4)}...${value.slice(-4)}`;
-}
-
-function normalizeUnsignedIntegerString(value) {
-  try {
-    const normalized = BigInt(value ?? 0);
-    return (normalized >= 0n ? normalized : 0n).toString();
-  } catch {
-    return "0";
-  }
 }
 
 function parseSlot(value) {

@@ -70,6 +70,25 @@ test("failed mining restores durability to every tool used on the target", () =>
   assert.equal(harness.gameState.hotbarSlots[1].durability, 20);
 });
 
+test("confirmed forged-tool mining records authoritative Equipment PDA durability damage", () => {
+  const harness = createHarness({
+    toolFactory: (index) => ({
+      itemId: "forged_item",
+      kind: "forged",
+      durability: 20,
+      maxDurability: 20,
+      custodySource: "equipment",
+      equipmentSlot: index + 2,
+    }),
+  });
+
+  mineThreeTimes(harness);
+
+  assert.deepEqual(harness.controller.pendingSnapshot()[0].chainToolDamage, [
+    { equipmentSlot: 2, amount: 3 },
+  ]);
+});
+
 test("confirmed mining applies and commits the air delta exactly once", () => {
   const harness = createHarness();
   mineThreeTimes(harness);
@@ -227,13 +246,14 @@ function createHarness({
   hitProvider = null,
   targeting = { reachable: true, yaw: 0.4, pitchOffset: 0 },
   toolCount = 1,
+  toolFactory = () => ({ kind: "tool", durability: 20, maxDurability: 20 }),
   getMiningPlan = null,
   extraBlocks = [],
 } = {}) {
   const blocks = new Map([[key(TARGET), TARGET.blockId], ...extraBlocks.map((block) => [key(block), block.blockId])]);
   const calls = { apply: [], confirm: [], rollback: [], selected: [], pending: [], confirmed: [], rolledBack: [] };
   const gameState = {
-    hotbarSlots: Array.from({ length: toolCount }, () => ({ kind: "tool", durability: 20, maxDurability: 20 })),
+    hotbarSlots: Array.from({ length: toolCount }, (_, index) => toolFactory(index)),
     selectedToolIndex: 0,
     playerProfile: { minedBlocks: 0, confirmedMines: 0, resourcesCollected: 0, rolledBackMines: 0 },
     getSelectedToolSlot() {

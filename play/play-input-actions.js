@@ -131,7 +131,8 @@ export function createPlayInputActions({
     if (lastWorldDeltaKind === "place" && placement?.pendingCount?.() > 0) return placement.confirmLast();
     if (lastWorldDeltaKind === "mine" && mining?.pendingCount?.() > 0) return mining.confirmLast();
     if (placement?.pendingCount?.() > 0) return placement.confirmLast();
-    return mining?.confirmLast?.();
+    if (mining?.pendingCount?.() > 0) return mining.confirmLast();
+    return null;
   }
 
   function rollbackLastWorldDelta() {
@@ -144,7 +145,8 @@ export function createPlayInputActions({
     if (lastWorldDeltaKind === "place" && placement?.pendingCount?.() > 0) return placement.rollbackLast();
     if (lastWorldDeltaKind === "mine" && mining?.pendingCount?.() > 0) return mining.rollbackLast();
     if (placement?.pendingCount?.() > 0) return placement.rollbackLast();
-    return mining?.rollbackLast?.();
+    if (mining?.pendingCount?.() > 0) return mining.rollbackLast();
+    return null;
   }
 
   function bindCanvasActionPointer() {
@@ -208,8 +210,12 @@ export function createPlayInputActions({
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       const max = rect.width * 0.34;
-      const dx = clamp(event.clientX - cx, -max, max);
-      const dy = clamp(event.clientY - cy, -max, max);
+      const rawDx = event.clientX - cx;
+      const rawDy = event.clientY - cy;
+      const distance = Math.hypot(rawDx, rawDy);
+      const scale = distance > max ? max / distance : 1;
+      const dx = rawDx * scale;
+      const dy = rawDy * scale;
       getControls()?.setJoystick?.(dx / max, dy / max, true);
       knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     };

@@ -1,4 +1,11 @@
 const DEFAULT_VERIFICATION_TIMEOUT_MS = 12_000;
+const RPC_RECOVERY_FAILURE_CODES = new Set([
+  "character-timeout",
+  "network-unavailable",
+  "rpc-rate-limited",
+  "rpc-unauthorized",
+  "rpc-unavailable",
+]);
 let verifiedCharacterWallet = "";
 
 export function isCompletePlayerAppearance(appearance, walletAddress) {
@@ -32,13 +39,41 @@ export async function verifyPlayCharacterAccess({
       Promise.resolve().then(() => fetchAppearance(owner)),
       timeoutMs,
     );
+    if (appearance == null) return { allowed: false, reason: "character-required", appearance: null };
     if (!isCompletePlayerAppearance(appearance, owner)) {
-      return { allowed: false, reason: "character-required", appearance: appearance || null };
+      return { allowed: false, reason: "character-data-invalid", appearance };
     }
     return { allowed: true, reason: "verified", appearance };
   } catch (error) {
-    return { allowed: false, reason: "verification-failed", appearance: null, error };
+    const reason = String(error?.message || error).includes("character-verification-timeout")
+      ? "verification-timeout"
+      : "verification-failed";
+    return { allowed: false, reason, appearance: null, error };
   }
+}
+
+export function characterAccessFailureCode(result, { online = globalThis.navigator?.onLine } = {}) {
+  const reason = String(result?.reason || "");
+  if (reason === "verification-timeout") return "character-timeout";
+  if (reason === "character-data-invalid") return "character-data-invalid";
+  if (reason === "wallet-required") return "wallet-unavailable";
+  if (reason === "verification-unavailable") return "verification-unavailable";
+  if (online === false) return "network-offline";
+
+  const message = String(result?.error?.message || result?.error || "").toLowerCase();
+  if (/\b429\b|too many requests|rate[ -]?limit/.test(message)) return "rpc-rate-limited";
+  if (/\b401\b|\b403\b|unauthorized|forbidden|invalid api key/.test(message)) return "rpc-unauthorized";
+  if (/failed to fetch|networkerror|network error|load failed|internet disconnected/.test(message)) {
+    return "network-unavailable";
+  }
+  if (/\b5\d\d\b|rpc|endpoint|service unavailable|gateway|econn|socket/.test(message)) {
+    return "rpc-unavailable";
+  }
+  return "character-verification-failed";
+}
+
+export function isRpcRecoveryFailureCode(code) {
+  return RPC_RECOVERY_FAILURE_CODES.has(String(code || ""));
 }
 
 export function buildPlayerCreationUrl(locationLike = globalThis.location) {
@@ -67,7 +102,9 @@ export async function enforcePlayCharacterAccess({
     verifiedCharacterWallet = String(walletAddress || "").trim();
   } else {
     if (verifiedCharacterWallet === String(walletAddress || "").trim()) verifiedCharacterWallet = "";
-    locationLike?.replace?.(buildPlayerCreationUrl(locationLike));
+    if (result.reason === "character-required") {
+      locationLike?.replace?.(buildPlayerCreationUrl(locationLike));
+    }
   }
   return result;
 }

@@ -58,7 +58,7 @@ export const smeltingRules = {
       "id": "charcoal",
       "sourceType": "material",
       "materialId": "charcoal",
-      "heatTier": 2,
+      "heatTier": 3,
       "burnSeconds": 64,
       "consumable": true
     },
@@ -68,20 +68,9 @@ export const smeltingRules = {
       "sourceKeys": [
         "coal"
       ],
-      "heatTier": 3,
+      "heatTier": 4,
       "burnSeconds": 96,
       "consumable": true
-    },
-    {
-      "id": "lava_heat",
-      "sourceType": "raw",
-      "sourceKeys": [
-        "lava",
-        "basalt"
-      ],
-      "heatTier": 4,
-      "burnSeconds": 160,
-      "consumable": false
     }
   ],
   "materials": [
@@ -1595,7 +1584,9 @@ export const smeltingMaterialAttributeProfiles = {
   blasting_charge: { hardness: 18, durability: 42, toughness: 30, ductility: 24, brittleness: 50, density: 38, heatResistance: 6, corrosionResistance: 34, conductivity: 8, thermalConductivity: 12, magnetism: 0, workability: 26 },
 };
 
-// These values describe one canonical inventory unit in its rendered bulk form.
+// Objective engineering values for one canonical inventory unit. Density is
+// the bulk density of the rendered form (powder, cloth, porous bloom, etc.),
+// not always the ideal crystal density of the underlying substance.
 export const smeltingMaterialPhysicalProfiles = Object.freeze({
   charcoal: Object.freeze({ unitVolumeMm3: 750000, densityKgM3: 250, thermalConductivityWMK: 0.12, waterAbsorptionPct: 18 }),
   biochar_compost: Object.freeze({ unitVolumeMm3: 1000000, densityKgM3: 450, thermalConductivityWMK: 0.18, waterAbsorptionPct: 45 }),
@@ -1658,6 +1649,8 @@ export const SMELTING_MERGE_RECIPE_ID_OFFSET = 1000;
 export const SMELTING_RESERVED_MATERIAL_ITEM_CODES = Object.freeze([1003]);
 export const SMELTING_MATERIAL_INPUT_PREFIX = "material:";
 export const SMELTING_RECIPE_YIELD_BPS_DENOMINATOR = 10_000;
+export const SMELTING_SKILL_MAX_OUTPUT_BPS = 15_000;
+export const SMELTING_RECIPE_OUTPUT_SCALE_DIVISOR = 10;
 export const SMELTING_DEFAULT_INPUT_VOLUME_MM3 = 1_000_000;
 
 for (const material of smeltingRules.materials) {
@@ -1669,8 +1662,13 @@ for (const material of smeltingRules.materials) {
   material.recipeTableId = smeltingRecipeTableIdForMaterialId(material.id);
   material.mergeRecipeTableId = smeltingMergeRecipeTableIdForMaterialId(material.id);
   material.attributes = smeltingMaterialBaseAttributes(material);
-  material.yieldBps = smeltingRecipeYieldBps(material);
-  material.mergeYieldBps = SMELTING_RECIPE_YIELD_BPS_DENOMINATOR;
+  material.yieldBps = Math.max(
+    1,
+    Math.floor(smeltingRecipeYieldBps(material) / SMELTING_RECIPE_OUTPUT_SCALE_DIVISOR),
+  );
+  material.mergeYieldBps = Math.floor(
+    SMELTING_RECIPE_YIELD_BPS_DENOMINATOR / SMELTING_RECIPE_OUTPUT_SCALE_DIVISOR,
+  );
 }
 
 export function smeltingMaterialPhysicalProfile(materialOrId, rules = smeltingRules) {
@@ -1882,6 +1880,7 @@ export function validateSmeltingRules(rules = smeltingRules) {
     if (fuelIds.has(fuel.id)) throw new Error(`Duplicate fuel id: ${fuel.id}`);
     fuelIds.add(fuel.id);
     if (!heatTierIds.has(fuel.heatTier)) throw new Error(`Fuel ${fuel.id} uses unknown heat tier ${fuel.heatTier}`);
+    if (fuel.consumable !== true) throw new Error(`Fuel ${fuel.id} must be consumable`);
     if (fuel.sourceType === "raw" && !Array.isArray(fuel.sourceKeys)) throw new Error(`Raw fuel ${fuel.id} requires sourceKeys`);
     if (fuel.sourceType === "material" && !fuel.materialId) throw new Error(`Material fuel ${fuel.id} requires materialId`);
   }
@@ -2078,7 +2077,11 @@ export function smeltingRecipeYieldBps(recipe) {
 }
 
 export function smeltingSkillOutputBpsForLevel(level) {
-  return Math.min(SMELTING_RECIPE_YIELD_BPS_DENOMINATOR, 7000 + Math.max(0, Math.min(10, Math.floor(Number(level) || 0))) * 300);
+  return Math.min(
+    SMELTING_SKILL_MAX_OUTPUT_BPS,
+    SMELTING_RECIPE_YIELD_BPS_DENOMINATOR
+      + Math.max(0, Math.min(10, Math.floor(Number(level) || 0))) * 500,
+  );
 }
 
 export function smeltingRecipeRequiresFuel(recipe) {
@@ -2105,7 +2108,7 @@ export function smeltingRecipeInputVolumeMm3(recipe, rules = smeltingRules) {
 }
 
 export function smeltingRecipePdaOutputVolumeMm3(recipe, rules = smeltingRules) {
-  if (recipe?.recipeKind === "merge" || recipe?.unitVolumeMm3 !== undefined) {
+  if (recipe?.recipeKind === "merge") {
     return smeltingMaterialUnitVolumeMm3(recipe, rules);
   }
   return smeltingRecipeInputVolumeMm3(recipe, rules);
@@ -2131,8 +2134,8 @@ export function calculateSmeltingOutputVolumeMm3({
     pdaOutputVolumeMm3 ?? smeltingRecipePdaOutputVolumeMm3(recipe, rules),
   ));
   const recipeYield = BigInt(smeltingRecipeYieldBps(recipe));
-  const skillYield = BigInt(Math.max(1, Math.min(
-    SMELTING_RECIPE_YIELD_BPS_DENOMINATOR,
+  const skillYield = BigInt(Math.max(SMELTING_RECIPE_YIELD_BPS_DENOMINATOR, Math.min(
+    SMELTING_SKILL_MAX_OUTPUT_BPS,
     Math.floor(Number(skillOutputBps) || smeltingSkillOutputBpsForLevel(0)),
   )));
   const denominator = BigInt(SMELTING_RECIPE_YIELD_BPS_DENOMINATOR);

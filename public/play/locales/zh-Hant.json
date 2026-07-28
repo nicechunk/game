@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-d512b2d0d2932a6b",
-    "contentHash": "d512b2d0d2932a6b"
+    "version": "play-locale-zh-Hant-ab27d3f0fcee7fbf",
+    "contentHash": "ab27d3f0fcee7fbf"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -227,14 +227,6 @@
         "programUpgradePending": "玩家程式等待升級"
       },
       "rpc": "RPC",
-      "rpcPublic": "公共 RPC",
-      "rpcKey": "RPCKEY {key}",
-      "rpcRecommend": "推薦設定專用 RPC key，挖掘和鏈上同步會更穩定。",
-      "rpcConfigured": "專用 RPC key 已啟用，鏈上呼叫會使用你的 RPC。",
-      "rpcSet": "設定",
-      "rpcUpdate": "更新",
-      "rpcSetPrompt": "設定 Helius API key，避免公共 RPC 限流。",
-      "rpcUpdatePrompt": "更新 NiceChunk 鏈上呼叫使用的 Helius API key。",
       "characterTitle": "角色",
       "basicInfo": "基礎信息",
       "skillsTab": "技能",
@@ -365,12 +357,12 @@
         },
         "smelting": {
           "name": "熔煉",
-          "description": "降低原始資源熔煉為材料時的材料损耗。",
+          "description": "在配方基礎產出率之上，每級增加 5% 额外產出，最高额外增加 50%。",
           "xpSource": "完成有效熔煉配方時，按消耗的輸入材料數量獲得经驗，每個輸入材料 +1 经驗。",
-          "current": "產出率 {yieldPercent}% · 损耗 {lossPercent}%",
-          "next": "下一級：產出率 {yieldPercent}% · 损耗 {lossPercent}%",
-          "max": "满級：產出率 100% · 损耗 0%",
-          "formula": "產出率 = 70% + Lv x 3%；损耗 = 30% - Lv x 3%"
+          "current": "额外產出 +{bonus}%",
+          "next": "下一級：额外產出 +{bonus}%",
+          "max": "满級：额外產出 +50%",
+          "formula": "额外產出 = 等級 x 5%"
         },
         "forging": {
           "name": "鍛造",
@@ -446,14 +438,18 @@
       "walletDisconnectedHint": "連接錢包以使用鏈上遊戲功能。",
       "logOut": "登出",
       "rpcSettings": "RPC 連線",
-      "rpcSettingsHint": "設定此瀏覽器使用的 Solana 資料閘道。",
+      "rpcSettingsHint": "控制帳戶讀取、世界 PDA 同步和已簽名交易提交。",
       "rpcHelius": "Helius RPC",
-      "rpcHintPrivate": "鏈上呼叫目前使用私人 RPC。",
-      "rpcHintPublic": "設定 Helius 金鑰以獲得更穩定的挖掘體驗。",
+      "rpcCustom": "自訂開發網 RPC",
+      "rpcPublic": "公共 RPC",
+      "rpcHintPrivate": "玩家與背包讀取、世界同步和交易目前使用 Helius 開發網。",
+      "rpcHintCustom": "所有鏈上讀取和交易目前使用已驗證的自訂開發網端點。",
+      "rpcHintPublic": "共享公共開發網承載所有鏈上操作，繁忙時可能限流。可在設定中使用 Helius 免費方案或自訂端點。",
+      "rpcUpdate": "更新",
+      "rpcSet": "設定",
       "languageSettings": "介面語言",
       "language": "語言",
       "languageHint": "選擇遊戲介面語言。",
-      "rotateAvatar": "拖曳旋轉",
       "cacheSettings": "本機快取",
       "cacheSettingsHint": "管理此瀏覽器儲存的暫時世界資料與引導記錄。",
       "cacheAction": "重新整理本機遊戲資料",
@@ -465,7 +461,8 @@
       "cacheClearing": "正在清除...",
       "cacheCleared": "快取已清除，正在重新載入...",
       "cacheClearedButton": "已清除",
-      "cacheClearFailed": "無法清除快取：{reason}"
+      "cacheClearFailed": "無法清除快取：{reason}",
+      "rotateAvatar": "拖曳旋轉"
     },
     "debug": "Debug",
     "bulkMining": {
@@ -498,7 +495,8 @@
       "resolving": "守護者：解析中...",
       "resolvingForChunk": "守護者：正在解析 chunk {chunkX},{chunkZ}",
       "active": "守護者：{endpoint} | chunk {chunkX},{chunkZ} | 範圍 {minX}..{maxX}, {minZ}..{maxZ}",
-      "none": "守護者：chunk {chunkX},{chunkZ} 沒有匹配節點"
+      "none": "守護者：chunk {chunkX},{chunkZ} 沒有匹配節點",
+      "connectionLost": "失去守護者連線"
     },
     "mapTeleport": {
       "x": "X",
@@ -617,13 +615,13 @@
       "equipped": "已裝備",
       "equippedSlot": "已裝備至工具欄第 {slot} 格",
       "equippedLocked": "已裝備至工具欄第 {slot} 格。卸下裝備後才能選取、移動或丟棄。",
-      "loading": "正在讀取背包...",
-      "unavailable": "背包無法使用",
-      "readFailed": "背包讀取失敗：{reason}",
-      "readFailedShort": "無法讀取背包資料。請重新開啟背包後再試。",
-      "openAria": "開啟背包",
-      "loadingAria": "背包讀取中",
-      "createAria": "建立背包"
+      "discardTitle": "要丟棄背包物品嗎？",
+      "discardSingleMessage": "要從背包丟棄 {item} 嗎？",
+      "discardBatchMessage": "要從背包丟棄 {stacks} 組、共 {items} 個物品嗎？",
+      "discardWarning": "此操作永久生效，且無法復原。",
+      "discardConfirm": "丟棄",
+      "discardChanged": "確認前所選物品已改變，未丟棄任何物品。",
+      "confirmUnavailable": "目前無法確認，未丟棄任何物品。"
     },
     "loading": {
       "eyebrow": "世界閘道",
@@ -676,6 +674,9 @@
         "redirect": {
           "title": "開啟錢包閘道",
           "body": "沒有找到有效遊戲會話，正在跳轉到錢包登入。"
+        },
+        "characterAccess": {
+          "title": "正在載入玩家角色 PDA"
         }
       },
       "loader": {
@@ -685,32 +686,137 @@
         "cached": "已快取",
         "failed": "失敗",
         "failureMessage": "遊戲檔案無法載入。",
+        "errorDetail": "詳細原因：{reason}",
         "retry": "重試",
+        "retrying": "正在重試",
+        "refresh": "重新整理頁面",
+        "rpcSettings": "RPC 設定",
+        "rpcInputLabel": "Helius devnet API Key",
+        "rpcPlaceholder": "貼上 Helius API Key",
+        "rpcSave": "儲存並重試",
+        "rpcSaving": "正在儲存",
+        "rpcSaved": "RPC 已儲存",
+        "cancel": "取消",
         "files": "{loaded} / {total} 個檔案",
-        "network": "網路"
+        "network": "網路",
+        "failures": {
+          "network-offline": {
+            "title": "目前沒有網路連線",
+            "message": "瀏覽器處於離線狀態，無法載入玩家 PDA。",
+            "help": "重新連線網路後再重試。"
+          },
+          "network-unavailable": {
+            "title": "網路請求失敗",
+            "message": "瀏覽器無法連線到 Solana RPC。",
+            "help": "檢查網路與代理，或設定私人 RPC。"
+          },
+          "rpc-rate-limited": {
+            "title": "RPC 請求已達上限",
+            "message": "目前 RPC 過載，拒絕了玩家資料查詢。",
+            "help": "稍後重試，或設定 Helius devnet RPC Key。"
+          },
+          "rpc-unauthorized": {
+            "title": "RPC 授權失敗",
+            "message": "設定的 RPC Key 或節點被拒絕。",
+            "help": "在 RPC 設定中修正 Key，儲存後重試。"
+          },
+          "rpc-unavailable": {
+            "title": "RPC 暫時不可用",
+            "message": "Solana 節點未能完成玩家資料查詢。",
+            "help": "稍後重試、檢查網路代理，或使用私人 RPC。"
+          },
+          "character-timeout": {
+            "title": "玩家資料查詢逾時",
+            "message": "玩家 PDA 請求耗時過長，已停止等待。",
+            "help": "檢查 RPC 狀態後重試同一次查詢。"
+          },
+          "character-data-invalid": {
+            "title": "玩家資料無效",
+            "message": "玩家帳戶存在，但資料未通過校驗。",
+            "help": "不要建立另一個角色，請重新整理或回報修復此帳戶。"
+          },
+          "wallet-unavailable": {
+            "title": "錢包工作階段不可用",
+            "message": "已儲存的錢包無法用於玩家驗證。",
+            "help": "返回登入頁並重新連線正確的錢包。"
+          },
+          "verification-unavailable": {
+            "title": "玩家驗證功能不可用",
+            "message": "目前載入的遊戲客戶端缺少玩家查詢功能。",
+            "help": "重新整理頁面；若仍發生，代表網站版本需要修復。"
+          },
+          "character-verification-failed": {
+            "title": "玩家驗證失敗",
+            "message": "因未知原因無法驗證玩家 PDA。",
+            "help": "查看詳細原因，再重試或重新整理頁面。"
+          }
+        }
       }
     },
     "rpcConfig": {
-      "title": "公共 RPC 負載過高",
-      "body": "填寫 Helius 開發網 API key，鏈上讀取和交易提交會改用你的專用 RPC。",
-      "link": "申請 Helius API key",
+      "title": "Solana RPC 連線",
+      "body": "選擇此瀏覽器連接 Solana 開發網的方式，用於讀取帳戶、同步世界和提交已簽名交易。",
+      "failureTitle": "設定 RPC 可以解決這次載入錯誤",
+      "failureBody": "下面會顯示失敗階段和具體技術原因。設定可用的開發網端點並儲存後，NiceChunk 會重試同一個玩家查詢，不會誤導你建立新角色。",
+      "failureLabel": "偵測到載入問題",
+      "failureUnknown": "介面沒有回傳更多技術原因。",
+      "failureStage": "失敗階段：{stage}",
+      "failureReason": "技術原因：{reason}",
+      "linksAria": "RPC 服務商資源",
+      "link": "開啟 Helius 控制台",
+      "guideLink": "查看設定指南",
       "explainerAria": "RPC 設定說明",
       "pointGatewayLabel": "鏈上閘道",
       "pointGatewayTitle": "RPC 決定瀏覽器如何連接 Solana",
-      "pointGatewayBody": "NiceChunk 通過 RPC 讀取帳戶、刷新世界狀態、提交已簽名交易。它不會改變你的錢包所有權。",
+      "pointGatewayBody": "NiceChunk 透過 RPC 讀取玩家和背包帳戶、同步世界 PDA，並提交已簽名交易。RPC 不會改變錢包所有權。",
       "pointReliabilityLabel": "穩定性",
-      "pointReliabilityTitle": "專用 key 可以避開公共端點擁堵",
-      "pointReliabilityBody": "很多玩家共用公共開發網 RPC 時，讀取和挖掘交易可能被限流。填寫你的 Helius key 後，本瀏覽器會使用更穩定的鏈上通道。",
+      "pointReliabilityTitle": "獨立端點可以避開公共擁堵",
+      "pointReliabilityBody": "公共開發網請求可能被限流。Helius 免費方案通常足夠測試，並能給這個瀏覽器獨立的請求額度。",
       "pointCostLabel": "費用邊界",
       "pointCostTitle": "這個 key 不是支付給 NiceChunk 的費用",
-      "pointCostBody": "API key 只保存在你的瀏覽器本地，用來拼接你的 RPC URL。按 NiceChunk 正常遊戲用量，Helius 免費方案通常已經足夠；如果你希望更高額度和更順暢的體驗，也可以使用 Helius 付費方案。",
+      "pointCostBody": "API key 或端點只保存在目前瀏覽器。服務商方案費用與 Solana 交易費彼此獨立，也不會支付給 NiceChunk。",
       "pointSecurityLabel": "安全邊界",
       "pointSecurityTitle": "RPC 本身不能花費你的 SOL",
-      "pointSecurityBody": "交易仍然需要你的插件錢包或遊戲錢包簽名。RPC 只負責傳輸已簽名請求和鏈上資料。",
+      "pointSecurityBody": "交易仍然必須由錢包簽名。RPC 只傳輸簽名請求和鏈上資料，NiceChunk 不會把儲存的憑證傳送到自己的伺服器。",
+      "currentLabel": "目前連線",
+      "current": {
+        "public": "共享公共開發網 RPC",
+        "helius": "Helius 開發網 RPC",
+        "custom": "自訂開發網 RPC"
+      },
+      "providerLabel": "連線方式",
+      "providerHelius": "Helius 開發網 API key（建議）",
+      "providerCustom": "自訂 HTTPS 開發網端點",
       "inputLabel": "Helius API key",
       "placeholder": "貼上你的 Helius API key",
-      "save": "保存 RPC",
-      "dismiss": "關閉 RPC 提醒",
+      "heliusHelp": "註冊 Helius，選擇 Solana Devnet，然後只貼上 API key。免費方案通常足夠遊戲測試。",
+      "endpointLabel": "自訂開發網 RPC 端點",
+      "endpointPlaceholder": "https://your-solana-devnet-rpc.example",
+      "endpointHelp": "只接受 HTTPS 端點。儲存前會驗證 Solana 創世雜湊，避免誤用主網或測試網。",
+      "save": "測試並儲存",
+      "testing": "正在測試...",
+      "usePublic": "使用公共 RPC",
+      "publicNote": "公共端點由多人共享，可能被限流。它適合作為備用，不建議長期使用。",
+      "dismiss": "關閉 RPC 設定",
+      "savedStatus": "RPC 連線已驗證並儲存，帳戶讀取、世界同步和交易提交都會使用它。",
+      "publicSavedStatus": "共享公共開發網 RPC 已啟用，繁忙時可能被限流。",
+      "openFailed": "無法開啟 RPC 設定，請重新整理遊戲後再試一次。",
+      "validation": {
+        "invalidKey": "測試前請輸入 Helius API key。",
+        "invalidUrl": "請輸入有效的 HTTPS Solana 開發網 RPC 端點，不能嵌入使用者名稱或密碼。",
+        "testing": "正在測試端點並確認 Solana 開發網創世雜湊...",
+        "unauthorized": "服務商拒絕了這個憑證，請到服務商控制台檢查 API key 或端點。",
+        "rateLimited": "這個端點已經被限流，請檢查服務方案或改用其他開發網端點。",
+        "http": "端點回傳 HTTP {status}，請檢查服務狀態和端點設定。",
+        "invalidResponse": "端點沒有回傳有效的 Solana JSON-RPC 回應。",
+        "rejected": "端點拒絕了 Solana 創世雜湊檢查。",
+        "wrongNetwork": "這個端點不是 Solana 開發網，NiceChunk 沒有儲存它。",
+        "timeout": "端點在 10 秒內沒有回應，請檢查網路、代理或服務商狀態。",
+        "network": "瀏覽器無法存取此端點，請檢查網路、代理規則、CORS 支援或服務商狀態。",
+        "storage": "瀏覽器無法儲存 RPC 設定，請檢查網站儲存權限。",
+        "saved": "連線驗證成功並已儲存，正在用這個開發網 RPC 重試...",
+        "publicSaved": "已恢復公共開發網 RPC，正在重試失敗的請求..."
+      },
       "publicRpcFailed": "公共開發網 RPC 正在限流。添加 Helius API key 後，鏈上讀取和挖掘交易會更穩定。",
       "invalid": "保存前請輸入 Helius API key。",
       "saved": "已保存。NiceChunk 會使用你的 Helius 開發網 RPC 執行鏈上呼叫。"
@@ -725,6 +831,35 @@
       "browseTab": "瀏覽",
       "sellTab": "出售",
       "ordersTab": "訂單",
+      "mobileViews": "行動版市場檢視",
+      "mobileListings": "交易列表",
+      "mobileBackpack": "背包",
+      "opened": "市場已開啟。錢包和 RPC 可用時將讀取 PDA 掛單。",
+      "localWallet": "本機錢包",
+      "membershipEyebrow": "鏈上存取權限",
+      "joinTitle": "加入交易市場",
+      "joinBody": "交易前先建立你的個人市場成員 PDA。",
+      "joinCostBreakdown": "加入市場費用明細",
+      "userStateRent": "市場狀態 PDA 租金",
+      "networkFeeEstimate": "預估網路費",
+      "estimatedTotal": "預估合計",
+      "rentExplanation": "PDA 租金是鎖定在你的鏈上帳戶中的免租儲備，不是平台手續費；只有程式以後提供關閉帳戶指令時才能取回。網路費支付給 Solana 驗證者。",
+      "joinCapacity": "每個錢包最多可保留 50 個有效掛單。",
+      "marketRulesLink": "查看市場規則與費用",
+      "joinAction": "加入市場",
+      "totalPlusNetworkFee": "{amount} SOL + 網路費",
+      "membershipChecking": "正在讀取市場資格和 RPC 即時費用...",
+      "membershipSubmitting": "正在等待鏈上確認...",
+      "joinReady": "確認即時估算後，在錢包中批准加入市場。",
+      "costPending": "正在查詢 RPC...",
+      "membershipWalletRequired": "請先連接遊戲錢包，再加入交易市場。",
+      "membershipUnavailable": "目前客戶端不支援市場加入功能。",
+      "membershipCheckFailed": "無法檢查市場存取權限：{reason}",
+      "retryMembership": "重新估算費用",
+      "joinPending": "請在錢包中確認加入市場。",
+      "joinCreated": "鏈上市場權限已建立：{signature}",
+      "joinRequired": "請先加入市場，再建立或結算掛單。",
+      "alreadyJoined": "這個錢包已經加入市場。",
       "searchLabel": "搜尋",
       "searchPlaceholder": "資源、裝備、座標",
       "searchMetaIdle": "{category} · {currency} · {sort}",
@@ -732,6 +867,9 @@
       "chainListingsSyncing": "正在同步鏈上掛單...",
       "chainListingsSynced": "鏈上掛單已同步",
       "chainListingsUnavailable": "鏈上同步不可用",
+      "chainListingsQueryUnavailable": "目前載入的客戶端無法查詢鏈上市場掛單。",
+      "chainListingsLoaded": "已載入 {count} 個鏈上市場掛單。",
+      "chainListingsFailed": "鏈上市場重新整理失敗：{reason}。",
       "sortLabel": "排序",
       "sortNewest": "最新優先",
       "sortOldest": "最早優先",
@@ -757,6 +895,20 @@
       "feeValue": "1%",
       "settlement": "推薦結算：NCK",
       "backpackCount": "{count}/{capacity}",
+      "inventory": "庫存",
+      "myListings": "我的掛單",
+      "inventoryAllItems": "全部物品",
+      "inventoryChainNote": "已確認的鏈上物品",
+      "tableItem": "物品",
+      "tablePrice": "單價",
+      "tableQuantity": "數量",
+      "tableSeller": "賣家",
+      "tableAction": "操作",
+      "activeOrders": "我的活躍訂單",
+      "viewAllOrders": "查看全部訂單",
+      "resultSummary": "{total} 個掛單 · {category} · {currency}",
+      "sampleStone": "石材儲備",
+      "sampleStoneMeta": "來自公共地形的原石堆",
       "sampleIron": "鐵礦碎塊",
       "sampleIronMeta": "原材料",
       "samplePickaxe": "鍛造鎬",
@@ -766,6 +918,7 @@
       "sampleCloak": "橡樹葉方塊",
       "sampleCloakMeta": "服裝",
       "buy": "購買",
+      "buyNow": "立即購買",
       "buyNeedsWallet": "連接錢包後才能購買這個掛單。",
       "buyNeedsBackpack": "裝備背包後才能購買這個掛單。",
       "buyBackpackFull": "你的背包已滿。",
@@ -779,6 +932,29 @@
       "expandDetails": "詳情",
       "collapseDetails": "收起詳情",
       "detailTitle": "掛單詳情",
+      "itemDetailsTitle": "物品詳情",
+      "listingDataTitle": "鏈上掛單資訊",
+      "massLabel": "重量",
+      "volumeLabel": "體積",
+      "qualityLabel": "品質",
+      "materialLabel": "材料",
+      "resourceLabel": "資源",
+      "blockIdLabel": "方塊 ID",
+      "coordinatesLabel": "座標",
+      "yieldLabel": "採集產率",
+      "durabilityLabel": "耐久度",
+      "gradeLabel": "品級",
+      "itemLevelLabel": "物品等級",
+      "itemCodeLabel": "物品代碼",
+      "itemIdLabel": "物品 ID",
+      "itemPdaLabel": "物品 PDA",
+      "itemProofLabel": "證明",
+      "listingStateLabel": "掛單狀態",
+      "listingIdLabel": "掛單 ID",
+      "listingPdaLabel": "掛單 PDA",
+      "sourceSlotLabel": "來源槽位",
+      "createdLabel": "建立時間",
+      "stateActive": "生效中",
       "detailClose": "關閉掛單詳情",
       "cardAria": "{name}，{price} {currency}",
       "detailItem": "物品",
@@ -788,10 +964,19 @@
       "detailPayment": "付款",
       "detailRequirement": "購買條件",
       "detailUnknown": "未知",
+      "detailSelectHint": "選擇一個市場掛單以查看物品和價格。",
+      "currentPrice": "目前價格",
+      "availableQuantity": "可用數量",
+      "totalPrice": "總價",
+      "custodyNote": "鏈上結算會驗證掛單託管狀態，並收取 1% 市場手續費。",
       "paymentNck": "需要錢包擁有 NCK 代幣帳戶。",
       "paymentSol": "從錢包 SOL 餘額支付。",
       "sampleListing": "示例掛單",
-      "loadingListings": "正在載入掛單...",
+      "loadingListings": "正在載入鏈上掛單",
+      "loadingListingsMeta": "正在透過目前 RPC 讀取有效的市場 PDA 帳戶。",
+      "listingLoadFailed": "無法載入鏈上掛單",
+      "listingLoadFailedMeta": "{reason}。請檢查 RPC 或網路後重試。",
+      "retryListings": "重新載入",
       "chainListingLoadFailed": "鏈上掛單暫時不可用。",
       "chainListingName": "鏈上資源掛單",
       "chainListingMeta": "{source} 第 {slot} 格",
@@ -805,6 +990,7 @@
       "stepListingDraft": "2. 掛單草稿",
       "inventoryEyebrow": "背包",
       "inventoryTitle": "選擇一個物品掛單",
+      "sellSelectHint": "從左側庫存選擇要出售的物品",
       "listingEyebrow": "掛單草稿",
       "noSelection": "尚未選擇物品",
       "categoryLabel": "分類",
@@ -812,6 +998,8 @@
       "priceLabel": "價格",
       "pricePlaceholder": "0.00",
       "formHint": "選擇物品，設定分類和價格，然後建立鏈上掛單。",
+      "draftReady": "{item} 已準備掛單，所選物品堆將進入市場託管。",
+      "priceRequired": "建立掛單前請設定一個有效的正數價格。",
       "createListing": "建立掛單",
       "noOrders": "暫無活躍訂單",
       "noOrdersMeta": "錢包訂單會顯示在這裡。",
@@ -832,9 +1020,13 @@
       "emptyHintMarket": "市場終端",
       "emptyHintOnchain": "鏈上掛單",
       "invalidListing": "請選擇物品並輸入有效價格。",
+      "transactionInProgress": "已有一筆市場交易正在處理中，請稍候。",
+      "localListingCreated": "掛單已建立，物品已進入市場託管。",
       "listingPending": "請確認交易以建立鏈上掛單。",
+      "listingSubmitting": "建立中...",
       "listingCreated": "鏈上掛單已建立：{signature}",
       "listingFailed": "掛單交易失敗：{reason}",
+      "activeListingLimit": "每個錢包最多只能有 50 個活躍掛單。",
       "cancelPending": "取消中...",
       "cancelFailed": "取消交易失敗：{reason}"
     },
@@ -911,7 +1103,7 @@
       "outputSize": "輸出尺寸",
       "yieldRange": "產出區間",
       "outputRate": "產出率",
-      "outputRateValue": "配方 {recipePercent}% · 技能損耗 {lossPercent}%",
+      "outputRateValue": "配方 {recipePercent}% · 技能額外產出 +{bonusPercent}%",
       "inputMass": "輸入質量 {mass}",
       "quality": "品質依據",
       "heatMet": "已滿足等級 {tier}",
@@ -987,6 +1179,8 @@
       "output": "產出",
       "submitting": "正在提交鏈上交易...",
       "submitCompleteShort": "鏈上確認完成",
+      "backpackRefreshFailed": "熔煉前無法重新整理背包：{reason}",
+      "inputsChanged": "背包內容已變更，請檢查重新整理後的材料再試一次。",
       "recipeDetails": "配方詳情",
       "requiredInputs": "所需材料",
       "qualityScore": "品質",
@@ -1036,15 +1230,7 @@
       "learnDetail": "背包是錢包持有的 PDA。坐标證明通過鏈上驗證後，挖掘資源才會進入背包。",
       "submit": "建立背包",
       "learn": "了解更多",
-      "hotbarHint": "建立後，背包會顯示在這裡！",
-      "alreadyExists": "此錢包已經擁有一個背包，無法重複建立。",
-      "checking": "正在檢查背包...",
-      "creating": "正在鏈上建立...",
-      "alreadyExistsLabel": "背包已存在",
-      "retryCheck": "重新檢查背包",
-      "checkingDetail": "建立前正在檢查鏈上是否已有背包。",
-      "readPending": "背包資料仍在讀取，本次未提交建立交易。",
-      "readFailed": "背包驗證失敗，本次未提交建立交易：{reason}"
+      "hotbarHint": "建立後，背包會顯示在這裡！"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -1113,6 +1299,10 @@
     "equipment": {
       "chainSaved": "裝備已儲存至鏈上（{signature}）。",
       "chainSaveFailed": "裝備鏈上儲存失敗：{reason}。"
+    },
+    "confirmDialog": {
+      "eyebrow": "需要確認",
+      "cancel": "取消"
     },
     "onboarding": {
       "dialogAria": "{feature} 引導",
@@ -1509,6 +1699,29 @@
       "visualModelBody": "材料缩略圖會根據每個配方檔案中的主導元素生成。",
       "processTitle": "熔煉流程",
       "compositionTitle": "材料元素檔案",
+      "physicalTitle": "Objective physical properties",
+      "attributesTitle": "Engineering property scores",
+      "unitVolumeLabel": "Canonical unit volume",
+      "densityLabel": "Bulk density",
+      "unitMassLabel": "Calculated unit mass",
+      "thermalConductivityLabel": "Thermal conductivity",
+      "waterAbsorptionLabel": "Water absorption",
+      "compressiveStrengthLabel": "Compressive strength",
+      "flexuralStrengthLabel": "Flexural strength",
+      "attribute": {
+        "hardness": "Hardness",
+        "durability": "Durability",
+        "toughness": "Toughness",
+        "ductility": "Ductility",
+        "brittleness": "Brittleness",
+        "density": "Density",
+        "heatResistance": "Heat resistance",
+        "corrosionResistance": "Corrosion resistance",
+        "conductivity": "Electrical conductivity",
+        "thermalConductivity": "Thermal conductivity",
+        "magnetism": "Magnetism",
+        "workability": "Workability"
+      },
       "forgeUseTitle": "鍛造解鎖",
       "sourceBlocksTitle": "原始資源來源",
       "heatLabel": "熱量",
@@ -1516,7 +1729,6 @@
       "sourceLabel": "來源",
       "consumableLabel": "消耗",
       "consumable": "會消耗",
-      "reusable": "可复用熱源",
       "burnSeconds": "{seconds} 秒",
       "requiredHeatLabel": "所需熱量",
       "artisanLevelLabel": "工匠等級",
@@ -1579,15 +1791,11 @@
         },
         "charcoal": {
           "name": "木炭",
-          "description": "由木質資源加工出的碳燃料，比原木更穩定也更干净。"
+          "description": "由木質資源加工出的碳燃料，提供三級鍛造熱量，並會隨熔煉批次一起消耗。"
         },
         "coal": {
           "name": "煤炭",
-          "description": "來自深層石煤層的強力鍛造燃料，不常见，适合金屬海绵坯。"
-        },
-        "lava_heat": {
-          "name": "熔岩熱源",
-          "description": "不直接消耗的高熱爐源，綁定火山資源，用於鼓风級配方。"
+          "description": "來自深層石煤層的燃料，提供四級鼓风熱量，並會隨熔煉批次一起消耗。"
         }
       },
       "item": {
@@ -2127,22 +2335,34 @@
         "description": "富碳沉积燃料，會以较低频率在深層石中成片生成，主要用於熔煉熱量，而不是直接鍛造。"
       },
       "cotton": {
-        "name": "棉花"
+        "name": "棉花",
+        "source": "Warm Plains Vegetation",
+        "description": "A cellulose-rich fiber crop selected by warm, moderately humid surface conditions and used as the world's primary woven textile feedstock."
       },
       "flowerWhite": {
-        "name": "白花"
+        "name": "白花",
+        "source": "Temperate Surface Vegetation",
+        "description": "A pale flowering plant whose cellulose tissue and flavonoid pigments provide a mineral-light white dye source."
       },
       "flowerYellow": {
-        "name": "黃花"
+        "name": "黃花",
+        "source": "Warm Surface Vegetation",
+        "description": "A carotenoid-rich flowering plant used for warm yellow pigments while retaining the carbon, oxygen, and hydrogen profile of plant tissue."
       },
       "flowerRed": {
-        "name": "紅花"
+        "name": "紅花",
+        "source": "Warm Humid Vegetation",
+        "description": "An anthocyanin-rich flower used for stable red organic pigment, favored by warm and humid surface rules."
       },
       "flowerBlue": {
-        "name": "藍花"
+        "name": "藍花",
+        "source": "Cool Humid Vegetation",
+        "description": "A rarer cool-climate flower whose anthocyanin chemistry and cellular acidity produce a blue pigment source."
       },
       "flowerPink": {
-        "name": "粉紅花"
+        "name": "粉紅花",
+        "source": "Temperate Humid Vegetation",
+        "description": "A temperate flowering plant with dilute anthocyanin pigments used for pink dyes and decorative textile finishes."
       }
     },
     "tag": {
@@ -3325,6 +3545,7 @@
       "chainSubmitted": "裝備已鍛造並存入背包",
       "chainSubmitFailed": "鍛造上鏈失敗",
       "chainCodeTooLarge": "鏈代碼超過鍛造物品儲存容量",
+      "chainMaterialTooSmall": "鑄造或儲存前，請保留質量和體積均不為零的材料",
       "chainCodeOutOfSync": "請先將這段鏈代碼載入工作台，再鍛造上鏈",
       "chainMaterialRequired": "Select backpack materials before forging on-chain",
       "chainMaterialMismatch": "Backpack materials changed. Sync materials and forge again",
@@ -3409,7 +3630,7 @@
     "workpieceEmptyDetail": "先把材料加入或拖到工作台。",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm³",
+    "volumeCm3Value": "{value} cm3",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "材料承載",
     "capacityDiagnosticsSummary": "造型等級 {requested} / 允許 {allowed}。材料承載 {capacity}，缺口 {deficit}。主要問題：{issue}。",
@@ -3812,7 +4033,91 @@
     "avatarPreviewEmpty": "請設定有效握把",
     "avatarPreviewEquipped": "握把已裝備",
     "avatarPreviewError": "無法顯示預覽",
-    "avatarPreviewHint": "拖動旋轉"
+    "avatarPreviewHint": "拖動旋轉",
+    "onboarding": {
+      "dialogAria": "{feature} 引導",
+      "close": "關閉引導",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "步驟 {current}：{label}",
+      "dontShowAgain": "不再顯示",
+      "skip": "跳過引導",
+      "later": "稍後",
+      "next": "下一步",
+      "finish": "完成",
+      "costEstimate": "費用預估",
+      "liveValuesNote": "簽名前會透過目前 RPC 再次檢查即時數值。",
+      "checkingFee": "正在查詢 RPC",
+      "feeUnavailable": "簽名前檢查",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "滑動",
+      "controlTap": "點擊",
+      "controlLook": "拖動",
+      "controlSelect": "點選",
+      "controlFirstPerson": "E",
+      "controlChoose": "選擇",
+      "controlEquip": "裝備",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "簽名",
+      "controlBlueprint": "藍圖",
+      "controlDimensions": "X × Z",
+      "controlPlace": "放置",
+      "controlReview": "檢查",
+      "controlBind": "綁定",
+      "controlRecipe": "配方",
+      "controlInput": "原料",
+      "controlFuel": "燃料",
+      "controlPrice": "價格",
+      "controlMaterials": "材料",
+      "controlShape": "塑形",
+      "controlGrip": "握把",
+      "controlFit": "試裝",
+      "controlCast": "鍛造",
+      "cost": {
+        "accountDeposit": "可退還帳戶押金",
+        "networkFee": "網路費",
+        "sessionTopUp": "可使用的 Session 儲值",
+        "buildSiteDeposit": "BuildSite 帳戶押金",
+        "progressDeposit": "熔煉進度帳戶押金",
+        "listingDeposit": "掛單帳戶押金",
+        "marketFee": "成交後市場費",
+        "selectedMaterials": "已選材料",
+        "consumedOnChain": "鏈上消耗"
+      },
+      "features": {
+        "forging": {
+          "eyebrow": "工具鍛造",
+          "title": "鍛造唯一物品",
+          "warning": "鑄造會消耗所選背包材料並建立一件物品，請保留背包空位。",
+          "steps": {
+            "materials": {
+              "title": "選擇已驗證材料",
+              "body": "材料 PDA 的體積和屬性會限制可用設計。"
+            },
+            "shape": {
+              "title": "在共用工作台塑形",
+              "body": "放置、切割和排列方塊，同時保持整個結構連接。"
+            },
+            "handle": {
+              "title": "設定功能握把",
+              "body": "握把必須與綠色手掌區域相交，並保持在物體內。"
+            },
+            "fit": {
+              "title": "檢查角色試裝",
+              "body": "旋轉共用場景，確認裝備不會穿過角色身體。"
+            },
+            "cast": {
+              "title": "鑄造最終設計",
+              "body": "檢查證明、材料消耗和背包空位後，再簽名交易。"
+            }
+          }
+        }
+      }
+    }
   },
   "mining": {
     "title": "Nicechunk 挖礦",

@@ -1,4 +1,3 @@
-export const NCF1_EQUIPMENT_LEGACY_VERSION = 14;
 export const NCF1_EQUIPMENT_VERSION = 15;
 export const NCF1_EQUIPMENT_MIN_RAW_BYTES = 14;
 export const NCF1_EQUIPMENT_MAX_RAW_BYTES = 640;
@@ -28,7 +27,7 @@ export function validatedNcf1EquipmentPayload(value, expectedDesignHash) {
 }
 
 function isSupportedNcf1EquipmentVersion(version) {
-  return version === NCF1_EQUIPMENT_LEGACY_VERSION || version === NCF1_EQUIPMENT_VERSION;
+  return version === NCF1_EQUIPMENT_VERSION;
 }
 
 export function forgePayloadHash(value) {

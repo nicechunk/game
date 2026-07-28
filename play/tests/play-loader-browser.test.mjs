@@ -81,7 +81,8 @@ test("Loader exposes a localized failure state and retry reloads the failed entr
     });
     await page.goto(`${origin}/failure`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#nc-loader.is-failed");
-    assert.equal(await page.locator(".nc-load-error").textContent(), englishPlayDictionary.main.loading.loader.failureMessage);
+    assert.equal(await page.locator(".nc-load-error strong").textContent(), englishPlayDictionary.main.loading.loader.failureMessage);
+    assert.match(await page.locator(".nc-load-error code").textContent(), /HTTP 503/);
     assert.equal(await page.locator(".nc-load-retry").textContent(), englishPlayDictionary.main.loading.loader.retry);
     assert.match((await page.evaluate(() => globalThis.NiceChunkLoading.snapshot().error)), /HTTP 503/);
     assert.ok(consoleErrors.some((message) => message.includes("NiceChunk Loader")));
@@ -90,6 +91,58 @@ test("Loader exposes a localized failure state and retry reloads the failed entr
     await page.waitForFunction(() => !document.querySelector("#nc-loader"));
     assert.equal(requestCount("/failure"), 2);
     assert.equal(requestCount("/retry-entry.js"), 2);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Loader opens the full RPC settings flow, restores on dismiss, and retries after save", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await page.goto(`${origin}/character-failure`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("#nc-loader.is-failed");
+    const snapshot = await page.evaluate(() => globalThis.NiceChunkLoading.snapshot());
+    assert.equal(snapshot.failureCode, "rpc-rate-limited");
+    assert.equal(
+      await page.locator(".nc-load-error strong").textContent(),
+      englishPlayDictionary.main.loading.loader.failures["rpc-rate-limited"].title,
+    );
+    assert.match(await page.locator(".nc-load-error code").textContent(), /RPC HTTP 429/);
+    assert.equal(await page.locator(".nc-load-stage").textContent(), englishPlayDictionary.main.loading.stages.characterAccess.title);
+
+    assert.equal(await page.locator(".nc-load-rpc-form").count(), 0, "the loader must not contain a second RPC form");
+    await page.locator(".nc-load-rpc-action").click();
+    await page.waitForSelector("#fixtureRpcPanel:not([hidden])");
+    const firstOpen = await page.evaluate(() => ({
+      context: globalThis.__rpcOpenContext,
+      loader: globalThis.NiceChunkLoading.snapshot(),
+      inert: document.querySelector("#nc-loader").inert,
+    }));
+    assert.deepEqual(firstOpen.context, {
+      code: "rpc-rate-limited",
+      stage: "characterAccess",
+      reason: "RPC HTTP 429",
+    });
+    assert.equal(firstOpen.loader.visible, false);
+    assert.equal(firstOpen.loader.rpcDialogOpen, true);
+    assert.equal(firstOpen.inert, true);
+
+    await page.locator("#fixtureRpcDismiss").click();
+    await page.waitForFunction(() => globalThis.NiceChunkLoading.snapshot().visible);
+    assert.equal((await page.evaluate(() => globalThis.NiceChunkLoading.snapshot())).rpcDialogOpen, false);
+
+    await page.locator(".nc-load-rpc-action").click();
+    await page.waitForSelector("#fixtureRpcPanel:not([hidden])");
+    await page.locator("#fixtureRpcKey").fill("loader-test-helius-key");
+    await page.locator("#fixtureRpcForm").evaluate((form) => form.requestSubmit());
+    await page.waitForFunction(() => !document.querySelector("#nc-loader"));
+    const result = await page.evaluate(() => ({
+      attempts: globalThis.__characterAttempts,
+      key: localStorage.getItem("nicechunk.heliusApiKey"),
+    }));
+    assert.equal(result.attempts, 2);
+    assert.equal(result.key, "loader-test-helius-key");
   } finally {
     await browser.close();
   }
@@ -143,9 +196,11 @@ function handleRequest(request, response) {
   if (path === "/loader.js") return send(response, loaderSource, "text/javascript");
   if (path === "/normal") return send(response, html("/manifest.json"), "text/html");
   if (path === "/failure") return send(response, html("/manifest-failure.json"), "text/html");
+  if (path === "/character-failure") return send(response, html("/manifest-character-failure.json"), "text/html");
   if (path === "/hold") return send(response, html("/manifest-hold.json"), "text/html");
   if (path === "/manifest.json") return sendSlow(response, JSON.stringify(fixture.normalManifest), "application/json", 8, 150);
   if (path === "/manifest-failure.json") return send(response, JSON.stringify(fixture.failureManifest), "application/json");
+  if (path === "/manifest-character-failure.json") return send(response, JSON.stringify(fixture.characterFailureManifest), "application/json");
   if (path === "/manifest-hold.json") return send(response, JSON.stringify(fixture.holdManifest), "application/json");
   if (path === "/entry.js") return sendSlow(response, fixture.entry, "text/javascript", 7, 16);
   if (path === "/app.css") return sendSlow(response, fixture.css, "text/css", 5, 12);
@@ -156,6 +211,7 @@ function handleRequest(request, response) {
     if (requestCount(path) === 1) return send(response, "temporary failure", "text/plain", 503);
     return send(response, "NiceChunkLoading.worldReady();", "text/javascript");
   }
+  if (path === "/character-failure-entry.js") return send(response, fixture.characterFailureEntry, "text/javascript");
   if (path === "/hold-entry.js") return send(response, "NiceChunkLoading.taskStart('layout'); NiceChunkLoading.worldReady();", "text/javascript");
   response.writeHead(404).end("not found");
 }
@@ -185,6 +241,44 @@ function createFixture() {
     }, 480);
     ${"/* application payload */".repeat(500)}
   `;
+  const characterFailureEntry = `
+    globalThis.__characterAttempts = 0;
+    const verifyCharacter = async () => {
+      globalThis.__characterAttempts += 1;
+      if (globalThis.__characterAttempts === 1) {
+        NiceChunkLoading.taskStart("character-access");
+        NiceChunkLoading.stage("characterAccess", 0.24);
+        NiceChunkLoading.fail(new Error("RPC HTTP 429"), {
+          code: "rpc-rate-limited",
+          stage: "characterAccess",
+          onRetry: verifyCharacter,
+          rpc: {
+            onOpen: ({ code, stage, reason, onPresented }) => new Promise((resolve) => {
+              globalThis.__rpcOpenContext = { code, stage, reason };
+              const panel = document.querySelector("#fixtureRpcPanel");
+              const form = document.querySelector("#fixtureRpcForm");
+              panel.hidden = false;
+              form.onsubmit = (event) => {
+                event.preventDefault();
+                localStorage.setItem("nicechunk.heliusApiKey", document.querySelector("#fixtureRpcKey").value);
+                panel.hidden = true;
+                resolve({ action: "saved", mode: "helius" });
+              };
+              document.querySelector("#fixtureRpcDismiss").onclick = () => {
+                panel.hidden = true;
+                resolve({ action: "dismissed" });
+              };
+              onPresented();
+            }),
+          },
+        });
+        return;
+      }
+      NiceChunkLoading.taskDone("character-access");
+      NiceChunkLoading.worldReady();
+    };
+    await verifyCharacter();
+  `;
   const base = {
     schemaVersion: 1,
     version: "loader-test-v1",
@@ -194,6 +288,7 @@ function createFixture() {
     css,
     worker,
     entry,
+    characterFailureEntry,
     localeEn,
     localeZhHans,
     normalManifest: {
@@ -213,6 +308,12 @@ function createFixture() {
       ...base,
       entry: descriptor("/retry-entry.js", "NiceChunkLoading.worldReady();", "module", "critical"),
       files: [descriptor("/retry-entry.js", "NiceChunkLoading.worldReady();", "module", "critical")],
+      locales: {},
+    },
+    characterFailureManifest: {
+      ...base,
+      entry: descriptor("/character-failure-entry.js", characterFailureEntry, "module", "critical"),
+      files: [descriptor("/character-failure-entry.js", characterFailureEntry, "module", "critical")],
       locales: {},
     },
     holdManifest: {
@@ -245,7 +346,7 @@ function descriptor(url, body, type = "locale", phase = "critical") {
 }
 
 function html(manifest) {
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><script src="/loader.js" data-nicechunk-loader data-manifest="${manifest}"></script></head><body><div style="min-width:648px;height:1px"></div><script>globalThis.__progressSamples=[];setInterval(()=>{const value=globalThis.NiceChunkLoading?.snapshot().progress;if(Number.isFinite(value))globalThis.__progressSamples.push(value)},8)</script></body></html>`;
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>#fixtureRpcPanel{position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;padding:12px;box-sizing:border-box;background:#d8f3fa}#fixtureRpcPanel[hidden]{display:none}#fixtureRpcForm{display:grid;width:min(340px,100%);gap:8px;padding:16px;box-sizing:border-box;background:white}#fixtureRpcForm input,#fixtureRpcForm button{min-width:0;height:40px}</style><script src="/loader.js" data-nicechunk-loader data-manifest="${manifest}"></script></head><body><div style="min-width:648px;height:1px"></div><section id="fixtureRpcPanel" role="dialog" hidden><form id="fixtureRpcForm"><label>RPC key<input id="fixtureRpcKey" type="password"></label><button type="submit">Save</button><button id="fixtureRpcDismiss" type="button">Close</button></form></section><script>globalThis.__progressSamples=[];setInterval(()=>{const value=globalThis.NiceChunkLoading?.snapshot().progress;if(Number.isFinite(value))globalThis.__progressSamples.push(value)},8)</script></body></html>`;
 }
 
 function send(response, body, contentType, status = 200) {

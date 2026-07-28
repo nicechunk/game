@@ -1,18 +1,33 @@
 export const BULK_MINING_BATCH_SIZE = 2;
 export const BULK_MINING_MAX_SELECTION_BLOCKS = 640;
 export const BULK_MINING_RANGE_MODE_DEBUG = 1;
+export const BULK_MINING_RANGE_MAX_PALETTE_SIZE = 8;
+// These conservative weights are derived from Devnet CU probes against the
+// canonical world generator. Guaranteed-deep cells avoid surface generation.
+export const BULK_MINING_GUARANTEED_DEEP_MAX_Y = -9;
+export const BULK_MINING_RANGE_MAX_ESTIMATED_WORK = 1_050_000;
+export const BULK_MINING_RANGE_DEEP_BLOCK_WORK = 1_200;
+export const BULK_MINING_RANGE_NON_DEEP_BLOCK_WORK = 1_500;
+export const BULK_MINING_RANGE_NON_DEEP_COLUMN_WORK = 80_000;
+export const BULK_MINING_RANGE_MAX_COMPUTE_SPLIT_DEPTH = 4;
 const BULK_MINING_RANGE_HEADER_BYTES = 15;
-const BULK_MINING_BLOCK_ID_BITS = 6;
 
 export function partitionBulkMiningRanges(blocks, {
   chunkSize = 16,
   maxVolume = BULK_MINING_MAX_SELECTION_BLOCKS,
+  maxEstimatedWork = BULK_MINING_RANGE_MAX_ESTIMATED_WORK,
+  guaranteedDeepMaxY = BULK_MINING_GUARANTEED_DEEP_MAX_Y,
 } = {}) {
   const safeChunkSize = Math.max(1, Math.trunc(Number(chunkSize) || 16));
   const safeMaxVolume = Math.max(1, Math.min(
     BULK_MINING_MAX_SELECTION_BLOCKS,
     Math.trunc(Number(maxVolume) || BULK_MINING_MAX_SELECTION_BLOCKS),
   ));
+  const safeMaxEstimatedWork = Math.max(1, Math.trunc(
+    Number(maxEstimatedWork) || BULK_MINING_RANGE_MAX_ESTIMATED_WORK,
+  ));
+  const safeGuaranteedDeepMaxY = finiteInteger(guaranteedDeepMaxY)
+    ?? BULK_MINING_GUARANTEED_DEEP_MAX_Y;
   const groups = groupedUniqueBlocks(blocks, safeChunkSize);
   const ranges = [];
   for (const group of groups.values()) {
@@ -26,10 +41,17 @@ export function partitionBulkMiningRanges(blocks, {
       const maxLayers = Math.max(1, Math.floor(safeMaxVolume / layerArea));
       const minY = remaining[0].y;
       const maxY = minY + maxLayers - 1;
-      const selected = remaining.filter((block) => block.y <= maxY);
-      const selectedKeys = new Set(selected.map(blockKey));
+      const slab = remaining.filter((block) => block.y <= maxY);
+      const selectedKeys = new Set(slab.map(blockKey));
       remaining = remaining.filter((block) => !selectedKeys.has(blockKey(block)));
-      ranges.push(createRange(group.chunkX, group.chunkZ, selected));
+      for (const selected of partitionBlocksByPalette(slab)) {
+        for (const workloadGroup of partitionBlocksByEstimatedWork(selected, {
+          maxEstimatedWork: safeMaxEstimatedWork,
+          guaranteedDeepMaxY: safeGuaranteedDeepMaxY,
+        })) {
+          ranges.push(createRange(group.chunkX, group.chunkZ, workloadGroup));
+        }
+      }
     }
   }
   return ranges;
@@ -69,8 +91,19 @@ export function encodeBulkMiningRangePayload(range, {
   if (blockIds.length !== normalized.blocks.length) {
     throw new Error("bulk mining range contains a block outside its bounds");
   }
-  const packedBlockIds = packSixBitValues(blockIds);
-  const payload = new Uint8Array(BULK_MINING_RANGE_HEADER_BYTES + bitmap.length + packedBlockIds.length);
+  const palette = [...new Set(blockIds)].sort((left, right) => left - right);
+  if (palette.length < 1 || palette.length > BULK_MINING_RANGE_MAX_PALETTE_SIZE) {
+    throw new Error(`bulk mining range requires 1-${BULK_MINING_RANGE_MAX_PALETTE_SIZE} block types`);
+  }
+  const paletteIndexes = new Map(palette.map((blockId, index) => [blockId, index]));
+  const paletteIndexBits = bitsRequiredForPalette(palette.length);
+  const packedPaletteIndexes = packBitValues(
+    blockIds.map((blockId) => paletteIndexes.get(blockId)),
+    paletteIndexBits,
+  );
+  const paletteOffset = BULK_MINING_RANGE_HEADER_BYTES + bitmap.length;
+  const packedIndexesOffset = paletteOffset + 1 + palette.length;
+  const payload = new Uint8Array(packedIndexesOffset + packedPaletteIndexes.length);
   const view = new DataView(payload.buffer);
   payload[0] = mode;
   view.setInt32(1, normalized.minX, true);
@@ -80,26 +113,39 @@ export function encodeBulkMiningRangePayload(range, {
   view.setUint16(12, normalized.sizeY, true);
   payload[14] = normalized.sizeZ;
   payload.set(bitmap, BULK_MINING_RANGE_HEADER_BYTES);
-  payload.set(packedBlockIds, BULK_MINING_RANGE_HEADER_BYTES + bitmap.length);
+  payload[paletteOffset] = palette.length;
+  payload.set(palette, paletteOffset + 1);
+  payload.set(packedPaletteIndexes, packedIndexesOffset);
   return payload;
 }
 
 export async function submitBulkMiningRanges(ranges, submitRange) {
-  const queue = Array.isArray(ranges) ? ranges.filter((range) => range?.blocks?.length) : [];
+  const queue = (Array.isArray(ranges) ? ranges : [])
+    .filter((range) => range?.blocks?.length)
+    .map((range) => ({ range, retryDepth: 0 }));
   const confirmed = [];
   const failures = [];
   const retryErrors = [];
   const aborted = [];
-  for (let index = 0; index < queue.length; index += 1) {
-    const range = queue[index];
+  while (queue.length) {
+    const { range, retryDepth } = queue.shift();
     try {
       const result = await submitRange(range);
-      for (const block of range.blocks) confirmed.push({ block, result, retried: false });
+      for (const block of range.blocks) confirmed.push({ block, result, retried: retryDepth > 0 });
     } catch (error) {
       retryErrors.push({ batch: range, error });
+      if (
+        retryDepth < BULK_MINING_RANGE_MAX_COMPUTE_SPLIT_DEPTH
+        && range.blocks.length > 1
+        && isBulkMiningComputeLimitError(error)
+      ) {
+        const splits = splitRangeForComputeRetry(range);
+        queue.unshift(...splits.map((split) => ({ range: split, retryDepth: retryDepth + 1 })));
+        continue;
+      }
       for (const block of range.blocks) failures.push({ block, error });
-      for (const remaining of queue.slice(index + 1)) {
-        for (const block of remaining.blocks) {
+      for (const remaining of queue) {
+        for (const block of remaining.range.blocks) {
           aborted.push({ block, error, reason: "range-wide-failure" });
         }
       }
@@ -107,6 +153,36 @@ export async function submitBulkMiningRanges(ranges, submitRange) {
     }
   }
   return { confirmed, failures, retryErrors, aborted };
+}
+
+export function estimateBulkMiningRangeWork(blocks, {
+  guaranteedDeepMaxY = BULK_MINING_GUARANTEED_DEEP_MAX_Y,
+} = {}) {
+  const safeGuaranteedDeepMaxY = finiteInteger(guaranteedDeepMaxY)
+    ?? BULK_MINING_GUARANTEED_DEEP_MAX_Y;
+  let totalBlocks = 0;
+  let nonDeepBlocks = 0;
+  const nonDeepColumns = new Set();
+  for (const source of Array.isArray(blocks) ? blocks : []) {
+    const block = normalizeBlock(source);
+    if (!block) continue;
+    totalBlocks += 1;
+    if (block.y <= safeGuaranteedDeepMaxY) continue;
+    nonDeepBlocks += 1;
+    nonDeepColumns.add(`${block.x},${block.z}`);
+  }
+  return totalBlocks * BULK_MINING_RANGE_DEEP_BLOCK_WORK
+    + nonDeepBlocks * BULK_MINING_RANGE_NON_DEEP_BLOCK_WORK
+    + nonDeepColumns.size * BULK_MINING_RANGE_NON_DEEP_COLUMN_WORK;
+}
+
+export function isBulkMiningComputeLimitError(error) {
+  const logs = [
+    ...(Array.isArray(error?.logs) ? error.logs : []),
+    ...(Array.isArray(error?.result?.logs) ? error.result.logs : []),
+  ];
+  const text = [error?.message, error?.reason, ...logs].filter(Boolean).join("\n");
+  return /exceeded (?:CUs|compute units?) meter|ComputationalBudgetExceeded|comput(?:e|ational) budget exceeded/iu.test(text);
 }
 
 export function partitionBulkMiningBlocks(blocks, {
@@ -199,10 +275,64 @@ function normalizedRange(range) {
   return normalized;
 }
 
-function packSixBitValues(values) {
-  const output = new Uint8Array(Math.ceil(values.length * BULK_MINING_BLOCK_ID_BITS / 8));
+function partitionBlocksByPalette(blocks) {
+  const groups = [];
+  const blockIdGroups = new Map();
+  let distinctBlockIds = 0;
+  for (const block of blocks) {
+    const blockId = Math.trunc(Number(block?.blockId));
+    let groupIndex = blockIdGroups.get(blockId);
+    if (groupIndex === undefined) {
+      groupIndex = Math.floor(distinctBlockIds / BULK_MINING_RANGE_MAX_PALETTE_SIZE);
+      blockIdGroups.set(blockId, groupIndex);
+      distinctBlockIds += 1;
+    }
+    if (!groups[groupIndex]) groups[groupIndex] = [];
+    groups[groupIndex].push(block);
+  }
+  return groups;
+}
+
+function partitionBlocksByEstimatedWork(blocks, {
+  maxEstimatedWork,
+  guaranteedDeepMaxY,
+}) {
+  const groups = [];
+  let current = [];
+  for (const block of blocks.slice().sort(compareBlocks)) {
+    const candidate = [...current, block];
+    if (
+      current.length
+      && estimateBulkMiningRangeWork(candidate, { guaranteedDeepMaxY }) > maxEstimatedWork
+    ) {
+      groups.push(current);
+      current = [block];
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.length) groups.push(current);
+  return groups;
+}
+
+function splitRangeForComputeRetry(range) {
+  const blocks = range.blocks.slice().sort(compareBlocks);
+  const midpoint = Math.max(1, Math.floor(blocks.length / 2));
+  return [blocks.slice(0, midpoint), blocks.slice(midpoint)]
+    .filter((group) => group.length)
+    .map((group) => createRange(range.chunkX, range.chunkZ, group));
+}
+
+function bitsRequiredForPalette(paletteSize) {
+  if (paletteSize <= 1) return 0;
+  return Math.ceil(Math.log2(paletteSize));
+}
+
+function packBitValues(values, bitsPerValue) {
+  if (bitsPerValue === 0) return new Uint8Array(0);
+  const output = new Uint8Array(Math.ceil(values.length * bitsPerValue / 8));
   values.forEach((value, index) => {
-    const bitIndex = index * BULK_MINING_BLOCK_ID_BITS;
+    const bitIndex = index * bitsPerValue;
     const byteIndex = bitIndex >> 3;
     const shift = bitIndex & 7;
     const packed = value << shift;

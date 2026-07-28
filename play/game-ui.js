@@ -6,10 +6,7 @@ export function createPlayGameUi(options = {}) {
   const api = {};
   const hotbar = createPlayHotbarUi({
     ...options,
-    onOpenBackpack: () => {
-      if (typeof options.onOpenBackpack === "function") options.onOpenBackpack();
-      else api.openBackpackPanel();
-    },
+    onOpenBackpack: () => api.openBackpackPanel(),
     onRenderHotbar: () => api.renderHotbar(),
   });
   const backpack = createPlayBackpackUi({

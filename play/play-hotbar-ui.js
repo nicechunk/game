@@ -5,18 +5,8 @@ export function createPlayHotbarUi({
   voxelItemLabel,
   onOpenBackpack = () => {},
   onRenderHotbar = () => {},
-  translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   const renderKeys = new WeakMap();
-  const ui = (key, fallback, params = {}) => {
-    try {
-      const translated = translate(key, fallback, params);
-      if (translated && translated !== key) return String(translated);
-    } catch {
-      // Accessibility labels retain their English fallback if a locale fails.
-    }
-    return formatMessage(fallback, params);
-  };
 
   return {
     render,
@@ -45,14 +35,11 @@ export function createPlayHotbarUi({
   function hotbarSlotView(slot, index) {
     const isBackpackSlot = slot?.itemId === "backpack";
     const backpackAvailable = gameState.isBackpackAvailable?.() === true;
-    const backpackReading = isBackpackSlot
-      && !backpackAvailable
-      && gameState.backpackStatusKnown !== true;
-    const visibleSlot = isBackpackSlot && !backpackAvailable && !backpackReading ? null : slot;
+    const visibleSlot = isBackpackSlot && !backpackAvailable ? null : slot;
     const item = visibleSlot ? gameState.hotbarItems[visibleSlot.itemId] : null;
     const renderedItem = visibleSlot ? { ...item, ...visibleSlot } : null;
     const isBlueprint = visibleSlot?.itemId === "blueprint_tool";
-    const opensBackpack = isBackpackSlot;
+    const opensBackpack = isBackpackSlot && backpackAvailable;
     const label = visibleSlot
       ? `${voxelItemLabel(renderedItem)}${isBlueprint ? ` #${visibleSlot.blueprintOrdinal || "-"}` : ""}`
       : "Empty";
@@ -61,12 +48,10 @@ export function createPlayHotbarUi({
       visibleSlot,
       renderedItem,
       isBackpackSlot,
-      backpackAvailable,
-      backpackReading,
       isBlueprint,
       opensBackpack,
       label,
-      amount: backpackReading ? "" : hotbarSlotAmount(visibleSlot),
+      amount: hotbarSlotAmount(visibleSlot),
       renderKey: hotbarRenderKey({ renderedItem, isBackpackSlot, isBlueprint, opensBackpack, label }),
       selected: !isBackpackSlot && index === gameState.selectedHotbarSlot,
     };
@@ -98,10 +83,11 @@ export function createPlayHotbarUi({
     button.addEventListener("click", () => {
       const currentSlot = gameState.hotbarSlots[index] ?? null;
       const currentBackpack = currentSlot?.itemId === "backpack";
-      if (currentBackpack) {
+      if (currentBackpack && gameState.isBackpackAvailable?.() === true) {
         onOpenBackpack();
         return;
       }
+      if (currentBackpack) return;
       gameState.selectHotbarSlot(index);
       onRenderHotbar();
     });
@@ -112,22 +98,18 @@ export function createPlayHotbarUi({
     if (!button) return;
     button.classList.toggle("selected", view.selected);
     button.classList.toggle("hotbar-action", view.opensBackpack);
-    button.classList.toggle("backpack-loading", view.backpackReading);
-    button.classList.toggle("backpack-unavailable", view.isBackpackSlot && !view.backpackAvailable && !view.backpackReading);
+    button.classList.toggle("backpack-unavailable", view.isBackpackSlot && !view.opensBackpack);
     button.dataset.slot = String(index);
     syncOptionalDataset(button, "blueprintId", view.isBlueprint ? String(view.visibleSlot.blueprintId || "") : "");
     syncOptionalDataset(button, "backpackTarget", view.isBackpackSlot ? "true" : "");
     syncOptionalDataset(button, "action", view.opensBackpack ? "open-backpack" : "");
     button.title = view.isBlueprint ? String(view.visibleSlot.blueprintId || "") : "";
-    if (view.backpackAvailable) {
-      button.setAttribute("aria-label", ui("main.backpack.openAria", "Open backpack"));
-      button.removeAttribute("aria-disabled");
-    } else if (view.backpackReading) {
-      button.setAttribute("aria-label", ui("main.backpack.loadingAria", "Backpack loading"));
+    if (view.opensBackpack) {
+      button.setAttribute("aria-label", "Open backpack");
       button.removeAttribute("aria-disabled");
     } else if (view.isBackpackSlot) {
-      button.setAttribute("aria-label", ui("main.backpack.createAria", "Create backpack"));
-      button.removeAttribute("aria-disabled");
+      button.setAttribute("aria-label", "Backpack not created");
+      button.setAttribute("aria-disabled", "true");
     } else {
       button.removeAttribute("aria-label");
       button.removeAttribute("aria-disabled");
@@ -156,12 +138,6 @@ export function createPlayHotbarUi({
     if (slot.itemId === "backpack") return `${gameState.totalBackpackItems()}`;
     return Number.isFinite(slot.count) ? String(slot.count) : "";
   }
-}
-
-function formatMessage(template, params = {}) {
-  return String(template || "").replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) => (
-    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
-  ));
 }
 
 function hotbarRenderKey({ renderedItem, isBackpackSlot, isBlueprint, opensBackpack, label }) {

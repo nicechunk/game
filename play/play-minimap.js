@@ -35,6 +35,7 @@ export function createPlayMinimap({
   getCameraHeading = () => 0,
   getViewDistance = () => 7,
   getGuardianSnapshot = () => null,
+  translate = (_key, fallback) => fallback,
   onTeleport = () => {},
   setStatus = () => {},
 } = {}) {
@@ -83,6 +84,7 @@ export function createPlayMinimap({
     mapWorker: null,
     mapWorkerFailed: false,
     tileRequests: new Map(),
+    guardianConnectionState: "",
   };
 
   return {
@@ -90,6 +92,7 @@ export function createPlayMinimap({
     update,
     updateHeading,
     invalidate,
+    setGuardianConnectionState,
     openLargeMap,
     closeLargeMap,
     teleportTo,
@@ -217,6 +220,16 @@ export function createPlayMinimap({
   function invalidate() {
     state.smallDirty = true;
     state.lastSmallAt = 0;
+  }
+
+  function setGuardianConnectionState(connectionState) {
+    const next = connectionState === "connected" || connectionState === "connecting"
+      ? connectionState
+      : "disconnected";
+    if (state.guardianConnectionState === next) return false;
+    state.guardianConnectionState = next;
+    updateCoordinateLabels(...getPlayerPosition());
+    return true;
   }
 
   function normalizedViewDistance() {
@@ -883,7 +896,9 @@ export function createPlayMinimap({
 
   function updateCoordinateLabels(px, py, pz) {
     const worldText = `XYZ: ${Math.floor(px)}, ${Math.floor(py)}, ${Math.floor(pz)}`;
-    const chunkText = `Chunk: ${Math.floor(px / chunkSize)}, ${Math.floor(py / chunkSize)}, ${Math.floor(pz / chunkSize)}`;
+    const chunkText = state.guardianConnectionState === "disconnected"
+      ? translate("main.mapGuardian.connectionLost", "Guardian connection lost")
+      : `Chunk: ${Math.floor(px / chunkSize)}, ${Math.floor(py / chunkSize)}, ${Math.floor(pz / chunkSize)}`;
     if (elements.minimapWorldCoord && elements.minimapWorldCoord.textContent !== worldText) elements.minimapWorldCoord.textContent = worldText;
     if (elements.minimapChunkCoord && elements.minimapChunkCoord.textContent !== chunkText) elements.minimapChunkCoord.textContent = chunkText;
   }

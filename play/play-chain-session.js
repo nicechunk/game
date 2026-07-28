@@ -5,16 +5,18 @@ import {
   logChainSubmissionFailure,
 } from "./play-chain-submission-log.js";
 import { reconcilePendingMineWithChainResult } from "./play-chain-mining-result.js";
+import { getPlayRpcSettings } from "./play-rpc-settings.js";
 import { t } from "/src/i18n.js";
+import {
+  getNicechunkRpcUrl,
+  getRpcConfigMode,
+  rpcConfigChangedEventName,
+} from "/src/rpcConfig.js";
 import { buildWalletLoginUrl, clearWalletSession } from "./play-auth-session.js";
-import { formatAccountBalanceValue } from "./play-account-balance.js";
 
-export const RPC_CONFIG_CHANGED_EVENT = "nicechunk:rpc-config-changed";
+export const RPC_CONFIG_CHANGED_EVENT = rpcConfigChangedEventName;
 export const WALLET_SESSION_CHANGED_EVENT = "nicechunk:wallet-session-changed";
 
-const PUBLIC_DEVNET_RPC_URL = "https://explorer-api.devnet.solana.com";
-const HELIUS_API_KEY_STORAGE_KEY = "nicechunk.heliusApiKey";
-const RPC_OVERRIDE_STORAGE_KEY = "nicechunk.devnetRpcUrl";
 const WALLET_STORAGE_KEY = "nicechunk.walletAddress";
 const WALLET_NAME_STORAGE_KEY = "nicechunk.walletName";
 const WALLET_BOUND_AT_STORAGE_KEY = "nicechunk.walletBoundAt";
@@ -50,11 +52,12 @@ export function createPlayChainSession({
   resourceName = (resourceId) => `Resource ${resourceId}`,
   getBackpackTarget = () => null,
   onBackpackRequired = () => {},
+  refreshPlayerProgress = () => Promise.resolve(null),
 } = {}) {
   const state = {
     walletAddress: loadString(WALLET_STORAGE_KEY),
-    rpcUrl: getRpcUrl(),
-    heliusApiKey: getStoredHeliusApiKey(),
+    rpcUrl: getNicechunkRpcUrl(),
+    rpcMode: getRpcConfigMode(),
     sessionLamports: 0,
     chainMode: "local-preview",
     lastProof: null,
@@ -105,8 +108,8 @@ export function createPlayChainSession({
 
   function bind() {
     elements.accountHud?.addEventListener("click", () => openProfilePanel());
-    elements.rpcButton?.addEventListener("click", openRpcPanel);
-    elements.profileRpcAction?.addEventListener("click", openRpcPanel);
+    elements.rpcButton?.addEventListener("click", () => void openRpcPanel());
+    elements.profileRpcAction?.addEventListener("click", () => void openRpcPanel());
     elements.sessionButton?.addEventListener("click", openSessionPanel);
     elements.connectWalletButton?.addEventListener("click", openWalletPanel);
     elements.walletPanelClose?.addEventListener("click", closeWalletPanel);
@@ -117,16 +120,6 @@ export function createPlayChainSession({
     elements.walletDisconnect?.addEventListener("click", disconnectWallet);
     elements.profileLogoutButton?.addEventListener("click", disconnectWallet);
     elements.walletCopySecret?.addEventListener("click", copyLocalWalletSecret);
-    elements.rpcConfigDismiss?.addEventListener("click", closeRpcPanel);
-    elements.rpcConfigForm?.addEventListener("submit", (event) => {
-      event.preventDefault();
-      saveHeliusApiKey(elements.rpcConfigApiKey?.value || "");
-      state.heliusApiKey = getStoredHeliusApiKey();
-      state.rpcUrl = getRpcUrl();
-      closeRpcPanel();
-      render();
-      setStatus(state.heliusApiKey ? "RPC saved. Chain reads will use your Helius devnet endpoint." : "RPC reset to public devnet endpoint.");
-    });
     elements.sessionFundingCancel?.addEventListener("click", () => closeSessionPanel(false));
     elements.sessionFundingOverlay?.addEventListener("pointerdown", () => closeSessionPanel(false));
     elements.sessionFundingPanel?.addEventListener("pointerdown", (event) => event.stopPropagation());
@@ -142,8 +135,8 @@ export function createPlayChainSession({
       setStatus(`Session funding target set to ${formatSol(state.sessionLamports)} SOL. It is a top-up target, not a spending cap or authorization limit.`);
     });
     globalThis.addEventListener?.(RPC_CONFIG_CHANGED_EVENT, () => {
-      state.heliusApiKey = getStoredHeliusApiKey();
-      state.rpcUrl = getRpcUrl();
+      state.rpcMode = getRpcConfigMode();
+      state.rpcUrl = getNicechunkRpcUrl();
       render();
       void refreshWalletBalance({ force: true });
     });
@@ -256,9 +249,11 @@ export function createPlayChainSession({
     const identity = getPlayerIdentity?.() || {};
     const wallet = state.walletAddress || "";
     const sessionText = state.sessionLamports > 0 ? `Session: ${formatSol(state.sessionLamports)} SOL` : "Session: not funded";
-    const rpcText = state.heliusApiKey
-      ? ui("main.profile.rpcHelius", "Helius RPC")
-      : ui("main.profile.rpcPublic", "Public RPC");
+    const rpcText = state.rpcMode === "custom"
+      ? ui("main.profile.rpcCustom", "Custom Devnet RPC")
+      : state.rpcMode === "helius"
+        ? ui("main.profile.rpcHelius", "Helius RPC")
+        : ui("main.profile.rpcPublic", "Public RPC");
     if (elements.accountName) elements.accountName.textContent = identity.name || profile.name || "Local Miner";
     if (elements.accountLevel) elements.accountLevel.textContent = `Lv. ${levelFromProfile(profile)}`;
     if (elements.accountTitle) elements.accountTitle.textContent = identity.title || chainModeLabel(state.chainMode);
@@ -266,12 +261,15 @@ export function createPlayChainSession({
     if (elements.accountSessionBalance) elements.accountSessionBalance.textContent = sessionText;
     if (elements.profileRpcValue) elements.profileRpcValue.textContent = rpcText;
     if (elements.profileRpcHint) {
-      elements.profileRpcHint.textContent = state.heliusApiKey
-        ? ui("main.profile.rpcHintPrivate", "Private RPC is active for chain calls.")
-        : ui("main.profile.rpcHintPublic", "Set a Helius key for steadier mining.");
+      const hintKey = state.rpcMode === "custom"
+        ? "main.profile.rpcHintCustom"
+        : state.rpcMode === "helius"
+          ? "main.profile.rpcHintPrivate"
+          : "main.profile.rpcHintPublic";
+      elements.profileRpcHint.textContent = ui(hintKey, "RPC carries account reads, world PDA synchronization, and signed transactions.");
     }
     if (elements.profileRpcAction) {
-      elements.profileRpcAction.textContent = state.heliusApiKey
+      elements.profileRpcAction.textContent = state.rpcMode !== "public"
         ? ui("main.profile.rpcUpdate", "Update")
         : ui("main.profile.rpcSet", "Set");
     }
@@ -279,9 +277,6 @@ export function createPlayChainSession({
     if (elements.sessionFundingCurrent) elements.sessionFundingCurrent.textContent = state.sessionLamports > 0
       ? `Current session funding target: ${formatSol(state.sessionLamports)} SOL`
       : "Current session balance: unknown";
-    if (elements.rpcConfigApiKey && document.activeElement !== elements.rpcConfigApiKey) {
-      elements.rpcConfigApiKey.value = state.heliusApiKey;
-    }
     renderProfile?.();
     renderWalletPanel();
   }
@@ -306,11 +301,14 @@ export function createPlayChainSession({
   function renderWalletBalance() {
     if (!elements.accountBalanceValue) return;
     const status = state.walletAddress ? state.walletBalanceStatus : "disconnected";
-    const label = formatAccountBalanceValue({
-      connected: Boolean(state.walletAddress),
-      status,
-      lamports: state.walletBalanceLamports,
-    });
+    const hasBalance = status === "ready" || status === "stale";
+    const label = !state.walletAddress
+      ? "0 SOL"
+      : hasBalance
+        ? `${formatWalletSol(state.walletBalanceLamports)} SOL`
+        : status === "loading"
+          ? "Loading..."
+          : "-- SOL";
     elements.accountBalanceValue.textContent = label;
     if (elements.accountBalance) {
       elements.accountBalance.dataset.state = status;
@@ -432,7 +430,8 @@ export function createPlayChainSession({
       walletAddress: state.walletAddress,
       walletName: loadString(WALLET_NAME_STORAGE_KEY),
       walletShort: state.walletAddress ? shortAddress(state.walletAddress) : "Not connected",
-      rpcLabel: state.heliusApiKey ? "Helius RPC" : "Public RPC",
+      rpcLabel: state.rpcMode,
+      rpcMode: state.rpcMode,
       rpcUrl: state.rpcUrl,
       sessionLamports: state.sessionLamports,
       sessionSol: state.sessionLamports / LAMPORTS_PER_SOL,
@@ -447,11 +446,19 @@ export function createPlayChainSession({
     };
   }
 
-  function openRpcPanel() {
-    if (elements.rpcConfigPanel) elements.rpcConfigPanel.hidden = false;
-    if (elements.rpcConfigApiKey) {
-      elements.rpcConfigApiKey.value = state.heliusApiKey;
-      requestAnimationFrame(() => elements.rpcConfigApiKey?.focus?.());
+  async function openRpcPanel(context = null) {
+    try {
+      const result = await getPlayRpcSettings().open({ context });
+      if (result?.action === "saved") {
+        setStatus(ui(
+          result.mode === "public" ? "main.rpcConfig.publicSavedStatus" : "main.rpcConfig.savedStatus",
+          result.mode === "public" ? "Public Devnet RPC is active." : "RPC connection tested and saved.",
+        ));
+      }
+      return result;
+    } catch {
+      setStatus(ui("main.rpcConfig.openFailed", "RPC settings could not be opened."));
+      return { action: "error" };
     }
   }
 
@@ -471,7 +478,7 @@ export function createPlayChainSession({
   }
 
   function closeRpcPanel() {
-    if (elements.rpcConfigPanel) elements.rpcConfigPanel.hidden = true;
+    getPlayRpcSettings().close("dismissed");
   }
 
   function openSessionPanel() {
@@ -760,6 +767,9 @@ export function createPlayChainSession({
             { phase: "local-confirmed" },
           );
         }
+        if (action === "mine") {
+          void Promise.resolve(refreshPlayerProgress({ force: true, quiet: true })).catch(() => null);
+        }
         render();
         return;
       }
@@ -1003,13 +1013,6 @@ function pushUrl(urls, value) {
   if (url && !urls.includes(url)) urls.push(url);
 }
 
-function getRpcUrl() {
-  const override = cleanRpcUrl(loadString(RPC_OVERRIDE_STORAGE_KEY));
-  if (override) return override;
-  const apiKey = getStoredHeliusApiKey();
-  return apiKey ? `https://devnet.helius-rpc.com/?api-key=${encodeURIComponent(apiKey)}` : PUBLIC_DEVNET_RPC_URL;
-}
-
 async function fetchWalletBalance(rpcUrl, walletAddress) {
   if (typeof fetch !== "function") throw new Error("Fetch API unavailable");
   const controller = typeof AbortController === "function" ? new AbortController() : null;
@@ -1036,18 +1039,6 @@ async function fetchWalletBalance(rpcUrl, walletAddress) {
   } finally {
     if (timeout) globalThis.clearTimeout?.(timeout);
   }
-}
-
-function getStoredHeliusApiKey() {
-  return String(loadString(HELIUS_API_KEY_STORAGE_KEY)).trim();
-}
-
-function saveHeliusApiKey(apiKey) {
-  const cleaned = String(apiKey || "").trim();
-  if (cleaned) saveString(HELIUS_API_KEY_STORAGE_KEY, cleaned);
-  else removeString(HELIUS_API_KEY_STORAGE_KEY);
-  removeString(RPC_OVERRIDE_STORAGE_KEY);
-  globalThis.dispatchEvent?.(new CustomEvent(RPC_CONFIG_CHANGED_EVENT, { detail: { rpcUrl: getRpcUrl() } }));
 }
 
 function getStoredSessionLamports(owner) {
@@ -1111,6 +1102,12 @@ function formatSol(lamports) {
   return (Math.trunc(lamports || 0) / LAMPORTS_PER_SOL).toFixed(3).replace(/\.?0+$/, "");
 }
 
+function formatWalletSol(lamports) {
+  const sol = Math.max(0, Number(lamports) || 0) / LAMPORTS_PER_SOL;
+  const decimals = sol >= 100 ? 2 : sol >= 1 ? 3 : sol >= 0.01 ? 4 : 6;
+  return sol.toFixed(decimals).replace(/\.?0+$/, "") || "0";
+}
+
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-6)}` : value || "no-signature";
@@ -1146,17 +1143,6 @@ function readableError(error) {
   return message.length > 180 ? `${message.slice(0, 177)}...` : message;
 }
 
-function cleanRpcUrl(value) {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === "https:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
 function loadString(key) {
   try {
     return localStorage.getItem(key) || "";
@@ -1168,14 +1154,6 @@ function loadString(key) {
 function saveString(key, value) {
   try {
     localStorage.setItem(key, String(value));
-  } catch {
-    // Storage may be unavailable in private browsing.
-  }
-}
-
-function removeString(key) {
-  try {
-    localStorage.removeItem(key);
   } catch {
     // Storage may be unavailable in private browsing.
   }

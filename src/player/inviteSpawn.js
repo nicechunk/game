@@ -1,5 +1,6 @@
-import { GUARDIAN_REGION_SIZE } from "../../sdk/nicechunk-guardian.ts";
 import { chunkSize } from "../world/config.js";
+
+const GUARDIAN_REGION_SIZE = 100;
 
 export const inviteRefParam = "ref";
 export const inviteGuardianParam = "guardian";

@@ -156,7 +156,7 @@ export function createPlayChainEventFeed({
     icon.className = "chain-event-resource";
     icon.setAttribute("aria-hidden", "true");
     try {
-      const canvas = createVoxelItemIconCanvas?.(resource, { size: 40 });
+      const canvas = createVoxelItemIconCanvas?.(resource, { size: 40, yawSteps: 24 });
       if (canvas) {
         canvas.classList.add("chain-event-resource-canvas");
         icon.append(canvas);
@@ -322,7 +322,10 @@ export function createPlayChainEventFeed({
 
   function copyCanvas(sourceCanvas, resource) {
     try {
-      const rendered = createVoxelItemIconCanvas?.(resource, { size: Math.max(24, sourceCanvas?.width || 40) });
+      const rendered = createVoxelItemIconCanvas?.(resource, {
+        size: Math.max(24, sourceCanvas?.width || 40),
+        yawSteps: 24,
+      });
       if (rendered) return rendered;
       if (sourceCanvas instanceof HTMLCanvasElement) {
         const canvas = document.createElement("canvas");

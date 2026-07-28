@@ -5,7 +5,6 @@ const PLAYER_POSITION_SAVE_INTERVAL_MS = 30_000;
 const PLAYER_POSITION_MIN_DISTANCE_BLOCKS = 4;
 const PLAYER_POSITION_MIN_DISTANCE_SQ = PLAYER_POSITION_MIN_DISTANCE_BLOCKS * PLAYER_POSITION_MIN_DISTANCE_BLOCKS;
 const PLAYER_POSITION_SAVE_REASON_RESOURCE_MINE = "resource-mine-confirm";
-const EQUIPMENT_MIGRATION_RETRY_MS = 60_000;
 
 export function createPlayChainPlayerSync({
   getWalletAddress = () => "",
@@ -35,7 +34,6 @@ export function createPlayChainPlayerSync({
     equipmentReadKnown: false,
     appearance: null,
     progress: null,
-    skills: null,
     skillXp: null,
     skillLevels: null,
     nameMutation: {
@@ -79,8 +77,6 @@ export function createPlayChainPlayerSync({
       lastSignature: "",
       lastError: "",
       lastReason: "",
-      migrationSignature: "",
-      migrationAttemptedAt: 0,
     },
   };
   const pendingEquipmentChanges = new Map();
@@ -93,7 +89,6 @@ export function createPlayChainPlayerSync({
     requestPositionSave,
     queueEquipmentChanges,
     applyEquipmentSnapshot,
-    migrateEquipmentIfNeeded,
     snapshot,
     displayIdentity,
   };
@@ -109,7 +104,6 @@ export function createPlayChainPlayerSync({
       equipmentReadKnown: state.equipmentReadKnown,
       appearance: state.appearance,
       progress: state.progress,
-      skills: state.skills,
       skillXp: state.skillXp,
       skillLevels: state.skillLevels,
       nameMutation: nameMutationSnapshot(),
@@ -146,39 +140,29 @@ export function createPlayChainPlayerSync({
     state.owner = wallet;
     try {
       const module = await loadPlayChainModule();
-      const [profileResult, equipmentResult, appearanceResult, progressResult, skillsResult] = await Promise.allSettled([
+      const [profileResult, equipmentResult, appearanceResult, progressResult] = await Promise.allSettled([
         typeof module.fetchPlayerProfileForOwner === "function" ? module.fetchPlayerProfileForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerEquipmentForOwner === "function" ? module.fetchPlayerEquipmentForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerAppearanceForOwner === "function" ? module.fetchPlayerAppearanceForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerProgress === "function" ? module.fetchPlayerProgress(wallet) : Promise.resolve(null),
-        typeof module.fetchPlayerSkillsForOwner === "function" ? module.fetchPlayerSkillsForOwner(wallet) : Promise.resolve(null),
       ]);
       const nextProfile = settledValue(profileResult);
       const nextEquipment = settledValue(equipmentResult);
       const nextAppearance = settledValue(appearanceResult);
       const nextProgress = settledValue(progressResult);
-      const nextSkills = settledValue(skillsResult);
-      const nextSkillXp = nextSkills?.initialized
-        ? nextSkills.xp
-        : skillXpFromProgress(nextProgress, nextProfile);
-      const nextSkillLevels = nextSkills?.initialized
-        ? nextSkills.levels
-        : nextProfile?.initialized === false
-          ? null
-          : nextProfile?.skillLevels || null;
+      const nextSkillXp = nextProgress?.skillXp || null;
+      const nextSkillLevels = nextProgress?.skillLevels || null;
       const previousSignature = stateSignature(state);
       state.profile = nextProfile?.initialized === false ? null : nextProfile;
       state.equipmentReadKnown = equipmentResult?.status === "fulfilled";
       state.equipment = nextEquipment?.initialized === false ? null : nextEquipment;
       state.appearance = nextAppearance?.initialized === false ? null : nextAppearance;
       state.progress = nextProgress;
-      state.skills = nextSkills?.initialized === false ? null : nextSkills;
       state.skillXp = nextSkillXp;
       state.skillLevels = nextSkillLevels;
-      state.lastError = firstRejectedReason(profileResult, equipmentResult, appearanceResult, progressResult, skillsResult);
+      state.lastError = firstRejectedReason(profileResult, equipmentResult, appearanceResult, progressResult);
       state.lastSyncAt = performance.now();
       applyEquipmentSnapshot();
-      migrateEquipmentIfNeeded();
       const changed = previousSignature !== stateSignature(state);
       if (changed) onChanged(snapshot());
       if (!quiet) {
@@ -194,7 +178,6 @@ export function createPlayChainPlayerSync({
         equipment: state.equipment,
         appearance: state.appearance,
         progress: state.progress,
-        skills: state.skills,
         skillXp: state.skillXp,
         skillLevels: state.skillLevels,
       };
@@ -213,14 +196,13 @@ export function createPlayChainPlayerSync({
   }
 
   function clearState(reason = "") {
-    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skills || state.skillXp || state.skillLevels || state.lastError);
+    const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skillXp || state.skillLevels || state.lastError);
     state.owner = "";
     state.profile = null;
     state.equipment = null;
     state.equipmentReadKnown = false;
     state.appearance = null;
     state.progress = null;
-    state.skills = null;
     state.skillXp = null;
     state.skillLevels = null;
     state.nameMutation.lastReason = reason;
@@ -243,8 +225,6 @@ export function createPlayChainPlayerSync({
     state.equipmentMutation.pending = 0;
     state.equipmentMutation.lastReason = reason;
     state.equipmentMutation.lastError = "";
-    state.equipmentMutation.migrationSignature = "";
-    state.equipmentMutation.migrationAttemptedAt = 0;
     state.lastError = reason;
     state.lastSyncAt = performance.now();
     if (hadData) onChanged(snapshot());
@@ -525,41 +505,6 @@ export function createPlayChainPlayerSync({
       ?? { changed: false, reason: "game-state-unavailable" };
   }
 
-  function migrateEquipmentIfNeeded() {
-    if (!state.equipmentReadKnown) return { ok: false, reason: "equipment-read-pending" };
-    const legacyRecords = state.equipment?.initialized
-      ? (state.equipment.slots ?? []).filter((slot) => slot?.equipped && !slot.custodied)
-      : [];
-    if (state.equipment?.initialized && !legacyRecords.length) {
-      return { ok: false, reason: "equipment-custody-current" };
-    }
-    if (state.equipmentMutation.saving || pendingEquipmentChanges.size) {
-      return { ok: false, reason: "equipment-save-pending" };
-    }
-    const gameState = getGameState();
-    if (!gameState?.backpackStatusKnown) return { ok: false, reason: "backpack-read-pending" };
-    const changes = equipmentMigrationChanges(gameState, state.equipment);
-    if (!changes.length) return { ok: false, reason: "no-equipment-to-migrate" };
-    // Each successful transfer compacts Backpack indexes. Migrate one record,
-    // refresh both PDAs, then resolve the next record from the fresh snapshot.
-    const nextChanges = changes.slice(0, 1);
-    const signature = equipmentMigrationSignature(nextChanges);
-    const now = Date.now();
-    if (
-      state.equipmentMutation.migrationSignature === signature
-      && now - state.equipmentMutation.migrationAttemptedAt < EQUIPMENT_MIGRATION_RETRY_MS
-    ) {
-      return { ok: false, reason: "equipment-migration-cooldown" };
-    }
-    state.equipmentMutation.migrationSignature = signature;
-    state.equipmentMutation.migrationAttemptedAt = now;
-    return queueEquipmentChanges({
-      ownerAddress: state.owner,
-      changes: nextChanges,
-      reason: "equipment-pda-migration",
-    });
-  }
-
   function queueEquipmentChanges(mutation = {}) {
     const wallet = String(getWalletAddress() || "").trim();
     if (!wallet || (mutation.ownerAddress && mutation.ownerAddress !== wallet)) {
@@ -658,7 +603,6 @@ export function createPlayChainPlayerSync({
       mutation.pending = pendingEquipmentChanges.size;
       onChanged(snapshot());
       if (pendingEquipmentChanges.size) scheduleEquipmentFlush();
-      else setTimeout(() => migrateEquipmentIfNeeded(), 0);
     }
   }
 
@@ -739,19 +683,6 @@ function firstRejectedReason(...results) {
   return rejected ? readableError(rejected.reason) : "";
 }
 
-function skillXpFromProgress(progress, profile) {
-  const result = {};
-  const precision = positiveInt(progress?.precisionGatheringXp);
-  const smelting = positiveInt(progress?.smeltingXp);
-  const exploration = positiveInt(progress?.explorationXp);
-  const forging = positiveInt(profile?.forgingXp);
-  if (precision) result.precisionGathering = precision;
-  if (smelting) result.smelting = smelting;
-  if (exploration) result.exploration = exploration;
-  if (forging) result.forging = forging;
-  return Object.keys(result).length ? result : null;
-}
-
 function stateSignature(state) {
   return JSON.stringify({
     owner: state.owner,
@@ -761,7 +692,6 @@ function stateSignature(state) {
       position: state.profile.position,
       equippedBackpack: state.profile.equippedBackpack,
       forgingXp: state.profile.forgingXp,
-      skillLevels: state.profile.skillLevels,
     } : null,
     equipment: state.equipment ? {
       publicKey: state.equipment.publicKey,
@@ -792,11 +722,11 @@ function stateSignature(state) {
       precisionGatheringXp: state.progress.precisionGatheringXp,
       smeltingXp: state.progress.smeltingXp,
       explorationXp: state.progress.explorationXp,
-    } : null,
-    skills: state.skills ? {
-      publicKey: state.skills.publicKey,
-      updatedSlot: state.skills.updatedSlot,
-      ruleRevision: state.skills.ruleRevision,
+      playerSkillsPublicKey: state.progress.playerSkillsPublicKey,
+      playerSkillsInitialized: state.progress.playerSkillsInitialized,
+      skillRuleRevision: state.progress.skillRuleRevision,
+      skillRuleTableRevision: state.progress.skillRuleTableRevision,
+      skillRulesCurrent: state.progress.skillRulesCurrent,
     } : null,
     skillXp: state.skillXp,
     skillLevels: state.skillLevels,
@@ -814,45 +744,6 @@ function equipmentMutationSignature(mutation = {}) {
     lastError: String(mutation.lastError || ""),
     lastReason: String(mutation.lastReason || ""),
   };
-}
-
-function equipmentMigrationSignature(changes = []) {
-  return JSON.stringify(changes.map((change) => ({
-    slot: Number(change.index),
-    sourceType: String(change.reference?.sourceType || ""),
-    equipmentSlot: Number(change.reference?.equipmentSlot),
-    backpack: String(change.reference?.backpackAddress || ""),
-    backpackIndex: Number(change.reference?.backpackIndex),
-    modelBytes: Array.from(change.reference?.modelBytes ?? []),
-  })));
-}
-
-export function equipmentMigrationChanges(gameState, equipment = null) {
-  const legacySlots = equipment?.initialized
-    ? new Set((equipment.slots ?? [])
-      .filter((slot) => slot?.equipped && !slot.custodied)
-      .map((slot) => Number(slot.slot)))
-    : null;
-  const changes = [];
-  for (let index = 0; index < 9; index += 1) {
-    if (legacySlots && !legacySlots.has(index)) continue;
-    const reference = gameState?.getHotbarEquipmentChainReference?.(index);
-    if (!reference || reference.sourceType !== "backpack") continue;
-    changes.push({
-      index,
-      before: gameState.hotbarSlots?.[index] ?? null,
-      after: gameState.hotbarSlots?.[index] ?? null,
-      reference,
-      migration: true,
-    });
-  }
-  return changes;
-}
-
-function positiveInt(value) {
-  if (typeof value === "bigint") return Number(value > 0n ? value : 0n);
-  const numeric = Math.trunc(Number(value) || 0);
-  return numeric > 0 ? numeric : 0;
 }
 
 function cleanText(value) {

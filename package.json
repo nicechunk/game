@@ -7,7 +7,7 @@
     "check": "npm run check:policy && npm run check:i18n && npm test",
     "check:policy": "node scripts/repository-policy.mjs",
     "check:i18n": "node scripts/check-play-i18n.mjs",
-    "test": "node --test play/tests/*.test.mjs",
+    "test": "node scripts/test-play.mjs",
     "build:chain": "vite build --config vite.chain.config.js",
     "build:play": "node scripts/build-play-debug-runtime.mjs",
     "build": "npm run check:i18n && npm run build:chain && npm run build:play"

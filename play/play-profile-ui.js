@@ -58,13 +58,10 @@ export function createPlayProfileUi({
     bindAvatarPreviewRotation();
     const profile = gameState.playerProfile || {};
     const chain = getChainSnapshot?.() ?? {};
-    const owner = chain.walletAddress || profile.name || "guest";
     const skillState = buildProfileSkillState({
-      owner,
-      profile,
       chainXp: chain.playerSkillXp || chain.skillXp || null,
       chainLevels: chain.playerSkillLevels || chain.skillLevels || null,
-      chainAuthoritative: true,
+      chainThresholds: chain.playerSkillThresholds || chain.skillThresholds || null,
     });
     renderAvatarPreview(profile, chain);
     renderOverview(profile, chain, skillState);
@@ -196,7 +193,7 @@ export function createPlayProfileUi({
     const stats = [
       { id: "gathering", label: ui("main.profile.statGathering", "Gathering"), value: `${skillEffectValue("precisionGathering", levels.precisionGathering) / 100}%` },
       { id: "carry", label: ui("main.profile.statCarry", "Carry"), value: `${skillEffectValue("burden", levels.burden)} kg` },
-      { id: "smelting", label: ui("main.profile.statSmelting", "Smelting"), value: `${skillEffectValue("smelting", levels.smelting) / 100}%` },
+      { id: "smelting", label: ui("main.profile.statSmelting", "Smelting"), value: `+${(skillEffectValue("smelting", levels.smelting) - 10000) / 100}%` },
       { id: "speed", label: ui("main.profile.statSpeed", "Speed"), value: `${Math.round(skillEffectValue("swiftness", levels.swiftness) * 100)}%` },
       { id: "strength", label: ui("main.profile.statStrength", "Strength"), value: `${skillEffectValue("strength", levels.strength)} kg` },
       { id: "crafting", label: ui("main.profile.statCrafting", "Crafting"), value: `T${skillEffectValue("craftsmanship", levels.craftsmanship)}` },
@@ -247,15 +244,22 @@ export function createPlayProfileUi({
     if (!PLAYER_SKILL_DEFINITIONS.some((skill) => skill.id === selectedSkillId)) {
       selectedSkillId = PLAYER_SKILL_DEFINITIONS[0]?.id ?? "";
     }
-    const { xpBySkill } = skillState;
+    const { xpBySkill, thresholdsBySkill } = skillState;
     const cards = [];
     for (const skill of PLAYER_SKILL_DEFINITIONS) {
       const level = profileSkillStateLevel(skillState, skill);
-      const xpProgress = profileSkillExperienceProgress(skill, level, xpBySkill);
+      const xpProgress = profileSkillExperienceProgress(skill, level, xpBySkill, thresholdsBySkill);
       const copy = profileSkillCopy(skill, level);
       const selected = skill.id === selectedSkillId;
       cards.push(skillCard(skill, copy, level, xpProgress, selected, () => selectSkill(skill, skillState)));
-      if (selected) renderSkillDetail(skill, copy, level, copy.metrics, xpProgress);
+      if (selected) renderSkillDetail(
+        skill,
+        copy,
+        level,
+        copy.metrics,
+        xpProgress,
+        thresholdsBySkill,
+      );
     }
     elements.profileSkillsGrid.replaceChildren(...cards);
     elements.profileSkillsGrid.scrollTop = previousScrollTop;
@@ -271,9 +275,21 @@ export function createPlayProfileUi({
       card.setAttribute("aria-pressed", String(selected));
     }
     const level = profileSkillStateLevel(skillState, skill);
-    const xpProgress = profileSkillExperienceProgress(skill, level, skillState.xpBySkill);
+    const xpProgress = profileSkillExperienceProgress(
+      skill,
+      level,
+      skillState.xpBySkill,
+      skillState.thresholdsBySkill,
+    );
     const copy = profileSkillCopy(skill, level);
-    renderSkillDetail(skill, copy, level, copy.metrics, xpProgress);
+    renderSkillDetail(
+      skill,
+      copy,
+      level,
+      copy.metrics,
+      xpProgress,
+      skillState.thresholdsBySkill,
+    );
   }
 
   function skillCard(skill, copy, level, xpProgress, selected, onSelect) {
@@ -309,7 +325,7 @@ export function createPlayProfileUi({
     return card;
   }
 
-  function renderSkillDetail(skill, copy, level, metrics, xpProgress) {
+  function renderSkillDetail(skill, copy, level, metrics, xpProgress, thresholdsBySkill) {
     if (!elements.profileSkillDetail) return;
     elements.profileSkillDetail.hidden = false;
     elements.profileSkillDetail.dataset.skillTone = skill.tone;
@@ -364,7 +380,11 @@ export function createPlayProfileUi({
       const tier = document.createElement("span");
       tier.textContent = ui("main.profile.skillXpTier", "Lv.{level}: {xp} XP", {
         level: targetLevel,
-        xp: formatProfileSkillXp(profileSkillExperienceRequirement(skill, previousLevel)),
+        xp: formatProfileSkillXp(profileSkillExperienceRequirement(
+          skill,
+          previousLevel,
+          thresholdsBySkill,
+        )),
       });
       tiers.append(tier);
     }
@@ -409,8 +429,7 @@ export function createPlayProfileUi({
     }
     if (skillId === "burden") return { kg: skillEffectValue(skillId, level) };
     if (skillId === "smelting") {
-      const yieldPercent = skillEffectValue(skillId, level) / 100;
-      return { yieldPercent, lossPercent: 100 - yieldPercent };
+      return { bonus: (skillEffectValue(skillId, level) - 10000) / 100 };
     }
     if (skillId === "forging") return { bonus: skillEffectValue(skillId, level) / 100 };
     if (skillId === "craftsmanship") return { tier: skillEffectValue(skillId, level) };

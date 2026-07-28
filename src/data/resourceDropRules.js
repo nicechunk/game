@@ -2,19 +2,21 @@ import { WorldMapBlock, renderTypeForBlock } from "../world/blocks.js";
 
 export const resourceDropRuleSet = "nicechunk-resource-drops-v2";
 
+// Visual bounds include air and surrounding feature geometry. Backpack volume
+// records only the material that can actually be recovered from one mine action.
 export const resourceDropSizeProfiles = {
-  lava: sizeProfile([0.1, 0.08, 0.1], [0.38, 0.24, 0.38]),
-  ice: sizeProfile([0.16, 0.08, 0.16], [0.72, 0.42, 0.72]),
-  toxicWater: sizeProfile([0.12, 0.12, 0.12], [0.42, 0.42, 0.42]),
-  coral: sizeProfile([0.1, 0.08, 0.08], [0.48, 0.34, 0.3]),
-  deadCoral: sizeProfile([0.08, 0.06, 0.06], [0.36, 0.24, 0.24]),
-  reed: sizeProfile([0.025, 0.45, 0.025], [0.12, 1.8, 0.12]),
-  vine: sizeProfile([0.025, 0.5, 0.025], [0.1, 2.4, 0.1]),
-  dryGrass: sizeProfile([0.04, 0.25, 0.04], [0.18, 0.9, 0.18]),
-  deadBush: sizeProfile([0.16, 0.18, 0.16], [0.72, 0.9, 0.72]),
-  thorn: sizeProfile([0.01, 0.04, 0.01], [0.06, 0.22, 0.06]),
-  deadWood: sizeProfile([0.1, 0.28, 0.1], [0.42, 1.35, 0.42]),
-  giantRoot: sizeProfile([0.18, 0.38, 0.18], [0.86, 2.2, 0.86]),
+  lava: sizeProfile([0.1, 0.08, 0.1], [0.38, 0.24, 0.38], [80_000, 500_000]),
+  ice: sizeProfile([0.16, 0.08, 0.16], [0.72, 0.42, 0.72], [100_000, 1_000_000]),
+  toxicWater: sizeProfile([0.12, 0.12, 0.12], [0.42, 0.42, 0.42], [100_000, 750_000]),
+  coral: sizeProfile([0.1, 0.08, 0.08], [0.48, 0.34, 0.3], [50_000, 500_000]),
+  deadCoral: sizeProfile([0.08, 0.06, 0.06], [0.36, 0.24, 0.24], [50_000, 500_000]),
+  reed: sizeProfile([0.025, 0.45, 0.025], [0.12, 1.8, 0.12], [10_000, 200_000]),
+  vine: sizeProfile([0.025, 0.5, 0.025], [0.1, 2.4, 0.1], [15_000, 250_000]),
+  dryGrass: sizeProfile([0.04, 0.25, 0.04], [0.18, 0.9, 0.18], [10_000, 200_000]),
+  deadBush: sizeProfile([0.16, 0.18, 0.16], [0.72, 0.9, 0.72], [25_000, 500_000]),
+  thorn: sizeProfile([0.01, 0.04, 0.01], [0.06, 0.22, 0.06], [2_000, 100_000]),
+  deadWood: sizeProfile([0.1, 0.28, 0.1], [0.42, 1.35, 0.42], [150_000, 1_200_000]),
+  giantRoot: sizeProfile([0.18, 0.38, 0.18], [0.86, 2.2, 0.86], [250_000, 2_000_000]),
 };
 
 export const resourceDropRules = [
@@ -61,6 +63,7 @@ function rule(sourceKey, dropKey, chanceBps, minAltitude, maxAltitude, minDepth,
   const sourceBlockId = blockIdByKey(sourceKey);
   const dropBlockId = blockIdByKey(dropKey);
   const size = resourceDropSizeProfiles[dropKey];
+  if (!size) throw new Error(`Missing resource drop size profile: ${dropKey}`);
   return {
     sourceKey,
     dropKey,
@@ -72,17 +75,19 @@ function rule(sourceKey, dropKey, chanceBps, minAltitude, maxAltitude, minDepth,
     minDepth,
     maxDepth,
     salt,
-    minDimensionsM: size?.minDimensionsM ?? null,
-    maxDimensionsM: size?.maxDimensionsM ?? null,
-    minVolumeMm3: dimensionsVolumeMm3(size?.minDimensionsM),
-    maxVolumeMm3: dimensionsVolumeMm3(size?.maxDimensionsM),
+    minDimensionsM: size.minDimensionsM,
+    maxDimensionsM: size.maxDimensionsM,
+    minVolumeMm3: size.minVolumeMm3,
+    maxVolumeMm3: size.maxVolumeMm3,
   };
 }
 
-function sizeProfile(minDimensions, maxDimensions) {
+function sizeProfile(minDimensions, maxDimensions, volumeRangeMm3) {
   return {
     minDimensionsM: dimensionsFromArray(minDimensions),
     maxDimensionsM: dimensionsFromArray(maxDimensions),
+    minVolumeMm3: volumeRangeMm3[0],
+    maxVolumeMm3: volumeRangeMm3[1],
   };
 }
 
@@ -92,12 +97,6 @@ function dimensionsFromArray(values) {
     height: values[1],
     depth: values[2],
   };
-}
-
-function dimensionsVolumeMm3(dimensions) {
-  if (!dimensions) return 1;
-  const volumeMm3 = Math.round(dimensions.width * dimensions.height * dimensions.depth * 1_000_000_000);
-  return Math.max(1, Math.min(0xffffffff, volumeMm3));
 }
 
 export function blockIdByKey(key) {

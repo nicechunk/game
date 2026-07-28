@@ -5,18 +5,37 @@ import { fileURLToPath } from "node:url";
 import { build as viteBuild, minify as minifyJs } from "vite";
 import { checkPlayI18n } from "./check-play-i18n.mjs";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const builderSource = fileURLToPath(import.meta.url);
+const root = resolve(dirname(builderSource), "..");
 const runtimeFormatVersion = "play-bundle-v1";
-const outputRoot = resolve(process.env.NICECHUNK_PLAY_RUNTIME_OUTPUT || resolve(root, ".play-runtime"));
+const defaultOutputRoot = resolve(root, ".play-runtime");
+const outputRoot = resolve(process.env.NICECHUNK_PLAY_RUNTIME_OUTPUT || defaultOutputRoot);
 const playSource = resolve(root, "play");
 const playLoaderSource = resolve(playSource, "play-loader.js");
 const playOnboardingLoaderSource = resolve(playSource, "play-onboarding-loader.js");
 const chunkSource = resolve(root, "chunk.js");
 const playLocaleSource = resolve(root, "public/play/locales");
 const materialPhysicsRulesSource = resolve(root, "public/rules/material-physics-v2.json");
+const distRoot = resolve(root, "dist");
 const chainAssetsSource = resolve(root, "dist/assets");
 const chainBundleSource = resolve(root, "dist/assets/nicechunkChain.js");
-const chainAssetFiles = (await collectFiles(chainAssetsSource)).filter((file) => file.endsWith(".js"));
+const staticSiteManifestPath = resolve(root, "dist/static-site.json");
+const staticSiteManifest = await readOptionalJson(staticSiteManifestPath);
+const chainAssetPaths = staticSiteManifest
+  ? staticSiteManifest.chainAssets
+  : (await collectFiles(chainAssetsSource))
+    .filter((file) => file.endsWith(".js"))
+    .map((file) => relative(distRoot, file).replaceAll("\\", "/"))
+    .sort();
+if (!Array.isArray(chainAssetPaths) || !chainAssetPaths.includes("assets/nicechunkChain.js")) {
+  throw new Error("The chain build is missing its nicechunkChain.js entry.");
+}
+const chainAssetFiles = chainAssetPaths.map((assetPath) => {
+  if (!/^assets\/[A-Za-z0-9._-]+\.js$/u.test(assetPath)) {
+    throw new Error(`Invalid chain dependency path: ${assetPath}`);
+  }
+  return resolve(root, "dist", assetPath);
+});
 const sharedRuntimeFiles = [
   resolve(root, "src/i18n.js"),
   resolve(root, "src/data/smeltingRules.js"),
@@ -50,6 +69,7 @@ const chunkRuntimeFiles = ((await Promise.all(chunkRuntimeEntries.map((entry) =>
 const playRuntimeFiles = (await collectFiles(playSource))
   .filter((file) => !playRuntimeExcludedPrefixes.some((prefix) => relative(playSource, file).startsWith(prefix)));
 const sourceFiles = [...new Set([
+  builderSource,
   ...playRuntimeFiles,
   ...(await collectFiles(playLocaleSource)),
   materialPhysicsRulesSource,
@@ -100,9 +120,12 @@ await viteBuild({
     sourcemap: false,
     chunkSizeWarningLimit: 1100,
     rollupOptions: {
+      preserveEntrySignatures: "strict",
       input: {
         play: resolve(playSource, "index.html"),
         character: resolve(playSource, "play-character-entry.js"),
+        onboarding: resolve(playSource, "play-onboarding.js"),
+        onboardingStyle: resolve(playSource, "play-onboarding.css"),
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
@@ -114,7 +137,10 @@ await viteBuild({
 });
 
 await mkdir(dirname(runtimeAssets), { recursive: true });
-await cp(chainAssetsSource, runtimeAssets, { recursive: true });
+await mkdir(runtimeAssets, { recursive: true });
+for (const source of chainAssetFiles) {
+  await cp(source, resolve(runtimeAssets, source.slice(chainAssetsSource.length + 1)));
+}
 await cp(chainBundleSource, resolve(runtimeAssets, `nicechunkChain.${version}.js`));
 const packagedChainAssetPaths = (await collectFiles(runtimeAssets))
   .filter((file) => file.endsWith(".js"))
@@ -128,7 +154,14 @@ if (!packagedChainAssetPaths.includes(`/assets/nicechunkChain.${version}.js`)
 const viteManifest = JSON.parse(await readFile(resolve(runtimeRoot, ".vite/manifest.json"), "utf8"));
 const playEntryRecord = viteManifest["play/index.html"];
 const characterEntryRecord = viteManifest["play/play-character-entry.js"];
-if (!playEntryRecord?.file || !characterEntryRecord?.file) {
+const onboardingEntryRecord = viteManifest["play/play-onboarding.js"];
+const onboardingStyleRecord = viteManifest["play/play-onboarding.css"];
+if (
+  !playEntryRecord?.file
+  || !characterEntryRecord?.file
+  || !onboardingEntryRecord?.file?.endsWith(".js")
+  || !onboardingStyleRecord?.file?.endsWith(".css")
+) {
   throw new Error("Play runtime manifest is missing the game entry.");
 }
 const loaderSource = await readFile(playLoaderSource, "utf8");
@@ -158,6 +191,12 @@ const onboardingLoaderFile = `assets/play-onboarding-loader-${onboardingLoaderHa
 await writeFile(resolve(runtimeRoot, onboardingLoaderFile), onboardingLoaderBuild.code);
 const gameEntry = await runtimeDescriptor(playEntryRecord.file, "module", "game");
 const entry = await runtimeDescriptor(characterEntryRecord.file, "module", "critical");
+const onboardingEntry = await runtimeDescriptor(onboardingEntryRecord.file, "module", "deferred");
+const onboardingStyle = await runtimeDescriptor(onboardingStyleRecord.file, "style", "deferred");
+const onboardingBundle = await readFile(resolve(runtimeRoot, onboardingEntryRecord.file), "utf8");
+if (!hasNamedExport(onboardingBundle, "openOnboarding")) {
+  throw new Error("Play onboarding bundle is missing the openOnboarding export.");
+}
 if (entry.bytes > 20_000 || gameEntry.url === entry.url || !characterEntryRecord.dynamicImports?.length) {
   throw new Error("Play character verification must remain a small deferred-game entry.");
 }
@@ -217,7 +256,7 @@ const deployedIndex = removeBootAssetTags(bundledIndex, gameEntry, styles)
   )
   .replace(
     "<!-- nicechunk-play-onboarding-loader -->",
-    `<script src="${onboardingLoaderUrl}" defer data-nicechunk-onboarding data-module="/play/play-onboarding.js" data-style="/play/play-onboarding.css"></script>`,
+    `<script src="${onboardingLoaderUrl}" defer data-nicechunk-onboarding data-module="${onboardingEntry.url}" data-style="${onboardingStyle.url}"></script>`,
   )
   .replace(
     '<html lang="en" data-i18n-scope="play">',
@@ -232,8 +271,12 @@ if (
   !deployedIndex.includes(`data-manifest="${loadingManifestUrl}"`) ||
   !deployedIndex.includes(`src="${loaderUrl}"`) ||
   !deployedIndex.includes(`src="${onboardingLoaderUrl}"`) ||
+  !deployedIndex.includes(`data-module="${onboardingEntry.url}"`) ||
+  !deployedIndex.includes(`data-style="${onboardingStyle.url}"`) ||
   deployedIndex.includes("nicechunk-play-loader -->") ||
   deployedIndex.includes("nicechunk-play-onboarding-loader -->") ||
+  deployedIndex.includes('data-module="/play/play-onboarding.js"') ||
+  deployedIndex.includes('data-style="/play/play-onboarding.css"') ||
   deployedIndex.includes(`src="${gameEntry.url}"`) ||
   deployedIndex.includes('rel="modulepreload"') ||
   styles.some((file) => deployedIndex.includes(`href="${file.url}"`))
@@ -246,7 +289,7 @@ await writeFile(resolve(outputRoot, "play", "index.html"), deployedIndex);
 await cp(playLocaleSource, resolve(outputRoot, "play", "locales"), { recursive: true });
 await mkdir(resolve(outputRoot, "rules"), { recursive: true });
 await cp(materialPhysicsRulesSource, resolve(outputRoot, "rules", "material-physics-v2.json"));
-await writeFile(resolve(outputRoot, "play-runtime.json"), `${JSON.stringify({
+const runtimeMetadata = `${JSON.stringify({
   version,
   runtimePrefix,
   chainModulePath: `/assets/nicechunkChain.${version}.js`,
@@ -254,8 +297,14 @@ await writeFile(resolve(outputRoot, "play-runtime.json"), `${JSON.stringify({
   loadingManifestPath: loadingManifestUrl,
   loaderPath: loaderUrl,
   onboardingLoaderPath: onboardingLoaderUrl,
+  onboardingModulePath: onboardingEntry.url,
+  onboardingStylePath: onboardingStyle.url,
   bundled: true,
-}, null, 2)}\n`);
+}, null, 2)}\n`;
+await writeFile(resolve(outputRoot, "play-runtime.json"), runtimeMetadata);
+if (outputRoot === defaultOutputRoot && staticSiteManifest) {
+  await mirrorRuntimeMetadataToStaticSite(runtimeMetadata);
+}
 await normalizePermissions(outputRoot);
 
 const runtimeFiles = await collectFiles(runtimeRoot);
@@ -265,7 +314,36 @@ console.log(JSON.stringify({
   sourceFiles: sourceFiles.length,
   outputFiles: runtimeFiles.length,
   outputRoot,
+  mirroredStaticRuntimeMetadata: outputRoot === defaultOutputRoot && Boolean(staticSiteManifest),
 }, null, 2));
+
+async function readOptionalJson(path) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+async function mirrorRuntimeMetadataToStaticSite(metadata) {
+  if (!Array.isArray(staticSiteManifest.files)) {
+    throw new Error("Static-site manifest file inventory is invalid.");
+  }
+  const contents = Buffer.from(metadata);
+  const files = staticSiteManifest.files
+    .filter((entry) => entry?.path !== "play-runtime.json");
+  files.push({
+    path: "play-runtime.json",
+    bytes: contents.byteLength,
+    sha256: createHash("sha256").update(contents).digest("hex"),
+  });
+  files.sort((left, right) => left.path.localeCompare(right.path));
+  staticSiteManifest.files = files;
+  staticSiteManifest.totalBytes = files.reduce((total, entry) => total + entry.bytes, 0);
+  await writeFile(resolve(root, "dist/play-runtime.json"), metadata);
+  await writeFile(staticSiteManifestPath, `${JSON.stringify(staticSiteManifest, null, 2)}\n`);
+}
 
 async function collectFiles(path) {
   const entries = await readdir(path, { withFileTypes: true }).catch(() => []);
@@ -310,6 +388,12 @@ async function runtimeDescriptor(file, type, phase) {
     type,
     phase,
   };
+}
+
+function hasNamedExport(source, exportName) {
+  const escapedName = exportName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\bexport\\s*\\{[^}]*\\b(?:${escapedName}|as\\s+${escapedName})\\b[^}]*\\}`, "u").test(source)
+    || new RegExp(`\\bexport\\s+(?:async\\s+)?function\\s+${escapedName}\\b`, "u").test(source);
 }
 
 function removeBootAssetTags(html, entry, styles) {

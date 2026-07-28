@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-3907fe935c711e4e",
-    "contentHash": "3907fe935c711e4e"
+    "version": "play-locale-ru-1af2b46bb2329b69",
+    "contentHash": "1af2b46bb2329b69"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -227,14 +227,6 @@
         "programUpgradePending": "player program upgrade pending"
       },
       "rpc": "RPC",
-      "rpcPublic": "Публичный RPC",
-      "rpcKey": "RPCKEY {key}",
-      "rpcRecommend": "Set a private RPC key for steadier mining.",
-      "rpcConfigured": "Private RPC key is active for chain calls.",
-      "rpcSet": "Настроить",
-      "rpcUpdate": "Обновить",
-      "rpcSetPrompt": "Set a Helius API key to avoid public RPC limits.",
-      "rpcUpdatePrompt": "Update your Helius API key for NiceChunk chain calls.",
       "characterTitle": "CHARACTER",
       "basicInfo": "BASIC INFO",
       "skillsTab": "Skills",
@@ -365,12 +357,12 @@
         },
         "smelting": {
           "name": "Smelting",
-          "description": "Reduces material loss when raw resources become refined materials.",
+          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
           "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "{yieldPercent}% yield · {lossPercent}% loss",
-          "next": "Next level: {yieldPercent}% yield · {lossPercent}% loss",
-          "max": "Max: 100% yield · 0% loss",
-          "formula": "Yield = 70% + Lv x 3%; loss = 30% - Lv x 3%"
+          "current": "+{bonus}% extra output",
+          "next": "Next level: +{bonus}% extra output",
+          "max": "Max: +50% extra output",
+          "formula": "Extra output = Lv x 5%"
         },
         "forging": {
           "name": "Forging",
@@ -446,14 +438,18 @@
       "walletDisconnectedHint": "Подключите кошелёк для доступа к игровым функциям в сети.",
       "logOut": "Выйти",
       "rpcSettings": "Подключение RPC",
-      "rpcSettingsHint": "Настройте шлюз данных Solana для этого браузера.",
+      "rpcSettingsHint": "Управляет чтением аккаунтов, синхронизацией PDA мира и отправкой подписанных транзакций.",
       "rpcHelius": "RPC Helius",
-      "rpcHintPrivate": "Приватный RPC используется для запросов к сети.",
-      "rpcHintPublic": "Укажите ключ Helius для более стабильной добычи.",
+      "rpcCustom": "Пользовательский RPC Devnet",
+      "rpcPublic": "Публичный RPC",
+      "rpcHintPrivate": "Helius Devnet используется для аккаунтов, синхронизации мира и транзакций.",
+      "rpcHintCustom": "Проверенный пользовательский endpoint Devnet используется для чтения и транзакций.",
+      "rpcHintPublic": "Общий публичный Devnet может ограничивать запросы. Откройте настройки для Helius Free или своего endpoint.",
+      "rpcUpdate": "Обновить",
+      "rpcSet": "Настроить",
       "languageSettings": "Язык интерфейса",
       "language": "Язык",
       "languageHint": "Выберите язык интерфейса игры.",
-      "rotateAvatar": "Перетащите для вращения",
       "cacheSettings": "Локальный кэш",
       "cacheSettingsHint": "Управляйте временными данными мира и обучения в этом браузере.",
       "cacheAction": "Обновить локальные данные",
@@ -465,7 +461,8 @@
       "cacheClearing": "Очистка...",
       "cacheCleared": "Кэш очищен. Перезагрузка...",
       "cacheClearedButton": "Очищено",
-      "cacheClearFailed": "Не удалось очистить кэш: {reason}"
+      "cacheClearFailed": "Не удалось очистить кэш: {reason}",
+      "rotateAvatar": "Перетащите для вращения"
     },
     "debug": "Отладка",
     "bulkMining": {
@@ -498,7 +495,8 @@
       "resolving": "Guardian: поиск...",
       "resolvingForChunk": "Guardian: поиск для чанка {chunkX},{chunkZ}",
       "active": "Guardian: {endpoint} | чанк {chunkX},{chunkZ} | диапазон {minX}..{maxX}, {minZ}..{maxZ}",
-      "none": "Guardian: нет для чанка {chunkX},{chunkZ}"
+      "none": "Guardian: нет для чанка {chunkX},{chunkZ}",
+      "connectionLost": "Связь с Guardian потеряна"
     },
     "mapTeleport": {
       "x": "X",
@@ -604,7 +602,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "Общий вес: {weight}",
+      "totalWeight": "Weight: {weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -617,13 +615,13 @@
       "equipped": "Экипировано",
       "equippedSlot": "Экипировано в ячейке {slot} панели",
       "equippedLocked": "Экипировано в ячейке {slot} панели. Снимите предмет перед выбором, перемещением или удалением.",
-      "loading": "Загрузка рюкзака...",
-      "unavailable": "Рюкзак недоступен",
-      "readFailed": "Не удалось прочитать рюкзак: {reason}",
-      "readFailedShort": "Не удалось загрузить данные рюкзака. Откройте рюкзак снова, чтобы повторить попытку.",
-      "openAria": "Открыть рюкзак",
-      "loadingAria": "Рюкзак загружается",
-      "createAria": "Создать рюкзак"
+      "discardTitle": "Удалить предметы из рюкзака?",
+      "discardSingleMessage": "Удалить {item} из рюкзака?",
+      "discardBatchMessage": "Удалить из рюкзака {stacks} стопок, содержащих {items} предметов?",
+      "discardWarning": "Это действие необратимо.",
+      "discardConfirm": "Удалить",
+      "discardChanged": "Выбранные предметы изменились до подтверждения. Ничего не удалено.",
+      "confirmUnavailable": "Подтверждение недоступно. Ничего не удалено."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -676,6 +674,9 @@
         "redirect": {
           "title": "Opening wallet gateway",
           "body": "No active game session was found. Redirecting to wallet login."
+        },
+        "characterAccess": {
+          "title": "Загрузка PDA персонажа"
         }
       },
       "loader": {
@@ -685,32 +686,137 @@
         "cached": "В кэше",
         "failed": "Ошибка",
         "failureMessage": "Не удалось загрузить файл игры.",
+        "errorDetail": "Подробности: {reason}",
         "retry": "Повторить",
+        "retrying": "Повторная попытка",
+        "refresh": "Обновить страницу",
+        "rpcSettings": "Настройки RPC",
+        "rpcInputLabel": "API-ключ Helius devnet",
+        "rpcPlaceholder": "Вставьте API-ключ Helius",
+        "rpcSave": "Сохранить и повторить",
+        "rpcSaving": "Сохранение",
+        "rpcSaved": "RPC сохранён",
+        "cancel": "Отмена",
         "files": "{loaded} / {total} файлов",
-        "network": "Сеть"
+        "network": "Сеть",
+        "failures": {
+          "network-offline": {
+            "title": "Нет подключения к сети",
+            "message": "Браузер не в сети и не может загрузить PDA игрока.",
+            "help": "Подключитесь к интернету и повторите попытку."
+          },
+          "network-unavailable": {
+            "title": "Сетевой запрос не выполнен",
+            "message": "Браузер не смог обратиться к Solana RPC.",
+            "help": "Проверьте сеть и прокси либо настройте частный RPC."
+          },
+          "rpc-rate-limited": {
+            "title": "Лимит RPC исчерпан",
+            "message": "Перегруженный RPC отклонил запрос игрока.",
+            "help": "Подождите или настройте ключ Helius devnet."
+          },
+          "rpc-unauthorized": {
+            "title": "Ошибка авторизации RPC",
+            "message": "Настроенный ключ или адрес RPC отклонён.",
+            "help": "Исправьте ключ в настройках RPC и повторите попытку."
+          },
+          "rpc-unavailable": {
+            "title": "RPC недоступен",
+            "message": "Узел Solana не завершил поиск игрока.",
+            "help": "Повторите позже, проверьте прокси или используйте частный RPC."
+          },
+          "character-timeout": {
+            "title": "Время поиска игрока истекло",
+            "message": "Запрос PDA игрока выполнялся слишком долго.",
+            "help": "Проверьте RPC и повторите тот же запрос."
+          },
+          "character-data-invalid": {
+            "title": "Данные игрока недействительны",
+            "message": "Аккаунт существует, но данные не прошли проверку.",
+            "help": "Не создавайте нового персонажа; обновите страницу или сообщите об аккаунте."
+          },
+          "wallet-unavailable": {
+            "title": "Сессия кошелька недоступна",
+            "message": "Сохранённый кошелёк нельзя использовать для проверки.",
+            "help": "Вернитесь ко входу и подключите правильный кошелёк."
+          },
+          "verification-unavailable": {
+            "title": "Проверка игрока недоступна",
+            "message": "В загруженном клиенте нет нужной функции поиска.",
+            "help": "Обновите страницу; если ошибка остаётся, релиз требует исправления."
+          },
+          "character-verification-failed": {
+            "title": "Проверка игрока не выполнена",
+            "message": "Не удалось проверить PDA игрока.",
+            "help": "Изучите детали и повторите попытку или обновите страницу."
+          }
+        }
       }
     },
     "rpcConfig": {
-      "title": "Public RPC is overloaded",
-      "body": "Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.",
-      "link": "Get a Helius API key",
+      "title": "Solana RPC connection",
+      "body": "Choose how this browser reaches Solana Devnet for account reads, world synchronization, and signed transactions.",
+      "failureTitle": "RPC setup can resolve this loading error",
+      "failureBody": "The failed loading stage and technical reason are shown below. Configure a working Devnet endpoint, save it, and NiceChunk will retry the same player lookup instead of creating a new character.",
+      "failureLabel": "Loading issue detected",
+      "failureUnknown": "No additional technical reason was returned.",
+      "failureStage": "Failed stage: {stage}",
+      "failureReason": "Technical reason: {reason}",
+      "linksAria": "RPC provider resources",
+      "link": "Open Helius dashboard",
+      "guideLink": "Read the setup guide",
       "explainerAria": "RPC setting details",
       "pointGatewayLabel": "Chain gateway",
       "pointGatewayTitle": "RPC decides how the browser reaches Solana",
-      "pointGatewayBody": "NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions. It does not change your wallet ownership.",
+      "pointGatewayBody": "NiceChunk uses RPC to load player and backpack accounts, synchronize world PDAs, and submit signed transactions. It does not change wallet ownership.",
       "pointReliabilityLabel": "Reliability",
-      "pointReliabilityTitle": "A private key avoids public endpoint congestion",
-      "pointReliabilityBody": "When many players share the public devnet RPC, reads and mining transactions can be throttled. Your own Helius key gives this browser a steadier route.",
+      "pointReliabilityTitle": "A dedicated endpoint avoids public congestion",
+      "pointReliabilityBody": "Shared public Devnet requests can be throttled. A Helius Free plan is normally sufficient for testing and gives this browser an independent allowance.",
       "pointCostLabel": "Cost boundary",
       "pointCostTitle": "The key is not a payment to NiceChunk",
-      "pointCostBody": "The API key is stored locally in your browser and used only to build your RPC URL. For normal NiceChunk gameplay, the Helius Free plan is usually enough. If you want higher limits and a smoother experience, you can use a paid Helius plan.",
+      "pointCostBody": "The API key or endpoint is stored only in this browser. Provider plan costs are separate from Solana transaction fees and are never paid to NiceChunk.",
       "pointSecurityLabel": "Security",
       "pointSecurityTitle": "RPC cannot spend SOL by itself",
-      "pointSecurityBody": "Transactions still require your wallet or game wallet signature. RPC only transports signed requests and chain data.",
+      "pointSecurityBody": "Transactions still require a wallet signature. RPC only transports signed requests and chain data, and NiceChunk never sends the saved credential to its own server.",
+      "currentLabel": "Current connection",
+      "current": {
+        "public": "Shared public Devnet RPC",
+        "helius": "Helius Devnet RPC",
+        "custom": "Custom Devnet RPC"
+      },
+      "providerLabel": "Connection method",
+      "providerHelius": "Helius Devnet API key (recommended)",
+      "providerCustom": "Custom HTTPS Devnet endpoint",
       "inputLabel": "Helius API key",
       "placeholder": "Paste your Helius API key",
-      "save": "Save RPC",
-      "dismiss": "Dismiss RPC warning",
+      "heliusHelp": "Create a Helius account, select Solana Devnet, then paste only the API key. The free plan is normally enough for game testing.",
+      "endpointLabel": "Custom Devnet RPC endpoint",
+      "endpointPlaceholder": "https://your-solana-devnet-rpc.example",
+      "endpointHelp": "Only HTTPS endpoints are accepted. NiceChunk tests the Solana genesis hash before saving to prevent a mainnet or testnet mismatch.",
+      "save": "Test and save",
+      "testing": "Testing...",
+      "usePublic": "Use public RPC",
+      "publicNote": "The public endpoint is shared and can be rate limited. It is available as a fallback, not the recommended long-term setting.",
+      "dismiss": "Close RPC settings",
+      "savedStatus": "RPC connection tested and saved. Account reads, world synchronization, and transactions now use it.",
+      "publicSavedStatus": "Shared public Devnet RPC is active. It may be rate limited during busy periods.",
+      "openFailed": "RPC settings could not be opened. Refresh the game and try again.",
+      "validation": {
+        "invalidKey": "Enter the Helius API key before testing.",
+        "invalidUrl": "Enter a valid HTTPS Solana Devnet RPC endpoint without embedded username or password credentials.",
+        "testing": "Testing the endpoint and confirming the Solana Devnet genesis hash...",
+        "unauthorized": "The provider rejected this credential. Check the API key or endpoint in the provider dashboard.",
+        "rateLimited": "This endpoint is already rate limited. Check the provider plan or use another Devnet endpoint.",
+        "http": "The endpoint returned HTTP {status}. Check the provider status and endpoint configuration.",
+        "invalidResponse": "The endpoint did not return a valid Solana JSON-RPC response.",
+        "rejected": "The endpoint rejected the Solana genesis check.",
+        "wrongNetwork": "This endpoint is not Solana Devnet. NiceChunk did not save it.",
+        "timeout": "The endpoint did not respond within 10 seconds. Check the network, proxy, or provider status.",
+        "network": "The browser could not reach this endpoint. Check Internet access, proxy rules, CORS support, or the provider status.",
+        "storage": "The browser could not save this RPC setting. Check site storage permissions.",
+        "saved": "Connection verified and saved. Retrying with this Devnet RPC...",
+        "publicSaved": "Public Devnet RPC restored. Retrying the failed request..."
+      },
       "publicRpcFailed": "Public devnet RPC is rate limited. Add a Helius API key to keep chain reads and mining transactions reliable.",
       "invalid": "Enter a Helius API key before saving.",
       "saved": "Saved. NiceChunk will use your Helius devnet RPC for chain calls."
@@ -725,6 +831,35 @@
       "browseTab": "Обзор",
       "sellTab": "Продать",
       "ordersTab": "Ордера",
+      "mobileViews": "Mobile market views",
+      "mobileListings": "Listings",
+      "mobileBackpack": "Backpack",
+      "opened": "Market opened. Chain listings use PDA state when wallet and RPC are available.",
+      "localWallet": "Local wallet",
+      "membershipEyebrow": "On-chain access",
+      "joinTitle": "Join the market",
+      "joinBody": "Create your personal market membership PDA before trading.",
+      "joinCostBreakdown": "Market joining cost breakdown",
+      "userStateRent": "Market state PDA rent",
+      "networkFeeEstimate": "Estimated network fee",
+      "estimatedTotal": "Estimated total",
+      "rentExplanation": "PDA rent is a rent-exempt reserve locked in your on-chain accounts, not a platform fee. It is recoverable only if the program later provides an account-close instruction. The network fee is paid to Solana validators.",
+      "joinCapacity": "Each wallet may keep up to 50 active listings.",
+      "marketRulesLink": "Read market rules and fees",
+      "joinAction": "Join market",
+      "totalPlusNetworkFee": "{amount} SOL + network fee",
+      "membershipChecking": "Reading market membership and live RPC costs...",
+      "membershipSubmitting": "Waiting for confirmation...",
+      "joinReady": "Review the live estimate, then approve market access in your wallet.",
+      "costPending": "Checking RPC...",
+      "membershipWalletRequired": "Connect your game wallet before joining the market.",
+      "membershipUnavailable": "Market membership is unavailable in this client.",
+      "membershipCheckFailed": "Could not check market access: {reason}",
+      "retryMembership": "Retry cost estimate",
+      "joinPending": "Confirm market membership in your wallet.",
+      "joinCreated": "Market access created on-chain: {signature}",
+      "joinRequired": "Join the market before creating or settling listings.",
+      "alreadyJoined": "This wallet has already joined the market.",
       "searchLabel": "Search",
       "searchPlaceholder": "Resource, equipment, coordinate",
       "searchMetaIdle": "{category} · {currency} · {sort}",
@@ -732,6 +867,9 @@
       "chainListingsSyncing": "Syncing chain listings...",
       "chainListingsSynced": "Chain listings synced",
       "chainListingsUnavailable": "Chain sync unavailable",
+      "chainListingsQueryUnavailable": "The loaded client cannot query chain market listings.",
+      "chainListingsLoaded": "Loaded {count} chain market listings.",
+      "chainListingsFailed": "Chain market refresh failed: {reason}.",
       "sortLabel": "Sort",
       "sortNewest": "Newest first",
       "sortOldest": "Oldest first",
@@ -757,6 +895,20 @@
       "feeValue": "1%",
       "settlement": "Preferred settlement: NCK",
       "backpackCount": "{count}/{capacity}",
+      "inventory": "Inventory",
+      "myListings": "My Listings",
+      "inventoryAllItems": "All Items",
+      "inventoryChainNote": "Confirmed on-chain items",
+      "tableItem": "Item",
+      "tablePrice": "Unit Price",
+      "tableQuantity": "Quantity",
+      "tableSeller": "Seller",
+      "tableAction": "Action",
+      "activeOrders": "My Active Orders",
+      "viewAllOrders": "View All Orders",
+      "resultSummary": "{total} listings · {category} · {currency}",
+      "sampleStone": "Stone Reserve",
+      "sampleStoneMeta": "Raw stone stack from public terrain",
       "sampleIron": "Iron Ore Fragment",
       "sampleIronMeta": "Raw material",
       "samplePickaxe": "Forged Pickaxe",
@@ -766,6 +918,7 @@
       "sampleCloak": "Oak Leaf Block",
       "sampleCloakMeta": "Clothing",
       "buy": "Купить",
+      "buyNow": "Buy Now",
       "buyNeedsWallet": "Connect a wallet to buy this listing.",
       "buyNeedsBackpack": "Equip a backpack to buy this listing.",
       "buyBackpackFull": "Your backpack is full.",
@@ -779,6 +932,29 @@
       "expandDetails": "Details",
       "collapseDetails": "Hide details",
       "detailTitle": "Listing details",
+      "itemDetailsTitle": "Сведения о предмете",
+      "listingDataTitle": "Ончейн-объявление",
+      "massLabel": "Масса",
+      "volumeLabel": "Объём",
+      "qualityLabel": "Качество",
+      "materialLabel": "Материал",
+      "resourceLabel": "Ресурс",
+      "blockIdLabel": "ID блока",
+      "coordinatesLabel": "Координаты",
+      "yieldLabel": "Выход при сборе",
+      "durabilityLabel": "Прочность",
+      "gradeLabel": "Класс",
+      "itemLevelLabel": "Уровень предмета",
+      "itemCodeLabel": "Код предмета",
+      "itemIdLabel": "ID предмета",
+      "itemPdaLabel": "PDA предмета",
+      "itemProofLabel": "Доказательство",
+      "listingStateLabel": "Статус объявления",
+      "listingIdLabel": "ID объявления",
+      "listingPdaLabel": "PDA объявления",
+      "sourceSlotLabel": "Исходный слот",
+      "createdLabel": "Создано",
+      "stateActive": "Активно",
       "detailClose": "Close listing details",
       "cardAria": "{name}, {price} {currency}",
       "detailItem": "Item",
@@ -788,10 +964,19 @@
       "detailPayment": "Payment",
       "detailRequirement": "Requirement",
       "detailUnknown": "Unknown",
+      "detailSelectHint": "Select a market row to inspect its item and price.",
+      "currentPrice": "Current Price",
+      "availableQuantity": "Available Quantity",
+      "totalPrice": "Total Price",
+      "custodyNote": "On-chain settlement verifies listing custody and applies the 1% market fee.",
       "paymentNck": "Requires a wallet NCK token account.",
       "paymentSol": "Pays from wallet SOL balance.",
       "sampleListing": "Sample listing",
-      "loadingListings": "Loading listings...",
+      "loadingListings": "Loading chain listings",
+      "loadingListingsMeta": "Reading active marketplace PDA accounts from the configured RPC.",
+      "listingLoadFailed": "Could not load chain listings",
+      "listingLoadFailedMeta": "{reason}. Check the RPC or network, then retry.",
+      "retryListings": "Retry loading",
       "chainListingLoadFailed": "On-chain listings are temporarily unavailable.",
       "chainListingName": "On-chain Resource Listing",
       "chainListingMeta": "{source} slot {slot}",
@@ -805,6 +990,7 @@
       "stepListingDraft": "2. Listing Draft",
       "inventoryEyebrow": "Backpack",
       "inventoryTitle": "Select one item to list",
+      "sellSelectHint": "Select an item from the inventory panel",
       "listingEyebrow": "Listing Draft",
       "noSelection": "No item selected",
       "categoryLabel": "Category",
@@ -812,6 +998,8 @@
       "priceLabel": "Price",
       "pricePlaceholder": "0.00",
       "formHint": "Select an item, set category and price, then create an on-chain listing.",
+      "draftReady": "Ready to list {item}. The selected stack will move into market custody.",
+      "priceRequired": "Set a positive price before creating the listing.",
       "createListing": "Создать листинг",
       "noOrders": "No active orders",
       "noOrdersMeta": "Wallet orders will appear here.",
@@ -832,9 +1020,13 @@
       "emptyHintMarket": "Market terminal",
       "emptyHintOnchain": "On-chain listings",
       "invalidListing": "Select an item and enter a valid price.",
+      "transactionInProgress": "A market transaction is already in progress.",
+      "localListingCreated": "Listing created. The item is now in market custody.",
       "listingPending": "Confirm the transaction to create this listing on-chain.",
+      "listingSubmitting": "Creating...",
       "listingCreated": "Listing created on-chain: {signature}",
       "listingFailed": "Listing transaction failed: {reason}",
+      "activeListingLimit": "Each wallet may have at most 50 active listings.",
       "cancelPending": "Canceling...",
       "cancelFailed": "Cancel transaction failed: {reason}"
     },
@@ -911,7 +1103,7 @@
       "outputSize": "Output size",
       "yieldRange": "Диапазон выхода",
       "outputRate": "Output rate",
-      "outputRateValue": "Recipe {recipePercent}% · skill loss {lossPercent}%",
+      "outputRateValue": "Recipe {recipePercent}% · skill bonus +{bonusPercent}%",
       "inputMass": "Масса входа {mass}",
       "quality": "Основа качества",
       "heatMet": "Tier {tier} met",
@@ -987,6 +1179,8 @@
       "output": "Выход",
       "submitting": "Отправка в сеть...",
       "submitCompleteShort": "Подтверждено в сети",
+      "backpackRefreshFailed": "Не удалось обновить рюкзак перед плавкой: {reason}",
+      "inputsChanged": "Содержимое рюкзака изменилось. Проверьте обновлённые материалы и повторите попытку.",
       "recipeDetails": "Детали рецепта",
       "requiredInputs": "Необходимые входы",
       "qualityScore": "Качество",
@@ -1036,15 +1230,7 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!",
-      "alreadyExists": "У этого кошелька уже есть рюкзак. Создать второй рюкзак нельзя.",
-      "checking": "ПРОВЕРКА РЮКЗАКА...",
-      "creating": "СОЗДАНИЕ В СЕТИ...",
-      "alreadyExistsLabel": "РЮКЗАК УЖЕ СУЩЕСТВУЕТ",
-      "retryCheck": "ПОВТОРИТЬ ПРОВЕРКУ",
-      "checkingDetail": "Перед созданием проверяем в сети наличие существующего рюкзака.",
-      "readPending": "Данные рюкзака ещё загружаются. Создание не было отправлено.",
-      "readFailed": "Проверка рюкзака завершилась ошибкой. Создание не было отправлено: {reason}"
+      "hotbarHint": "Your backpack will appear here after creation!"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -1113,6 +1299,10 @@
     "equipment": {
       "chainSaved": "Экипировка сохранена в сети ({signature}).",
       "chainSaveFailed": "Не удалось сохранить экипировку в сети: {reason}."
+    },
+    "confirmDialog": {
+      "eyebrow": "Требуется подтверждение",
+      "cancel": "Отмена"
     },
     "onboarding": {
       "dialogAria": "Руководство: {feature}",
@@ -1509,6 +1699,29 @@
       "visualModelBody": "Material thumbnails are generated from the dominant elements in each recipe profile.",
       "processTitle": "Smelting process",
       "compositionTitle": "Material element profile",
+      "physicalTitle": "Objective physical properties",
+      "attributesTitle": "Engineering property scores",
+      "unitVolumeLabel": "Canonical unit volume",
+      "densityLabel": "Bulk density",
+      "unitMassLabel": "Calculated unit mass",
+      "thermalConductivityLabel": "Thermal conductivity",
+      "waterAbsorptionLabel": "Water absorption",
+      "compressiveStrengthLabel": "Compressive strength",
+      "flexuralStrengthLabel": "Flexural strength",
+      "attribute": {
+        "hardness": "Hardness",
+        "durability": "Durability",
+        "toughness": "Toughness",
+        "ductility": "Ductility",
+        "brittleness": "Brittleness",
+        "density": "Density",
+        "heatResistance": "Heat resistance",
+        "corrosionResistance": "Corrosion resistance",
+        "conductivity": "Electrical conductivity",
+        "thermalConductivity": "Thermal conductivity",
+        "magnetism": "Magnetism",
+        "workability": "Workability"
+      },
       "forgeUseTitle": "Forge unlock",
       "sourceBlocksTitle": "Raw resource sources",
       "heatLabel": "Heat",
@@ -1516,7 +1729,6 @@
       "sourceLabel": "Source",
       "consumableLabel": "Use",
       "consumable": "Consumable",
-      "reusable": "Reusable heat source",
       "burnSeconds": "{seconds}s",
       "requiredHeatLabel": "Required heat",
       "artisanLevelLabel": "Artisan level",
@@ -1579,15 +1791,11 @@
         },
         "charcoal": {
           "name": "Charcoal",
-          "description": "Processed carbon fuel made from wood resources. Cleaner and steadier than raw wood."
+          "description": "Processed carbon fuel made from wood resources. It supplies tier-three forge heat and is consumed with the smelting batch."
         },
         "coal": {
           "name": "Coal",
-          "description": "Deep stone seam fuel with strong forge heat. It is uncommon and suited for metal blooms."
-        },
-        "lava_heat": {
-          "name": "Lava Heat",
-          "description": "A non-consumed high heat source for blast-tier recipes, anchored to volcanic resources."
+          "description": "Deep stone seam fuel that supplies tier-four blast heat. It is consumed with the smelting batch."
         }
       },
       "item": {
@@ -2127,22 +2335,34 @@
         "description": "Carbon-rich sedimentary fuel generated as low-frequency seams inside deep stone, useful for smelting heat rather than direct forging."
       },
       "cotton": {
-        "name": "Хлопок"
+        "name": "Хлопок",
+        "source": "Warm Plains Vegetation",
+        "description": "A cellulose-rich fiber crop selected by warm, moderately humid surface conditions and used as the world's primary woven textile feedstock."
       },
       "flowerWhite": {
-        "name": "Белый цветок"
+        "name": "Белый цветок",
+        "source": "Temperate Surface Vegetation",
+        "description": "A pale flowering plant whose cellulose tissue and flavonoid pigments provide a mineral-light white dye source."
       },
       "flowerYellow": {
-        "name": "Жёлтый цветок"
+        "name": "Жёлтый цветок",
+        "source": "Warm Surface Vegetation",
+        "description": "A carotenoid-rich flowering plant used for warm yellow pigments while retaining the carbon, oxygen, and hydrogen profile of plant tissue."
       },
       "flowerRed": {
-        "name": "Красный цветок"
+        "name": "Красный цветок",
+        "source": "Warm Humid Vegetation",
+        "description": "An anthocyanin-rich flower used for stable red organic pigment, favored by warm and humid surface rules."
       },
       "flowerBlue": {
-        "name": "Синий цветок"
+        "name": "Синий цветок",
+        "source": "Cool Humid Vegetation",
+        "description": "A rarer cool-climate flower whose anthocyanin chemistry and cellular acidity produce a blue pigment source."
       },
       "flowerPink": {
-        "name": "Розовый цветок"
+        "name": "Розовый цветок",
+        "source": "Temperate Humid Vegetation",
+        "description": "A temperate flowering plant with dilute anthocyanin pigments used for pink dyes and decorative textile finishes."
       }
     },
     "tag": {
@@ -3323,6 +3543,7 @@
       "chainSubmitted": "Equipment forged and saved to the backpack",
       "chainSubmitFailed": "Ковка on-chain не удалась",
       "chainCodeTooLarge": "Chain code is too large for forged item storage",
+      "chainMaterialTooSmall": "Перед отливкой или сохранением оставьте материал с ненулевой массой и объёмом",
       "chainCodeOutOfSync": "Load this chain code into the workbench before forging on-chain",
       "chainMaterialRequired": "Select backpack materials before forging on-chain",
       "chainMaterialMismatch": "Backpack materials changed. Sync materials and forge again",
@@ -3407,7 +3628,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm³",
+    "volumeCm3Value": "{value} cm3",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",
@@ -3810,7 +4031,91 @@
     "avatarPreviewEmpty": "Задайте допустимый хват",
     "avatarPreviewEquipped": "Хват экипирован",
     "avatarPreviewError": "Предпросмотр недоступен",
-    "avatarPreviewHint": "Перетащите для вращения"
+    "avatarPreviewHint": "Перетащите для вращения",
+    "onboarding": {
+      "dialogAria": "Руководство: {feature}",
+      "close": "Закрыть руководство",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Шаг {current}: {label}",
+      "dontShowAgain": "Больше не показывать",
+      "skip": "Пропустить",
+      "later": "Позже",
+      "next": "Далее",
+      "finish": "Готово",
+      "costEstimate": "Оценка стоимости",
+      "liveValuesNote": "Перед подписью актуальные значения повторно проверяются через RPC.",
+      "checkingFee": "Проверка RPC",
+      "feeUnavailable": "Проверяется перед подписью",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "СВАЙП",
+      "controlTap": "КАСАНИЕ",
+      "controlLook": "ТЯНУТЬ",
+      "controlSelect": "КЛИК",
+      "controlFirstPerson": "E",
+      "controlChoose": "ВЫБРАТЬ",
+      "controlEquip": "НАДЕТЬ",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "ПОДПИСЬ",
+      "controlBlueprint": "ПЛАН",
+      "controlDimensions": "X × Z",
+      "controlPlace": "МЕСТО",
+      "controlReview": "ПРОВЕРКА",
+      "controlBind": "ПРИВЯЗАТЬ",
+      "controlRecipe": "РЕЦЕПТ",
+      "controlInput": "СЫРЬЁ",
+      "controlFuel": "ТОПЛИВО",
+      "controlPrice": "ЦЕНА",
+      "controlMaterials": "МАТЕРИАЛ",
+      "controlShape": "ФОРМА",
+      "controlGrip": "ХВАТ",
+      "controlFit": "ПОСАДКА",
+      "controlCast": "ОТЛИВКА",
+      "cost": {
+        "accountDeposit": "Возвращаемый депозит аккаунта",
+        "networkFee": "Комиссия сети",
+        "sessionTopUp": "Расходуемое пополнение сессии",
+        "buildSiteDeposit": "Депозит аккаунта BuildSite",
+        "progressDeposit": "Депозит прогресса плавки",
+        "listingDeposit": "Депозит аккаунта объявления",
+        "marketFee": "Комиссия рынка после продажи",
+        "selectedMaterials": "Выбранные материалы",
+        "consumedOnChain": "Расходуются в сети"
+      },
+      "features": {
+        "forging": {
+          "eyebrow": "Ковка инструмента",
+          "title": "Создать уникальный предмет",
+          "warning": "Отливка расходует материалы и создаёт один предмет. Оставьте место в рюкзаке.",
+          "steps": {
+            "materials": {
+              "title": "Выберите проверенные материалы",
+              "body": "Объём и параметры PDA ограничивают конструкцию."
+            },
+            "shape": {
+              "title": "Соберите на общем столе",
+              "body": "Размещайте и режьте блоки, сохраняя сборку соединённой."
+            },
+            "handle": {
+              "title": "Задайте рабочий хват",
+              "body": "Хват должен пересечь зелёную область руки и находиться внутри предмета."
+            },
+            "fit": {
+              "title": "Проверьте посадку",
+              "body": "Вращайте сцену и исключите пересечение предмета с телом."
+            },
+            "cast": {
+              "title": "Отлейте финальный проект",
+              "body": "Проверьте доказательство, материалы и место перед подписью."
+            }
+          }
+        }
+      }
+    }
   },
   "mining": {
     "title": "Добыча Nicechunk",

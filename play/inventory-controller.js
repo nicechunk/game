@@ -1,3 +1,5 @@
+import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
+
 const DRAG_START_PX = 8;
 const LONG_PRESS_MS = 560;
 
@@ -13,6 +15,7 @@ export function createInventoryController({
   voxelItemLabel = (slot) => slot?.label || slot?.materialId || "Item",
   resourceName = (id) => `R${id}`,
   getRpcUrl = () => "",
+  confirmAction = () => true,
   translate = (_key, fallback, params = {}) => formatMessage(fallback, params),
 } = {}) {
   let drag = null;
@@ -457,16 +460,17 @@ export function createInventoryController({
         closeContextMenu();
         return;
       }
-      const confirmed = globalThis.confirm?.(`Discard ${backpackSlotLabel(slot)} from backpack? This cannot be undone.`) ?? true;
-      if (!confirmed) return;
-      const result = discardBackpackIndexes([index]);
-      if (result?.then) return;
-      closeContextMenu();
-      renderGameUi();
-      selectedBackpackIndexes.delete(index);
-      focusedBackpackIndex = null;
-      refresh();
-      onStatus(result.ok ? `Discarded ${backpackSlotLabel(result.discarded?.[0])}.` : result.reason);
+      requestDiscardConfirmation(singleDiscardDialog(slot), () => {
+        if (!sameBackpackSlot(index, slot)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
+        const result = discardBackpackIndexes([index]);
+        if (result?.then) return;
+        closeContextMenu();
+        renderGameUi();
+        selectedBackpackIndexes.delete(index);
+        focusedBackpackIndex = null;
+        refresh();
+        onStatus(result.ok ? `Discarded ${backpackSlotLabel(result.discarded?.[0])}.` : result.reason);
+      });
     });
     menu.querySelector("[data-action='discard-selected']")?.addEventListener("click", () => {
       closeContextMenu();
@@ -548,17 +552,21 @@ export function createInventoryController({
       return;
     }
     const totalCount = indexes.reduce((sum, index) => sum + (gameState.backpackSlots[index]?.count || 0), 0);
-    const confirmed = globalThis.confirm?.(`Discard ${indexes.length} stack${indexes.length === 1 ? "" : "s"} / ${totalCount} item${totalCount === 1 ? "" : "s"} from backpack? This cannot be undone.`) ?? true;
-    if (!confirmed) return;
-    const result = discardBackpackIndexes(indexes);
-    if (result?.then) return;
-    selectedBackpackIndexes.clear();
-    focusedBackpackIndex = null;
-    renderGameUi();
-    refresh();
-    onStatus(result.ok
-      ? `Discarded ${result.discarded.length} backpack stack${result.discarded.length === 1 ? "" : "s"}.`
-      : result.reason);
+    const selectedSlots = indexes.map((index) => gameState.backpackSlots[index]);
+    requestDiscardConfirmation(batchDiscardDialog(indexes.length, totalCount), () => {
+      if (!indexes.every((index, offset) => sameBackpackSlot(index, selectedSlots[offset]))) {
+        return onStatus(ui("main.backpack.discardChanged", "The selected items changed before confirmation. Nothing was discarded."));
+      }
+      const result = discardBackpackIndexes(indexes);
+      if (result?.then) return;
+      selectedBackpackIndexes.clear();
+      focusedBackpackIndex = null;
+      renderGameUi();
+      refresh();
+      onStatus(result.ok
+        ? `Discarded ${result.discarded.length} backpack stack${result.discarded.length === 1 ? "" : "s"}.`
+        : result.reason);
+    });
   }
 
   function pruneSelection() {
@@ -645,6 +653,18 @@ export function createInventoryController({
       ["Count", String(slot.count || 0)],
       ["Source", slot.source === "chain" ? "chain backpack" : "local"],
     ];
+    if (Number.isFinite(slot.massGrams)) {
+      rows.push([
+        ui("main.backpack.massLine", "Mass {mass}", { mass: "" }).trim(),
+        formatMassGrams(slot.massGrams),
+      ]);
+    }
+    if (Number.isFinite(slot.volumeMm3) && slot.volumeMm3 > 0) {
+      rows.push([
+        ui("main.backpack.volumeLine", "Volume {volume}", { volume: "" }).trim(),
+        formatVolumeCm3(slot.volumeMm3),
+      ]);
+    }
     if (slot.source === "chain") {
       rows.push(["Chain Slot", Number.isInteger(slot.chainIndex) ? String(slot.chainIndex) : "-"]);
       rows.push(["Backpack PDA", shortAddress(slot.chainBackpack)]);
@@ -664,13 +684,9 @@ export function createInventoryController({
         rows.push(["PDA Rule", String(slot.decorationRuleId || "-")]);
       }
       rows.push(["Gather Yield", Number.isFinite(slot.yieldBps) ? `${Math.round(slot.yieldBps / 100)}%` : "-"]);
-      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
-      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
     } else if (slot.kind === "smelted_material") {
       rows.push(["Material", slot.materialId || "-"]);
       rows.push(["Quality", Number.isFinite(slot.quality) ? String(slot.quality) : "-"]);
-      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
-      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
       rows.push(["Proof", proofDetailValue(slot.proofHash)]);
     } else if (slot.kind === "forged") {
       rows.push(["Item Code", String(slot.itemCode ?? "-")]);
@@ -679,8 +695,6 @@ export function createInventoryController({
       rows.push(["Grade", String(slot.grade ?? "-")]);
       rows.push(["Item Level", String(slot.itemLevel ?? "-")]);
       rows.push(["Quality", Number.isFinite(slot.qualityBps) ? `${Math.round(slot.qualityBps / 100)}%` : "-"]);
-      rows.push(["Volume", formatVolumeCm3(slot.volumeMm3)]);
-      rows.push(["Mass", formatMassGrams(slot.massGrams)]);
     } else if (slot.kind === "blueprint") {
       rows.push(["Blueprint ID", slot.blueprintId || slot.chainItemId || "-"]);
       rows.push(["Blueprint PDA", proofDetailValue(slot.itemPda)]);
@@ -711,15 +725,16 @@ export function createInventoryController({
     });
     select.disabled = Boolean(equipped || slot.pending);
     const discard = detailAction("Discard", "danger", () => {
-      const confirmed = globalThis.confirm?.(`Discard ${backpackSlotLabel(slot)} from backpack? This cannot be undone.`) ?? true;
-      if (!confirmed) return;
-      const result = discardBackpackIndexes([index]);
-      if (result?.then) return;
-      selectedBackpackIndexes.delete(index);
-      focusedBackpackIndex = null;
-      renderGameUi();
-      refresh();
-      onStatus(result.ok ? `Discarded ${backpackSlotLabel(slot)}.` : result.reason);
+      requestDiscardConfirmation(singleDiscardDialog(slot), () => {
+        if (!sameBackpackSlot(index, slot)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
+        const result = discardBackpackIndexes([index]);
+        if (result?.then) return;
+        selectedBackpackIndexes.delete(index);
+        focusedBackpackIndex = null;
+        renderGameUi();
+        refresh();
+        onStatus(result.ok ? `Discarded ${backpackSlotLabel(slot)}.` : result.reason);
+      });
     });
     discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || discardingBackpackIndexes.has(index));
     actions.append(equip, select, discard);
@@ -773,6 +788,57 @@ export function createInventoryController({
       refresh();
     });
     return run;
+  }
+
+  function requestDiscardConfirmation(options, onConfirmed) {
+    let confirmation;
+    try {
+      confirmation = confirmAction(options);
+    } catch (error) {
+      onStatus(ui("main.backpack.confirmUnavailable", "Confirmation is unavailable. Nothing was discarded."));
+      return;
+    }
+    if (!confirmation?.then) {
+      if (confirmation !== false) onConfirmed();
+      return;
+    }
+    confirmation.then((confirmed) => {
+      if (confirmed) onConfirmed();
+    }).catch(() => {
+      onStatus(ui("main.backpack.confirmUnavailable", "Confirmation is unavailable. Nothing was discarded."));
+    });
+  }
+
+  function singleDiscardDialog(slot) {
+    return discardDialog(ui("main.backpack.discardSingleMessage", "Discard {item} from the backpack?", {
+      item: backpackSlotLabel(slot),
+    }));
+  }
+
+  function batchDiscardDialog(stackCount, itemCount) {
+    return discardDialog(ui("main.backpack.discardBatchMessage", "Discard {stacks} stacks containing {items} items from the backpack?", {
+      stacks: stackCount,
+      items: itemCount,
+    }));
+  }
+
+  function discardDialog(message) {
+    return {
+      tone: "danger",
+      eyebrow: ui("main.confirmDialog.eyebrow", "Confirmation Required"),
+      title: ui("main.backpack.discardTitle", "Discard backpack items?"),
+      message,
+      detail: ui("main.backpack.discardWarning", "This action is permanent and cannot be undone."),
+      confirmLabel: ui("main.backpack.discardConfirm", "Discard"),
+      cancelLabel: ui("main.confirmDialog.cancel", "Cancel"),
+    };
+  }
+
+  function sameBackpackSlot(index, expected) {
+    const current = gameState.backpackSlots[index];
+    if (!current || !expected) return false;
+    if (current === expected) return true;
+    return Boolean(current.id && expected.id && current.id === expected.id);
   }
 
   function setDiscardingIndexes(indexes, discarding) {
@@ -1050,21 +1116,6 @@ function shortAddress(value) {
   const text = String(value || "");
   if (!text) return "-";
   return text.length <= 12 ? text : `${text.slice(0, 4)}...${text.slice(-4)}`;
-}
-
-export function formatVolumeCm3(volumeMm3) {
-  const value = Number(volumeMm3);
-  if (!Number.isFinite(value) || value < 0) return "-";
-  return `${new Intl.NumberFormat("en", { maximumFractionDigits: 3 }).format(value / 1000)} cm³`;
-}
-
-export function formatMassGrams(massGrams) {
-  const value = Number(massGrams);
-  if (!Number.isFinite(value) || value < 0) return "-";
-  if (value >= 1000) {
-    return `${new Intl.NumberFormat("en", { maximumFractionDigits: 3 }).format(value / 1000)} kg`;
-  }
-  return `${new Intl.NumberFormat("en", { maximumFractionDigits: 0 }).format(value)} g`;
 }
 
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;

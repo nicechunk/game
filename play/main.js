@@ -31,7 +31,6 @@ import { createPositionPersistence, loadSavedPlayerPosition } from "./position-p
 import { createPlayerMotionController } from "./player-motion-controller.js";
 import { createPlayChainBackpackSync } from "./play-chain-backpack.js";
 import { createPlayBackpackCreation } from "./play-backpack-creation.js";
-import { resolveBackpackReadState } from "./backpack-read-state.js";
 import {
   createPlayChainChunkDeltaSync,
   DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT,
@@ -61,13 +60,13 @@ import { createPlayHud } from "./play-hud.js";
 import { createPlayInputActions } from "./play-input-actions.js";
 import { createPlayPlayerSession } from "./play-player-session.js";
 import { createPlayAvatarSession } from "./play-avatar-session.js";
-import { createAccountAvatarSnapshot } from "./play-account-avatar.js";
 import { createForgedItemPlacementController } from "./play-forged-item-placement.js";
 import { createPlayActionHit } from "./play-action-hit.js";
 import { createPlayProfileSession } from "./play-profile-session.js";
 import { createPlayStartupLogger } from "./play-startup-logger.js";
 import { createPlaySurfaceDecorationSync } from "./play-surface-decoration-sync.js";
 import { createPlayItemName } from "./play-item-name.js";
+import { createPlayConfirmDialog } from "./play-confirm-dialog.js";
 import { createPlayCacheMaintenance } from "./play-cache-maintenance.js";
 import { createMobileChatController } from "./play-mobile-chat.js";
 import { hydrateForgedPresentationSlot } from "./forged-hotbar-compat.js";
@@ -282,7 +281,6 @@ const elements = {
   bulkMiningCancel: document.querySelector("#bulkMiningCancelButton"),
   accountHud: document.querySelector("#accountHud"),
   accountName: document.querySelector("#accountName"),
-  accountAvatar: document.querySelector("#accountAvatar"),
   accountLevel: document.querySelector("#accountLevel"),
   accountTitle: document.querySelector("#accountTitle"),
   accountBalance: document.querySelector("#accountBalance"),
@@ -306,9 +304,11 @@ const elements = {
   walletStatus: document.querySelector("#walletStatus"),
   marketButton: document.querySelector("#marketButton"),
   marketPanel: document.querySelector("#marketPanel"),
+  marketBody: document.querySelector("#marketBody"),
   closeMarket: document.querySelector("#closeMarketButton"),
   marketTabs: document.querySelectorAll("[data-market-tab]"),
   marketTabPanels: document.querySelectorAll("[data-market-tab-panel]"),
+  marketMobileViewTabs: document.querySelectorAll("[data-market-mobile-view]"),
   marketWallet: document.querySelector("#marketWallet"),
   marketBackpack: document.querySelector("#marketBackpack"),
   marketRefresh: document.querySelector("#marketRefreshButton"),
@@ -317,6 +317,16 @@ const elements = {
   marketCurrencyFilter: document.querySelector("#marketCurrencyFilter"),
   marketSearchMeta: document.querySelector("#marketSearchMeta"),
   marketStatus: document.querySelector("#marketStatus"),
+  marketMembership: document.querySelector("#marketMembership"),
+  marketMembershipEyebrow: document.querySelector("#marketMembershipEyebrow"),
+  marketMembershipTitle: document.querySelector("#marketMembershipTitle"),
+  marketMembershipBody: document.querySelector("#marketMembershipBody"),
+  marketMembershipUserRent: document.querySelector("#marketMembershipUserRent"),
+  marketMembershipNetworkFee: document.querySelector("#marketMembershipNetworkFee"),
+  marketMembershipTotal: document.querySelector("#marketMembershipTotal"),
+  marketMembershipCapacity: document.querySelector("#marketMembershipCapacity"),
+  marketMembershipState: document.querySelector("#marketMembershipState"),
+  marketMembershipSubmit: document.querySelector("#marketMembershipSubmit"),
   marketCategoryButtons: document.querySelectorAll("[data-market-category]"),
   marketListingGrid: document.querySelector("#marketListingGrid"),
   marketListingPager: document.querySelector("#marketListingPager"),
@@ -330,6 +340,13 @@ const elements = {
   marketFormStatus: document.querySelector("#marketFormStatus"),
   marketOrdersGrid: document.querySelector("#marketOrdersGrid"),
   marketOrdersPager: document.querySelector("#marketOrdersPager"),
+  marketActiveOrdersGrid: document.querySelector("#marketActiveOrdersGrid"),
+  marketListingDetail: document.querySelector("#marketListingDetail"),
+  marketInventoryCount: document.querySelector("#marketInventoryCount"),
+  marketTradeToast: document.querySelector("#marketTradeToast"),
+  marketTradeToastMessage: document.querySelector("#marketTradeToastMessage"),
+  marketMyListings: document.querySelector("#marketMyListingsButton"),
+  marketViewOrders: document.querySelector("#marketViewOrdersButton"),
   smeltingButton: document.querySelector("#smeltingButton"),
   smeltingPanel: document.querySelector("#smeltingPanel"),
   closeSmelting: document.querySelector("#closeSmeltingButton"),
@@ -348,11 +365,6 @@ const elements = {
   smeltingClear: document.querySelector("#smeltingClear"),
   smeltingProgressValue: document.querySelector("#smeltingProgressValue"),
   smeltingProgressBar: document.querySelector("#smeltingProgressBar"),
-  rpcConfigPanel: document.querySelector("#rpcConfigPanel"),
-  rpcConfigForm: document.querySelector("#rpcConfigForm"),
-  rpcConfigApiKey: document.querySelector("#rpcConfigApiKey"),
-  rpcConfigDismiss: document.querySelector("#rpcConfigDismiss"),
-  rpcConfigStatus: document.querySelector("#rpcConfigStatus"),
   sessionFundingOverlay: document.querySelector("#sessionFundingOverlay"),
   sessionFundingPanel: document.querySelector("#sessionFundingPanel"),
   sessionFundingForm: document.querySelector("#sessionFundingForm"),
@@ -431,7 +443,6 @@ let lastMiningHitUntil = 0;
 let positionPersistence = null;
 let motion = null;
 let avatarSession = null;
-let accountAvatar = null;
 let mining = null;
 let bulkMining = null;
 let placement = null;
@@ -446,6 +457,7 @@ let minimap = null;
 let smelting = null;
 let market = null;
 let inventory = null;
+let confirmDialog = null;
 let guardian = null;
 let guardianAppearanceMeshes = null;
 let nameChatOverlay = null;
@@ -596,15 +608,11 @@ async function handleWalletSessionChanged(walletAddress) {
   chainSession?.render?.();
 }
 
-function setStatus(message, options = {}) {
-  const settings = options && typeof options === "object" ? options : {};
-  const quiet = settings.quiet !== false;
-  const tone = typeof options === "string" ? options : String(settings.tone || "info");
+function setStatus(message, { quiet = true } = {}) {
   const text = String(message || "");
   if (elements.status) elements.status.textContent = text;
   if (elements.gameStatus) {
     elements.gameStatus.textContent = text;
-    elements.gameStatus.dataset.tone = tone;
     elements.gameStatus.classList.remove("is-quiet", "is-hidden");
     clearTimeout(statusQuietTimer);
     if (quiet) {
@@ -780,10 +788,6 @@ async function boot() {
     setStatus,
     defaultModelCode: DEFAULT_AVATAR_MODEL_CODE,
   });
-  accountAvatar = createAccountAvatarSnapshot({
-    element: elements.accountAvatar,
-    getModelCode: () => profileSession?.currentAvatarModelCode() || DEFAULT_AVATAR_MODEL_CODE,
-  });
   avatarSession = createPlayAvatarSession({
     elements,
     gameState,
@@ -828,6 +832,7 @@ async function boot() {
     firstPersonPitchMax: FIRST_PERSON_CAMERA_PITCH_MAX,
   });
   refreshProfileSkillEffects();
+  confirmDialog = createPlayConfirmDialog();
   playUi = createPlayGameUi({
     elements,
     gameState,
@@ -837,12 +842,8 @@ async function boot() {
     getPlayerPosition: () => player ? playerWorldFloat() : [0, 0, 0],
     getPendingCount: () => (mining?.pendingCount() ?? 0) + (placement?.pendingCount() ?? 0),
     getChainSnapshot: chainSnapshot,
-    getBackpackSnapshot: () => chainBackpack?.snapshot?.() ?? null,
     getAvatarEquipment: currentAvatarEquipment,
-    onOpenBackpack: openBackpackPanel,
-    onBackpackPanelOpened: () => {
-      smelting?.showInventory?.();
-    },
+    onBackpackPanelOpened: () => smelting?.showInventory?.(),
     onBackpackPanelClosed: () => {
       smelting?.closePanel?.();
       inventory?.clearSelection?.({ silent: true });
@@ -862,6 +863,7 @@ async function boot() {
     voxelItemLabel,
     resourceName,
     getRpcUrl: () => chainSession?.snapshot()?.rpcUrl || "",
+    confirmAction: (options) => confirmDialog.confirm(options),
     translate: translateWithFallback,
   });
   chainSession = createPlayChainSession({
@@ -877,6 +879,7 @@ async function boot() {
     resourceName,
     getBackpackTarget: chainBackpackAnimationTarget,
     onBackpackRequired: (detail) => backpackCreation?.open(detail),
+    refreshPlayerProgress: (options) => chainPlayer?.refresh?.(options) ?? Promise.resolve(null),
   });
   chainPlayer = createPlayChainPlayerSync({
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
@@ -959,19 +962,12 @@ async function boot() {
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
     onChanged: () => {
       chainPlayer?.applyEquipmentSnapshot?.();
-      chainPlayer?.migrateEquipmentIfNeeded?.();
       renderGameUi();
-      openCreationAfterConfirmedBackpackAbsence();
     },
     onStatus: setStatus,
     appendEvent: (message) => chainSession?.appendChainEvent?.(message),
     chunkSize: chunks.chunkSize || 16,
     resolveSurfaceDecoration: (resource) => surfaceDecorationSync?.resolveBackpackDecoration?.(resource),
-    onSyncStateChanged: () => {
-      playUi?.renderBackpack?.();
-      backpackCreation?.render?.();
-    },
-    translate: translateWithFallback,
   });
   backpackCreation = createPlayBackpackCreation({
     elements,
@@ -984,7 +980,6 @@ async function boot() {
     onCreated: () => renderGameUi(),
     onStatus: setStatus,
     appendEvent: (message) => chainSession?.appendChainEvent?.(message),
-    translate: translateWithFallback,
   });
   chainFrameSync = createPlayChainFrameSync({
     getChainBackpack: () => chainBackpack,
@@ -1000,6 +995,7 @@ async function boot() {
     getCameraHeading: minimapCameraHeading,
     getViewDistance: () => chunks?.viewDistance ?? viewDistance,
     getGuardianSnapshot: () => guardian?.snapshot?.() ?? null,
+    translate: translateWithFallback,
     onTeleport: (x, z) => playerSession?.teleportPlayerFromMap(x, z) ?? false,
     setStatus,
   });
@@ -1017,6 +1013,8 @@ async function boot() {
       }
       return chainBackpack?.refresh?.({ force, quiet: true }) ?? Promise.resolve({ ok: false, reason: "backpack-sync-unavailable" });
     },
+    refreshPlayerProgress: (options) => chainPlayer?.refresh?.(options)
+      ?? Promise.resolve({ ok: false, reason: "player-sync-unavailable" }),
     onSharedPanelOpen: () => playUi?.closeProfilePanel(),
     onStatus: setStatus,
     onChanged: renderGameUi,
@@ -1028,6 +1026,15 @@ async function boot() {
     resourceName,
     voxelItemLabel,
     getChainSnapshot: chainSnapshot,
+    translate: translateWithFallback,
+    refreshChainInventory: async () => {
+      await Promise.all([
+        chainBackpack?.refresh?.({ force: true, quiet: true }),
+        chainPlayer?.refresh?.({ force: true, quiet: true }),
+      ]);
+    },
+    onEnterMarket: () => playUi?.closeBackpackPanel(),
+    onReturnToBackpack: () => playUi?.openBackpackPanel(),
     onStatus: setStatus,
     onChanged: renderGameUi,
   });
@@ -1413,7 +1420,9 @@ function frame(now) {
   markFrameProbe(frameProbe, "player-sync");
   const movingNow = isMotionActive();
   guardian?.update(now, dt);
-  applyGuardianConnectionState(elements.guardianConnectionIndicator, guardian?.connectionState?.());
+  const guardianConnectionState = guardian?.connectionState?.() || "disconnected";
+  applyGuardianConnectionState(elements.guardianConnectionIndicator, guardianConnectionState);
+  minimap?.setGuardianConnectionState?.(guardianConnectionState);
   markFrameProbe(frameProbe, "guardian");
   updateNameChatOverlayForFrame(now);
   markFrameProbe(frameProbe, "name-chat");
@@ -1635,7 +1644,6 @@ function dispatchBlueprintConstructionAction(action, ...args) {
 
 function renderGameUi() {
   refreshProfileSkillEffects();
-  accountAvatar?.render();
   playUi?.renderGameUi();
   backpackCreation?.render();
   inventory?.refresh();
@@ -1649,11 +1657,8 @@ function renderGameUi() {
 function refreshProfileSkillEffects() {
   const snapshot = chainSnapshot?.() ?? {};
   profileSkillEffects = createProfileSkillEffects({
-    owner: snapshot.walletAddress || gameState.playerProfile?.name || "guest",
-    profile: gameState.playerProfile,
     chainXp: snapshot.playerSkillXp || snapshot.skillXp || null,
     chainLevels: snapshot.playerSkillLevels || snapshot.skillLevels || null,
-    chainAuthoritative: true,
   });
   applyPlayerMovementSpeeds(controls, profileSkillEffects);
   return profileSkillEffects;
@@ -1799,6 +1804,7 @@ function chainSnapshot() {
     chainPlayer: playerSnapshot,
     playerSkillXp: playerSnapshot?.skillXp ?? null,
     playerSkillLevels: playerSnapshot?.skillLevels ?? null,
+    playerSkillThresholds: playerSnapshot?.progress?.skillThresholds ?? null,
     guardian: guardian?.snapshot?.() ?? null,
   };
 }
@@ -1890,42 +1896,23 @@ function localOverlayTarget() {
 }
 
 function toggleBackpackPanel() {
-  if (elements.backpackPanel && !elements.backpackPanel.hidden) {
-    playUi?.closeBackpackPanel();
+  if (!gameState.isBackpackAvailable()) {
+    backpackCreation?.open({ source: "backpack" });
     return;
   }
-  openBackpackPanel();
+  playUi?.toggleBackpackPanel();
 }
 
 function openBackpackPanel() {
-  const readState = currentBackpackReadState();
-  if (readState.known && !readState.available) {
+  if (!gameState.isBackpackAvailable()) {
     backpackCreation?.open({ source: "backpack" });
     return;
   }
   playUi?.openBackpackPanel();
   inventory?.refresh();
-  const snapshot = chainBackpack?.snapshot?.();
-  const force = snapshot?.statusKnown !== true
-    || Boolean(snapshot?.lastError && snapshot.lastError !== "no-equipped-backpack");
-  chainBackpack?.refresh({ force, quiet: false }).then((result) => {
+  chainBackpack?.refresh({ quiet: false }).then((result) => {
     if (result?.ok) renderGameUi();
   });
-}
-
-function currentBackpackReadState() {
-  return resolveBackpackReadState({
-    gameState,
-    snapshot: chainBackpack?.snapshot?.(),
-  });
-}
-
-function openCreationAfterConfirmedBackpackAbsence() {
-  if (elements.backpackPanel?.hidden) return;
-  const readState = currentBackpackReadState();
-  if (!readState.known || readState.available) return;
-  playUi?.closeBackpackPanel();
-  backpackCreation?.open({ source: "backpack" });
 }
 
 function chainBackpackAnimationTarget() {

@@ -80,8 +80,8 @@ export function createPlayChainAdapter({
         }
       : {};
     const mineOptions = mineShouldSavePlayerPosition(block)
-      ? { ...backpackOptions, playerPosition: playerPositionProof(getPlayerPosition) }
-      : backpackOptions;
+      ? { ...backpackOptions, durabilityDamage: pending.chainToolDamage, playerPosition: playerPositionProof(getPlayerPosition) }
+      : { ...backpackOptions, durabilityDamage: pending.chainToolDamage };
     const isTreeFell = pending.miningKind === "tree-fell" && Array.isArray(pending.blocks) && pending.blocks.length > 1;
     const isSupportCollapse = pending.miningKind === "support-collapse" && Array.isArray(pending.collapseBlocks) && pending.collapseBlocks.length > 0;
     const isDebugBulkMine = pending.miningKind === "debug-bulk"

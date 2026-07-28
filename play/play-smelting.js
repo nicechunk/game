@@ -41,6 +41,8 @@ export function createPlaySmelting({
   getSkillEffects = () => null,
   getBackpackSnapshot = () => null,
   refreshBackpack = async () => null,
+  refreshPlayerProgress = async () => null,
+  loadChainModule = loadPlayChainModule,
   onSharedPanelOpen = () => {},
   onStatus = () => {},
   onChanged = () => {},
@@ -275,8 +277,7 @@ export function createPlaySmelting({
         if (state.recipeFilter === "fuel") return summary.recipe.forgeUse === "fuel" || summary.recipe.class === "carbon";
         if (state.recipeFilter === "building") return summary.recipe.forgeUse === "construction";
         return true;
-      })
-      .sort((a, b) => Number(b.selected) - Number(a.selected) || Number(b.ready) - Number(a.ready) || b.ratio - a.ratio);
+      });
     const signature = [
       document.documentElement.lang,
       state.recipeFilter,
@@ -590,7 +591,10 @@ export function createPlaySmelting({
     stats.className = "nice-smelting-detail-stats";
     stats.append(
       detailStat(ui("main.smelting.requiredHeat", "Required heat"), processValue),
-      detailStat(ui("main.smelting.outputRate", "Output rate"), `${Math.round(view.recipeYieldBps / 100)}%`),
+      detailStat(
+        ui("main.smelting.outputRate", "Output rate"),
+        `${(view.recipeYieldBps / 100).toFixed(1).replace(/\.0$/u, "")}%`,
+      ),
       detailStat(ui("main.smelting.qualityScore", "Quality"), `${view.properties.qualityScore}/100`),
       detailStat(ui("main.smelting.purity", "Purity"), `${view.properties.purity}/100`),
     );
@@ -677,7 +681,7 @@ export function createPlaySmelting({
     const heatReady = Boolean(recipe && (!requiresFuel || (fuel && fuel.heatTier >= recipe.requiredHeatTier)));
     const skillEffects = getSkillEffects?.() || {};
     const skillLevel = Math.max(0, Math.min(10, Math.floor(Number(skillEffects.levels?.smelting) || 0)));
-    const skillOutputBps = Math.max(1, Math.min(10000, Math.floor(Number(skillEffects.smeltingOutputBps) || smeltingSkillOutputBpsForLevel(skillLevel))));
+    const skillOutputBps = Math.max(10000, Math.min(15000, Math.floor(Number(skillEffects.smeltingOutputBps) || smeltingSkillOutputBpsForLevel(skillLevel))));
     const recipeYieldBps = recipe ? smeltingRecipeYieldBps(recipe) : 0;
     const propertyInputs = inputSlots.map((slot) => ({ ...slot, category: resourceCategory(slot) }));
     const properties = recipe
@@ -929,15 +933,17 @@ export function createPlaySmelting({
   async function startSmelting() {
     if (state.running) return;
     syncSelections();
-    const view = selectedRecipeView();
-    if (!view.ready) {
+    const initialView = selectedRecipeView();
+    if (!initialView.ready) {
       render();
       return;
     }
-    const snapshot = getBackpackSnapshot?.() || {};
-    const chainIdentity = smeltingRecipeChainIdentity(view.recipe);
-    const inputIndexes = view.inputSlots.map((slot) => slot.chainIndex);
-    const fuelIndexes = view.requiresFuel ? [view.fuelSlot.chainIndex] : [];
+    let snapshot = getBackpackSnapshot?.() || {};
+    const chainIdentity = smeltingRecipeChainIdentity(initialView.recipe);
+    const selection = captureChainSelection(initialView);
+    const submissionServings = state.servings;
+    let inputIndexes = initialView.inputSlots.map((slot) => slot.chainIndex);
+    let fuelIndexes = initialView.requiresFuel ? [initialView.fuelSlot.chainIndex] : [];
     if (!chainIdentity.recipeId || !chainIdentity.recipeTableId || new Set([...inputIndexes, ...fuelIndexes]).size !== inputIndexes.length + fuelIndexes.length) {
       failSubmission("invalid-smelting-inputs");
       return;
@@ -954,7 +960,34 @@ export function createPlaySmelting({
     startSmeltingVisuals();
 
     try {
-      const chainModule = await loadPlayChainModule();
+      const preflightRefresh = await refreshBackpackForSubmission();
+      if (!preflightRefresh?.ok) {
+        throw new Error(ui("main.smelting.backpackRefreshFailed", "Backpack could not be refreshed before smelting: {reason}", {
+          reason: String(preflightRefresh?.reason || "backpack-sync-unavailable"),
+        }));
+      }
+      const refreshedSnapshot = getBackpackSnapshot?.() || {};
+      if (!sameBackpack(snapshot, refreshedSnapshot) || !restoreChainSelection(selection)) {
+        throw new Error(ui("main.smelting.inputsChanged", "Backpack contents changed. Review the refreshed inputs and try again."));
+      }
+      snapshot = refreshedSnapshot;
+      const refreshedView = selectedRecipeView();
+      const refreshedIdentity = smeltingRecipeChainIdentity(refreshedView.recipe);
+      inputIndexes = refreshedView.inputSlots.map((slot) => slot.chainIndex);
+      fuelIndexes = refreshedView.requiresFuel ? [refreshedView.fuelSlot?.chainIndex] : [];
+      const indexes = [...inputIndexes, ...fuelIndexes];
+      if (
+        !refreshedView.ready
+        || state.servings !== submissionServings
+        || refreshedIdentity.recipeId !== chainIdentity.recipeId
+        || refreshedIdentity.recipeTableId !== chainIdentity.recipeTableId
+        || indexes.some((index) => !Number.isInteger(index))
+        || new Set(indexes).size !== indexes.length
+      ) {
+        throw new Error(ui("main.smelting.inputsChanged", "Backpack contents changed. Review the refreshed inputs and try again."));
+      }
+
+      const chainModule = await loadChainModule();
       if (typeof chainModule.executeSmeltingOnChain !== "function") throw new Error("smelting-submit-unavailable");
       const result = await chainModule.executeSmeltingOnChain({
         recipeId: chainIdentity.recipeId,
@@ -979,6 +1012,10 @@ export function createPlaySmelting({
       });
       if (!refreshResult?.ok) {
         console.warn("[NiceChunk Smelting] Transaction confirmed but PDA refresh is pending.", refreshResult);
+      }
+      const playerRefreshResult = await refreshPlayerProgress({ force: true, quiet: true });
+      if (!playerRefreshResult?.ok) {
+        console.warn("[NiceChunk Smelting] Transaction confirmed but PlayerSkills refresh is pending.", playerRefreshResult);
       }
       state.inputSlotIds = [];
       state.fuelSlotId = "";
@@ -1009,8 +1046,43 @@ export function createPlaySmelting({
         logs: error?.logs || error?.transactionLogs || null,
         error,
       });
+      await refreshBackpack({ force: true }).catch(() => null);
       failSubmission(reason);
     }
+  }
+
+  async function refreshBackpackForSubmission() {
+    let result = null;
+    for (const delay of [0, 120, 280, 520]) {
+      if (delay) await wait(delay);
+      result = await refreshBackpack({ force: true });
+      if (result?.reason !== "already-loading") return result;
+    }
+    return result;
+  }
+
+  function captureChainSelection(view) {
+    return {
+      inputs: view.inputSlots.map(chainSlotIdentity),
+      fuel: view.requiresFuel ? chainSlotIdentity(view.fuelSlot) : "",
+    };
+  }
+
+  function restoreChainSelection(selection) {
+    const buckets = new Map();
+    for (const slot of authoritativeSlots()) {
+      const identity = chainSlotIdentity(slot);
+      if (!identity) continue;
+      if (!buckets.has(identity)) buckets.set(identity, []);
+      buckets.get(identity).push(slot);
+    }
+    const take = (identity) => buckets.get(identity)?.shift?.() || null;
+    const inputs = selection.inputs.map(take);
+    const fuel = selection.fuel ? take(selection.fuel) : null;
+    if (selection.inputs.some((identity) => !identity) || inputs.some((slot) => !slot) || (selection.fuel && !fuel)) return false;
+    state.inputSlotIds = inputs.map((slot) => slot.id);
+    state.fuelSlotId = fuel?.id || "";
+    return true;
   }
 
   function failSubmission(reason) {
@@ -1282,6 +1354,33 @@ function humanize(value) {
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length <= 14 ? value : `${value.slice(0, 6)}...${value.slice(-6)}`;
+}
+
+function sameBackpack(before = {}, after = {}) {
+  const beforeAddress = String(before?.backpackAddress || "");
+  const afterAddress = String(after?.backpackAddress || "");
+  return Boolean(beforeAddress && beforeAddress === afterAddress);
+}
+
+function chainSlotIdentity(slot = {}) {
+  const backpack = String(slot?.chainBackpack || "");
+  if (!backpack) return "";
+  if (slot.kind === "resource") {
+    const proof = slot.proof || {};
+    const coordinates = [proof.worldX, proof.worldY, proof.worldZ].map(Number);
+    if (coordinates.every(Number.isInteger)) {
+      return `resource:${backpack}:${coordinates.join(",")}:${Math.trunc(Number(slot.blockId) || 0)}`;
+    }
+  }
+  const itemPda = String(slot?.itemPda || "");
+  if (itemPda) return `item-pda:${backpack}:${itemPda}`;
+  const chainItemId = String(slot?.chainItemId || "");
+  if (chainItemId) return `item:${backpack}:${Math.trunc(Number(slot.itemCode) || 0)}:${chainItemId}`;
+  return Number.isInteger(slot?.chainIndex) ? `slot:${backpack}:${slot.chainIndex}` : "";
+}
+
+function wait(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
 function readableError(error) {

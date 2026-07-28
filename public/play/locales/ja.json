@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-39656126984e8901",
-    "contentHash": "39656126984e8901"
+    "version": "play-locale-ja-e606387d91fa831b",
+    "contentHash": "e606387d91fa831b"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -227,14 +227,6 @@
         "programUpgradePending": "player program upgrade pending"
       },
       "rpc": "RPC",
-      "rpcPublic": "パブリック RPC",
-      "rpcKey": "RPCKEY {key}",
-      "rpcRecommend": "Set a private RPC key for steadier mining.",
-      "rpcConfigured": "Private RPC key is active for chain calls.",
-      "rpcSet": "設定",
-      "rpcUpdate": "更新",
-      "rpcSetPrompt": "Set a Helius API key to avoid public RPC limits.",
-      "rpcUpdatePrompt": "Update your Helius API key for NiceChunk chain calls.",
       "characterTitle": "CHARACTER",
       "basicInfo": "BASIC INFO",
       "skillsTab": "Skills",
@@ -365,12 +357,12 @@
         },
         "smelting": {
           "name": "Smelting",
-          "description": "Reduces material loss when raw resources become refined materials.",
+          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
           "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "{yieldPercent}% yield · {lossPercent}% loss",
-          "next": "Next level: {yieldPercent}% yield · {lossPercent}% loss",
-          "max": "Max: 100% yield · 0% loss",
-          "formula": "Yield = 70% + Lv x 3%; loss = 30% - Lv x 3%"
+          "current": "+{bonus}% extra output",
+          "next": "Next level: +{bonus}% extra output",
+          "max": "Max: +50% extra output",
+          "formula": "Extra output = Lv x 5%"
         },
         "forging": {
           "name": "Forging",
@@ -446,14 +438,18 @@
       "walletDisconnectedHint": "オンチェーン機能を使うにはウォレットを接続してください。",
       "logOut": "ログアウト",
       "rpcSettings": "RPC 接続",
-      "rpcSettingsHint": "このブラウザが使用する Solana データゲートウェイを設定します。",
+      "rpcSettingsHint": "アカウント読み取り、ワールドPDA同期、署名済みトランザクション送信を制御します。",
       "rpcHelius": "Helius RPC",
-      "rpcHintPrivate": "チェーン呼び出しにプライベート RPC を使用中です。",
-      "rpcHintPublic": "安定した採掘のため Helius キーを設定してください。",
+      "rpcCustom": "カスタム Devnet RPC",
+      "rpcPublic": "パブリック RPC",
+      "rpcHintPrivate": "アカウント、ワールド同期、トランザクションに Helius Devnet を使用中です。",
+      "rpcHintCustom": "検証済みのカスタム Devnet エンドポイントを読み取りとトランザクションに使用中です。",
+      "rpcHintPublic": "共有パブリック Devnet は制限される場合があります。Helius Free またはカスタム接続を設定できます。",
+      "rpcUpdate": "更新",
+      "rpcSet": "設定",
       "languageSettings": "表示言語",
       "language": "言語",
       "languageHint": "ゲーム画面の言語を選択します。",
-      "rotateAvatar": "ドラッグして回転",
       "cacheSettings": "ローカルキャッシュ",
       "cacheSettingsHint": "このブラウザに保存された一時的なワールド情報とガイド情報を管理します。",
       "cacheAction": "ローカルゲームデータを更新",
@@ -465,7 +461,8 @@
       "cacheClearing": "消去中...",
       "cacheCleared": "キャッシュを消去しました。再読み込み中...",
       "cacheClearedButton": "消去済み",
-      "cacheClearFailed": "キャッシュを消去できませんでした: {reason}"
+      "cacheClearFailed": "キャッシュを消去できませんでした: {reason}",
+      "rotateAvatar": "ドラッグして回転"
     },
     "debug": "デバッグ",
     "bulkMining": {
@@ -498,7 +495,8 @@
       "resolving": "Guardian: 解決中...",
       "resolvingForChunk": "Guardian: チャンク {chunkX},{chunkZ} を解決中",
       "active": "Guardian: {endpoint} | チャンク {chunkX},{chunkZ} | 範囲 {minX}..{maxX}, {minZ}..{maxZ}",
-      "none": "Guardian: チャンク {chunkX},{chunkZ} にはありません"
+      "none": "Guardian: チャンク {chunkX},{chunkZ} にはありません",
+      "connectionLost": "Guardian との接続が切断されました"
     },
     "mapTeleport": {
       "x": "X",
@@ -604,7 +602,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "総重量：{weight}",
+      "totalWeight": "Weight: {weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -617,13 +615,13 @@
       "equipped": "装備中",
       "equippedSlot": "ホットバーのスロット {slot} に装備中",
       "equippedLocked": "ホットバーのスロット {slot} に装備中です。選択、移動、破棄する前に装備を外してください。",
-      "loading": "バックパックを読み込み中...",
-      "unavailable": "バックパックを利用できません",
-      "readFailed": "バックパックの読み込みに失敗しました: {reason}",
-      "readFailedShort": "バックパックデータを読み込めませんでした。バックパックを開き直して再試行してください。",
-      "openAria": "バックパックを開く",
-      "loadingAria": "バックパックを読み込み中",
-      "createAria": "バックパックを作成"
+      "discardTitle": "バックパックのアイテムを破棄しますか？",
+      "discardSingleMessage": "バックパックから {item} を破棄しますか？",
+      "discardBatchMessage": "バックパックから {items} 個のアイテムを含む {stacks} スタックを破棄しますか？",
+      "discardWarning": "この操作は取り消せません。",
+      "discardConfirm": "破棄",
+      "discardChanged": "確認前に選択したアイテムが変更されました。何も破棄されていません。",
+      "confirmUnavailable": "確認画面を利用できません。何も破棄されていません。"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -676,6 +674,9 @@
         "redirect": {
           "title": "Opening wallet gateway",
           "body": "No active game session was found. Redirecting to wallet login."
+        },
+        "characterAccess": {
+          "title": "キャラクターPDAを読み込み中"
         }
       },
       "loader": {
@@ -685,32 +686,137 @@
         "cached": "キャッシュ済み",
         "failed": "失敗",
         "failureMessage": "ゲームファイルを読み込めませんでした。",
+        "errorDetail": "詳細: {reason}",
         "retry": "再試行",
+        "retrying": "再試行中",
+        "refresh": "ページを更新",
+        "rpcSettings": "RPC設定",
+        "rpcInputLabel": "Helius devnet APIキー",
+        "rpcPlaceholder": "Helius APIキーを貼り付け",
+        "rpcSave": "保存して再試行",
+        "rpcSaving": "保存中",
+        "rpcSaved": "RPCを保存しました",
+        "cancel": "キャンセル",
         "files": "{loaded} / {total} ファイル",
-        "network": "ネットワーク"
+        "network": "ネットワーク",
+        "failures": {
+          "network-offline": {
+            "title": "ネットワーク未接続",
+            "message": "ブラウザーがオフラインのため、プレイヤーPDAを読み込めません。",
+            "help": "インターネットへ再接続して再試行してください。"
+          },
+          "network-unavailable": {
+            "title": "ネットワーク要求失敗",
+            "message": "Solana RPCへ接続できませんでした。",
+            "help": "接続やプロキシを確認するか、専用RPCを設定してください。"
+          },
+          "rpc-rate-limited": {
+            "title": "RPC制限に到達",
+            "message": "RPCが混雑してプレイヤー照会を拒否しました。",
+            "help": "時間を置くか、Helius devnetキーを設定してください。"
+          },
+          "rpc-unauthorized": {
+            "title": "RPC認証失敗",
+            "message": "設定したRPCキーまたはエンドポイントが拒否されました。",
+            "help": "RPC設定のキーを修正して再試行してください。"
+          },
+          "rpc-unavailable": {
+            "title": "RPCを利用できません",
+            "message": "Solanaエンドポイントが照会を完了できませんでした。",
+            "help": "再試行、プロキシ確認、または専用RPCを利用してください。"
+          },
+          "character-timeout": {
+            "title": "プレイヤー照会がタイムアウト",
+            "message": "プレイヤーPDA要求に時間がかかりすぎました。",
+            "help": "RPCを確認して同じ照会を再試行してください。"
+          },
+          "character-data-invalid": {
+            "title": "プレイヤーデータが無効",
+            "message": "アカウントは存在しますが、データ検証に失敗しました。",
+            "help": "別のキャラクターを作らず、更新または修復を依頼してください。"
+          },
+          "wallet-unavailable": {
+            "title": "ウォレットセッション利用不可",
+            "message": "保存済みウォレットで検証できませんでした。",
+            "help": "ログインへ戻り、正しいウォレットを接続してください。"
+          },
+          "verification-unavailable": {
+            "title": "プレイヤー検証を利用不可",
+            "message": "読み込んだクライアントに必要な照会機能がありません。",
+            "help": "ページを更新し、続く場合はリリースの修復が必要です。"
+          },
+          "character-verification-failed": {
+            "title": "プレイヤー検証失敗",
+            "message": "プレイヤーPDAを検証できませんでした。",
+            "help": "詳細を確認して再試行または更新してください。"
+          }
+        }
       }
     },
     "rpcConfig": {
-      "title": "Public RPC is overloaded",
-      "body": "Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.",
-      "link": "Get a Helius API key",
+      "title": "Solana RPC connection",
+      "body": "Choose how this browser reaches Solana Devnet for account reads, world synchronization, and signed transactions.",
+      "failureTitle": "RPC setup can resolve this loading error",
+      "failureBody": "The failed loading stage and technical reason are shown below. Configure a working Devnet endpoint, save it, and NiceChunk will retry the same player lookup instead of creating a new character.",
+      "failureLabel": "Loading issue detected",
+      "failureUnknown": "No additional technical reason was returned.",
+      "failureStage": "Failed stage: {stage}",
+      "failureReason": "Technical reason: {reason}",
+      "linksAria": "RPC provider resources",
+      "link": "Open Helius dashboard",
+      "guideLink": "Read the setup guide",
       "explainerAria": "RPC setting details",
       "pointGatewayLabel": "Chain gateway",
       "pointGatewayTitle": "RPC decides how the browser reaches Solana",
-      "pointGatewayBody": "NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions. It does not change your wallet ownership.",
+      "pointGatewayBody": "NiceChunk uses RPC to load player and backpack accounts, synchronize world PDAs, and submit signed transactions. It does not change wallet ownership.",
       "pointReliabilityLabel": "Reliability",
-      "pointReliabilityTitle": "A private key avoids public endpoint congestion",
-      "pointReliabilityBody": "When many players share the public devnet RPC, reads and mining transactions can be throttled. Your own Helius key gives this browser a steadier route.",
+      "pointReliabilityTitle": "A dedicated endpoint avoids public congestion",
+      "pointReliabilityBody": "Shared public Devnet requests can be throttled. A Helius Free plan is normally sufficient for testing and gives this browser an independent allowance.",
       "pointCostLabel": "Cost boundary",
       "pointCostTitle": "The key is not a payment to NiceChunk",
-      "pointCostBody": "The API key is stored locally in your browser and used only to build your RPC URL. For normal NiceChunk gameplay, the Helius Free plan is usually enough. If you want higher limits and a smoother experience, you can use a paid Helius plan.",
+      "pointCostBody": "The API key or endpoint is stored only in this browser. Provider plan costs are separate from Solana transaction fees and are never paid to NiceChunk.",
       "pointSecurityLabel": "Security",
       "pointSecurityTitle": "RPC cannot spend SOL by itself",
-      "pointSecurityBody": "Transactions still require your wallet or game wallet signature. RPC only transports signed requests and chain data.",
+      "pointSecurityBody": "Transactions still require a wallet signature. RPC only transports signed requests and chain data, and NiceChunk never sends the saved credential to its own server.",
+      "currentLabel": "Current connection",
+      "current": {
+        "public": "Shared public Devnet RPC",
+        "helius": "Helius Devnet RPC",
+        "custom": "Custom Devnet RPC"
+      },
+      "providerLabel": "Connection method",
+      "providerHelius": "Helius Devnet API key (recommended)",
+      "providerCustom": "Custom HTTPS Devnet endpoint",
       "inputLabel": "Helius API key",
       "placeholder": "Paste your Helius API key",
-      "save": "Save RPC",
-      "dismiss": "Dismiss RPC warning",
+      "heliusHelp": "Create a Helius account, select Solana Devnet, then paste only the API key. The free plan is normally enough for game testing.",
+      "endpointLabel": "Custom Devnet RPC endpoint",
+      "endpointPlaceholder": "https://your-solana-devnet-rpc.example",
+      "endpointHelp": "Only HTTPS endpoints are accepted. NiceChunk tests the Solana genesis hash before saving to prevent a mainnet or testnet mismatch.",
+      "save": "Test and save",
+      "testing": "Testing...",
+      "usePublic": "Use public RPC",
+      "publicNote": "The public endpoint is shared and can be rate limited. It is available as a fallback, not the recommended long-term setting.",
+      "dismiss": "Close RPC settings",
+      "savedStatus": "RPC connection tested and saved. Account reads, world synchronization, and transactions now use it.",
+      "publicSavedStatus": "Shared public Devnet RPC is active. It may be rate limited during busy periods.",
+      "openFailed": "RPC settings could not be opened. Refresh the game and try again.",
+      "validation": {
+        "invalidKey": "Enter the Helius API key before testing.",
+        "invalidUrl": "Enter a valid HTTPS Solana Devnet RPC endpoint without embedded username or password credentials.",
+        "testing": "Testing the endpoint and confirming the Solana Devnet genesis hash...",
+        "unauthorized": "The provider rejected this credential. Check the API key or endpoint in the provider dashboard.",
+        "rateLimited": "This endpoint is already rate limited. Check the provider plan or use another Devnet endpoint.",
+        "http": "The endpoint returned HTTP {status}. Check the provider status and endpoint configuration.",
+        "invalidResponse": "The endpoint did not return a valid Solana JSON-RPC response.",
+        "rejected": "The endpoint rejected the Solana genesis check.",
+        "wrongNetwork": "This endpoint is not Solana Devnet. NiceChunk did not save it.",
+        "timeout": "The endpoint did not respond within 10 seconds. Check the network, proxy, or provider status.",
+        "network": "The browser could not reach this endpoint. Check Internet access, proxy rules, CORS support, or the provider status.",
+        "storage": "The browser could not save this RPC setting. Check site storage permissions.",
+        "saved": "Connection verified and saved. Retrying with this Devnet RPC...",
+        "publicSaved": "Public Devnet RPC restored. Retrying the failed request..."
+      },
       "publicRpcFailed": "Public devnet RPC is rate limited. Add a Helius API key to keep chain reads and mining transactions reliable.",
       "invalid": "Enter a Helius API key before saving.",
       "saved": "Saved. NiceChunk will use your Helius devnet RPC for chain calls."
@@ -725,6 +831,35 @@
       "browseTab": "閲覧",
       "sellTab": "売却",
       "ordersTab": "注文",
+      "mobileViews": "Mobile market views",
+      "mobileListings": "Listings",
+      "mobileBackpack": "Backpack",
+      "opened": "Market opened. Chain listings use PDA state when wallet and RPC are available.",
+      "localWallet": "Local wallet",
+      "membershipEyebrow": "On-chain access",
+      "joinTitle": "Join the market",
+      "joinBody": "Create your personal market membership PDA before trading.",
+      "joinCostBreakdown": "Market joining cost breakdown",
+      "userStateRent": "Market state PDA rent",
+      "networkFeeEstimate": "Estimated network fee",
+      "estimatedTotal": "Estimated total",
+      "rentExplanation": "PDA rent is a rent-exempt reserve locked in your on-chain accounts, not a platform fee. It is recoverable only if the program later provides an account-close instruction. The network fee is paid to Solana validators.",
+      "joinCapacity": "Each wallet may keep up to 50 active listings.",
+      "marketRulesLink": "Read market rules and fees",
+      "joinAction": "Join market",
+      "totalPlusNetworkFee": "{amount} SOL + network fee",
+      "membershipChecking": "Reading market membership and live RPC costs...",
+      "membershipSubmitting": "Waiting for confirmation...",
+      "joinReady": "Review the live estimate, then approve market access in your wallet.",
+      "costPending": "Checking RPC...",
+      "membershipWalletRequired": "Connect your game wallet before joining the market.",
+      "membershipUnavailable": "Market membership is unavailable in this client.",
+      "membershipCheckFailed": "Could not check market access: {reason}",
+      "retryMembership": "Retry cost estimate",
+      "joinPending": "Confirm market membership in your wallet.",
+      "joinCreated": "Market access created on-chain: {signature}",
+      "joinRequired": "Join the market before creating or settling listings.",
+      "alreadyJoined": "This wallet has already joined the market.",
       "searchLabel": "Search",
       "searchPlaceholder": "Resource, equipment, coordinate",
       "searchMetaIdle": "{category} · {currency} · {sort}",
@@ -732,6 +867,9 @@
       "chainListingsSyncing": "Syncing chain listings...",
       "chainListingsSynced": "Chain listings synced",
       "chainListingsUnavailable": "Chain sync unavailable",
+      "chainListingsQueryUnavailable": "The loaded client cannot query chain market listings.",
+      "chainListingsLoaded": "Loaded {count} chain market listings.",
+      "chainListingsFailed": "Chain market refresh failed: {reason}.",
       "sortLabel": "Sort",
       "sortNewest": "Newest first",
       "sortOldest": "Oldest first",
@@ -757,6 +895,20 @@
       "feeValue": "1%",
       "settlement": "Preferred settlement: NCK",
       "backpackCount": "{count}/{capacity}",
+      "inventory": "Inventory",
+      "myListings": "My Listings",
+      "inventoryAllItems": "All Items",
+      "inventoryChainNote": "Confirmed on-chain items",
+      "tableItem": "Item",
+      "tablePrice": "Unit Price",
+      "tableQuantity": "Quantity",
+      "tableSeller": "Seller",
+      "tableAction": "Action",
+      "activeOrders": "My Active Orders",
+      "viewAllOrders": "View All Orders",
+      "resultSummary": "{total} listings · {category} · {currency}",
+      "sampleStone": "Stone Reserve",
+      "sampleStoneMeta": "Raw stone stack from public terrain",
       "sampleIron": "Iron Ore Fragment",
       "sampleIronMeta": "Raw material",
       "samplePickaxe": "Forged Pickaxe",
@@ -766,6 +918,7 @@
       "sampleCloak": "Oak Leaf Block",
       "sampleCloakMeta": "Clothing",
       "buy": "購入",
+      "buyNow": "Buy Now",
       "buyNeedsWallet": "Connect a wallet to buy this listing.",
       "buyNeedsBackpack": "Equip a backpack to buy this listing.",
       "buyBackpackFull": "Your backpack is full.",
@@ -779,6 +932,29 @@
       "expandDetails": "Details",
       "collapseDetails": "Hide details",
       "detailTitle": "Listing details",
+      "itemDetailsTitle": "アイテム詳細",
+      "listingDataTitle": "オンチェーン出品",
+      "massLabel": "質量",
+      "volumeLabel": "体積",
+      "qualityLabel": "品質",
+      "materialLabel": "素材",
+      "resourceLabel": "資源",
+      "blockIdLabel": "ブロック ID",
+      "coordinatesLabel": "座標",
+      "yieldLabel": "採集歩留まり",
+      "durabilityLabel": "耐久度",
+      "gradeLabel": "グレード",
+      "itemLevelLabel": "アイテムレベル",
+      "itemCodeLabel": "アイテムコード",
+      "itemIdLabel": "アイテム ID",
+      "itemPdaLabel": "アイテム PDA",
+      "itemProofLabel": "証明",
+      "listingStateLabel": "出品状態",
+      "listingIdLabel": "出品 ID",
+      "listingPdaLabel": "出品 PDA",
+      "sourceSlotLabel": "元スロット",
+      "createdLabel": "作成日時",
+      "stateActive": "出品中",
       "detailClose": "Close listing details",
       "cardAria": "{name}, {price} {currency}",
       "detailItem": "Item",
@@ -788,10 +964,19 @@
       "detailPayment": "Payment",
       "detailRequirement": "Requirement",
       "detailUnknown": "Unknown",
+      "detailSelectHint": "Select a market row to inspect its item and price.",
+      "currentPrice": "Current Price",
+      "availableQuantity": "Available Quantity",
+      "totalPrice": "Total Price",
+      "custodyNote": "On-chain settlement verifies listing custody and applies the 1% market fee.",
       "paymentNck": "Requires a wallet NCK token account.",
       "paymentSol": "Pays from wallet SOL balance.",
       "sampleListing": "Sample listing",
-      "loadingListings": "Loading listings...",
+      "loadingListings": "Loading chain listings",
+      "loadingListingsMeta": "Reading active marketplace PDA accounts from the configured RPC.",
+      "listingLoadFailed": "Could not load chain listings",
+      "listingLoadFailedMeta": "{reason}. Check the RPC or network, then retry.",
+      "retryListings": "Retry loading",
       "chainListingLoadFailed": "On-chain listings are temporarily unavailable.",
       "chainListingName": "On-chain Resource Listing",
       "chainListingMeta": "{source} slot {slot}",
@@ -805,6 +990,7 @@
       "stepListingDraft": "2. Listing Draft",
       "inventoryEyebrow": "Backpack",
       "inventoryTitle": "Select one item to list",
+      "sellSelectHint": "Select an item from the inventory panel",
       "listingEyebrow": "Listing Draft",
       "noSelection": "No item selected",
       "categoryLabel": "Category",
@@ -812,6 +998,8 @@
       "priceLabel": "Price",
       "pricePlaceholder": "0.00",
       "formHint": "Select an item, set category and price, then create an on-chain listing.",
+      "draftReady": "Ready to list {item}. The selected stack will move into market custody.",
+      "priceRequired": "Set a positive price before creating the listing.",
       "createListing": "出品を作成",
       "noOrders": "No active orders",
       "noOrdersMeta": "Wallet orders will appear here.",
@@ -832,9 +1020,13 @@
       "emptyHintMarket": "Market terminal",
       "emptyHintOnchain": "On-chain listings",
       "invalidListing": "Select an item and enter a valid price.",
+      "transactionInProgress": "A market transaction is already in progress.",
+      "localListingCreated": "Listing created. The item is now in market custody.",
       "listingPending": "Confirm the transaction to create this listing on-chain.",
+      "listingSubmitting": "Creating...",
       "listingCreated": "Listing created on-chain: {signature}",
       "listingFailed": "Listing transaction failed: {reason}",
+      "activeListingLimit": "Each wallet may have at most 50 active listings.",
       "cancelPending": "Canceling...",
       "cancelFailed": "Cancel transaction failed: {reason}"
     },
@@ -911,7 +1103,7 @@
       "outputSize": "Output size",
       "yieldRange": "産出範囲",
       "outputRate": "Output rate",
-      "outputRateValue": "Recipe {recipePercent}% · skill loss {lossPercent}%",
+      "outputRateValue": "Recipe {recipePercent}% · skill bonus +{bonusPercent}%",
       "inputMass": "入力質量 {mass}",
       "quality": "品質基準",
       "heatMet": "Tier {tier} met",
@@ -987,6 +1179,8 @@
       "output": "出力",
       "submitting": "オンチェーン送信中...",
       "submitCompleteShort": "オンチェーン確認済み",
+      "backpackRefreshFailed": "製錬前にバックパックを更新できませんでした: {reason}",
+      "inputsChanged": "バックパックの内容が変更されました。更新された材料を確認して、もう一度お試しください。",
       "recipeDetails": "レシピ詳細",
       "requiredInputs": "必要素材",
       "qualityScore": "品質",
@@ -1036,15 +1230,7 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!",
-      "alreadyExists": "このウォレットにはすでにバックパックがあります。2つ目は作成できません。",
-      "checking": "バックパックを確認中...",
-      "creating": "オンチェーンで作成中...",
-      "alreadyExistsLabel": "バックパックは作成済みです",
-      "retryCheck": "バックパックを再確認",
-      "checkingDetail": "作成前に、既存のバックパックがないかチェーンを確認しています。",
-      "readPending": "バックパックデータを読み込み中です。作成トランザクションは送信されていません。",
-      "readFailed": "バックパックの確認に失敗しました。作成トランザクションは送信されていません: {reason}"
+      "hotbarHint": "Your backpack will appear here after creation!"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -1113,6 +1299,10 @@
     "equipment": {
       "chainSaved": "装備をチェーンに保存しました（{signature}）。",
       "chainSaveFailed": "装備のチェーン保存に失敗しました：{reason}。"
+    },
+    "confirmDialog": {
+      "eyebrow": "確認が必要です",
+      "cancel": "キャンセル"
     },
     "onboarding": {
       "dialogAria": "{feature} ガイド",
@@ -1509,6 +1699,29 @@
       "visualModelBody": "Material thumbnails are generated from the dominant elements in each recipe profile.",
       "processTitle": "Smelting process",
       "compositionTitle": "Material element profile",
+      "physicalTitle": "Objective physical properties",
+      "attributesTitle": "Engineering property scores",
+      "unitVolumeLabel": "Canonical unit volume",
+      "densityLabel": "Bulk density",
+      "unitMassLabel": "Calculated unit mass",
+      "thermalConductivityLabel": "Thermal conductivity",
+      "waterAbsorptionLabel": "Water absorption",
+      "compressiveStrengthLabel": "Compressive strength",
+      "flexuralStrengthLabel": "Flexural strength",
+      "attribute": {
+        "hardness": "Hardness",
+        "durability": "Durability",
+        "toughness": "Toughness",
+        "ductility": "Ductility",
+        "brittleness": "Brittleness",
+        "density": "Density",
+        "heatResistance": "Heat resistance",
+        "corrosionResistance": "Corrosion resistance",
+        "conductivity": "Electrical conductivity",
+        "thermalConductivity": "Thermal conductivity",
+        "magnetism": "Magnetism",
+        "workability": "Workability"
+      },
       "forgeUseTitle": "Forge unlock",
       "sourceBlocksTitle": "Raw resource sources",
       "heatLabel": "Heat",
@@ -1516,7 +1729,6 @@
       "sourceLabel": "Source",
       "consumableLabel": "Use",
       "consumable": "Consumable",
-      "reusable": "Reusable heat source",
       "burnSeconds": "{seconds}s",
       "requiredHeatLabel": "Required heat",
       "artisanLevelLabel": "Artisan level",
@@ -1579,15 +1791,11 @@
         },
         "charcoal": {
           "name": "Charcoal",
-          "description": "Processed carbon fuel made from wood resources. Cleaner and steadier than raw wood."
+          "description": "Processed carbon fuel made from wood resources. It supplies tier-three forge heat and is consumed with the smelting batch."
         },
         "coal": {
           "name": "Coal",
-          "description": "Deep stone seam fuel with strong forge heat. It is uncommon and suited for metal blooms."
-        },
-        "lava_heat": {
-          "name": "Lava Heat",
-          "description": "A non-consumed high heat source for blast-tier recipes, anchored to volcanic resources."
+          "description": "Deep stone seam fuel that supplies tier-four blast heat. It is consumed with the smelting batch."
         }
       },
       "item": {
@@ -2127,22 +2335,34 @@
         "description": "Carbon-rich sedimentary fuel generated as low-frequency seams inside deep stone, useful for smelting heat rather than direct forging."
       },
       "cotton": {
-        "name": "綿花"
+        "name": "綿花",
+        "source": "Warm Plains Vegetation",
+        "description": "A cellulose-rich fiber crop selected by warm, moderately humid surface conditions and used as the world's primary woven textile feedstock."
       },
       "flowerWhite": {
-        "name": "白い花"
+        "name": "白い花",
+        "source": "Temperate Surface Vegetation",
+        "description": "A pale flowering plant whose cellulose tissue and flavonoid pigments provide a mineral-light white dye source."
       },
       "flowerYellow": {
-        "name": "黄色い花"
+        "name": "黄色い花",
+        "source": "Warm Surface Vegetation",
+        "description": "A carotenoid-rich flowering plant used for warm yellow pigments while retaining the carbon, oxygen, and hydrogen profile of plant tissue."
       },
       "flowerRed": {
-        "name": "赤い花"
+        "name": "赤い花",
+        "source": "Warm Humid Vegetation",
+        "description": "An anthocyanin-rich flower used for stable red organic pigment, favored by warm and humid surface rules."
       },
       "flowerBlue": {
-        "name": "青い花"
+        "name": "青い花",
+        "source": "Cool Humid Vegetation",
+        "description": "A rarer cool-climate flower whose anthocyanin chemistry and cellular acidity produce a blue pigment source."
       },
       "flowerPink": {
-        "name": "ピンクの花"
+        "name": "ピンクの花",
+        "source": "Temperate Humid Vegetation",
+        "description": "A temperate flowering plant with dilute anthocyanin pigments used for pink dyes and decorative textile finishes."
       }
     },
     "tag": {
@@ -3323,6 +3543,7 @@
       "chainSubmitted": "Equipment forged and saved to the backpack",
       "chainSubmitFailed": "オンチェーン鍛造に失敗しました",
       "chainCodeTooLarge": "Chain code is too large for forged item storage",
+      "chainMaterialTooSmall": "鋳造または保存する前に、質量と体積がゼロでない材料を残してください",
       "chainCodeOutOfSync": "Load this chain code into the workbench before forging on-chain",
       "chainMaterialRequired": "Select backpack materials before forging on-chain",
       "chainMaterialMismatch": "Backpack materials changed. Sync materials and forge again",
@@ -3407,7 +3628,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm³",
+    "volumeCm3Value": "{value} cm3",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",
@@ -3810,7 +4031,91 @@
     "avatarPreviewEmpty": "有効なグリップを設定",
     "avatarPreviewEquipped": "グリップ装備中",
     "avatarPreviewError": "プレビューを表示できません",
-    "avatarPreviewHint": "ドラッグして回転"
+    "avatarPreviewHint": "ドラッグして回転",
+    "onboarding": {
+      "dialogAria": "{feature} ガイド",
+      "close": "ガイドを閉じる",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "ステップ {current}: {label}",
+      "dontShowAgain": "今後表示しない",
+      "skip": "ガイドをスキップ",
+      "later": "あとで",
+      "next": "次へ",
+      "finish": "完了",
+      "costEstimate": "費用の目安",
+      "liveValuesNote": "署名前に使用中の RPC から最新値を再確認します。",
+      "checkingFee": "RPC を確認中",
+      "feeUnavailable": "署名前に確認",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "スワイプ",
+      "controlTap": "タップ",
+      "controlLook": "ドラッグ",
+      "controlSelect": "クリック",
+      "controlFirstPerson": "E",
+      "controlChoose": "選択",
+      "controlEquip": "装備",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "署名",
+      "controlBlueprint": "設計図",
+      "controlDimensions": "X × Z",
+      "controlPlace": "配置",
+      "controlReview": "確認",
+      "controlBind": "固定",
+      "controlRecipe": "レシピ",
+      "controlInput": "材料",
+      "controlFuel": "燃料",
+      "controlPrice": "価格",
+      "controlMaterials": "素材",
+      "controlShape": "成形",
+      "controlGrip": "グリップ",
+      "controlFit": "装着",
+      "controlCast": "鋳造",
+      "cost": {
+        "accountDeposit": "返却可能なアカウント預金",
+        "networkFee": "ネットワーク手数料",
+        "sessionTopUp": "使用可能なセッション入金",
+        "buildSiteDeposit": "BuildSite アカウント預金",
+        "progressDeposit": "精錬進行アカウント預金",
+        "listingDeposit": "出品アカウント預金",
+        "marketFee": "売却後の市場手数料",
+        "selectedMaterials": "選択素材",
+        "consumedOnChain": "オンチェーンで消費"
+      },
+      "features": {
+        "forging": {
+          "eyebrow": "道具鍛造",
+          "title": "固有アイテムを鍛造",
+          "warning": "鋳造は選択素材を消費して1個のアイテムを作ります。空き容量を確保してください。",
+          "steps": {
+            "materials": {
+              "title": "検証済み素材を選択",
+              "body": "PDA の体積と属性が設計の上限になります。"
+            },
+            "shape": {
+              "title": "共有作業台で成形",
+              "body": "部品を接続したまま配置・切削・調整します。"
+            },
+            "handle": {
+              "title": "機能グリップを設定",
+              "body": "グリップは緑の手領域と重なり、物体内に収まる必要があります。"
+            },
+            "fit": {
+              "title": "装着状態を確認",
+              "body": "共有シーンを回転し、アイテムが体を貫通しないことを確認します。"
+            },
+            "cast": {
+              "title": "最終設計を鋳造",
+              "body": "証明・素材使用量・空き容量を確認して署名します。"
+            }
+          }
+        }
+      }
+    }
   },
   "mining": {
     "title": "Nicechunk 採掘",

@@ -48,6 +48,12 @@ export const WorldMapBlock = Object.freeze({
   DeadCoral: 45,
   ShellBed: 46,
   Coal: 47,
+  Cotton: 48,
+  FlowerWhite: 49,
+  FlowerYellow: 50,
+  FlowerRed: 51,
+  FlowerBlue: 52,
+  FlowerPink: 53,
 });
 
 export const RESOURCE_ID = Object.freeze({
@@ -74,6 +80,12 @@ export const RESOURCE_ID = Object.freeze({
   aquaticPlant: 20,
   coral: 21,
   shell: 22,
+  cotton: 23,
+  flowerWhite: 24,
+  flowerYellow: 25,
+  flowerRed: 26,
+  flowerBlue: 27,
+  flowerPink: 28,
 });
 
 export const BiomeType = Object.freeze({
@@ -143,6 +155,12 @@ export const WORLD_MAP_BLOCK_DEBUG_COLOR = Object.freeze({
   [WorldMapBlock.DeadCoral]: "#9a8f86",
   [WorldMapBlock.ShellBed]: "#e4d6b5",
   [WorldMapBlock.Coal]: "#1b1a1d",
+  [WorldMapBlock.Cotton]: "#eee9dc",
+  [WorldMapBlock.FlowerWhite]: "#f4f2e8",
+  [WorldMapBlock.FlowerYellow]: "#f1cf45",
+  [WorldMapBlock.FlowerRed]: "#cf4551",
+  [WorldMapBlock.FlowerBlue]: "#4b77d1",
+  [WorldMapBlock.FlowerPink]: "#dd7fa5",
 });
 
 export const WORLD_MAP_BLOCK_RENDER_TYPE = Object.freeze({
@@ -193,6 +211,12 @@ export const WORLD_MAP_BLOCK_RENDER_TYPE = Object.freeze({
   [WorldMapBlock.DeadCoral]: "deadCoral",
   [WorldMapBlock.ShellBed]: "shellBed",
   [WorldMapBlock.Coal]: "coal",
+  [WorldMapBlock.Cotton]: "cotton",
+  [WorldMapBlock.FlowerWhite]: "flowerWhite",
+  [WorldMapBlock.FlowerYellow]: "flowerYellow",
+  [WorldMapBlock.FlowerRed]: "flowerRed",
+  [WorldMapBlock.FlowerBlue]: "flowerBlue",
+  [WorldMapBlock.FlowerPink]: "flowerPink",
 });
 
 export const WORLD_MAP_BLOCK_RESOURCE_ID = Object.freeze({
@@ -244,6 +268,12 @@ export const WORLD_MAP_BLOCK_RESOURCE_ID = Object.freeze({
   [WorldMapBlock.DeadCoral]: RESOURCE_ID.coral,
   [WorldMapBlock.ShellBed]: RESOURCE_ID.shell,
   [WorldMapBlock.Coal]: RESOURCE_ID.coal,
+  [WorldMapBlock.Cotton]: RESOURCE_ID.cotton,
+  [WorldMapBlock.FlowerWhite]: RESOURCE_ID.flowerWhite,
+  [WorldMapBlock.FlowerYellow]: RESOURCE_ID.flowerYellow,
+  [WorldMapBlock.FlowerRed]: RESOURCE_ID.flowerRed,
+  [WorldMapBlock.FlowerBlue]: RESOURCE_ID.flowerBlue,
+  [WorldMapBlock.FlowerPink]: RESOURCE_ID.flowerPink,
 });
 
 export function renderTypeForBlock(block) {

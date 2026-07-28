@@ -53,6 +53,60 @@ test("Select All and discard skip the backpack slot currently equipped in the ho
   }
 });
 
+test("destructive inventory actions wait for the shared confirmation dialog", async () => {
+  const originalDocument = globalThis.document;
+  globalThis.document = { addEventListener() {} };
+  try {
+    const backpackGrid = new FakeEventTarget();
+    backpackGrid.querySelectorAll = () => [new FakeCell(0)];
+    const selectAllBackpack = new FakeEventTarget();
+    const discardSelectedBackpack = new FakeEventTarget();
+    const item = { id: "stone-stack", kind: "resource", count: 4, blockId: 3 };
+    const discarded = [];
+    const confirmations = [];
+    const controller = createInventoryController({
+      elements: {
+        backpackGrid,
+        backpackActions: { classList: new FakeClassList() },
+        selectAllBackpack,
+        discardSelectedBackpack,
+        cancelBackpackSelection: new FakeEventTarget(),
+      },
+      gameState: {
+        backpackSlots: [item],
+        isBackpackSlotEquipped: () => false,
+      },
+      confirmAction: (options) => new Promise((resolve) => confirmations.push({ options, resolve })),
+      onDiscardBackpackSlots: (indexes) => {
+        discarded.push(...indexes);
+        return { ok: true, discarded: [item] };
+      },
+      voxelItemLabel: () => "Stone",
+    });
+
+    controller.bind();
+    selectAllBackpack.dispatch("click");
+    discardSelectedBackpack.dispatch("click");
+
+    assert.equal(confirmations.length, 1);
+    assert.equal(confirmations[0].options.tone, "danger");
+    assert.match(confirmations[0].options.message, /4 items/);
+    assert.deepEqual(discarded, []);
+
+    confirmations[0].resolve(false);
+    await Promise.resolve();
+    assert.deepEqual(discarded, []);
+
+    discardSelectedBackpack.dispatch("click");
+    confirmations[1].resolve(true);
+    await Promise.resolve();
+    assert.deepEqual(discarded, [0]);
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
 class FakeEventTarget {
   constructor() {
     this.listeners = new Map();

@@ -164,7 +164,7 @@ export function createMiningController({
       toolDamageBySlot: [],
       requiredDamage: 0,
       gatheringYieldBps: 0,
-      resourceVolumeMm3: 0,
+      resourceVolumeMilliLiters: 0,
       swingStartedAt: performance.now(),
       swingImpactAt: performance.now(),
     };
@@ -360,18 +360,26 @@ export function createMiningController({
     const txId = `local-pending-${txSerial++}`;
     const skillEffects = getSkillEffects?.() ?? {};
     const yieldBps = Math.max(1, Math.min(10000, Math.trunc(skillEffects.precisionGatheringBps || 1000)));
-    const volumeMm3 = Math.max(1, Math.floor(1_000_000 * yieldBps / 10000));
+    const volumeMilliLiters = Math.max(1, Math.floor(1000 * yieldBps / 10000));
     const planBlocks = currentPlanBlocks(swing, hit);
     const plannedRewardBlocks = swing.miningPlan?.rewardBlocks?.length ? swing.miningPlan.rewardBlocks : planBlocks;
     const rewardGroups = rewardGroupsForBlocks(uniqueMiningBlocks([hit, ...plannedRewardBlocks]), {
       yieldBps,
-      volumeMm3,
+      volumeMilliLiters,
     });
 
     const toolDamageBySlot = Array.from(damageState.toolDamageBySlot, ([slotIndex, amount]) => ({
       slotIndex,
       amount,
     }));
+    const chainToolDamage = toolDamageBySlot.flatMap(({ slotIndex, amount }) => {
+      const tool = gameState.hotbarSlots[slotIndex];
+      return tool?.itemId === "forged_item"
+        && tool.custodySource === "equipment"
+        && Number.isInteger(tool.equipmentSlot)
+        ? [{ equipmentSlot: tool.equipmentSlot, amount }]
+        : [];
+    });
     blockDamage.delete(key);
     const pendingDeltas = planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
     const pending = {
@@ -391,9 +399,10 @@ export function createMiningController({
       toolSlotIndex: swing.selectedToolIndex,
       toolDamage: nextDamage,
       toolDamageBySlot,
+      chainToolDamage,
       requiredDamage,
       gatheringYieldBps: yieldBps,
-      resourceVolumeMm3: volumeMm3,
+      resourceVolumeMilliLiters: volumeMilliLiters,
       swingStartedAt: swing.startedAt,
       swingImpactAt: performance.now(),
     };
@@ -580,12 +589,12 @@ function currentPlanBlocks(swing, hit) {
   return valid.length ? valid : [normalizeMiningBlock(hit)];
 }
 
-function rewardGroupsForBlocks(blocks = [], { yieldBps = 10000, volumeMm3 = 1_000_000 } = {}) {
+function rewardGroupsForBlocks(blocks = [], { yieldBps = 10000, volumeMilliLiters = 1000 } = {}) {
   const groups = new Map();
   for (const block of blocks) {
     const normalized = normalizeMiningBlock(block);
     if (!normalized || normalized.resourceId === 0) continue;
-    const key = `${normalized.resourceId}:${normalized.blockId}:${yieldBps}:${volumeMm3}`;
+    const key = `${normalized.resourceId}:${normalized.blockId}:${yieldBps}:${volumeMilliLiters}`;
     const existing = groups.get(key);
     if (existing) existing.count += 1;
     else groups.set(key, {

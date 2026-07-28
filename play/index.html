@@ -34,7 +34,7 @@
   <body>
     <canvas id="worldCanvas" aria-label="NiceChunk WebGL2 voxel world"></canvas>
     <button class="account-hud" id="accountHud" type="button" aria-label="Open player profile">
-      <span class="account-avatar" id="accountAvatar" aria-hidden="true"></span>
+      <span class="account-avatar" aria-hidden="true"></span>
       <span class="account-copy">
         <span class="account-row"><strong id="accountName">Sora</strong><b id="accountLevel">Lv. 1</b></span>
         <span id="accountTitle">Local preview</span>
@@ -51,7 +51,7 @@
             <path fill="url(#accountSolanaGradient)" d="M24.8 11.1a1.7 1.7 0 0 0-1.2-.5H5.4c-.8 0-1.2 1-.6 1.6l3.7 3.7a1.7 1.7 0 0 0 1.2.5h18.2c.8 0 1.2-1 .6-1.6l-3.7-3.7Z" />
             <path fill="url(#accountSolanaGradient)" d="M7.2 17.7a1.7 1.7 0 0 1 1.2-.5h18.2c.8 0 1.2 1 .6 1.6l-3.7 3.7a1.7 1.7 0 0 1-1.2.5H4.1c-.8 0-1.2-1-.6-1.6l3.7-3.7Z" />
           </svg>
-          <span id="accountBalanceValue">0.000000</span>
+          <span id="accountBalanceValue">0 SOL</span>
         </span>
         <span id="accountSessionBalance">Session: not funded</span>
       </span>
@@ -162,25 +162,61 @@
         </form>
       </div>
     </div>
-    <section class="rpc-config-panel" id="rpcConfigPanel" role="dialog" aria-modal="true" aria-live="polite" hidden>
+    <section class="rpc-config-panel" id="rpcConfigPanel" role="dialog" aria-modal="true" aria-labelledby="rpcConfigTitle" aria-describedby="rpcConfigBody" aria-hidden="true" hidden>
       <div class="rpc-config-dialog">
         <div class="rpc-config-copy">
-          <strong data-i18n="main.rpcConfig.title">Public RPC is overloaded</strong>
-          <p data-i18n="main.rpcConfig.body">Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.</p>
-          <a href="https://www.helius.dev" target="_blank" rel="noreferrer" data-i18n="main.rpcConfig.link">Get a Helius API key</a>
+          <strong id="rpcConfigTitle" data-i18n="main.rpcConfig.title">Solana RPC connection</strong>
+          <p id="rpcConfigBody" data-i18n="main.rpcConfig.body">Choose how this browser reaches Solana Devnet for account reads, world synchronization, and signed transactions.</p>
+          <div class="rpc-config-failure" id="rpcConfigContext" role="alert" hidden>
+            <span data-i18n="main.rpcConfig.failureLabel">Loading issue detected</span>
+            <strong id="rpcConfigContextTitle"></strong>
+            <small id="rpcConfigContextStage"></small>
+            <code id="rpcConfigContextReason"></code>
+          </div>
+          <nav class="rpc-config-links" data-i18n-aria-label="main.rpcConfig.linksAria" aria-label="RPC provider resources">
+            <a href="https://dashboard.helius.dev/" target="_blank" rel="noreferrer" data-i18n="main.rpcConfig.link">Open Helius dashboard</a>
+            <a href="https://www.helius.dev/docs/quickstart" target="_blank" rel="noreferrer" data-i18n="main.rpcConfig.guideLink">Read the setup guide</a>
+          </nav>
           <div class="rpc-config-explainer" data-i18n-aria-label="main.rpcConfig.explainerAria" aria-label="RPC setting details">
             <article><span data-i18n="main.rpcConfig.pointGatewayLabel">Chain gateway</span><strong data-i18n="main.rpcConfig.pointGatewayTitle">RPC decides how the browser reaches Solana</strong><p data-i18n="main.rpcConfig.pointGatewayBody">NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions.</p></article>
+            <article><span data-i18n="main.rpcConfig.pointReliabilityLabel">Reliability</span><strong data-i18n="main.rpcConfig.pointReliabilityTitle">A dedicated endpoint avoids public congestion</strong><p data-i18n="main.rpcConfig.pointReliabilityBody">A Helius Free plan is normally sufficient for testing and gives this browser an independent request allowance.</p></article>
             <article><span data-i18n="main.rpcConfig.pointCostLabel">Cost boundary</span><strong data-i18n="main.rpcConfig.pointCostTitle">The key is not a payment to NiceChunk</strong><p data-i18n="main.rpcConfig.pointCostBody">The API key is stored locally in your browser and used only to build your RPC URL.</p></article>
+            <article><span data-i18n="main.rpcConfig.pointSecurityLabel">Security</span><strong data-i18n="main.rpcConfig.pointSecurityTitle">RPC cannot spend SOL by itself</strong><p data-i18n="main.rpcConfig.pointSecurityBody">Transactions still require a wallet signature. NiceChunk never sends the saved credential to its own server.</p></article>
           </div>
         </div>
         <form id="rpcConfigForm" class="rpc-config-form">
-          <label for="rpcConfigApiKey" data-i18n="main.rpcConfig.inputLabel">Helius API key</label>
-          <div class="rpc-config-row">
-            <input id="rpcConfigApiKey" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="main.rpcConfig.placeholder" placeholder="Paste your Helius API key" />
-            <button type="submit" data-i18n="main.rpcConfig.save">Save RPC</button>
-            <button id="rpcConfigDismiss" type="button" data-i18n-aria-label="main.rpcConfig.dismiss" aria-label="Dismiss RPC warning">×</button>
+          <div class="rpc-config-current-row">
+            <span data-i18n="main.rpcConfig.currentLabel">Current connection</span>
+            <strong id="rpcConfigCurrent" data-mode="public" data-i18n="main.rpcConfig.current.public">Shared public Devnet RPC</strong>
           </div>
-          <span id="rpcConfigStatus" class="rpc-config-status"></span>
+          <label class="rpc-config-field" for="rpcConfigMode">
+            <span data-i18n="main.rpcConfig.providerLabel">Connection method</span>
+            <select id="rpcConfigMode">
+              <option value="helius" data-i18n="main.rpcConfig.providerHelius">Helius Devnet API key (recommended)</option>
+              <option value="custom" data-i18n="main.rpcConfig.providerCustom">Custom HTTPS Devnet endpoint</option>
+            </select>
+          </label>
+          <div class="rpc-config-provider-fields" id="rpcConfigHeliusFields">
+            <label class="rpc-config-field" for="rpcConfigApiKey">
+              <span data-i18n="main.rpcConfig.inputLabel">Helius API key</span>
+              <input id="rpcConfigApiKey" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="main.rpcConfig.placeholder" placeholder="Paste your Helius API key" />
+            </label>
+            <small data-i18n="main.rpcConfig.heliusHelp">Create a Helius account, select Solana Devnet, then paste only the API key. The free plan is normally enough for game testing.</small>
+          </div>
+          <div class="rpc-config-provider-fields" id="rpcConfigCustomFields" hidden>
+            <label class="rpc-config-field" for="rpcConfigEndpoint">
+              <span data-i18n="main.rpcConfig.endpointLabel">Custom Devnet RPC endpoint</span>
+              <input id="rpcConfigEndpoint" type="password" inputmode="url" autocomplete="off" spellcheck="false" data-i18n-placeholder="main.rpcConfig.endpointPlaceholder" placeholder="https://your-solana-devnet-rpc.example" />
+            </label>
+            <small data-i18n="main.rpcConfig.endpointHelp">Only HTTPS endpoints are accepted. NiceChunk tests the Solana genesis hash before saving to prevent a mainnet or testnet mismatch.</small>
+          </div>
+          <div class="rpc-config-actions">
+            <button id="rpcConfigSubmit" type="submit" data-i18n="main.rpcConfig.save">Test and save</button>
+            <button id="rpcConfigUsePublic" type="button" data-i18n="main.rpcConfig.usePublic">Use public RPC</button>
+            <button id="rpcConfigDismiss" type="button" data-i18n-aria-label="main.rpcConfig.dismiss" aria-label="Close RPC settings">×</button>
+          </div>
+          <small class="rpc-config-public-note" data-i18n="main.rpcConfig.publicNote">The public endpoint is shared and can be rate limited. It is available as a fallback, not the recommended long-term setting.</small>
+          <span id="rpcConfigStatus" class="rpc-config-status" role="status" aria-live="polite" hidden></span>
         </form>
       </div>
     </section>
@@ -330,8 +366,12 @@
             <span data-i18n="main.smelting.tabSmelting">Smelting</span>
           </button>
         </nav>
+        <button class="backpack-market-button" id="marketButton" type="button" data-i18n-aria-label="main.market.open" aria-label="Open market">
+          <span class="backpack-market-button-icon" aria-hidden="true"></span>
+          <span data-i18n="main.market.title">Market</span>
+        </button>
         <span class="backpack-header-actions">
-          <span class="panel-meta" id="backpackMeta"><span class="backpack-meta-stacks">0 / 50</span><span class="backpack-meta-items">0 items</span><span class="backpack-meta-weight">Weight 0 kg</span></span>
+          <span class="panel-meta" id="backpackMeta"><span class="backpack-meta-stacks">0 / 50</span><span class="backpack-meta-items">0 items</span></span>
           <button id="closeBackpackButton" type="button" data-i18n-aria-label="main.backpack.close" aria-label="Close backpack">×</button>
         </span>
       </header>
@@ -460,108 +500,199 @@
         </div>
       </div>
     </section>
-    <section class="play-panel market-panel" id="marketPanel" hidden>
-      <header>
-        <span>Market</span>
+    <section class="play-panel market-panel" id="marketPanel" role="dialog" aria-modal="true" aria-labelledby="marketPanelTitle" data-active-market-tab="browse" hidden>
+      <header class="market-terminal-header">
+        <div class="market-terminal-brand">
+          <span class="market-terminal-brand-icon" aria-hidden="true"></span>
+          <span>
+            <small data-i18n="main.market.eyebrow">Trade Terminal</small>
+            <strong id="marketPanelTitle" data-i18n="main.market.title">Market</strong>
+          </span>
+        </div>
+        <nav class="market-tabs" role="tablist" data-i18n-aria-label="main.market.tabs" aria-label="Market sections">
+          <button class="market-tab active" type="button" role="tab" aria-selected="true" data-market-tab="browse"><i class="market-tab-icon market-tab-buy" aria-hidden="true"></i><span data-i18n="main.market.browseTab">Browse</span></button>
+          <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="sell"><i class="market-tab-icon market-tab-sell" aria-hidden="true"></i><span data-i18n="main.market.sellTab">Sell</span></button>
+          <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="orders"><i class="market-tab-icon market-tab-orders" aria-hidden="true"></i><span data-i18n="main.market.ordersTab">Orders</span></button>
+        </nav>
         <div class="market-header-meta">
           <span id="marketWallet">Local wallet</span>
           <span id="marketBackpack">0 / 50</span>
-          <button class="market-refresh" id="marketRefreshButton" type="button" aria-label="Refresh market listings">↻</button>
-          <button id="closeMarketButton" type="button" aria-label="Close market">×</button>
+          <button class="market-refresh" id="marketRefreshButton" type="button" data-i18n-aria-label="main.market.refresh" aria-label="Refresh market listings">↻</button>
+          <button class="market-close" id="closeMarketButton" type="button" data-i18n-aria-label="main.market.close" aria-label="Close market">×</button>
         </div>
       </header>
-      <div class="market-tabs" role="tablist" aria-label="Market sections">
-        <button class="market-tab active" type="button" role="tab" aria-selected="true" data-market-tab="browse">Browse</button>
-        <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="sell">Sell</button>
-        <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="orders">Orders</button>
-      </div>
       <p class="market-status" id="marketStatus" role="status" aria-live="polite" hidden></p>
-      <div class="market-body">
-        <aside class="market-sidebar">
-          <label class="market-search" for="marketSearch">
-            <span>Search</span>
-            <input id="marketSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Resource, material, proof hash" />
-            <small id="marketSearchMeta" aria-live="polite"></small>
-          </label>
-          <label>
-            <span>Sort</span>
-            <select id="marketSort">
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="price-asc">Price low to high</option>
-              <option value="price-desc">Price high to low</option>
-            </select>
-          </label>
-          <label>
-            <span>Currency</span>
-            <select id="marketCurrencyFilter">
-              <option value="all">All currencies</option>
-              <option value="NCK">NCK</option>
-              <option value="SOL">SOL</option>
-            </select>
-          </label>
-          <div class="market-filter-grid" aria-label="Market filters">
-            <button class="active" type="button" data-market-category="all">All</button>
-            <button type="button" data-market-category="raw">Raw</button>
-            <button type="button" data-market-category="equipment">Equipment</button>
-            <button type="button" data-market-category="building">Building</button>
-            <button type="button" data-market-category="clothing">Clothing</button>
+      <section class="market-membership" id="marketMembership" role="region" aria-labelledby="marketMembershipTitle" aria-live="polite" hidden>
+        <div class="market-membership-card">
+          <span class="market-membership-mark" aria-hidden="true"></span>
+          <small id="marketMembershipEyebrow" data-i18n="main.market.membershipEyebrow">On-chain access</small>
+          <h2 id="marketMembershipTitle" data-i18n="main.market.joinTitle">Join the market</h2>
+          <p id="marketMembershipBody" data-i18n="main.market.joinBody">Create your personal market membership PDA before trading.</p>
+          <div class="market-membership-cost" data-i18n-aria-label="main.market.joinCostBreakdown" aria-label="Market joining cost breakdown">
+            <span><b data-i18n="main.market.userStateRent">Market state PDA rent</b><strong id="marketMembershipUserRent">--</strong></span>
+            <span><b data-i18n="main.market.networkFeeEstimate">Estimated network fee</b><strong id="marketMembershipNetworkFee">--</strong></span>
+            <span class="market-membership-total"><b data-i18n="main.market.estimatedTotal">Estimated total</b><strong id="marketMembershipTotal">--</strong></span>
           </div>
-          <div class="market-rate-card">
-            <span>Market Fee</span>
-            <strong>1%</strong>
-            <p>Local preview now. Future settlement uses market PDA proof data.</p>
+          <p class="market-membership-rent-note" data-i18n="main.market.rentExplanation">PDA rent is a rent-exempt reserve locked in your on-chain accounts, not a platform fee. It is recoverable only if the program later provides an account-close instruction. The network fee is paid to Solana validators.</p>
+          <p class="market-membership-capacity" id="marketMembershipCapacity" data-i18n="main.market.joinCapacity">Each wallet may keep up to 50 active listings.</p>
+          <p class="market-membership-state" id="marketMembershipState" role="status"></p>
+          <div class="market-membership-actions">
+            <a id="marketMembershipRules" href="/docs/marketplace-listings/#join-market-membership" target="_blank" rel="noopener" data-i18n="main.market.marketRulesLink">Read market rules and fees</a>
+            <button class="market-membership-submit" id="marketMembershipSubmit" type="button" data-i18n="main.market.joinAction">Join market</button>
+          </div>
+        </div>
+      </section>
+      <div class="market-body market-terminal-body" id="marketBody" data-mobile-market-view="listings">
+        <nav class="market-mobile-view-tabs" role="tablist" data-i18n-aria-label="main.market.mobileViews" aria-label="Mobile market views">
+          <button class="active" type="button" role="tab" aria-selected="true" data-market-mobile-view="listings">
+            <span class="market-mobile-listings-icon" aria-hidden="true"></span>
+            <span data-i18n="main.market.mobileListings">Listings</span>
+          </button>
+          <button type="button" role="tab" aria-selected="false" data-market-mobile-view="inventory">
+            <span class="market-mobile-inventory-icon" aria-hidden="true"></span>
+            <span data-i18n="main.market.mobileBackpack">Backpack</span>
+          </button>
+        </nav>
+        <aside class="market-inventory-dock">
+          <div class="market-section-heading">
+            <span>
+              <small data-i18n="main.market.inventoryEyebrow">Backpack</small>
+              <strong data-i18n="main.market.inventory">Inventory</strong>
+            </span>
+            <button id="marketMyListingsButton" type="button" data-i18n="main.market.myListings">My Listings</button>
+          </div>
+          <div class="market-inventory-toolbar">
+            <span data-i18n="main.market.inventoryAllItems">All Items</span>
+            <b id="marketInventoryCount">0 / 50</b>
+          </div>
+          <div class="market-inventory-grid" id="marketInventoryGrid"></div>
+          <div class="market-inventory-foot">
+            <span class="market-chain-dot" aria-hidden="true"></span>
+            <span data-i18n="main.market.inventoryChainNote">Confirmed on-chain items</span>
           </div>
         </aside>
-        <div class="market-content">
+
+        <main class="market-content market-exchange">
           <section class="market-tab-panel active" data-market-tab-panel="browse">
-            <div class="market-listing-grid" id="marketListingGrid"></div>
-            <div class="market-pagination" id="marketListingPager" aria-label="Browse listings pages"></div>
+            <div class="market-browse-toolbar">
+              <label class="market-search" for="marketSearch">
+                <span class="market-search-icon" aria-hidden="true"></span>
+                <span class="visually-hidden" data-i18n="main.market.searchLabel">Search</span>
+                <input id="marketSearch" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="main.market.searchPlaceholder" placeholder="Resource, equipment, coordinate" />
+              </label>
+              <label class="market-sort-field">
+                <span data-i18n="main.market.sortLabel">Sort</span>
+                <select id="marketSort">
+                  <option value="newest" data-i18n="main.market.sortNewest">Newest first</option>
+                  <option value="oldest" data-i18n="main.market.sortOldest">Oldest first</option>
+                  <option value="price-asc" data-i18n="main.market.sortPriceAsc">Price low to high</option>
+                  <option value="price-desc" data-i18n="main.market.sortPriceDesc">Price high to low</option>
+                </select>
+              </label>
+              <label class="market-currency-field">
+                <span data-i18n="main.market.currencyFilterLabel">Currency</span>
+                <select id="marketCurrencyFilter">
+                  <option value="all" data-i18n="main.market.currencyAll">All currencies</option>
+                  <option value="NCK" data-i18n="main.market.currencyNck">NCK</option>
+                  <option value="SOL" data-i18n="main.market.currencySol">SOL</option>
+                </select>
+              </label>
+            </div>
+            <div class="market-filter-grid" data-i18n-aria-label="main.market.filters" aria-label="Market filters">
+              <button class="active" type="button" data-market-category="all" data-i18n="main.market.categoryAll">All</button>
+              <button type="button" data-market-category="raw" data-i18n="main.market.categoryRaw">Raw Materials</button>
+              <button type="button" data-market-category="building" data-i18n="main.market.categoryBuilding">Building Materials</button>
+              <button type="button" data-market-category="equipment" data-i18n="main.market.categoryEquipment">Equipment</button>
+              <button type="button" data-market-category="clothing" data-i18n="main.market.categoryClothing">Clothing</button>
+            </div>
+            <small class="market-search-meta" id="marketSearchMeta" aria-live="polite"></small>
+            <div class="market-list-table">
+              <div class="market-list-head" aria-hidden="true">
+                <span data-i18n="main.market.tableItem">Item</span>
+                <span data-i18n="main.market.tablePrice">Unit Price</span>
+                <span data-i18n="main.market.tableQuantity">Quantity</span>
+                <span data-i18n="main.market.tableSeller">Seller</span>
+                <span data-i18n="main.market.tableAction">Action</span>
+              </div>
+              <div class="market-listing-grid" id="marketListingGrid"></div>
+            </div>
+            <div class="market-pagination" id="marketListingPager" data-i18n-aria-label="main.market.browsePagination" aria-label="Browse listings pages"></div>
+            <section class="market-active-orders">
+              <div class="market-section-heading">
+                <span>
+                  <small data-i18n="main.market.ordersTab">Orders</small>
+                  <strong data-i18n="main.market.activeOrders">My Active Orders</strong>
+                </span>
+                <button id="marketViewOrdersButton" type="button" data-i18n="main.market.viewAllOrders">View All Orders</button>
+              </div>
+              <div class="market-active-orders-grid" id="marketActiveOrdersGrid"></div>
+            </section>
           </section>
+
           <section class="market-tab-panel" data-market-tab-panel="sell" hidden>
-            <div class="market-step-rail">
-              <span>1. Select Item</span>
-              <span>2. Create Listing</span>
+            <div class="market-step-rail" data-i18n-aria-label="main.market.sellSteps" aria-label="Sell listing steps">
+              <span class="active" data-i18n="main.market.stepSelectItem">1. Select Item</span>
+              <span data-i18n="main.market.stepListingDraft">2. Listing Draft</span>
             </div>
             <div class="market-sell-flow">
-              <div class="market-inventory-panel">
-                <strong>Backpack Items</strong>
-                <div class="market-inventory-grid" id="marketInventoryGrid"></div>
+              <div class="market-sell-intro">
+                <span class="market-sell-intro-icon" aria-hidden="true"></span>
+                <small data-i18n="main.market.inventoryEyebrow">Backpack</small>
+                <strong data-i18n="main.market.sellSelectHint">Select an item from the inventory panel</strong>
+                <p data-i18n="main.market.inventoryChainNote">Confirmed on-chain items</p>
               </div>
               <form class="market-listing-form" id="marketListingForm">
-                <strong id="marketSelectedItem">No item selected</strong>
+                <small data-i18n="main.market.listingEyebrow">Listing Draft</small>
+                <strong id="marketSelectedItem" data-i18n="main.market.noSelection">No item selected</strong>
                 <label>
-                  <span>Category</span>
+                  <span data-i18n="main.market.categoryLabel">Category</span>
                   <select id="marketListingCategory">
-                    <option value="raw">Raw Materials</option>
-                    <option value="equipment">Equipment</option>
-                    <option value="building">Building Materials</option>
-                    <option value="clothing">Clothing</option>
+                    <option value="raw" data-i18n="main.market.categoryRaw">Raw Materials</option>
+                    <option value="equipment" data-i18n="main.market.categoryEquipment">Equipment</option>
+                    <option value="building" data-i18n="main.market.categoryBuilding">Building Materials</option>
+                    <option value="clothing" data-i18n="main.market.categoryClothing">Clothing</option>
                   </select>
                 </label>
                 <label>
-                  <span>Currency</span>
+                  <span data-i18n="main.market.currencyLabel">Currency</span>
                   <select id="marketListingCurrency">
-                    <option value="NCK">NCK</option>
-                    <option value="SOL">SOL</option>
+                    <option value="NCK" data-i18n="main.market.currencyNck">NCK</option>
+                    <option value="SOL" data-i18n="main.market.currencySol">SOL</option>
                   </select>
                 </label>
                 <label>
-                  <span>Price</span>
-                  <input id="marketListingPrice" type="number" min="0" step="0.000001" inputmode="decimal" placeholder="0.00" />
+                  <span data-i18n="main.market.priceLabel">Price</span>
+                  <input id="marketListingPrice" type="number" min="0" step="0.000001" inputmode="decimal" data-i18n-placeholder="main.market.pricePlaceholder" placeholder="0.00" />
                 </label>
-                <button class="market-submit" id="marketCreateListing" type="submit" disabled>Create Listing</button>
-                <p id="marketFormStatus" aria-live="polite">Select an item, set category and price, then create a chain-ready listing.</p>
+                <div class="market-rate-card">
+                  <span data-i18n="main.market.feeLabel">Market Fee</span>
+                  <strong data-i18n="main.market.feeValue">1%</strong>
+                  <p data-i18n="main.market.settlement">Preferred settlement: NCK</p>
+                </div>
+                <button class="market-submit" id="marketCreateListing" type="submit" disabled data-i18n="main.market.createListing">Create Listing</button>
+                <p class="market-form-status" id="marketFormStatus" aria-live="polite" data-i18n="main.market.formHint">Select an item, set category and price, then create an on-chain listing.</p>
               </form>
             </div>
           </section>
+
           <section class="market-tab-panel" data-market-tab-panel="orders" hidden>
-            <div class="market-listing-grid" id="marketOrdersGrid"></div>
-            <div class="market-pagination" id="marketOrdersPager" aria-label="Order pages"></div>
+            <div class="market-section-heading market-page-heading">
+              <span><small data-i18n="main.market.inventoryEyebrow">Backpack</small><strong data-i18n="main.market.activeOrders">My Active Orders</strong></span>
+            </div>
+            <div class="market-list-table">
+              <div class="market-listing-grid" id="marketOrdersGrid"></div>
+            </div>
+            <div class="market-pagination" id="marketOrdersPager" data-i18n-aria-label="main.market.ordersPagination" aria-label="Order pages"></div>
           </section>
-        </div>
+        </main>
+
+        <aside class="market-inspector" id="marketListingDetail" aria-live="polite"></aside>
       </div>
     </section>
+    <div class="market-trade-toast" id="marketTradeToast" role="status" aria-live="assertive" aria-atomic="true" hidden>
+      <span class="market-trade-toast-icon" aria-hidden="true"></span>
+      <span id="marketTradeToastMessage"></span>
+    </div>
     <section class="play-panel profile-panel" id="profilePanel" role="dialog" aria-modal="true" aria-labelledby="profilePanelTitle" hidden>
       <header class="profile-panel-header">
         <span class="profile-panel-heading-icon" aria-hidden="true">
@@ -687,13 +818,13 @@
               <section class="profile-settings-card">
                 <header class="profile-settings-card-header">
                   <span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.2 3.6 4.9 3.6 8s-1.2 5.8-3.6 8c-2.4-2.2-3.6-4.9-3.6-8S9.6 6.2 12 4z"/></svg></span>
-                  <div><strong data-i18n="main.profile.rpcSettings">RPC Connection</strong><small data-i18n="main.profile.rpcSettingsHint">Configure the Solana data gateway used by this browser.</small></div>
+                  <div><strong data-i18n="main.profile.rpcSettings">RPC Connection</strong><small data-i18n="main.profile.rpcSettingsHint">Controls account reads, world PDA synchronization, and signed transaction submission from this browser.</small></div>
                 </header>
                 <div class="profile-rpc-row">
                   <span data-i18n="main.profile.rpc">RPC</span>
                   <div>
                     <strong id="profileRpcValue">Public RPC</strong>
-                    <small id="profileRpcHint">Set a Helius key for steadier mining.</small>
+                    <small id="profileRpcHint">The shared public Devnet handles all chain activity and may be throttled. Open settings for Helius Free or a custom endpoint.</small>
                   </div>
                   <button id="profileRpcAction" type="button" data-i18n="main.profile.rpcSet">Set</button>
                 </div>
@@ -739,7 +870,7 @@
         </div>
       </div>
     </section>
-    <div class="backpack-create-overlay" id="backpackCreateOverlay" aria-hidden="true" hidden>
+    <div class="backpack-create-overlay" id="backpackCreateOverlay" aria-hidden="true" inert hidden>
       <section class="backpack-create-panel" id="backpackCreatePanel" role="dialog" aria-modal="true" aria-labelledby="backpackCreateTitle">
         <header class="backpack-create-header">
           <span class="backpack-create-header-icon" id="backpackCreateHeaderIcon" aria-hidden="true"></span>

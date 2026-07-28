@@ -27,9 +27,10 @@
     #nc-loader{--nc-p:0;position:fixed;inset:0;width:100%;height:100%;z-index:2147483647;display:grid;grid-template-rows:auto 1fr auto;box-sizing:border-box;overflow:hidden;color:#15434a;background:linear-gradient(180deg,#cfedf6 0%,#eef8fb 48%,#fff7e9 100%);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;letter-spacing:.04em;opacity:1;transition:opacity .42s ease,visibility .42s ease}
     #nc-loader::before{content:"";position:absolute;inset:auto 0 0;height:13vh;min-height:70px;background:rgba(185,205,194,.2);clip-path:polygon(0 100%,0 82%,7% 58%,14% 76%,22% 51%,31% 69%,39% 43%,48% 67%,57% 38%,66% 62%,76% 34%,85% 56%,94% 31%,100% 45%,100% 100%)}
     #nc-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}
+    #nc-loader.is-dialog-open{opacity:0;visibility:hidden;pointer-events:none}
     #nc-loader.is-failed{--nc-accent:#d34b43}
     .nc-load-head,.nc-load-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:clamp(20px,4vw,48px) clamp(20px,5vw,64px);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em}
-    .nc-load-brand{color:#006d78;letter-spacing:.18em}.nc-load-network{color:rgba(40,65,69,.58)}
+    .nc-load-brand{color:#006d78;letter-spacing:.18em}
     .nc-load-main{position:relative;z-index:2;align-self:center;justify-self:center;width:min(520px,calc(100vw - 40px));transform:translateY(-2vh);text-align:center}
     .nc-load-voxels{display:grid;grid-template-columns:repeat(3,11px);gap:4px;width:max-content;margin:0 auto 29px}
     .nc-load-voxels i{width:11px;height:11px;background:#00717b;animation:nc-voxel 1.8s ease-in-out infinite;will-change:transform}.nc-load-voxels i:nth-child(2n){background:#00cfe2}.nc-load-voxels i:nth-child(3n+2){animation-delay:.16s}.nc-load-voxels i:nth-child(3n){animation-delay:.32s}.nc-load-voxels i:nth-child(3n+1){animation-delay:.48s}
@@ -38,16 +39,15 @@
     .nc-load-rail{position:relative;width:min(440px,80vw);height:4px;margin:35px auto 42px;overflow:hidden;border-radius:10px;background:rgba(255,255,255,.42);box-shadow:inset 0 1px 1px rgba(21,109,120,.08)}
     .nc-load-bar{position:absolute;inset:0 auto 0 0;width:calc(var(--nc-p)*1%);overflow:hidden;border-radius:inherit;background:var(--nc-accent,#00d5e8);transition:width .28s ease-out}
     .nc-load-bar::after{content:"";position:absolute;inset:0;width:90px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);transform:translateX(-100%);animation:nc-shimmer 1.65s linear infinite;will-change:transform}
-    .nc-load-card{position:relative;box-sizing:border-box;width:100%;min-height:150px;padding:20px 22px 18px;overflow:hidden;border-radius:10px;background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 1px 0 0 rgba(255,255,255,.18),0 14px 45px rgba(69,115,120,.05);backdrop-filter:blur(18px) saturate(1.08);-webkit-backdrop-filter:blur(18px) saturate(1.08);text-align:left}
-    .nc-load-card::before{content:"";position:absolute;inset:-55% 30% 58% -15%;background:radial-gradient(ellipse,rgba(255,255,255,.42),transparent 68%);transform:rotate(-7deg);pointer-events:none}
-    .nc-load-files{position:relative;display:grid;gap:0}.nc-load-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto auto;align-items:center;gap:11px;min-height:31px;color:rgba(42,64,68,.64);font-size:11px}.nc-load-row+.nc-load-row{border-top:1px solid rgba(255,255,255,.14)}
+    .nc-load-card{box-sizing:border-box;width:100%;min-height:150px;padding:20px 22px 18px;overflow:hidden;border-radius:10px;background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));backdrop-filter:blur(18px) saturate(1.08);-webkit-backdrop-filter:blur(18px) saturate(1.08);text-align:left}
+    .nc-load-files{display:grid;gap:0}.nc-load-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto auto;align-items:center;gap:11px;min-height:31px;color:rgba(42,64,68,.64);font-size:11px}.nc-load-row+.nc-load-row{border-top:1px solid rgba(255,255,255,.14)}
     .nc-load-row.is-active{min-height:42px;color:#006d78;font-weight:700}.nc-load-row.is-failed{color:#b63d36}.nc-load-dot{width:7px;height:7px;box-sizing:border-box;border:1px solid currentColor}.is-active .nc-load-dot{border:0;border-radius:50%;background:#00d5e8;animation:nc-pulse 1.25s ease-in-out infinite}.is-done .nc-load-dot::after{content:"";display:block;width:3px;height:1px;margin:1px 0 0 1px;border:solid currentColor;border-width:0 0 1px 1px;transform:rotate(-45deg)}
     .nc-load-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nc-load-size,.nc-load-state{white-space:nowrap}.nc-load-state{min-width:64px;text-align:right;text-transform:uppercase;letter-spacing:.12em}
-    .nc-load-error{position:relative;display:none;margin:12px 0 0;color:#9c3732;font:600 11px/1.45 ui-sans-serif,system-ui,sans-serif;letter-spacing:0}.is-failed .nc-load-error{display:block}.nc-load-retry{display:none;margin:14px auto 0;padding:8px 16px;border:0;border-radius:4px;color:white;background:#b7443e;font:700 11px/1 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.12em;cursor:pointer}.is-failed .nc-load-retry{display:block}
+    .nc-load-error{display:none;margin-top:4px;color:#7c302d;font:600 11px/1.45 ui-sans-serif,system-ui,sans-serif;letter-spacing:0}.is-failed .nc-load-error{display:grid;gap:6px}.is-failed .nc-load-files{display:none}.nc-load-error strong{color:#8d2c28;font-size:13px}.nc-load-error code{color:#51686a;white-space:pre-line;overflow-wrap:anywhere}.nc-load-actions{display:none;flex-wrap:wrap;gap:7px;margin-top:12px}.is-failed .nc-load-actions{display:flex}.nc-load-actions button{min-height:32px;padding:8px 13px;border:1px solid rgba(120,62,58,.2);border-radius:5px;color:#fff;background:#b7443e;font:700 10px/1 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.nc-load-actions button+button{color:#744844;background:rgba(255,255,255,.48)}.nc-load-actions button:disabled{opacity:.55;cursor:wait}.nc-load-rpc-action[hidden]{display:none}
     .nc-load-foot{padding-top:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));color:rgba(45,63,65,.58);font-weight:600}.nc-load-metrics,.nc-load-stage{display:flex;align-items:center;gap:12px}.nc-load-stage::before{content:"";width:6px;height:6px;border-radius:50%;background:#91765d}.nc-load-version{text-align:right}
     @keyframes nc-voxel{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}@keyframes nc-pulse{50%{opacity:.35;transform:scale(.72)}}@keyframes nc-shimmer{to{transform:translateX(520%)}}
-    @media(max-width:600px){.nc-load-head{padding:calc(17px + env(safe-area-inset-top)) 18px 14px;font-size:9px}.nc-load-network{display:none}.nc-load-main{width:calc(100vw - 28px);transform:translateY(-1vh)}.nc-load-voxels{grid-template-columns:repeat(3,9px);gap:3px;margin-bottom:21px}.nc-load-voxels i{width:9px;height:9px}.nc-load-title{font-size:9px}.nc-load-percent{font-size:42px}.nc-load-rail{width:72vw;margin:25px auto 28px}.nc-load-card{min-height:122px;padding:13px 14px 11px;border-radius:8px}.nc-load-row{grid-template-columns:10px minmax(0,1fr) auto;gap:8px;min-height:29px;font-size:9px}.nc-load-row:nth-child(n+4){display:none}.nc-load-row .nc-load-size{display:none}.nc-load-row.is-active{min-height:38px}.nc-load-state{min-width:48px}.nc-load-foot{padding:12px 17px max(13px,env(safe-area-inset-bottom));font-size:8px}.nc-load-version{display:none}.nc-load-metrics{gap:7px}.nc-load-stage{max-width:48vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-    @media(max-height:520px){.nc-load-head{padding-top:12px;padding-bottom:8px}.nc-load-main{transform:none}.nc-load-voxels{margin-bottom:12px}.nc-load-title{margin-bottom:4px}.nc-load-percent{font-size:32px}.nc-load-rail{margin:14px auto 16px}.nc-load-card{min-height:78px;padding:8px 12px}.nc-load-row{min-height:24px}.nc-load-row:nth-child(n+3){display:none}.nc-load-foot{padding-top:7px;padding-bottom:7px}}
+    @media(max-width:600px){.nc-load-head{padding:calc(17px + env(safe-area-inset-top)) 18px 14px;font-size:9px}.nc-load-main{width:calc(100vw - 28px);transform:translateY(-1vh)}.nc-load-voxels{grid-template-columns:repeat(3,9px);gap:3px;margin-bottom:21px}.nc-load-voxels i{width:9px;height:9px}.nc-load-title{font-size:9px}.nc-load-percent{font-size:42px}.nc-load-rail{width:72vw;margin:25px auto 28px}.nc-load-card{min-height:122px;padding:13px 14px 11px;border-radius:8px}.is-failed .nc-load-card{max-height:52vh;overflow:auto}.nc-load-row{grid-template-columns:10px minmax(0,1fr) auto;gap:8px;min-height:29px;font-size:9px}.nc-load-row:nth-child(n+4){display:none}.nc-load-row .nc-load-size{display:none}.nc-load-row.is-active{min-height:38px}.nc-load-state{min-width:48px}.nc-load-actions button{flex:1 1 auto}.nc-load-foot{padding:12px 17px max(13px,env(safe-area-inset-bottom));font-size:8px}.nc-load-version{display:none}.nc-load-metrics{gap:7px}.nc-load-stage{max-width:48vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+    @media(max-height:520px){.nc-load-head{padding-top:12px;padding-bottom:8px}.nc-load-main{transform:none}.nc-load-voxels{margin-bottom:12px}.nc-load-title{margin-bottom:4px}.nc-load-percent{font-size:32px}.nc-load-rail{margin:14px auto 16px}.nc-load-card{min-height:78px;padding:8px 12px}.is-failed .nc-load-card{max-height:48vh}.nc-load-row{min-height:24px}.nc-load-row:nth-child(n+3){display:none}.nc-load-foot{padding-top:7px;padding-bottom:7px}}
     @media(prefers-reduced-motion:reduce){#nc-loader,.nc-load-bar{transition:none}.nc-load-voxels i,.nc-load-bar::after,.is-active .nc-load-dot{animation:none}}
   `;
   document.head.append(style);
@@ -56,25 +56,31 @@
   overlay.id = "nc-loader";
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
-  overlay.innerHTML = `<header class="nc-load-head"><span class="nc-load-brand">NICECHUNK</span><span class="nc-load-network"></span></header><main class="nc-load-main"><span class="nc-load-voxels" aria-hidden="true">${"<i></i>".repeat(9)}</span><p class="nc-load-title"></p><div class="nc-load-percent">0%</div><div class="nc-load-rail"><i class="nc-load-bar"></i></div><section class="nc-load-card"><div class="nc-load-files"></div><p class="nc-load-error"></p><button class="nc-load-retry" type="button"></button></section></main><footer class="nc-load-foot"><span class="nc-load-metrics"></span><span class="nc-load-stage"></span><span class="nc-load-version"></span></footer>`;
+  overlay.innerHTML = `<header class="nc-load-head"><span class="nc-load-brand">NICECHUNK</span></header><main class="nc-load-main"><span class="nc-load-voxels" aria-hidden="true">${"<i></i>".repeat(9)}</span><p class="nc-load-title"></p><div class="nc-load-percent">0%</div><div class="nc-load-rail"><i class="nc-load-bar"></i></div><section class="nc-load-card"><div class="nc-load-files"></div><div class="nc-load-error"><strong></strong><code></code></div><div class="nc-load-actions"><button class="nc-load-retry" type="button"></button><button class="nc-load-refresh" type="button"></button><button class="nc-load-rpc-action" type="button" hidden></button></div></section></main><footer class="nc-load-foot"><span class="nc-load-metrics"></span><span class="nc-load-stage"></span><span class="nc-load-version"></span></footer>`;
   document.documentElement.append(overlay);
 
-  const elements = {
-    network: overlay.querySelector(".nc-load-network"),
-    title: overlay.querySelector(".nc-load-title"),
-    percent: overlay.querySelector(".nc-load-percent"),
-    files: overlay.querySelector(".nc-load-files"),
-    error: overlay.querySelector(".nc-load-error"),
-    retry: overlay.querySelector(".nc-load-retry"),
-    metrics: overlay.querySelector(".nc-load-metrics"),
-    stage: overlay.querySelector(".nc-load-stage"),
-    version: overlay.querySelector(".nc-load-version"),
-  };
+  const select = (selector) => overlay.querySelector(selector);
+  const titleElement = select(".nc-load-title");
+  const percentElement = select(".nc-load-percent");
+  const filesElement = select(".nc-load-files");
+  const errorTitleElement = select(".nc-load-error strong");
+  const errorBodyElement = select(".nc-load-error code");
+  const retryButton = select(".nc-load-retry");
+  const refreshButton = select(".nc-load-refresh");
+  const rpcButton = select(".nc-load-rpc-action");
+  const metricsElement = select(".nc-load-metrics");
+  const stageElement = select(".nc-load-stage");
+  const versionElement = select(".nc-load-version");
 
   const state = {
     stage: "boot",
     version: "",
     error: "",
+    failureCode: "",
+    failureOptions: null,
+    retrying: false,
+    rpcOpening: false,
+    rpcDialogOpen: false,
     booting: false,
     manifest: null,
   };
@@ -91,7 +97,9 @@
     snapshot,
   };
 
-  elements.retry.addEventListener("click", () => location.reload());
+  retryButton.addEventListener("click", retryFailure);
+  refreshButton.addEventListener("click", () => location.reload());
+  rpcButton.addEventListener("click", openRpcSettings);
   registerSelf();
   observeResources();
   renderNow();
@@ -367,24 +375,99 @@
     }, minimumDelay);
   }
 
-  function fail(error) {
+  function fail(error, options = {}) {
     if (finished) return;
     failed = true;
     state.error = cleanError(error);
+    state.failureCode = String(options?.code || "");
+    state.failureOptions = options && typeof options === "object" ? options : {};
+    state.retrying = false;
+    state.rpcOpening = false;
+    resumeFromRpcDialog();
+    if (options?.stage) state.stage = String(options.stage);
     console.error("[NiceChunk Loader]", error);
     overlay.classList.add("is-failed");
     overlay.setAttribute("role", "alert");
     queueRender();
   }
 
+  async function retryFailure() {
+    if (state.retrying || state.rpcOpening || state.rpcDialogOpen) return;
+    const retry = state.failureOptions?.onRetry;
+    if (typeof retry !== "function") {
+      location.reload();
+      return;
+    }
+    state.retrying = true;
+    failed = false;
+    state.error = "";
+    state.failureCode = "";
+    overlay.classList.remove("is-failed");
+    overlay.setAttribute("role", "status");
+    queueRender();
+    try {
+      await retry();
+    } catch (error) {
+      fail(error);
+    } finally {
+      state.retrying = false;
+      queueRender();
+    }
+  }
+
+  async function openRpcSettings() {
+    const open = state.failureOptions?.rpc?.onOpen;
+    if (typeof open !== "function" || state.retrying || state.rpcOpening || state.rpcDialogOpen) return;
+    state.rpcOpening = true;
+    queueRender();
+    try {
+      const result = await open({
+        code: state.failureCode,
+        stage: state.stage,
+        reason: state.error,
+        onPresented: suspendForRpcDialog,
+      });
+      if (result?.action === "saved") {
+        state.rpcOpening = false;
+        resumeFromRpcDialog();
+        await retryFailure();
+      }
+    } catch (error) {
+      state.error = cleanError(error);
+    } finally {
+      state.rpcOpening = false;
+      resumeFromRpcDialog();
+      queueRender();
+    }
+  }
+
+  function suspendForRpcDialog() {
+    state.rpcDialogOpen = true;
+    overlay.classList.add("is-dialog-open");
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.inert = true;
+  }
+
+  function resumeFromRpcDialog() {
+    state.rpcDialogOpen = false;
+    overlay.classList.remove("is-dialog-open");
+    overlay.removeAttribute("aria-hidden");
+    overlay.inert = false;
+    overlay.setAttribute("role", failed ? "alert" : "status");
+  }
+
   function snapshot() {
     return {
-      visible: overlay.isConnected && !overlay.classList.contains("is-ready"),
+      visible: overlay.isConnected
+        && !overlay.classList.contains("is-ready")
+        && !overlay.classList.contains("is-dialog-open"),
       progress: Math.round(displayedProgress),
       stage: state.stage,
       assetsSettled,
       worldVisible,
       error: state.error,
+      failureCode: state.failureCode,
+      rpcDialogOpen: state.rpcDialogOpen,
       pendingTasks: Array.from(holds),
       files: Array.from(files.values(), (file) => ({ name: file.name, status: file.status, loaded: file.loaded, total: file.total, cached: file.cached })),
     };
@@ -403,14 +486,24 @@
     const progress = finished ? 100 : calculateProgress();
     displayedProgress = Math.max(displayedProgress, progress);
     overlay.style.setProperty("--nc-p", displayedProgress.toFixed(2));
-    elements.percent.textContent = `${Math.floor(displayedProgress)}%`;
-    elements.title.textContent = labels.generatingWorld || dictionary?.main?.loading?.title || "";
-    elements.network.textContent = connectionLabel(labels);
-    elements.version.textContent = state.version ? `NICECHUNK ${shortVersion(state.version)}` : "NICECHUNK";
-    elements.stage.textContent = stageLabels[state.stage]?.title || "";
-    elements.retry.textContent = labels.retry || "";
-    elements.retry.setAttribute("aria-label", labels.retry || "");
-    elements.error.textContent = labels.failureMessage || labels.failed || "";
+    percentElement.textContent = `${Math.floor(displayedProgress)}%`;
+    titleElement.textContent = labels.generatingWorld || dictionary?.main?.loading?.title || "";
+    versionElement.textContent = state.version ? `NICECHUNK ${shortVersion(state.version)}` : "NICECHUNK";
+    stageElement.textContent = stageLabels[state.stage]?.title || "";
+    const failureCopy = labels.failures?.[state.failureCode] || {};
+    errorTitleElement.textContent = failureCopy.title || labels.failureMessage || labels.failed || "";
+    errorBodyElement.textContent = [
+      failureCopy.message,
+      failureCopy.help,
+      state.error ? formatTemplate(labels.errorDetail || "{reason}", { reason: state.error }) : "",
+    ].filter(Boolean).join("\n");
+    retryButton.textContent = state.retrying ? labels.retrying || labels.loading || "" : labels.retry || "";
+    retryButton.disabled = state.retrying || state.rpcOpening;
+    refreshButton.textContent = labels.refresh || "";
+    refreshButton.disabled = state.retrying || state.rpcOpening;
+    rpcButton.textContent = labels.rpcSettings || "";
+    rpcButton.hidden = !state.failureOptions?.rpc;
+    rpcButton.disabled = state.retrying || state.rpcOpening;
     renderFiles(labels);
     renderMetrics(labels);
   }
@@ -437,7 +530,7 @@
     const active = all.filter((file) => file.status === "loading" || file.status === "failed").sort((a, b) => b.startedAt - a.startedAt);
     const completed = all.filter((file) => file.status === "done").sort((a, b) => b.doneAt - a.doneAt);
     const visible = [...active, ...completed].slice(0, 5);
-    elements.files.replaceChildren(...visible.map((file) => fileRow(file, labels)));
+    filesElement.replaceChildren(...visible.map((file) => fileRow(file, labels)));
   }
 
   function fileRow(file, labels) {
@@ -453,9 +546,7 @@
     name.title = file.name;
     const size = document.createElement("span");
     size.className = "nc-load-size";
-    size.textContent = file.status === "loading" && file.total
-      ? `${formatBytes(file.loaded)} / ${formatBytes(file.total)}`
-      : formatBytes(file.total || file.loaded);
+    size.textContent = file.total ? `${Math.round(file.loaded / file.total * 100)}%` : "";
     const status = document.createElement("span");
     status.className = "nc-load-state";
     status.textContent = file.status === "failed"
@@ -470,10 +561,7 @@
   function renderMetrics(labels) {
     const all = Array.from(files.values());
     const completed = all.filter((file) => file.status === "done").length;
-    const loaded = all.reduce((sum, file) => sum + Math.min(file.loaded, file.total || file.loaded), 0);
-    const total = all.reduce((sum, file) => sum + file.total, 0);
-    const fileText = formatTemplate(labels.files || "{loaded} / {total}", { loaded: completed, total: all.length });
-    elements.metrics.textContent = total ? `${fileText}  |  ${formatBytes(loaded)} / ${formatBytes(total)}` : fileText;
+    metricsElement.textContent = formatTemplate(labels.files || "{loaded} / {total}", { loaded: completed, total: all.length });
   }
 
   function cachedDictionary(language, version) {
@@ -499,19 +587,6 @@
     if (["zh-tw", "zh-hk", "zh-mo", "zh-hant"].includes(lower)) return "zh-Hant";
     if (["zh", "zh-cn", "zh-sg", "zh-hans"].includes(lower)) return "zh-Hans";
     return supportedLanguages.find((code) => code.toLowerCase() === lower.split("-")[0]) || "en";
-  }
-
-  function connectionLabel(labels) {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const type = String(connection?.effectiveType || "").toUpperCase();
-    return type ? `${labels.network || ""}${labels.network ? ": " : ""}${type}` : "";
-  }
-
-  function formatBytes(value) {
-    const bytes = Math.max(0, Number(value) || 0);
-    if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(bytes >= 10485760 ? 1 : 2)} MB`;
-    if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
-    return bytes ? `${Math.round(bytes)} B` : "";
   }
 
   function formatTemplate(template, values) {

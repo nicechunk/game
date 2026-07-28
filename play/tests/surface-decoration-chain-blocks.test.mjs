@@ -10,6 +10,8 @@ import {
   RESOURCE_ID,
   blockDef,
 } from "../../chunk.js/world/block-registry.js";
+import { DEFAULT_SURFACE_DECORATION_RULES } from "../../chunk.js/world/surface-decoration-rules.js";
+import { createPlaySurfaceDecorationSync } from "../play-surface-decoration-sync.js";
 
 const decorationDrops = Object.freeze([
   ["cotton", BLOCK_ID.cotton, RESOURCE_ID.cotton],
@@ -26,4 +28,33 @@ test("chain backpack decoding recognizes cotton and five-color flower drops", ()
     assert.equal(blockRenderTypeId(renderType), blockId);
     assert.equal(blockDef(blockId).resourceId, resourceId);
   }
+});
+
+test("ordinary stone metadata cannot be guessed into a pebble decoration", () => {
+  const sync = createPlaySurfaceDecorationSync({
+    worldSeed: "nicechunk-mainnet-001",
+    initialRules: DEFAULT_SURFACE_DECORATION_RULES,
+  });
+  const resource = {
+    worldX: 801,
+    worldY: 133,
+    worldZ: 796,
+    blockId: BLOCK_ID.stone,
+    metadata: 0,
+  };
+
+  assert.equal(sync.resolveBackpackDecoration(resource), null);
+
+  const snowyPebbleMetadata = ((51 << 16) | 102) >>> 0;
+  assert.deepEqual(
+    sync.resolveBackpackDecoration({ ...resource, metadata: snowyPebbleMetadata }),
+    {
+      decorationId: 102,
+      decorationRuleId: 51,
+      decorationSurfaceBlockId: BLOCK_ID.snow,
+      decorationVariant: 0,
+      decorationFlags: 7,
+      decorationVariantHash: 4054009468,
+    },
+  );
 });

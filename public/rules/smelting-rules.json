@@ -58,7 +58,7 @@
       "id": "charcoal",
       "sourceType": "material",
       "materialId": "charcoal",
-      "heatTier": 2,
+      "heatTier": 3,
       "burnSeconds": 64,
       "consumable": true
     },
@@ -68,20 +68,9 @@
       "sourceKeys": [
         "coal"
       ],
-      "heatTier": 3,
+      "heatTier": 4,
       "burnSeconds": 96,
       "consumable": true
-    },
-    {
-      "id": "lava_heat",
-      "sourceType": "raw",
-      "sourceKeys": [
-        "lava",
-        "basalt"
-      ],
-      "heatTier": 4,
-      "burnSeconds": 160,
-      "consumable": false
     }
   ],
   "materials": [
@@ -120,6 +109,10 @@
           "0.2-2%"
         ]
       ],
+      "unitVolumeMm3": 750000,
+      "densityKgM3": 250,
+      "thermalConductivityWMK": 0.12,
+      "waterAbsorptionPct": 18,
       "itemCode": 1001,
       "recipeId": 1001,
       "mergeRecipeId": 2001,
@@ -139,8 +132,8 @@
         "magnetism": 0,
         "workability": 58
       },
-      "yieldBps": 5500,
-      "mergeYieldBps": 10000
+      "yieldBps": 550,
+      "mergeYieldBps": 1000
     },
     {
       "id": "biochar_compost",
@@ -185,6 +178,10 @@
           "0.5-4%"
         ]
       ],
+      "unitVolumeMm3": 1000000,
+      "densityKgM3": 450,
+      "thermalConductivityWMK": 0.18,
+      "waterAbsorptionPct": 45,
       "itemCode": 1002,
       "recipeId": 1002,
       "mergeRecipeId": 2002,
@@ -204,8 +201,8 @@
         "magnetism": 0,
         "workability": 72
       },
-      "yieldBps": 5500,
-      "mergeYieldBps": 10000
+      "yieldBps": 550,
+      "mergeYieldBps": 1000
     },
     {
       "id": "resin_binder",
@@ -242,6 +239,10 @@
           "0.2-2%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 1100,
+      "thermalConductivityWMK": 0.2,
+      "waterAbsorptionPct": 0.5,
       "itemCode": 1004,
       "recipeId": 1004,
       "mergeRecipeId": 2004,
@@ -261,8 +262,8 @@
         "magnetism": 0,
         "workability": 82
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "ceramic_brick",
@@ -299,6 +300,12 @@
           "0.5-6%"
         ]
       ],
+      "unitVolumeMm3": 1000000,
+      "densityKgM3": 1900,
+      "thermalConductivityWMK": 0.9,
+      "waterAbsorptionPct": 12,
+      "compressiveStrengthMpa": 35,
+      "flexuralStrengthMpa": 5,
       "itemCode": 1005,
       "recipeId": 1005,
       "mergeRecipeId": 2005,
@@ -318,8 +325,8 @@
         "magnetism": 0,
         "workability": 34
       },
-      "yieldBps": 7200,
-      "mergeYieldBps": 10000
+      "yieldBps": 720,
+      "mergeYieldBps": 1000
     },
     {
       "id": "lime_ceramic",
@@ -356,6 +363,12 @@
           "3-10%"
         ]
       ],
+      "unitVolumeMm3": 1000000,
+      "densityKgM3": 1750,
+      "thermalConductivityWMK": 0.75,
+      "waterAbsorptionPct": 16,
+      "compressiveStrengthMpa": 28,
+      "flexuralStrengthMpa": 4,
       "itemCode": 1006,
       "recipeId": 1006,
       "mergeRecipeId": 2006,
@@ -375,8 +388,8 @@
         "magnetism": 0,
         "workability": 42
       },
-      "yieldBps": 7200,
-      "mergeYieldBps": 10000
+      "yieldBps": 720,
+      "mergeYieldBps": 1000
     },
     {
       "id": "quicklime",
@@ -413,6 +426,10 @@
           "0.5-4%"
         ]
       ],
+      "unitVolumeMm3": 500000,
+      "densityKgM3": 900,
+      "thermalConductivityWMK": 0.35,
+      "waterAbsorptionPct": 100,
       "itemCode": 1007,
       "recipeId": 1007,
       "mergeRecipeId": 2007,
@@ -432,8 +449,8 @@
         "magnetism": 0,
         "workability": 46
       },
-      "yieldBps": 7200,
-      "mergeYieldBps": 10000
+      "yieldBps": 720,
+      "mergeYieldBps": 1000
     },
     {
       "id": "salt_flux",
@@ -470,6 +487,10 @@
           "8-20%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 1200,
+      "thermalConductivityWMK": 0.55,
+      "waterAbsorptionPct": 25,
       "itemCode": 1008,
       "recipeId": 1008,
       "mergeRecipeId": 2008,
@@ -489,8 +510,8 @@
         "magnetism": 0,
         "workability": 74
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "ash_cement",
@@ -535,6 +556,10 @@
           "1-6%"
         ]
       ],
+      "unitVolumeMm3": 1000000,
+      "densityKgM3": 1300,
+      "thermalConductivityWMK": 0.4,
+      "waterAbsorptionPct": 22,
       "itemCode": 1009,
       "recipeId": 1009,
       "mergeRecipeId": 2009,
@@ -554,8 +579,8 @@
         "magnetism": 2,
         "workability": 54
       },
-      "yieldBps": 5800,
-      "mergeYieldBps": 10000
+      "yieldBps": 580,
+      "mergeYieldBps": 1000
     },
     {
       "id": "glass_ingot",
@@ -592,6 +617,12 @@
           "1-6%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 2500,
+      "thermalConductivityWMK": 1,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 1000,
+      "flexuralStrengthMpa": 45,
       "itemCode": 1010,
       "recipeId": 1010,
       "mergeRecipeId": 2010,
@@ -611,8 +642,8 @@
         "magnetism": 0,
         "workability": 32
       },
-      "yieldBps": 8000,
-      "mergeYieldBps": 10000
+      "yieldBps": 800,
+      "mergeYieldBps": 1000
     },
     {
       "id": "obsidian_glass",
@@ -659,6 +690,12 @@
           "4-12%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 2400,
+      "thermalConductivityWMK": 1.3,
+      "waterAbsorptionPct": 0.1,
+      "compressiveStrengthMpa": 900,
+      "flexuralStrengthMpa": 40,
       "itemCode": 1011,
       "recipeId": 1011,
       "mergeRecipeId": 2011,
@@ -678,8 +715,8 @@
         "magnetism": 4,
         "workability": 24
       },
-      "yieldBps": 8000,
-      "mergeYieldBps": 10000
+      "yieldBps": 800,
+      "mergeYieldBps": 1000
     },
     {
       "id": "silicon_wafer",
@@ -716,6 +753,12 @@
           "0.1-2%"
         ]
       ],
+      "unitVolumeMm3": 20000,
+      "densityKgM3": 2330,
+      "thermalConductivityWMK": 148,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 7000,
+      "flexuralStrengthMpa": 170,
       "itemCode": 1012,
       "recipeId": 1012,
       "mergeRecipeId": 2012,
@@ -735,8 +778,8 @@
         "magnetism": 0,
         "workability": 28
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "ice_crystal",
@@ -777,6 +820,12 @@
           "0.2-2%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 917,
+      "thermalConductivityWMK": 2.2,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 5,
+      "flexuralStrengthMpa": 1,
       "itemCode": 1013,
       "recipeId": 1013,
       "mergeRecipeId": 2013,
@@ -796,8 +845,8 @@
         "magnetism": 0,
         "workability": 20
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "iron_bloom",
@@ -844,6 +893,12 @@
           "0-2%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 7000,
+      "thermalConductivityWMK": 55,
+      "waterAbsorptionPct": 2,
+      "compressiveStrengthMpa": 180,
+      "flexuralStrengthMpa": 120,
       "itemCode": 1014,
       "recipeId": 1014,
       "mergeRecipeId": 2014,
@@ -863,8 +918,8 @@
         "magnetism": 70,
         "workability": 62
       },
-      "yieldBps": 6200,
-      "mergeYieldBps": 10000
+      "yieldBps": 620,
+      "mergeYieldBps": 1000
     },
     {
       "id": "copper_bloom",
@@ -901,6 +956,12 @@
           "8-22%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 8200,
+      "thermalConductivityWMK": 360,
+      "waterAbsorptionPct": 1,
+      "compressiveStrengthMpa": 210,
+      "flexuralStrengthMpa": 170,
       "itemCode": 1015,
       "recipeId": 1015,
       "mergeRecipeId": 2015,
@@ -920,8 +981,8 @@
         "magnetism": 2,
         "workability": 84
       },
-      "yieldBps": 6200,
-      "mergeYieldBps": 10000
+      "yieldBps": 620,
+      "mergeYieldBps": 1000
     },
     {
       "id": "alumina_plate",
@@ -958,6 +1019,12 @@
           "1-6%"
         ]
       ],
+      "unitVolumeMm3": 60000,
+      "densityKgM3": 3900,
+      "thermalConductivityWMK": 30,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 2200,
+      "flexuralStrengthMpa": 350,
       "itemCode": 1016,
       "recipeId": 1016,
       "mergeRecipeId": 2016,
@@ -977,8 +1044,8 @@
         "magnetism": 0,
         "workability": 30
       },
-      "yieldBps": 7200,
-      "mergeYieldBps": 10000
+      "yieldBps": 720,
+      "mergeYieldBps": 1000
     },
     {
       "id": "nickel_iron",
@@ -1025,6 +1092,12 @@
           "2-10%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 8100,
+      "thermalConductivityWMK": 28,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 650,
+      "flexuralStrengthMpa": 480,
       "itemCode": 1017,
       "recipeId": 1017,
       "mergeRecipeId": 2017,
@@ -1044,8 +1117,8 @@
         "magnetism": 92,
         "workability": 56
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "carbon_plate",
@@ -1082,6 +1155,12 @@
           "4-14%"
         ]
       ],
+      "unitVolumeMm3": 60000,
+      "densityKgM3": 1600,
+      "thermalConductivityWMK": 8,
+      "waterAbsorptionPct": 0.3,
+      "compressiveStrengthMpa": 500,
+      "flexuralStrengthMpa": 350,
       "itemCode": 1018,
       "recipeId": 1018,
       "mergeRecipeId": 2018,
@@ -1101,8 +1180,8 @@
         "magnetism": 0,
         "workability": 44
       },
-      "yieldBps": 5500,
-      "mergeYieldBps": 10000
+      "yieldBps": 550,
+      "mergeYieldBps": 1000
     },
     {
       "id": "carbon_steel",
@@ -1139,6 +1218,12 @@
           "0.2-2%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 7850,
+      "thermalConductivityWMK": 45,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 600,
+      "flexuralStrengthMpa": 500,
       "itemCode": 1019,
       "recipeId": 1019,
       "mergeRecipeId": 2019,
@@ -1158,8 +1243,8 @@
         "magnetism": 78,
         "workability": 52
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "basalt_fiber",
@@ -1200,6 +1285,11 @@
           "4-10%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 2670,
+      "thermalConductivityWMK": 0.04,
+      "waterAbsorptionPct": 0.5,
+      "flexuralStrengthMpa": 1000,
       "itemCode": 1020,
       "recipeId": 1020,
       "mergeRecipeId": 2020,
@@ -1219,8 +1309,8 @@
         "magnetism": 6,
         "workability": 48
       },
-      "yieldBps": 6500,
-      "mergeYieldBps": 10000
+      "yieldBps": 650,
+      "mergeYieldBps": 1000
     },
     {
       "id": "basalt_composite",
@@ -1265,6 +1355,12 @@
           "2-8%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 2100,
+      "thermalConductivityWMK": 0.45,
+      "waterAbsorptionPct": 0.4,
+      "compressiveStrengthMpa": 420,
+      "flexuralStrengthMpa": 520,
       "itemCode": 1021,
       "recipeId": 1021,
       "mergeRecipeId": 2021,
@@ -1284,8 +1380,8 @@
         "magnetism": 8,
         "workability": 42
       },
-      "yieldBps": 5800,
-      "mergeYieldBps": 10000
+      "yieldBps": 580,
+      "mergeYieldBps": 1000
     },
     {
       "id": "geopolymer_block",
@@ -1330,6 +1426,12 @@
           "1-7%"
         ]
       ],
+      "unitVolumeMm3": 1000000,
+      "densityKgM3": 2200,
+      "thermalConductivityWMK": 1.1,
+      "waterAbsorptionPct": 5,
+      "compressiveStrengthMpa": 70,
+      "flexuralStrengthMpa": 8,
       "itemCode": 1022,
       "recipeId": 1022,
       "mergeRecipeId": 2022,
@@ -1349,8 +1451,8 @@
         "magnetism": 4,
         "workability": 46
       },
-      "yieldBps": 5800,
-      "mergeYieldBps": 10000
+      "yieldBps": 580,
+      "mergeYieldBps": 1000
     },
     {
       "id": "coral_lime",
@@ -1391,6 +1493,10 @@
           "1-8%"
         ]
       ],
+      "unitVolumeMm3": 500000,
+      "densityKgM3": 900,
+      "thermalConductivityWMK": 0.35,
+      "waterAbsorptionPct": 35,
       "itemCode": 1023,
       "recipeId": 1023,
       "mergeRecipeId": 2023,
@@ -1410,8 +1516,8 @@
         "magnetism": 0,
         "workability": 50
       },
-      "yieldBps": 7200,
-      "mergeYieldBps": 10000
+      "yieldBps": 720,
+      "mergeYieldBps": 1000
     },
     {
       "id": "toxic_glass",
@@ -1456,6 +1562,12 @@
           "0.5-4%"
         ]
       ],
+      "unitVolumeMm3": 250000,
+      "densityKgM3": 2550,
+      "thermalConductivityWMK": 0.95,
+      "waterAbsorptionPct": 0,
+      "compressiveStrengthMpa": 950,
+      "flexuralStrengthMpa": 42,
       "itemCode": 1024,
       "recipeId": 1024,
       "mergeRecipeId": 2024,
@@ -1475,8 +1587,8 @@
         "magnetism": 0,
         "workability": 22
       },
-      "yieldBps": 8000,
-      "mergeYieldBps": 10000
+      "yieldBps": 800,
+      "mergeYieldBps": 1000
     },
     {
       "id": "cotton_cloth",
@@ -1515,6 +1627,10 @@
           "0.1-1%"
         ]
       ],
+      "densityKgM3": 150,
+      "thermalConductivityWMK": 0.04,
+      "waterAbsorptionPct": 27,
+      "flexuralStrengthMpa": 0.04,
       "itemCode": 1025,
       "recipeId": 1025,
       "mergeRecipeId": 2025,
@@ -1534,8 +1650,8 @@
         "magnetism": 0,
         "workability": 92
       },
-      "yieldBps": 6500,
-      "mergeYieldBps": 10000
+      "yieldBps": 650,
+      "mergeYieldBps": 1000
     },
     {
       "id": "white_dye",
@@ -1574,6 +1690,9 @@
           "2-8%"
         ]
       ],
+      "densityKgM3": 1200,
+      "thermalConductivityWMK": 0.25,
+      "waterAbsorptionPct": 8,
       "itemCode": 1026,
       "recipeId": 1026,
       "mergeRecipeId": 2026,
@@ -1593,8 +1712,8 @@
         "magnetism": 0,
         "workability": 90
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "yellow_dye",
@@ -1633,6 +1752,9 @@
           "0.5-3%"
         ]
       ],
+      "densityKgM3": 1100,
+      "thermalConductivityWMK": 0.22,
+      "waterAbsorptionPct": 10,
       "itemCode": 1027,
       "recipeId": 1027,
       "mergeRecipeId": 2027,
@@ -1652,8 +1774,8 @@
         "magnetism": 0,
         "workability": 90
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "red_dye",
@@ -1692,6 +1814,9 @@
           "0.5-3%"
         ]
       ],
+      "densityKgM3": 1150,
+      "thermalConductivityWMK": 0.23,
+      "waterAbsorptionPct": 9,
       "itemCode": 1028,
       "recipeId": 1028,
       "mergeRecipeId": 2028,
@@ -1711,8 +1836,8 @@
         "magnetism": 0,
         "workability": 90
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "blue_dye",
@@ -1751,6 +1876,9 @@
           "1-4%"
         ]
       ],
+      "densityKgM3": 1250,
+      "thermalConductivityWMK": 0.27,
+      "waterAbsorptionPct": 8,
       "itemCode": 1029,
       "recipeId": 1029,
       "mergeRecipeId": 2029,
@@ -1770,8 +1898,8 @@
         "magnetism": 0,
         "workability": 90
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "pink_dye",
@@ -1810,6 +1938,9 @@
           "0.5-3%"
         ]
       ],
+      "densityKgM3": 1120,
+      "thermalConductivityWMK": 0.22,
+      "waterAbsorptionPct": 10,
       "itemCode": 1030,
       "recipeId": 1030,
       "mergeRecipeId": 2030,
@@ -1829,8 +1960,8 @@
         "magnetism": 0,
         "workability": 90
       },
-      "yieldBps": 6000,
-      "mergeYieldBps": 10000
+      "yieldBps": 600,
+      "mergeYieldBps": 1000
     },
     {
       "id": "wooden_plank",
@@ -1848,7 +1979,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9500,
+      "yieldBps": 950,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -1903,7 +2034,7 @@
       "mergeRecipeId": 2031,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "wooden_stick",
@@ -1921,7 +2052,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9800,
+      "yieldBps": 980,
       "unitDimensionsVu": [
         1,
         0.07,
@@ -1976,7 +2107,7 @@
       "mergeRecipeId": 2032,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "squared_timber",
@@ -1994,7 +2125,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 1,
-      "yieldBps": 8800,
+      "yieldBps": 880,
       "unitDimensionsVu": [
         1,
         0.22,
@@ -2049,7 +2180,7 @@
       "mergeRecipeId": 2033,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "clear_glass_panel",
@@ -2076,7 +2207,7 @@
       "temperatureC": 1250,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9200,
+      "yieldBps": 920,
       "unitDimensionsVu": [
         1,
         1,
@@ -2135,7 +2266,7 @@
       "mergeRecipeId": 2034,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "ice_blue_glass_panel",
@@ -2161,7 +2292,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9400,
+      "yieldBps": 940,
       "unitDimensionsVu": [
         1,
         1,
@@ -2220,7 +2351,7 @@
       "mergeRecipeId": 2035,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "amber_glass_panel",
@@ -2247,7 +2378,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9300,
+      "yieldBps": 930,
       "unitDimensionsVu": [
         1,
         1,
@@ -2306,7 +2437,7 @@
       "mergeRecipeId": 2036,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "basalt_reinforced_glass",
@@ -2332,7 +2463,7 @@
       "temperatureC": 20,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitDimensionsVu": [
         1,
         1,
@@ -2395,7 +2526,7 @@
       "mergeRecipeId": 2037,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "fired_clay_brick",
@@ -2417,7 +2548,7 @@
       "temperatureC": 850,
       "artisanLevel": 2,
       "yieldCount": 4,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitDimensionsVu": [
         0.5,
         0.25,
@@ -2476,7 +2607,7 @@
       "mergeRecipeId": 2038,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "adobe_brick",
@@ -2502,7 +2633,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 8600,
+      "yieldBps": 860,
       "unitDimensionsVu": [
         0.5,
         0.25,
@@ -2561,7 +2692,7 @@
       "mergeRecipeId": 2039,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "stone_brick",
@@ -2579,7 +2710,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9600,
+      "yieldBps": 960,
       "unitDimensionsVu": [
         0.5,
         0.25,
@@ -2638,7 +2769,7 @@
       "mergeRecipeId": 2040,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "deep_stone_brick",
@@ -2656,7 +2787,7 @@
       "temperatureC": 20,
       "artisanLevel": 2,
       "yieldCount": 4,
-      "yieldBps": 9400,
+      "yieldBps": 940,
       "unitDimensionsVu": [
         0.5,
         0.25,
@@ -2715,7 +2846,7 @@
       "mergeRecipeId": 2041,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "basalt_brick",
@@ -2733,7 +2864,7 @@
       "temperatureC": 20,
       "artisanLevel": 2,
       "yieldCount": 4,
-      "yieldBps": 9200,
+      "yieldBps": 920,
       "unitDimensionsVu": [
         0.5,
         0.25,
@@ -2796,7 +2927,7 @@
       "mergeRecipeId": 2042,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "sandstone_block",
@@ -2818,7 +2949,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 1,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitDimensionsVu": [
         1,
         0.5,
@@ -2877,7 +3008,7 @@
       "mergeRecipeId": 2043,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "cobblestone",
@@ -2899,7 +3030,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9800,
+      "yieldBps": 980,
       "unitDimensionsVu": [
         1,
         0.5,
@@ -2958,7 +3089,7 @@
       "mergeRecipeId": 2044,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "polished_stone_slab",
@@ -2980,7 +3111,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 2,
-      "yieldBps": 9400,
+      "yieldBps": 940,
       "unitDimensionsVu": [
         1,
         0.12,
@@ -3039,7 +3170,7 @@
       "mergeRecipeId": 2045,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "lime_plaster",
@@ -3066,7 +3197,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitDimensionsVu": [
         1,
         1,
@@ -3125,7 +3256,7 @@
       "mergeRecipeId": 2046,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "clay_plaster",
@@ -3155,7 +3286,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 4,
-      "yieldBps": 9200,
+      "yieldBps": 920,
       "unitDimensionsVu": [
         1,
         1,
@@ -3214,7 +3345,7 @@
       "mergeRecipeId": 2047,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "rammed_earth",
@@ -3240,7 +3371,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 1,
-      "yieldBps": 9600,
+      "yieldBps": 960,
       "unitDimensionsVu": [
         1,
         1,
@@ -3299,7 +3430,7 @@
       "mergeRecipeId": 2048,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "shell_terrazzo",
@@ -3326,7 +3457,7 @@
       "temperatureC": 20,
       "artisanLevel": 2,
       "yieldCount": 2,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitDimensionsVu": [
         1,
         0.1,
@@ -3385,7 +3516,7 @@
       "mergeRecipeId": 2049,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "white_ceramic_tile",
@@ -3408,7 +3539,7 @@
       "temperatureC": 1050,
       "artisanLevel": 2,
       "yieldCount": 4,
-      "yieldBps": 9400,
+      "yieldBps": 940,
       "unitDimensionsVu": [
         0.5,
         0.04,
@@ -3467,7 +3598,7 @@
       "mergeRecipeId": 2050,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "blue_ceramic_tile",
@@ -3494,7 +3625,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9200,
+      "yieldBps": 920,
       "unitDimensionsVu": [
         0.5,
         0.04,
@@ -3553,7 +3684,7 @@
       "mergeRecipeId": 2051,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "volcanic_ash_concrete",
@@ -3583,7 +3714,7 @@
       "temperatureC": 20,
       "artisanLevel": 2,
       "yieldCount": 2,
-      "yieldBps": 9300,
+      "yieldBps": 930,
       "unitDimensionsVu": [
         1,
         0.5,
@@ -3646,7 +3777,7 @@
       "mergeRecipeId": 2052,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "salt_crystal_block",
@@ -3668,7 +3799,7 @@
       "temperatureC": 20,
       "artisanLevel": 1,
       "yieldCount": 1,
-      "yieldBps": 8500,
+      "yieldBps": 850,
       "unitDimensionsVu": [
         1,
         0.5,
@@ -3723,7 +3854,7 @@
       "mergeRecipeId": 2053,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_terracotta",
@@ -3745,7 +3876,7 @@
       "temperatureC": 700,
       "artisanLevel": 2,
       "yieldCount": 4,
-      "yieldBps": 7800,
+      "yieldBps": 780,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -3804,7 +3935,7 @@
       "mergeRecipeId": 2054,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_ice_blue",
@@ -3834,7 +3965,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9400,
+      "yieldBps": 940,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -3893,7 +4024,7 @@
       "mergeRecipeId": 2055,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_shell_white",
@@ -3919,7 +4050,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9300,
+      "yieldBps": 930,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -3978,7 +4109,7 @@
       "mergeRecipeId": 2056,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_charcoal",
@@ -4008,7 +4139,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9200,
+      "yieldBps": 920,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -4067,7 +4198,7 @@
       "mergeRecipeId": 2057,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_ash_gray",
@@ -4098,7 +4229,7 @@
       "temperatureC": 1050,
       "artisanLevel": 3,
       "yieldCount": 4,
-      "yieldBps": 9300,
+      "yieldBps": 930,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -4161,7 +4292,7 @@
       "mergeRecipeId": 2058,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "roof_tile_mycelium",
@@ -4192,7 +4323,7 @@
       "temperatureC": 1050,
       "artisanLevel": 4,
       "yieldCount": 4,
-      "yieldBps": 8800,
+      "yieldBps": 880,
       "unitDimensionsVu": [
         1,
         0.08,
@@ -4251,7 +4382,7 @@
       "mergeRecipeId": 2059,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     },
     {
       "id": "blasting_charge",
@@ -4285,7 +4416,7 @@
       "temperatureC": 20,
       "artisanLevel": 3,
       "yieldCount": 1,
-      "yieldBps": 9000,
+      "yieldBps": 900,
       "unitVolumeMm3": 750000,
       "forgeUse": "explosive",
       "renderMode": "blasting_charge",
@@ -4319,6 +4450,8 @@
           "3-8%"
         ]
       ],
+      "thermalConductivityWMK": 0.18,
+      "waterAbsorptionPct": 2,
       "itemCode": 1060,
       "recipeId": 1060,
       "mergeRecipeId": 2060,
@@ -4338,7 +4471,7 @@
         "magnetism": 0,
         "workability": 26
       },
-      "mergeYieldBps": 10000
+      "mergeYieldBps": 1000
     }
   ]
 }

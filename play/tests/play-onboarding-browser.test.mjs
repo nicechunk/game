@@ -194,7 +194,7 @@ test("the first pending mine explains Solana fees and opens the readable RPC set
   }
 });
 
-test("smelting guidance moves the card away from every focused control", async () => {
+test("smelting guidance tracks the full control and omits the network gas estimate", async () => {
   resetRequests();
   const browser = await chromium.launch({ headless: true });
   try {
@@ -208,11 +208,36 @@ test("smelting guidance moves the card away from every focused control", async (
     });
     await page.goto(`${origin}/smelting`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector('.nc-onboarding[data-feature="smelting"].is-visible');
+    const costText = await page.locator("[data-onboarding-cost]").textContent();
+    assert.doesNotMatch(costText, /Network fee|0\.000005 SOL/i);
+    const stepTargets = [
+      "#smeltingRecipeList .nice-smelting-recipe-card.selected",
+      "#smeltingResourceGrid .nice-smelting-resource-card.selected-input",
+      "#smeltingFuelSlot",
+      "#smeltingStart",
+    ];
     for (let step = 0; step < 4; step += 1) {
-      await page.waitForTimeout(80);
-      const layout = await page.evaluate(() => {
+      await page.waitForFunction((selector) => {
+        const target = document.querySelector(selector)?.getBoundingClientRect();
+        const focus = document.querySelector(".nc-onboarding-focus")?.getBoundingClientRect();
+        if (!target || !focus || target.width <= 1 || target.height <= 1) return false;
+        const expected = {
+          left: Math.max(4, target.left - 5),
+          top: Math.max(4, target.top - 5),
+          right: Math.min(innerWidth - 4, target.right + 5),
+          bottom: Math.min(innerHeight - 4, target.bottom + 5),
+        };
+        return Math.max(
+          Math.abs(focus.left - expected.left),
+          Math.abs(focus.top - expected.top),
+          Math.abs(focus.right - expected.right),
+          Math.abs(focus.bottom - expected.bottom),
+        ) <= 1.5;
+      }, stepTargets[step]);
+      const layout = await page.evaluate((selector) => {
         const card = document.querySelector(".nc-onboarding-card").getBoundingClientRect();
         const focus = document.querySelector(".nc-onboarding-focus")?.getBoundingClientRect();
+        const target = document.querySelector(selector)?.getBoundingClientRect();
         const intersection = focus
           ? Math.max(0, Math.min(card.right, focus.right) - Math.max(card.left, focus.left))
             * Math.max(0, Math.min(card.bottom, focus.bottom) - Math.max(card.top, focus.top))
@@ -220,11 +245,13 @@ test("smelting guidance moves the card away from every focused control", async (
         return {
           card: card.toJSON(),
           focus: focus?.toJSON() || null,
+          target: target?.toJSON() || null,
           intersection,
           placement: document.querySelector(".nc-onboarding").dataset.cardPlacement,
         };
-      });
+      }, stepTargets[step]);
       assert.ok(layout.focus, `step ${step + 1} should have a visible focus target`);
+      assert.ok(layout.target, `step ${step + 1} should have a visible real target`);
       assert.equal(layout.intersection, 0, `step ${step + 1} card must not cover the focused control`);
       assert.ok(layout.card.top >= 0 && layout.card.bottom <= 844);
       if (step < 3) await page.locator("[data-onboarding-primary]").click();

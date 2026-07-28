@@ -64,7 +64,7 @@ const rehydratedFallbackSlot = normalizeForgedHotbarSlot({
 assert.equal(rehydratedFallbackSlot.code, code, "a persisted chain fallback should recover when matching presentation code becomes available");
 assert.equal(normalizeForgedHotbarSlot({
   itemId: "forged_item",
-  bytes: new Array(641).fill(0xe0),
+  bytes: new Array(641).fill(0xf0),
   designHash,
 }), null, "oversized local forge payloads must be rejected before runtime restoration");
 
@@ -114,40 +114,28 @@ assert.equal(
   "a forged payload must not be broadcast under a mismatched design hash",
 );
 assert.equal(
-  validatedNcf1EquipmentPayload(new Uint8Array(641).fill(0xe0), designHash),
+  validatedNcf1EquipmentPayload(new Uint8Array(641).fill(0xf0), designHash),
   null,
   "a forged Guardian payload must respect the canonical 640-byte NCF1 limit",
 );
 assert.equal(
-  validatedNcf1EquipmentPayload(Uint8Array.of(0xe0), 0x550c5d1f),
+  validatedNcf1EquipmentPayload(Uint8Array.of(0xf0), 0x550c5d1f),
   null,
   "a forged Guardian payload must include the complete 108-bit NCF1 equipment header",
 );
+const retiredPayload = Uint8Array.from(equipped.slot.bytes);
+retiredPayload[0] = (14 << 4) | (retiredPayload[0] & 0x0f);
+const retiredDesignHash = forgePayloadHash(retiredPayload);
 assert.equal(
-  equipped.slot.bytes[0] >> 4,
-  15,
-  "newly encoded forged equipment must use the fine-volume NCF1 version",
-);
-const legacyPayload = Uint8Array.from(equipped.slot.bytes);
-legacyPayload[0] = (14 << 4) | (legacyPayload[0] & 0x0f);
-const legacyDesignHash = forgePayloadHash(legacyPayload);
-assert.deepEqual(
-  validatedNcf1EquipmentPayload(legacyPayload, legacyDesignHash),
-  legacyPayload,
-  "legacy v14 equipment payloads must remain accepted",
-);
-assert.ok(normalizeForgedHotbarSlot({
-  itemId: "forged_item",
-  bytes: legacyPayload,
-  designHash: legacyDesignHash,
-}), "legacy v14 forged hotbar entries must remain readable");
-const retiredPayload = Uint8Array.from(legacyPayload);
-retiredPayload[0] = (13 << 4) | (retiredPayload[0] & 0x0f);
-assert.equal(
-  validatedNcf1EquipmentPayload(retiredPayload, forgePayloadHash(retiredPayload)),
+  validatedNcf1EquipmentPayload(retiredPayload, retiredDesignHash),
   null,
-  "retired NCF1 versions must remain rejected",
+  "retired v14 equipment payloads must be rejected",
 );
+assert.equal(normalizeForgedHotbarSlot({
+  itemId: "forged_item",
+  bytes: retiredPayload,
+  designHash: retiredDesignHash,
+}), null, "retired v14 forged hotbar entries must be rejected");
 assert.notEqual(
   forgePayloadIdentity(equipped.slot.bytes),
   forgePayloadIdentity(Uint8Array.from(equipped.slot.bytes, (value, index) => index === equipped.slot.bytes.length - 1 ? value ^ 1 : value)),

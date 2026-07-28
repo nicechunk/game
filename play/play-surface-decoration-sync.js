@@ -1,13 +1,13 @@
 import { loadPlayChainModule } from "./play-chain-adapter.js";
 import {
   compileSurfaceDecorationRules,
-  resolveSurfaceDecoration,
   surfaceDecorationVariantHash,
-} from "/chunk.js/play.js";
+} from "../chunk.js/play.js";
 
 export function createPlaySurfaceDecorationSync({
   chunks,
   worldSeed = "",
+  initialRules = [],
   onRulesChanged = () => {},
 } = {}) {
   const state = {
@@ -20,7 +20,7 @@ export function createPlaySurfaceDecorationSync({
     ruleCount: 0,
     error: "",
   };
-  let compiledRules = compileSurfaceDecorationRules([]);
+  let compiledRules = compileSurfaceDecorationRules(initialRules);
 
   return {
     scheduleAfterWorldVisible,
@@ -86,36 +86,20 @@ export function createPlaySurfaceDecorationSync({
     const decorationId = metadata & 0xffff;
     const ruleId = metadata >>> 16;
     const surfaceY = worldY - 1;
-    if (decorationId && ruleId) {
-      const rule = compiledRules.rules.find((entry) => (
-        entry.ruleId === ruleId && entry.decorationId === decorationId
-      ));
-      return decorationResult({
-        decorationId,
-        ruleId,
-        surfaceBlockId: rule?.surfaceBlockId,
-        variant: rule?.variant,
-        flags: rule?.flags,
-        worldX,
-        surfaceY,
-        worldZ,
-      });
-    }
-    if (!compiledRules.rules.length || !blockId) return null;
-    const surfaceBlockIds = new Set(compiledRules.rules.map((entry) => entry.surfaceBlockId));
-    for (const surfaceBlockId of surfaceBlockIds) {
-      const match = resolveSurfaceDecoration({
-        worldSeed,
-        worldX,
-        surfaceY,
-        worldZ,
-        surfaceBlockId,
-        rules: compiledRules,
-      });
-      if (!match || match.dropBlockId !== blockId) continue;
-      return decorationResult({ ...match, worldX, surfaceY, worldZ });
-    }
-    return null;
+    if (!decorationId || !ruleId || !blockId) return null;
+    const rule = compiledRules.rules.find((entry) => (
+      entry.ruleId === ruleId && entry.decorationId === decorationId
+    ));
+    return decorationResult({
+      decorationId,
+      ruleId,
+      surfaceBlockId: rule?.surfaceBlockId,
+      variant: rule?.variant,
+      flags: rule?.flags,
+      worldX,
+      surfaceY,
+      worldZ,
+    });
   }
 
   function decorationResult({ decorationId, ruleId, surfaceBlockId, variant, flags, worldX, surfaceY, worldZ }) {

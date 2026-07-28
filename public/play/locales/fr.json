@@ -2,8 +2,8 @@
   "_meta": {
     "language": "fr",
     "label": "French",
-    "version": "play-locale-fr-4978066e721e2f44",
-    "contentHash": "4978066e721e2f44"
+    "version": "play-locale-fr-4101db025497febe",
+    "contentHash": "4101db025497febe"
   },
   "siteFooter": {
     "tagline": "Un protocole de monde voxel seedé sur Solana.",
@@ -227,14 +227,6 @@
         "programUpgradePending": "player program upgrade pending"
       },
       "rpc": "RPC",
-      "rpcPublic": "RPC public",
-      "rpcKey": "RPCKEY {key}",
-      "rpcRecommend": "Set a private RPC key for steadier mining.",
-      "rpcConfigured": "Private RPC key is active for chain calls.",
-      "rpcSet": "Configurer",
-      "rpcUpdate": "Mettre à jour",
-      "rpcSetPrompt": "Set a Helius API key to avoid public RPC limits.",
-      "rpcUpdatePrompt": "Update your Helius API key for NiceChunk chain calls.",
       "characterTitle": "CHARACTER",
       "basicInfo": "BASIC INFO",
       "skillsTab": "Skills",
@@ -365,12 +357,12 @@
         },
         "smelting": {
           "name": "Smelting",
-          "description": "Reduces material loss when raw resources become refined materials.",
+          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
           "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "{yieldPercent}% yield · {lossPercent}% loss",
-          "next": "Next level: {yieldPercent}% yield · {lossPercent}% loss",
-          "max": "Max: 100% yield · 0% loss",
-          "formula": "Yield = 70% + Lv x 3%; loss = 30% - Lv x 3%"
+          "current": "+{bonus}% extra output",
+          "next": "Next level: +{bonus}% extra output",
+          "max": "Max: +50% extra output",
+          "formula": "Extra output = Lv x 5%"
         },
         "forging": {
           "name": "Forging",
@@ -446,14 +438,18 @@
       "walletDisconnectedHint": "Connectez un portefeuille pour utiliser les fonctions de jeu sur la chaîne.",
       "logOut": "Se déconnecter",
       "rpcSettings": "Connexion RPC",
-      "rpcSettingsHint": "Configurez la passerelle de données Solana utilisée par ce navigateur.",
+      "rpcSettingsHint": "Contrôle la lecture des comptes, la synchronisation des PDA du monde et l'envoi des transactions signées.",
       "rpcHelius": "RPC Helius",
-      "rpcHintPrivate": "Le RPC privé est actif pour les appels à la chaîne.",
-      "rpcHintPublic": "Configurez une clé Helius pour un minage plus stable.",
+      "rpcCustom": "RPC Devnet personnalisé",
+      "rpcPublic": "RPC public",
+      "rpcHintPrivate": "Helius Devnet est actif pour les comptes, la synchronisation du monde et les transactions.",
+      "rpcHintCustom": "Un endpoint Devnet personnalisé vérifié est actif pour les lectures et transactions.",
+      "rpcHintPublic": "Le Devnet public partagé peut être limité. Ouvrez les réglages pour Helius Free ou un endpoint personnalisé.",
+      "rpcUpdate": "Mettre à jour",
+      "rpcSet": "Configurer",
       "languageSettings": "Langue de l'interface",
       "language": "Langue",
       "languageHint": "Choisissez la langue de l'interface du jeu.",
-      "rotateAvatar": "Faites glisser pour tourner",
       "cacheSettings": "Cache local",
       "cacheSettingsHint": "Gérez les données temporaires du monde et des guides stockées par ce navigateur.",
       "cacheAction": "Actualiser les données locales",
@@ -465,7 +461,8 @@
       "cacheClearing": "Suppression...",
       "cacheCleared": "Cache vidé. Rechargement...",
       "cacheClearedButton": "Cache vidé",
-      "cacheClearFailed": "Impossible de vider le cache : {reason}"
+      "cacheClearFailed": "Impossible de vider le cache : {reason}",
+      "rotateAvatar": "Faites glisser pour tourner"
     },
     "debug": "Debug",
     "bulkMining": {
@@ -498,7 +495,8 @@
       "resolving": "Guardian : résolution...",
       "resolvingForChunk": "Guardian : résolution pour chunk {chunkX},{chunkZ}",
       "active": "Guardian : {endpoint} | chunk {chunkX},{chunkZ} | plage {minX}..{maxX}, {minZ}..{maxZ}",
-      "none": "Guardian : aucun pour chunk {chunkX},{chunkZ}"
+      "none": "Guardian : aucun pour chunk {chunkX},{chunkZ}",
+      "connectionLost": "Connexion au Guardian perdue"
     },
     "mapTeleport": {
       "x": "X",
@@ -604,7 +602,7 @@
       "itemType": "Item",
       "unknownSource": "Unknown source",
       "coordinateResource": "Coordinate Resource",
-      "totalWeight": "Poids total : {weight}",
+      "totalWeight": "Weight: {weight}",
       "massLine": "Mass {mass}",
       "sizeLine": "Size {size}",
       "volumeLine": "Volume {volume}",
@@ -617,13 +615,13 @@
       "equipped": "Équipé",
       "equippedSlot": "Équipé dans l’emplacement {slot} de la barre",
       "equippedLocked": "Équipé dans l’emplacement {slot} de la barre. Retirez-le avant de le sélectionner, le déplacer ou le jeter.",
-      "loading": "Chargement du sac à dos...",
-      "unavailable": "Sac à dos indisponible",
-      "readFailed": "Échec de lecture du sac à dos : {reason}",
-      "readFailedShort": "Les données du sac à dos n'ont pas pu être chargées. Rouvrez-le pour réessayer.",
-      "openAria": "Ouvrir le sac à dos",
-      "loadingAria": "Chargement du sac à dos",
-      "createAria": "Créer un sac à dos"
+      "discardTitle": "Jeter des objets du sac ?",
+      "discardSingleMessage": "Jeter {item} du sac ?",
+      "discardBatchMessage": "Jeter {stacks} piles contenant {items} objets du sac ?",
+      "discardWarning": "Cette action est définitive et ne peut pas être annulée.",
+      "discardConfirm": "Jeter",
+      "discardChanged": "Les objets sélectionnés ont changé avant la confirmation. Rien n’a été jeté.",
+      "confirmUnavailable": "La confirmation est indisponible. Rien n’a été jeté."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -676,6 +674,9 @@
         "redirect": {
           "title": "Opening wallet gateway",
           "body": "No active game session was found. Redirecting to wallet login."
+        },
+        "characterAccess": {
+          "title": "Chargement du PDA du personnage"
         }
       },
       "loader": {
@@ -685,32 +686,137 @@
         "cached": "En cache",
         "failed": "Échec",
         "failureMessage": "Un fichier du jeu n’a pas pu être chargé.",
+        "errorDetail": "Détails : {reason}",
         "retry": "Réessayer",
+        "retrying": "Nouvel essai",
+        "refresh": "Actualiser la page",
+        "rpcSettings": "Paramètres RPC",
+        "rpcInputLabel": "Clé API Helius devnet",
+        "rpcPlaceholder": "Collez une clé API Helius",
+        "rpcSave": "Enregistrer et réessayer",
+        "rpcSaving": "Enregistrement",
+        "rpcSaved": "RPC enregistré",
+        "cancel": "Annuler",
         "files": "{loaded} / {total} fichiers",
-        "network": "Réseau"
+        "network": "Réseau",
+        "failures": {
+          "network-offline": {
+            "title": "Aucune connexion réseau",
+            "message": "Le navigateur est hors ligne et ne peut pas charger le PDA du joueur.",
+            "help": "Reconnectez Internet, puis réessayez."
+          },
+          "network-unavailable": {
+            "title": "Échec de la requête réseau",
+            "message": "Le navigateur n’a pas pu joindre le RPC Solana.",
+            "help": "Vérifiez la connexion et le proxy, ou configurez un RPC privé."
+          },
+          "rpc-rate-limited": {
+            "title": "Limite RPC atteinte",
+            "message": "Le RPC a refusé la recherche car il est surchargé.",
+            "help": "Attendez ou configurez une clé Helius devnet."
+          },
+          "rpc-unauthorized": {
+            "title": "Autorisation RPC refusée",
+            "message": "La clé ou le point RPC configuré a été refusé.",
+            "help": "Corrigez la clé dans les paramètres RPC, puis réessayez."
+          },
+          "rpc-unavailable": {
+            "title": "RPC indisponible",
+            "message": "Le point Solana n’a pas terminé la recherche du joueur.",
+            "help": "Réessayez, vérifiez le proxy ou utilisez un RPC privé."
+          },
+          "character-timeout": {
+            "title": "Recherche du joueur expirée",
+            "message": "La requête du PDA du joueur a pris trop de temps.",
+            "help": "Vérifiez le RPC, puis relancez la même recherche."
+          },
+          "character-data-invalid": {
+            "title": "Données du joueur invalides",
+            "message": "Le compte existe, mais ses données sont invalides.",
+            "help": "Ne créez pas un autre personnage; actualisez ou signalez le compte."
+          },
+          "wallet-unavailable": {
+            "title": "Session de portefeuille indisponible",
+            "message": "Le portefeuille enregistré ne permet pas la vérification.",
+            "help": "Retournez à la connexion et reconnectez le bon portefeuille."
+          },
+          "verification-unavailable": {
+            "title": "Vérification indisponible",
+            "message": "Le client chargé ne fournit pas la recherche requise.",
+            "help": "Actualisez la page; si le problème persiste, la version doit être réparée."
+          },
+          "character-verification-failed": {
+            "title": "Échec de la vérification",
+            "message": "Le PDA du joueur n’a pas pu être vérifié.",
+            "help": "Consultez les détails, puis réessayez ou actualisez."
+          }
+        }
       }
     },
     "rpcConfig": {
-      "title": "Public RPC is overloaded",
-      "body": "Set a Helius devnet API key to use your own RPC endpoint for chain reads and transactions.",
-      "link": "Get a Helius API key",
+      "title": "Solana RPC connection",
+      "body": "Choose how this browser reaches Solana Devnet for account reads, world synchronization, and signed transactions.",
+      "failureTitle": "RPC setup can resolve this loading error",
+      "failureBody": "The failed loading stage and technical reason are shown below. Configure a working Devnet endpoint, save it, and NiceChunk will retry the same player lookup instead of creating a new character.",
+      "failureLabel": "Loading issue detected",
+      "failureUnknown": "No additional technical reason was returned.",
+      "failureStage": "Failed stage: {stage}",
+      "failureReason": "Technical reason: {reason}",
+      "linksAria": "RPC provider resources",
+      "link": "Open Helius dashboard",
+      "guideLink": "Read the setup guide",
       "explainerAria": "RPC setting details",
       "pointGatewayLabel": "Chain gateway",
       "pointGatewayTitle": "RPC decides how the browser reaches Solana",
-      "pointGatewayBody": "NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions. It does not change your wallet ownership.",
+      "pointGatewayBody": "NiceChunk uses RPC to load player and backpack accounts, synchronize world PDAs, and submit signed transactions. It does not change wallet ownership.",
       "pointReliabilityLabel": "Reliability",
-      "pointReliabilityTitle": "A private key avoids public endpoint congestion",
-      "pointReliabilityBody": "When many players share the public devnet RPC, reads and mining transactions can be throttled. Your own Helius key gives this browser a steadier route.",
+      "pointReliabilityTitle": "A dedicated endpoint avoids public congestion",
+      "pointReliabilityBody": "Shared public Devnet requests can be throttled. A Helius Free plan is normally sufficient for testing and gives this browser an independent allowance.",
       "pointCostLabel": "Cost boundary",
       "pointCostTitle": "The key is not a payment to NiceChunk",
-      "pointCostBody": "The API key is stored locally in your browser and used only to build your RPC URL. For normal NiceChunk gameplay, the Helius Free plan is usually enough. If you want higher limits and a smoother experience, you can use a paid Helius plan.",
+      "pointCostBody": "The API key or endpoint is stored only in this browser. Provider plan costs are separate from Solana transaction fees and are never paid to NiceChunk.",
       "pointSecurityLabel": "Security",
       "pointSecurityTitle": "RPC cannot spend SOL by itself",
-      "pointSecurityBody": "Transactions still require your wallet or game wallet signature. RPC only transports signed requests and chain data.",
+      "pointSecurityBody": "Transactions still require a wallet signature. RPC only transports signed requests and chain data, and NiceChunk never sends the saved credential to its own server.",
+      "currentLabel": "Current connection",
+      "current": {
+        "public": "Shared public Devnet RPC",
+        "helius": "Helius Devnet RPC",
+        "custom": "Custom Devnet RPC"
+      },
+      "providerLabel": "Connection method",
+      "providerHelius": "Helius Devnet API key (recommended)",
+      "providerCustom": "Custom HTTPS Devnet endpoint",
       "inputLabel": "Helius API key",
       "placeholder": "Paste your Helius API key",
-      "save": "Save RPC",
-      "dismiss": "Dismiss RPC warning",
+      "heliusHelp": "Create a Helius account, select Solana Devnet, then paste only the API key. The free plan is normally enough for game testing.",
+      "endpointLabel": "Custom Devnet RPC endpoint",
+      "endpointPlaceholder": "https://your-solana-devnet-rpc.example",
+      "endpointHelp": "Only HTTPS endpoints are accepted. NiceChunk tests the Solana genesis hash before saving to prevent a mainnet or testnet mismatch.",
+      "save": "Test and save",
+      "testing": "Testing...",
+      "usePublic": "Use public RPC",
+      "publicNote": "The public endpoint is shared and can be rate limited. It is available as a fallback, not the recommended long-term setting.",
+      "dismiss": "Close RPC settings",
+      "savedStatus": "RPC connection tested and saved. Account reads, world synchronization, and transactions now use it.",
+      "publicSavedStatus": "Shared public Devnet RPC is active. It may be rate limited during busy periods.",
+      "openFailed": "RPC settings could not be opened. Refresh the game and try again.",
+      "validation": {
+        "invalidKey": "Enter the Helius API key before testing.",
+        "invalidUrl": "Enter a valid HTTPS Solana Devnet RPC endpoint without embedded username or password credentials.",
+        "testing": "Testing the endpoint and confirming the Solana Devnet genesis hash...",
+        "unauthorized": "The provider rejected this credential. Check the API key or endpoint in the provider dashboard.",
+        "rateLimited": "This endpoint is already rate limited. Check the provider plan or use another Devnet endpoint.",
+        "http": "The endpoint returned HTTP {status}. Check the provider status and endpoint configuration.",
+        "invalidResponse": "The endpoint did not return a valid Solana JSON-RPC response.",
+        "rejected": "The endpoint rejected the Solana genesis check.",
+        "wrongNetwork": "This endpoint is not Solana Devnet. NiceChunk did not save it.",
+        "timeout": "The endpoint did not respond within 10 seconds. Check the network, proxy, or provider status.",
+        "network": "The browser could not reach this endpoint. Check Internet access, proxy rules, CORS support, or the provider status.",
+        "storage": "The browser could not save this RPC setting. Check site storage permissions.",
+        "saved": "Connection verified and saved. Retrying with this Devnet RPC...",
+        "publicSaved": "Public Devnet RPC restored. Retrying the failed request..."
+      },
       "publicRpcFailed": "Public devnet RPC is rate limited. Add a Helius API key to keep chain reads and mining transactions reliable.",
       "invalid": "Enter a Helius API key before saving.",
       "saved": "Saved. NiceChunk will use your Helius devnet RPC for chain calls."
@@ -725,6 +831,35 @@
       "browseTab": "Parcourir",
       "sellTab": "Vendre",
       "ordersTab": "Ordres",
+      "mobileViews": "Mobile market views",
+      "mobileListings": "Listings",
+      "mobileBackpack": "Backpack",
+      "opened": "Market opened. Chain listings use PDA state when wallet and RPC are available.",
+      "localWallet": "Local wallet",
+      "membershipEyebrow": "On-chain access",
+      "joinTitle": "Join the market",
+      "joinBody": "Create your personal market membership PDA before trading.",
+      "joinCostBreakdown": "Market joining cost breakdown",
+      "userStateRent": "Market state PDA rent",
+      "networkFeeEstimate": "Estimated network fee",
+      "estimatedTotal": "Estimated total",
+      "rentExplanation": "PDA rent is a rent-exempt reserve locked in your on-chain accounts, not a platform fee. It is recoverable only if the program later provides an account-close instruction. The network fee is paid to Solana validators.",
+      "joinCapacity": "Each wallet may keep up to 50 active listings.",
+      "marketRulesLink": "Read market rules and fees",
+      "joinAction": "Join market",
+      "totalPlusNetworkFee": "{amount} SOL + network fee",
+      "membershipChecking": "Reading market membership and live RPC costs...",
+      "membershipSubmitting": "Waiting for confirmation...",
+      "joinReady": "Review the live estimate, then approve market access in your wallet.",
+      "costPending": "Checking RPC...",
+      "membershipWalletRequired": "Connect your game wallet before joining the market.",
+      "membershipUnavailable": "Market membership is unavailable in this client.",
+      "membershipCheckFailed": "Could not check market access: {reason}",
+      "retryMembership": "Retry cost estimate",
+      "joinPending": "Confirm market membership in your wallet.",
+      "joinCreated": "Market access created on-chain: {signature}",
+      "joinRequired": "Join the market before creating or settling listings.",
+      "alreadyJoined": "This wallet has already joined the market.",
       "searchLabel": "Search",
       "searchPlaceholder": "Resource, equipment, coordinate",
       "searchMetaIdle": "{category} · {currency} · {sort}",
@@ -732,6 +867,9 @@
       "chainListingsSyncing": "Syncing chain listings...",
       "chainListingsSynced": "Chain listings synced",
       "chainListingsUnavailable": "Chain sync unavailable",
+      "chainListingsQueryUnavailable": "The loaded client cannot query chain market listings.",
+      "chainListingsLoaded": "Loaded {count} chain market listings.",
+      "chainListingsFailed": "Chain market refresh failed: {reason}.",
       "sortLabel": "Sort",
       "sortNewest": "Newest first",
       "sortOldest": "Oldest first",
@@ -757,6 +895,20 @@
       "feeValue": "1%",
       "settlement": "Preferred settlement: NCK",
       "backpackCount": "{count}/{capacity}",
+      "inventory": "Inventory",
+      "myListings": "My Listings",
+      "inventoryAllItems": "All Items",
+      "inventoryChainNote": "Confirmed on-chain items",
+      "tableItem": "Item",
+      "tablePrice": "Unit Price",
+      "tableQuantity": "Quantity",
+      "tableSeller": "Seller",
+      "tableAction": "Action",
+      "activeOrders": "My Active Orders",
+      "viewAllOrders": "View All Orders",
+      "resultSummary": "{total} listings · {category} · {currency}",
+      "sampleStone": "Stone Reserve",
+      "sampleStoneMeta": "Raw stone stack from public terrain",
       "sampleIron": "Iron Ore Fragment",
       "sampleIronMeta": "Raw material",
       "samplePickaxe": "Forged Pickaxe",
@@ -766,6 +918,7 @@
       "sampleCloak": "Oak Leaf Block",
       "sampleCloakMeta": "Clothing",
       "buy": "Acheter",
+      "buyNow": "Buy Now",
       "buyNeedsWallet": "Connect a wallet to buy this listing.",
       "buyNeedsBackpack": "Equip a backpack to buy this listing.",
       "buyBackpackFull": "Your backpack is full.",
@@ -779,6 +932,29 @@
       "expandDetails": "Details",
       "collapseDetails": "Hide details",
       "detailTitle": "Listing details",
+      "itemDetailsTitle": "Détails de l'objet",
+      "listingDataTitle": "Annonce on-chain",
+      "massLabel": "Masse",
+      "volumeLabel": "Volume",
+      "qualityLabel": "Qualité",
+      "materialLabel": "Matériau",
+      "resourceLabel": "Ressource",
+      "blockIdLabel": "ID du bloc",
+      "coordinatesLabel": "Coordonnées",
+      "yieldLabel": "Rendement de collecte",
+      "durabilityLabel": "Durabilité",
+      "gradeLabel": "Grade",
+      "itemLevelLabel": "Niveau de l'objet",
+      "itemCodeLabel": "Code de l'objet",
+      "itemIdLabel": "ID de l'objet",
+      "itemPdaLabel": "PDA de l'objet",
+      "itemProofLabel": "Preuve",
+      "listingStateLabel": "État de l'annonce",
+      "listingIdLabel": "ID de l'annonce",
+      "listingPdaLabel": "PDA de l'annonce",
+      "sourceSlotLabel": "Emplacement source",
+      "createdLabel": "Créé",
+      "stateActive": "Actif",
       "detailClose": "Close listing details",
       "cardAria": "{name}, {price} {currency}",
       "detailItem": "Item",
@@ -788,10 +964,19 @@
       "detailPayment": "Payment",
       "detailRequirement": "Requirement",
       "detailUnknown": "Unknown",
+      "detailSelectHint": "Select a market row to inspect its item and price.",
+      "currentPrice": "Current Price",
+      "availableQuantity": "Available Quantity",
+      "totalPrice": "Total Price",
+      "custodyNote": "On-chain settlement verifies listing custody and applies the 1% market fee.",
       "paymentNck": "Requires a wallet NCK token account.",
       "paymentSol": "Pays from wallet SOL balance.",
       "sampleListing": "Sample listing",
-      "loadingListings": "Loading listings...",
+      "loadingListings": "Loading chain listings",
+      "loadingListingsMeta": "Reading active marketplace PDA accounts from the configured RPC.",
+      "listingLoadFailed": "Could not load chain listings",
+      "listingLoadFailedMeta": "{reason}. Check the RPC or network, then retry.",
+      "retryListings": "Retry loading",
       "chainListingLoadFailed": "On-chain listings are temporarily unavailable.",
       "chainListingName": "On-chain Resource Listing",
       "chainListingMeta": "{source} slot {slot}",
@@ -805,6 +990,7 @@
       "stepListingDraft": "2. Listing Draft",
       "inventoryEyebrow": "Backpack",
       "inventoryTitle": "Select one item to list",
+      "sellSelectHint": "Select an item from the inventory panel",
       "listingEyebrow": "Listing Draft",
       "noSelection": "No item selected",
       "categoryLabel": "Category",
@@ -812,6 +998,8 @@
       "priceLabel": "Price",
       "pricePlaceholder": "0.00",
       "formHint": "Select an item, set category and price, then create an on-chain listing.",
+      "draftReady": "Ready to list {item}. The selected stack will move into market custody.",
+      "priceRequired": "Set a positive price before creating the listing.",
       "createListing": "Creer une annonce",
       "noOrders": "No active orders",
       "noOrdersMeta": "Wallet orders will appear here.",
@@ -832,9 +1020,13 @@
       "emptyHintMarket": "Market terminal",
       "emptyHintOnchain": "On-chain listings",
       "invalidListing": "Select an item and enter a valid price.",
+      "transactionInProgress": "A market transaction is already in progress.",
+      "localListingCreated": "Listing created. The item is now in market custody.",
       "listingPending": "Confirm the transaction to create this listing on-chain.",
+      "listingSubmitting": "Creating...",
       "listingCreated": "Listing created on-chain: {signature}",
       "listingFailed": "Listing transaction failed: {reason}",
+      "activeListingLimit": "Each wallet may have at most 50 active listings.",
       "cancelPending": "Canceling...",
       "cancelFailed": "Cancel transaction failed: {reason}"
     },
@@ -911,7 +1103,7 @@
       "outputSize": "Output size",
       "yieldRange": "Rendement",
       "outputRate": "Output rate",
-      "outputRateValue": "Recipe {recipePercent}% · skill loss {lossPercent}%",
+      "outputRateValue": "Recipe {recipePercent}% · skill bonus +{bonusPercent}%",
       "inputMass": "Masse d'entrée {mass}",
       "quality": "Base qualité",
       "heatMet": "Tier {tier} met",
@@ -987,6 +1179,8 @@
       "output": "Sortie",
       "submitting": "Envoi sur la chaîne...",
       "submitCompleteShort": "Confirmé sur la chaîne",
+      "backpackRefreshFailed": "Le sac n'a pas pu être actualisé avant la fusion : {reason}",
+      "inputsChanged": "Le contenu du sac a changé. Vérifiez les matériaux actualisés et réessayez.",
       "recipeDetails": "Détails de la recette",
       "requiredInputs": "Entrées requises",
       "qualityScore": "Qualité",
@@ -1036,15 +1230,7 @@
       "learnDetail": "The backpack is a wallet-owned PDA. Mined resources enter it only after coordinate proof succeeds on chain.",
       "submit": "CREATE BACKPACK",
       "learn": "LEARN MORE",
-      "hotbarHint": "Your backpack will appear here after creation!",
-      "alreadyExists": "Ce portefeuille possède déjà un sac à dos. Il est impossible d'en créer un second.",
-      "checking": "VÉRIFICATION DU SAC...",
-      "creating": "CRÉATION SUR LA CHAÎNE...",
-      "alreadyExistsLabel": "LE SAC À DOS EXISTE DÉJÀ",
-      "retryCheck": "RÉESSAYER LA VÉRIFICATION",
-      "checkingDetail": "Vérification sur la chaîne de l'existence d'un sac à dos avant sa création.",
-      "readPending": "Les données du sac à dos sont encore en cours de chargement. La création n'a pas été envoyée.",
-      "readFailed": "La vérification du sac à dos a échoué. La création n'a pas été envoyée : {reason}"
+      "hotbarHint": "Your backpack will appear here after creation!"
     },
     "block": {
       "unknown": "Unknown Block",
@@ -1113,6 +1299,10 @@
     "equipment": {
       "chainSaved": "Équipement enregistré sur la chaîne ({signature}).",
       "chainSaveFailed": "Échec de l’enregistrement de l’équipement sur la chaîne : {reason}."
+    },
+    "confirmDialog": {
+      "eyebrow": "Confirmation requise",
+      "cancel": "Annuler"
     },
     "onboarding": {
       "dialogAria": "Guide {feature}",
@@ -1509,6 +1699,29 @@
       "visualModelBody": "Material thumbnails are generated from the dominant elements in each recipe profile.",
       "processTitle": "Smelting process",
       "compositionTitle": "Material element profile",
+      "physicalTitle": "Objective physical properties",
+      "attributesTitle": "Engineering property scores",
+      "unitVolumeLabel": "Canonical unit volume",
+      "densityLabel": "Bulk density",
+      "unitMassLabel": "Calculated unit mass",
+      "thermalConductivityLabel": "Thermal conductivity",
+      "waterAbsorptionLabel": "Water absorption",
+      "compressiveStrengthLabel": "Compressive strength",
+      "flexuralStrengthLabel": "Flexural strength",
+      "attribute": {
+        "hardness": "Hardness",
+        "durability": "Durability",
+        "toughness": "Toughness",
+        "ductility": "Ductility",
+        "brittleness": "Brittleness",
+        "density": "Density",
+        "heatResistance": "Heat resistance",
+        "corrosionResistance": "Corrosion resistance",
+        "conductivity": "Electrical conductivity",
+        "thermalConductivity": "Thermal conductivity",
+        "magnetism": "Magnetism",
+        "workability": "Workability"
+      },
       "forgeUseTitle": "Forge unlock",
       "sourceBlocksTitle": "Raw resource sources",
       "heatLabel": "Heat",
@@ -1516,7 +1729,6 @@
       "sourceLabel": "Source",
       "consumableLabel": "Use",
       "consumable": "Consumable",
-      "reusable": "Reusable heat source",
       "burnSeconds": "{seconds}s",
       "requiredHeatLabel": "Required heat",
       "artisanLevelLabel": "Artisan level",
@@ -1579,15 +1791,11 @@
         },
         "charcoal": {
           "name": "Charcoal",
-          "description": "Processed carbon fuel made from wood resources. Cleaner and steadier than raw wood."
+          "description": "Processed carbon fuel made from wood resources. It supplies tier-three forge heat and is consumed with the smelting batch."
         },
         "coal": {
           "name": "Coal",
-          "description": "Deep stone seam fuel with strong forge heat. It is uncommon and suited for metal blooms."
-        },
-        "lava_heat": {
-          "name": "Lava Heat",
-          "description": "A non-consumed high heat source for blast-tier recipes, anchored to volcanic resources."
+          "description": "Deep stone seam fuel that supplies tier-four blast heat. It is consumed with the smelting batch."
         }
       },
       "item": {
@@ -2127,22 +2335,34 @@
         "description": "Carbon-rich sedimentary fuel generated as low-frequency seams inside deep stone, useful for smelting heat rather than direct forging."
       },
       "cotton": {
-        "name": "Coton"
+        "name": "Coton",
+        "source": "Warm Plains Vegetation",
+        "description": "A cellulose-rich fiber crop selected by warm, moderately humid surface conditions and used as the world's primary woven textile feedstock."
       },
       "flowerWhite": {
-        "name": "Fleur blanche"
+        "name": "Fleur blanche",
+        "source": "Temperate Surface Vegetation",
+        "description": "A pale flowering plant whose cellulose tissue and flavonoid pigments provide a mineral-light white dye source."
       },
       "flowerYellow": {
-        "name": "Fleur jaune"
+        "name": "Fleur jaune",
+        "source": "Warm Surface Vegetation",
+        "description": "A carotenoid-rich flowering plant used for warm yellow pigments while retaining the carbon, oxygen, and hydrogen profile of plant tissue."
       },
       "flowerRed": {
-        "name": "Fleur rouge"
+        "name": "Fleur rouge",
+        "source": "Warm Humid Vegetation",
+        "description": "An anthocyanin-rich flower used for stable red organic pigment, favored by warm and humid surface rules."
       },
       "flowerBlue": {
-        "name": "Fleur bleue"
+        "name": "Fleur bleue",
+        "source": "Cool Humid Vegetation",
+        "description": "A rarer cool-climate flower whose anthocyanin chemistry and cellular acidity produce a blue pigment source."
       },
       "flowerPink": {
-        "name": "Fleur rose"
+        "name": "Fleur rose",
+        "source": "Temperate Humid Vegetation",
+        "description": "A temperate flowering plant with dilute anthocyanin pigments used for pink dyes and decorative textile finishes."
       }
     },
     "tag": {
@@ -3323,6 +3543,7 @@
       "chainSubmitted": "Equipment forged and saved to the backpack",
       "chainSubmitFailed": "Echec de la forge on-chain",
       "chainCodeTooLarge": "Chain code is too large for forged item storage",
+      "chainMaterialTooSmall": "Conservez une masse et un volume de matériau non nuls avant de couler ou d'enregistrer",
       "chainCodeOutOfSync": "Load this chain code into the workbench before forging on-chain",
       "chainMaterialRequired": "Select backpack materials before forging on-chain",
       "chainMaterialMismatch": "Backpack materials changed. Sync materials and forge again",
@@ -3407,7 +3628,7 @@
     "workpieceEmptyDetail": "Add or drop a material onto the bench first.",
     "dimensionsValue": "{x} x {y} x {z}",
     "scoreValue": "{value}/100",
-    "volumeCm3Value": "{value} cm³",
+    "volumeCm3Value": "{value} cm3",
     "vectorValue": "{x}, {y}, {z}",
     "capacityDiagnosticsTitle": "Material capacity",
     "capacityDiagnosticsSummary": "Design level {requested} / allowed {allowed}. Material capacity {capacity}, shortage {deficit}. Main issue: {issue}.",
@@ -3810,7 +4031,91 @@
     "avatarPreviewEmpty": "Définissez une prise valide",
     "avatarPreviewEquipped": "Prise équipée",
     "avatarPreviewError": "Aperçu indisponible",
-    "avatarPreviewHint": "Faites glisser pour pivoter"
+    "avatarPreviewHint": "Faites glisser pour pivoter",
+    "onboarding": {
+      "dialogAria": "Guide {feature}",
+      "close": "Fermer le guide",
+      "stepCount": "{current} / {total}",
+      "stepLabel": "Étape {current} : {label}",
+      "dontShowAgain": "Ne plus afficher",
+      "skip": "Ignorer le guide",
+      "later": "Plus tard",
+      "next": "Suivant",
+      "finish": "Terminer",
+      "costEstimate": "Coût estimé",
+      "liveValuesNote": "Les valeurs actives sont revérifiées via le RPC avant signature.",
+      "checkingFee": "Vérification du RPC",
+      "feeUnavailable": "Vérifié avant signature",
+      "solValue": "{value} SOL",
+      "approxSolValue": "≈ {value} SOL",
+      "percentValue": "{value}%",
+      "controlMove": "W A S D",
+      "controlSwipe": "GLISSER",
+      "controlTap": "TOUCHER",
+      "controlLook": "GLISSER",
+      "controlSelect": "CLIC",
+      "controlFirstPerson": "E",
+      "controlChoose": "CHOISIR",
+      "controlEquip": "ÉQUIPER",
+      "controlChain": "PDA",
+      "controlSol": "SOL",
+      "controlEightHours": "8H",
+      "controlSign": "SIGNER",
+      "controlBlueprint": "PLAN",
+      "controlDimensions": "X × Z",
+      "controlPlace": "PLACER",
+      "controlReview": "VÉRIFIER",
+      "controlBind": "LIER",
+      "controlRecipe": "RECETTE",
+      "controlInput": "ENTRÉE",
+      "controlFuel": "COMBUST.",
+      "controlPrice": "PRIX",
+      "controlMaterials": "MATÉRIAU",
+      "controlShape": "FORME",
+      "controlGrip": "PRISE",
+      "controlFit": "AJUSTER",
+      "controlCast": "FORGER",
+      "cost": {
+        "accountDeposit": "Dépôt de compte remboursable",
+        "networkFee": "Frais réseau",
+        "sessionTopUp": "Recharge de session utilisable",
+        "buildSiteDeposit": "Dépôt du compte BuildSite",
+        "progressDeposit": "Dépôt de progression de fonte",
+        "listingDeposit": "Dépôt du compte d’annonce",
+        "marketFee": "Frais après vente",
+        "selectedMaterials": "Matériaux sélectionnés",
+        "consumedOnChain": "Consommés on-chain"
+      },
+      "features": {
+        "forging": {
+          "eyebrow": "Forge d’outil",
+          "title": "Forger un objet unique",
+          "warning": "La fonte consomme les matériaux choisis et crée un objet. Gardez une place libre.",
+          "steps": {
+            "materials": {
+              "title": "Choisissez des matériaux vérifiés",
+              "body": "Leur volume et leurs attributs PDA limitent le modèle."
+            },
+            "shape": {
+              "title": "Construisez sur l’établi partagé",
+              "body": "Placez, coupez et agencez les blocs en gardant l’ensemble connecté."
+            },
+            "handle": {
+              "title": "Définissez la prise fonctionnelle",
+              "body": "La prise doit croiser la zone verte de la main et rester dans l’objet."
+            },
+            "fit": {
+              "title": "Vérifiez l’ajustement",
+              "body": "Tournez la scène et évitez toute intersection avec le personnage."
+            },
+            "cast": {
+              "title": "Forgez le modèle final",
+              "body": "Vérifiez preuve, matériaux et capacité avant de signer."
+            }
+          }
+        }
+      }
+    }
   },
   "mining": {
     "title": "Minage Nicechunk",

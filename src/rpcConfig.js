@@ -1,11 +1,12 @@
 export const publicDevnetRpcUrl = "https://explorer-api.devnet.solana.com";
+export const solanaDevnetGenesisHash = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 export const heliusApiKeyStorageKey = "nicechunk.heliusApiKey";
 export const rpcOverrideStorageKey = "nicechunk.devnetRpcUrl";
 export const rpcConfigChangedEventName = "nicechunk:rpc-config-changed";
 export const rpcErrorEventName = "nicechunk:rpc-error";
 
 export function getNicechunkRpcUrl() {
-  const override = cleanRpcUrl(localStorage.getItem(rpcOverrideStorageKey));
+  const override = getStoredRpcOverride();
   if (override) return override;
   const apiKey = cleanApiKey(localStorage.getItem(heliusApiKeyStorageKey));
   if (apiKey) return heliusDevnetRpcUrl(apiKey);
@@ -16,6 +17,16 @@ export function getStoredHeliusApiKey() {
   return cleanApiKey(localStorage.getItem(heliusApiKeyStorageKey));
 }
 
+export function getStoredRpcOverride() {
+  return normalizeHttpsRpcUrl(localStorage.getItem(rpcOverrideStorageKey));
+}
+
+export function getRpcConfigMode() {
+  if (getStoredRpcOverride()) return "custom";
+  if (getStoredHeliusApiKey()) return "helius";
+  return "public";
+}
+
 export function saveHeliusApiKey(apiKey) {
   const cleaned = cleanApiKey(apiKey);
   if (!cleaned) {
@@ -24,7 +35,22 @@ export function saveHeliusApiKey(apiKey) {
     localStorage.setItem(heliusApiKeyStorageKey, cleaned);
   }
   localStorage.removeItem(rpcOverrideStorageKey);
-  window.dispatchEvent(new CustomEvent(rpcConfigChangedEventName, { detail: { rpcUrl: getNicechunkRpcUrl() } }));
+  dispatchRpcConfigChanged();
+}
+
+export function saveCustomRpcUrl(rpcUrl) {
+  const cleaned = normalizeHttpsRpcUrl(rpcUrl);
+  if (!cleaned) throw new TypeError("invalid-https-rpc-url");
+  localStorage.setItem(rpcOverrideStorageKey, cleaned);
+  localStorage.removeItem(heliusApiKeyStorageKey);
+  dispatchRpcConfigChanged();
+  return cleaned;
+}
+
+export function resetRpcConfig() {
+  localStorage.removeItem(heliusApiKeyStorageKey);
+  localStorage.removeItem(rpcOverrideStorageKey);
+  dispatchRpcConfigChanged();
 }
 
 export function isUsingPublicRpc() {
@@ -70,7 +96,7 @@ export function createNicechunkRpcFetch(context = "rpc") {
   };
 }
 
-function heliusDevnetRpcUrl(apiKey) {
+export function heliusDevnetRpcUrl(apiKey) {
   return `https://devnet.helius-rpc.com/?api-key=${encodeURIComponent(apiKey)}`;
 }
 
@@ -78,13 +104,23 @@ function cleanApiKey(value) {
   return String(value ?? "").trim();
 }
 
-function cleanRpcUrl(value) {
+export function normalizeHttpsRpcUrl(value) {
   const trimmed = String(value ?? "").trim();
   if (!trimmed) return "";
   try {
     const url = new URL(trimmed);
-    return url.protocol === "https:" ? url.toString() : "";
+    if (url.protocol !== "https:" || url.username || url.password) return "";
+    return url.toString();
   } catch {
     return "";
   }
+}
+
+function dispatchRpcConfigChanged() {
+  globalThis.dispatchEvent?.(new CustomEvent(rpcConfigChangedEventName, {
+    detail: {
+      mode: getRpcConfigMode(),
+      rpcUrl: getNicechunkRpcUrl(),
+    },
+  }));
 }

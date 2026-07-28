@@ -52,6 +52,10 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
   let gameApi = null;
   let stepTransitionTimer = 0;
   let stepTransitioning = false;
+  const observedPositionElements = new Set();
+  const positionResizeObserver = typeof ResizeObserver === "function"
+    ? new ResizeObserver(() => schedulePosition())
+    : null;
   const layoutObserver = new MutationObserver((mutations) => {
     if (root && mutations.every((mutation) => root.contains(mutation.target))) return;
     schedulePosition();
@@ -369,7 +373,7 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
     if (feature !== "smelting" || !step.smeltingSection) return;
     requestAnimationFrame(() => {
       document.querySelector(`[data-smelting-section="${step.smeltingSection}"]`)?.click?.();
-      schedulePosition();
+      requestAnimationFrame(schedulePosition);
     });
   }
 
@@ -471,21 +475,41 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
   function positionFocus() {
     if (!root) return;
     const step = definition.steps[stepIndex];
+    syncPositionObservers(step);
     const targetRectangles = sceneTargetRect(step) || targetRects(step, mobile);
     const targetUnion = unionRect(targetRectangles);
-    const cardRect = positionCard(targetRectangles, targetUnion);
+    positionCard(targetRectangles, targetUnion);
     if (step.noCurtains || step.modal) {
       root.querySelector(".nc-onboarding-focus-layer").replaceChildren();
       clearCurtains();
       clearConnector();
       return;
     }
-    const rects = targetRectangles.map((rect) => unobscuredRect(rect, cardRect, mobile ? 8 : 12));
+    const rects = targetRectangles;
     const layer = root.querySelector(".nc-onboarding-focus-layer");
     layer.replaceChildren(...rects.map((rect, index) => focusFrame(rect, step, index === 0)));
     const union = unionRect(rects);
     positionCurtains(union);
     positionConnector(union);
+  }
+
+  function syncPositionObservers(step) {
+    if (!positionResizeObserver) return;
+    const nextElements = new Set([
+      root?.querySelector(".nc-onboarding-card"),
+      ...targetElements(step),
+    ].filter(Boolean));
+    for (const element of observedPositionElements) {
+      if (!nextElements.has(element)) {
+        positionResizeObserver.unobserve(element);
+        observedPositionElements.delete(element);
+      }
+    }
+    for (const element of nextElements) {
+      if (observedPositionElements.has(element)) continue;
+      positionResizeObserver.observe(element);
+      observedPositionElements.add(element);
+    }
   }
 
   function sceneTargetRect(step) {
@@ -550,7 +574,7 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
       ? (portrait ? ["above", "below", "top-left", "bottom-left", "left", "right"] : ["left", "right", "above", "below"])
       : ["right", "left", "below", "above"];
     const obstacles = cardObstacles(feature, gameApi, mobile);
-    const best = uniqueCandidates(candidates)
+    const placements = uniqueCandidates(candidates)
       .map((item) => {
         const overlap = rects.reduce((total, rect) => total + intersectionArea(item, rect), 0);
         const obstacleOverlap = obstacles.reduce((total, rect) => total + intersectionArea(item, rect), 0);
@@ -562,7 +586,9 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
           obstacleOverlap,
           score: (overlap + obstacleOverlap) * 1_000_000 + distance + (rank < 0 ? preference.length : rank) * 18,
         };
-      })
+      });
+    const unobscuredPlacements = placements.filter((item) => item.targetOverlap < 0.5);
+    const best = (unobscuredPlacements.length ? unobscuredPlacements : placements)
       .sort((a, b) => a.score - b.score)[0];
     root.dataset.cardPositioned = "true";
     root.dataset.cardPlacement = best.name;
@@ -654,6 +680,8 @@ function createSession({ feature, scope, walletAddress, context, resolve }) {
     cancelAnimationFrame(resizeFrame);
     clearTimeout(stepTransitionTimer);
     layoutObserver.disconnect();
+    positionResizeObserver?.disconnect();
+    observedPositionElements.clear();
     stopSceneStep();
     removeEventListener("resize", schedulePosition);
     removeEventListener("scroll", schedulePosition, { capture: true });
@@ -790,18 +818,22 @@ function focusStep(path, glyph, icon, targets, smeltingSection) {
   };
 }
 
-function targetRects(stepDefinition, mobile) {
+function targetElements(stepDefinition) {
   const targetGroups = (stepDefinition.targets || []).map((selector) => [...document.querySelectorAll(selector)]
     .filter((element) => element.id !== "worldCanvas")
-    .filter(isVisibleTarget)
-    .map((element) => element.getBoundingClientRect())
-    .map(clipToViewport)
-    .filter((rect) => rect.width > 1 && rect.height > 1)
-    .map((rect) => paddedRect(rect, mobile ? 5 : 8)));
+    .filter(isVisibleTarget));
   const selectedGroups = stepDefinition.targetMode === "first"
     ? targetGroups.filter((group) => group.length).slice(0, 1)
     : targetGroups;
-  const rects = selectedGroups.flat().slice(0, stepDefinition.targetLimit || Infinity);
+  return selectedGroups.flat().slice(0, stepDefinition.targetLimit || Infinity);
+}
+
+function targetRects(stepDefinition, mobile) {
+  const rects = targetElements(stepDefinition)
+    .map((element) => element.getBoundingClientRect())
+    .map(clipToViewport)
+    .filter((rect) => rect.width > 1 && rect.height > 1)
+    .map((rect) => paddedRect(rect, mobile ? 5 : 8));
   if (rects.length) return rects;
   const shape = fallbackShape(stepDefinition.fallback, mobile);
   const width = shape.width;
@@ -859,23 +891,6 @@ function unionRect(rects) {
   const right = Math.max(...rects.map((rect) => rect.right));
   const bottom = Math.max(...rects.map((rect) => rect.bottom));
   return { left, top, right, bottom, width: right - left, height: bottom - top };
-}
-
-function unobscuredRect(rect, blocker, gap) {
-  const blocked = {
-    left: blocker.left - gap,
-    top: blocker.top - gap,
-    right: blocker.right + gap,
-    bottom: blocker.bottom + gap,
-  };
-  if (intersectionArea(rect, blocked) === 0) return rect;
-  const candidates = [
-    makeRect(rect.left, rect.top, rect.right, Math.min(rect.bottom, blocked.top)),
-    makeRect(rect.left, Math.max(rect.top, blocked.bottom), rect.right, rect.bottom),
-    makeRect(rect.left, Math.max(rect.top, blocked.top), Math.min(rect.right, blocked.left), Math.min(rect.bottom, blocked.bottom)),
-    makeRect(Math.max(rect.left, blocked.right), Math.max(rect.top, blocked.top), rect.right, Math.min(rect.bottom, blocked.bottom)),
-  ].filter((candidate) => candidate.width >= 18 && candidate.height >= 18);
-  return candidates.sort((a, b) => b.width * b.height - a.width * a.height)[0] || rect;
 }
 
 function makeRect(left, top, right, bottom) {
@@ -1107,7 +1122,6 @@ function costRows(feature) {
     ],
     smelting: [
       { label: "cost.progressDeposit", kind: "rent" },
-      { label: "cost.networkFee", kind: "network" },
     ],
     market: [
       { label: "cost.listingDeposit", kind: "rent" },

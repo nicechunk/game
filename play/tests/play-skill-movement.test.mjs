@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  PLAYER_SKILL_IDS,
-  PLAYER_SKILL_LEVELS_OFFSET,
-  decodePlayerProfileSkillLevels,
-} from "../../src/chain/playerSkillLevels.js";
+import { PLAYER_SKILL_IDS } from "../../src/chain/playerSkillLevels.js";
 import {
   PLAYER_SKILL_DEFINITIONS,
+  buildProfileSkillState,
+  profileSkillExperienceProgress,
+  profileSkillExperienceRequirement,
   profileSkillTotalExperienceForLevel,
 } from "../play-profile-skills.js";
 import { createProfileSkillEffects } from "../play-skill-effects.js";
@@ -30,54 +29,61 @@ test("every skill keeps its gameplay parameters in one skill definition", () => 
   const smelting = PLAYER_SKILL_DEFINITIONS.find((skill) => skill.id === "smelting");
   assert.deepEqual(smelting.effect, {
     key: "smeltingOutputBps",
-    base: 7000,
-    perLevel: 300,
-    max: 10000,
+    base: 10000,
+    perLevel: 500,
+    max: 15000,
   });
-});
-
-test("packed Player PDA skill levels decode from the reserved profile bytes", () => {
-  const profile = new Uint8Array(773);
-  profile[PLAYER_SKILL_LEVELS_OFFSET] = 1;
-  const expected = {};
-  PLAYER_SKILL_IDS.forEach((skillId, index) => {
-    const level = index + 1;
-    expected[skillId] = level;
-    const byteIndex = PLAYER_SKILL_LEVELS_OFFSET + 1 + (index >> 1);
-    profile[byteIndex] |= index % 2 === 0 ? level : level << 4;
-  });
-  assert.deepEqual(decodePlayerProfileSkillLevels(profile), expected);
-  assert.equal(decodePlayerProfileSkillLevels(new Uint8Array(773)), null);
 });
 
 test("movement effects use chain-authoritative skill levels", () => {
-  const previousStorage = globalThis.localStorage;
-  globalThis.localStorage = {
-    getItem() {
-      return JSON.stringify({ swiftness: 10 });
-    },
+  const noChainLevel = createProfileSkillEffects({ profile: { minedBlocks: 1_000_000 } });
+  assert.equal(noChainLevel.levels.swiftness, 0);
+  assert.equal(noChainLevel.movementSpeedMultiplier, 1);
+
+  const explicitChainLevel = createProfileSkillEffects({
+    chainLevels: { swiftness: 4 },
+    chainXp: { swiftness: Number.MAX_SAFE_INTEGER },
+  });
+  assert.equal(explicitChainLevel.levels.swiftness, 4);
+  assert.equal(explicitChainLevel.movementSpeedMultiplier, 1.12);
+
+  const xpOnly = createProfileSkillEffects({
+    chainXp: { swiftness: profileSkillTotalExperienceForLevel(
+      PLAYER_SKILL_DEFINITIONS.find((skill) => skill.id === "swiftness"),
+      2,
+    ) },
+  });
+  assert.equal(xpOnly.levels.swiftness, 0);
+  assert.equal(xpOnly.movementSpeedMultiplier, 1);
+});
+
+test("profile XP progress uses cumulative thresholds decoded from the chain rule table", () => {
+  const skill = PLAYER_SKILL_DEFINITIONS.find((entry) => entry.id === "precisionGathering");
+  const chainThresholds = {
+    precisionGathering: [100, 300, 600, 1_000, 1_500, 2_100, 2_800, 3_600, 4_500, 5_500],
   };
-  try {
-    const noChainLevel = createProfileSkillEffects({ profile: { minedBlocks: 1_000_000 } });
-    assert.equal(noChainLevel.levels.swiftness, 0);
-    assert.equal(noChainLevel.movementSpeedMultiplier, 1);
+  const state = buildProfileSkillState({
+    chainXp: { precisionGathering: 175 },
+    chainLevels: { precisionGathering: 1 },
+    chainThresholds,
+  });
+  const progress = profileSkillExperienceProgress(
+    skill,
+    1,
+    state.xpBySkill,
+    state.thresholdsBySkill,
+  );
 
-    const explicitChainLevel = createProfileSkillEffects({
-      chainLevels: { swiftness: 4 },
-      chainXp: { swiftness: Number.MAX_SAFE_INTEGER },
-    });
-    assert.equal(explicitChainLevel.levels.swiftness, 4);
-    assert.equal(explicitChainLevel.movementSpeedMultiplier, 1.12);
-
-    const swiftness = PLAYER_SKILL_DEFINITIONS.find((skill) => skill.id === "swiftness");
-    const xpDerived = createProfileSkillEffects({
-      chainXp: { swiftness: profileSkillTotalExperienceForLevel(swiftness, 2) },
-    });
-    assert.equal(xpDerived.levels.swiftness, 2);
-    assert.equal(xpDerived.movementSpeedMultiplier, 1.06);
-  } finally {
-    globalThis.localStorage = previousStorage;
-  }
+  assert.equal(profileSkillExperienceRequirement(skill, 0, state.thresholdsBySkill), 100);
+  assert.equal(profileSkillExperienceRequirement(skill, 1, state.thresholdsBySkill), 200);
+  assert.equal(profileSkillTotalExperienceForLevel(skill, 2, state.thresholdsBySkill), 300);
+  assert.deepEqual(progress, {
+    total: 175,
+    current: 75,
+    required: 200,
+    ratio: 0.375,
+    label: "XP 75/200",
+  });
 });
 
 test("running is exactly twice the skill-adjusted walking speed", () => {
