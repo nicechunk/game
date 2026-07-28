@@ -1667,7 +1667,7 @@ for (const material of smeltingRules.materials) {
     Math.floor(smeltingRecipeYieldBps(material) / SMELTING_RECIPE_OUTPUT_SCALE_DIVISOR),
   );
   material.mergeYieldBps = Math.floor(
-    SMELTING_RECIPE_YIELD_BPS_DENOMINATOR / SMELTING_RECIPE_OUTPUT_SCALE_DIVISOR,
+    SMELTING_RECIPE_YIELD_BPS_DENOMINATOR,
   );
 }
 

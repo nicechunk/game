@@ -125,32 +125,50 @@ export function isSmeltingInputSlot(slot) {
 }
 
 export function smeltingRecipeForSelectedSlots(slots = []) {
-  const keys = slots.map(smeltingInputKeyForSlot).filter(Boolean);
+  const keys = slots.flatMap((slot) => Array.from(
+    { length: Math.min(99, smeltingSlotQuantity(slot)) },
+    () => smeltingInputKeyForSlot(slot),
+  )).filter(Boolean);
   const match = findBestSmeltingRecipeForKeys(keys);
   if (!match?.recipe || !match.score?.exact) return null;
-  return { ...match, multiplier: smeltingRecipeInputMultiplier(match.recipe, createSmeltingInputCounts(keys)) };
+  return {
+    ...match,
+    multiplier: match.recipe.recipeKind === "merge"
+      ? slots.length
+      : smeltingRecipeInputMultiplier(match.recipe, createSmeltingInputCounts(keys)),
+  };
 }
 
 export function smeltingRecipePlan(recipe, slots = [], servings = 1) {
   const multiplier = Math.max(1, Math.floor(Number(servings) || 1));
   const used = new Set();
   const selectedSlots = [];
+  const allocations = [];
   const requirements = recipeRequirements(recipe).map((requirement) => {
     const required = Math.max(1, Math.floor(Number(requirement.amount) || 1)) * multiplier;
     const candidates = slots
       .filter((slot) => !used.has(slot.id) && smeltingInputKeyForSlot(slot) === requirement.key)
       .sort(compareSmeltingSlots);
-    const selected = candidates.slice(0, required);
-    for (const slot of selected) {
+    const selected = [];
+    let remaining = required;
+    for (const slot of candidates) {
+      if (remaining <= 0) break;
+      const quantity = Math.min(remaining, smeltingSlotQuantity(slot));
+      if (quantity <= 0) continue;
+      selected.push(slot);
       used.add(slot.id);
       selectedSlots.push(slot);
+      allocations.push({ key: requirement.key, slot, quantity });
+      remaining -= quantity;
     }
+    const available = candidates.reduce((sum, slot) => sum + smeltingSlotQuantity(slot), 0);
+    const selectedQuantity = required - Math.max(0, remaining);
     return {
       ...requirement,
       required,
-      available: candidates.length,
-      selected: selected.length,
-      missing: Math.max(0, required - selected.length),
+      available,
+      selected: selectedQuantity,
+      missing: Math.max(0, remaining),
       slots: selected,
     };
   });
@@ -159,6 +177,7 @@ export function smeltingRecipePlan(recipe, slots = [], servings = 1) {
     servings: multiplier,
     requirements,
     slots: selectedSlots,
+    allocations,
     used,
     requiredCount: requirements.reduce((sum, input) => sum + input.required, 0),
     selectedCount: requirements.reduce((sum, input) => sum + input.selected, 0),
@@ -167,13 +186,21 @@ export function smeltingRecipePlan(recipe, slots = [], servings = 1) {
 }
 
 export function maxSmeltingRecipeServings(recipe, slots = []) {
-  const counts = createSmeltingInputCounts(slots.map(smeltingInputKeyForSlot).filter(Boolean));
+  const counts = new Map();
+  for (const slot of slots) {
+    const key = smeltingInputKeyForSlot(slot);
+    if (key) counts.set(key, (counts.get(key) || 0) + smeltingSlotQuantity(slot));
+  }
   const requirements = recipeRequirements(recipe);
   if (!requirements.length) return 0;
   return requirements.reduce((limit, input) => {
     const required = Math.max(1, Math.floor(Number(input.amount) || 1));
     return Math.min(limit, Math.floor((counts.get(input.key) || 0) / required));
   }, Number.POSITIVE_INFINITY) || 0;
+}
+
+export function smeltingSlotQuantity(slot) {
+  return Math.max(1, Math.floor(Number(slot?.count ?? slot?.quantity) || 1));
 }
 
 export function bestSmeltingFuelSlot(slots = [], requiredHeatTier = 1, excludedIds = new Set()) {

@@ -41,6 +41,154 @@ test("copper bloom selects tier-three fuel and explains a missing fuel", async (
   }
 });
 
+test("a four-plank stack submits one wooden-stick input index", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-wooden-stick`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: fixtureHtml(),
+    }));
+    await page.goto(`${origin}/play/tests/smelting-wooden-stick`, { waitUntil: "domcontentloaded" });
+
+    const result = await page.evaluate(async () => {
+      const { createPlaySmelting } = await import("/play/play-smelting.js");
+      const backpackAddress = "Backpack111111111111111111111111111111";
+      const gameState = {
+        backpackSlots: [{
+          id: "wooden-plank-stack",
+          kind: "smelted_material",
+          materialId: "wooden_plank",
+          itemCode: 1031,
+          chainItemId: "wooden-plank-batch",
+          itemPda: "Planks111111111111111111111111111111111",
+          count: 4,
+          pending: false,
+          source: "chain",
+          chainBackpack: backpackAddress,
+          chainIndex: 7,
+          volumeMm3: 950_000,
+        }],
+      };
+      const byId = (id) => document.getElementById(id);
+      let submittedPayload = null;
+      const smelting = createPlaySmelting({
+        elements: {
+          backpackPanel: byId("backpackPanel"),
+          inventoryModeButton: byId("inventoryModeButton"),
+          smeltingModeButton: byId("smeltingModeButton"),
+          backpackInventoryView: byId("backpackInventoryView"),
+          smeltingPanel: byId("smeltingPanel"),
+          smeltingResourceGrid: byId("smeltingResourceGrid"),
+          smeltingRecipeList: byId("smeltingRecipeList"),
+          smeltingInputSlot: byId("smeltingInputSlot"),
+          smeltingFuelSlot: byId("smeltingFuelSlot"),
+          smeltingOutput: byId("smeltingOutput"),
+          smeltingRecipeDetails: byId("smeltingRecipeDetails"),
+          smeltingCoreLabel: byId("smeltingCoreLabel"),
+          smeltingStatus: byId("smeltingStatus"),
+          smeltingProgressValue: byId("smeltingProgressValue"),
+          smeltingProgressBar: byId("smeltingProgressBar"),
+          smeltingStart: byId("smeltingStart"),
+        },
+        gameState,
+        createVoxelItemIconCanvas(_item, { size = 48 } = {}) {
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          return canvas;
+        },
+        resourceName: () => "Wooden Plank",
+        voxelItemLabel: () => "Wooden Plank",
+        getBackpackSnapshot: () => ({ backpackAddress, updatedSlot: "10" }),
+        refreshBackpack: async () => ({ ok: true }),
+        refreshPlayerProgress: async () => ({ ok: true }),
+        loadChainModule: async () => ({
+          async executeSmeltingOnChain(payload) {
+            submittedPayload = payload;
+            return { submitted: true, signature: "wooden-stick-signature" };
+          },
+        }),
+      });
+      smelting.bind();
+      smelting.openPanel();
+      document.querySelector('[data-recipe-id="wooden_stick"]').click();
+      const selectedText = byId("smeltingInputSlot").textContent;
+      byId("smeltingStart").click();
+      for (let attempt = 0; attempt < 40 && !submittedPayload; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      return { selectedText, submittedPayload };
+    });
+
+    assert.match(result.selectedText, /x2\/2/);
+    assert.equal(result.submittedPayload.recipeId, 1032);
+    assert.equal(result.submittedPayload.recipeTableId, 223);
+    assert.deepEqual(result.submittedPayload.inputIndexes, [7]);
+    assert.deepEqual(result.submittedPayload.fuelIndexes, []);
+    assert.equal(result.submittedPayload.batchMultiplier, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("every primary recipe can be planned from canonical quantity-aware slots", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-all-recipes`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><html lang=\"en\"><body></body></html>",
+    }));
+    await page.goto(`${origin}/play/tests/smelting-all-recipes`, { waitUntil: "domcontentloaded" });
+
+    const failures = await page.evaluate(async () => {
+      const {
+        SMELTING_RECIPES,
+        recipeRequirements,
+        smeltingMaterialById,
+        smeltingMaterialIdForInputKey,
+        smeltingRawKeyBlockId,
+        smeltingRecipePlan,
+      } = await import("/play/smelting-rules-lite.js");
+      return SMELTING_RECIPES.flatMap((recipe) => {
+        let nextIndex = 0;
+        const slots = recipeRequirements(recipe).flatMap((requirement) => {
+          const materialId = smeltingMaterialIdForInputKey(requirement.key);
+          if (materialId) {
+            const material = smeltingMaterialById(materialId);
+            return [{
+              id: `${recipe.id}-${nextIndex}`,
+              kind: "smelted_material",
+              materialId,
+              itemCode: material.itemCode,
+              count: requirement.amount,
+              chainIndex: nextIndex++,
+            }];
+          }
+          return Array.from({ length: requirement.amount }, () => ({
+            id: `${recipe.id}-${nextIndex}`,
+            kind: "resource",
+            blockId: smeltingRawKeyBlockId(requirement.key),
+            count: 1,
+            chainIndex: nextIndex++,
+          }));
+        });
+        const plan = smeltingRecipePlan(recipe, slots, 1);
+        const allocated = plan.allocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
+        const required = recipeRequirements(recipe).reduce((sum, requirement) => sum + requirement.amount, 0);
+        return plan.complete && plan.selectedCount === required && allocated === required
+          ? []
+          : [{ id: recipe.id, plan, required, allocated }];
+      });
+    });
+
+    assert.deepEqual(failures, []);
+  } finally {
+    await browser.close();
+  }
+});
+
 async function runScenario(page, includeFuel) {
   return page.evaluate(async ({ includeFuel: hasFuel }) => {
     const { createPlaySmelting } = await import("/play/play-smelting.js");

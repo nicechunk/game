@@ -25,10 +25,11 @@ import {
   smeltingRecipeRequiresFuel,
   smeltingRecipeYieldBps,
   smeltingSkillOutputBpsForLevel,
+  smeltingSlotQuantity,
 } from "./smelting-rules-lite.js";
 
 const INPUT_GROUP_LIMIT = 5;
-const INPUT_RECORD_LIMIT = 8;
+const INPUT_RECORD_LIMIT = 98;
 const COMPLETE_HOLD_MS = 1600;
 const CORE_FRAME_INTERVAL_MS = 32;
 
@@ -187,7 +188,11 @@ export function createPlaySmelting({
     state.recipeId = recipe?.id || "";
     state.servings = Math.max(1, Math.floor(Number(state.servings) || 1));
 
-    const selectedMatch = smeltingRecipeForSelectedSlots(selectedInputSlots(slots));
+    const selectedSlots = selectedInputSlots(slots);
+    const currentPlan = smeltingRecipePlan(recipe, selectedSlots, state.servings);
+    const selectedMatch = selectionUsesPlan(currentPlan, selectedSlots)
+      ? null
+      : smeltingRecipeForSelectedSlots(selectedSlots);
     if (selectedMatch?.recipe) {
       state.recipeId = selectedMatch.recipe.id;
       state.servings = Math.max(1, selectedMatch.multiplier || 1);
@@ -413,7 +418,8 @@ export function createPlaySmelting({
       const count = document.createElement("b");
       const requirement = recipeRequirements(recipe).find((entry) => entry.key === group.key);
       const needed = Math.max(1, Number(requirement?.amount) || group.slots.length) * state.servings;
-      count.textContent = `x${group.slots.length}/${needed}`;
+      const available = group.slots.reduce((sum, slot) => sum + smeltingSlotQuantity(slot), 0);
+      count.textContent = `x${Math.min(available, needed)}/${needed}`;
       const remove = document.createElement("button");
       remove.type = "button";
       remove.dataset.removeInputKey = group.key;
@@ -676,16 +682,25 @@ export function createPlaySmelting({
     const fuel = smeltingFuelForSlot(fuelSlot);
     const match = smeltingRecipeForSelectedSlots(inputSlots);
     const recipe = resolveSelectedSmeltingRecipe(primaryRecipe, match, state.servings);
-    const selectedRecipeMatches = Boolean(recipe
-      && match?.recipe === recipe
-      && match.multiplier === state.servings);
+    const inputPlan = recipe?.recipeKind === "merge"
+      ? mergeSelectionPlan(recipe, inputSlots)
+      : smeltingRecipePlan(recipe, inputSlots, state.servings);
+    const selectedRecipeMatches = selectionUsesPlan(inputPlan, inputSlots);
     const requiresFuel = smeltingRecipeRequiresFuel(recipe);
     const heatReady = Boolean(recipe && (!requiresFuel || (fuel && fuel.heatTier >= recipe.requiredHeatTier)));
     const skillEffects = getSkillEffects?.() || {};
     const skillLevel = Math.max(0, Math.min(10, Math.floor(Number(skillEffects.levels?.smelting) || 0)));
     const skillOutputBps = Math.max(10000, Math.min(15000, Math.floor(Number(skillEffects.smeltingOutputBps) || smeltingSkillOutputBpsForLevel(skillLevel))));
     const recipeYieldBps = recipe ? smeltingRecipeYieldBps(recipe) : 0;
-    const propertyInputs = inputSlots.map((slot) => ({ ...slot, category: resourceCategory(slot) }));
+    const consumedBySlot = new Map(inputPlan.allocations.map((allocation) => [allocation.slot.id, allocation.quantity]));
+    const propertyInputs = inputSlots.map((slot) => {
+      const availableQuantity = smeltingSlotQuantity(slot);
+      const consumedQuantity = consumedBySlot.get(slot.id) || availableQuantity;
+      const volumeMm3 = Math.max(1, Math.floor(
+        (Number(slot.volumeMm3) || 1) * consumedQuantity / availableQuantity,
+      ));
+      return { ...slot, count: consumedQuantity, volumeMm3, category: resourceCategory(slot) };
+    });
     const properties = recipe
       ? deriveSmeltingMaterialProperties({
           material: recipe,
@@ -702,6 +717,7 @@ export function createPlaySmelting({
       fuelSlot,
       fuel,
       match,
+      inputPlan,
       properties,
       skillLevel,
       skillOutputBps,
@@ -742,7 +758,7 @@ export function createPlaySmelting({
     }
     if (state.running) return ui("main.smelting.submitting", "Submitting on-chain...");
     if (!view.inputSlots.length) return ui("main.smelting.statusNoInput", "Select a mined resource.");
-    if (!view.match?.recipe || view.match.recipe.id !== view.recipe?.id || view.match.multiplier !== state.servings) {
+    if (!selectionUsesPlan(view.inputPlan, view.inputSlots)) {
       return ui("main.smelting.statusRecipeIncomplete", "Recipe candidate {recipe}: missing or extra inputs.", {
         recipe: view.recipe ? materialName(view.recipe.id) : ui("main.smelting.noRecipeName", "Unmatched batch"),
         missing: missingInputText(view.recipe, view.inputSlots),
@@ -765,7 +781,7 @@ export function createPlaySmelting({
     const selectedCounts = new Map();
     selectedSlots.forEach((slot) => {
       const key = smeltingInputKeyForSlot(slot);
-      selectedCounts.set(key, (selectedCounts.get(key) || 0) + 1);
+      selectedCounts.set(key, (selectedCounts.get(key) || 0) + smeltingSlotQuantity(slot));
     });
     const missing = recipeRequirements(recipe)
       .map((input) => ({ ...input, count: Math.max(0, input.amount * state.servings - (selectedCounts.get(input.key) || 0)) }))
@@ -1393,6 +1409,33 @@ function sameBackpack(before = {}, after = {}) {
   const beforeAddress = String(before?.backpackAddress || "");
   const afterAddress = String(after?.backpackAddress || "");
   return Boolean(beforeAddress && beforeAddress === afterAddress);
+}
+
+function selectionUsesPlan(plan, selectedSlots = []) {
+  if (!plan?.complete || plan.slots.length !== selectedSlots.length) return false;
+  const plannedIds = new Set(plan.slots.map((slot) => slot.id));
+  return selectedSlots.every((slot) => plannedIds.has(slot.id));
+}
+
+function mergeSelectionPlan(recipe, selectedSlots = []) {
+  const expectedKey = recipeRequirements(recipe)[0]?.key || "";
+  const valid = selectedSlots.length >= 2
+    && selectedSlots.every((slot) => smeltingInputKeyForSlot(slot) === expectedKey);
+  const allocations = valid
+    ? selectedSlots.map((slot) => ({ key: expectedKey, slot, quantity: smeltingSlotQuantity(slot) }))
+    : [];
+  const selectedCount = allocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
+  return {
+    recipe,
+    servings: selectedSlots.length,
+    requirements: [{ key: expectedKey, required: selectedCount, selected: selectedCount, missing: valid ? 0 : 1 }],
+    slots: valid ? selectedSlots : [],
+    allocations,
+    used: new Set(valid ? selectedSlots.map((slot) => slot.id) : []),
+    requiredCount: selectedCount,
+    selectedCount,
+    complete: valid,
+  };
 }
 
 function chainSlotIdentity(slot = {}) {

@@ -133,7 +133,7 @@
         "workability": 58
       },
       "yieldBps": 550,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "biochar_compost",
@@ -202,7 +202,7 @@
         "workability": 72
       },
       "yieldBps": 550,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "resin_binder",
@@ -263,7 +263,7 @@
         "workability": 82
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "ceramic_brick",
@@ -326,7 +326,7 @@
         "workability": 34
       },
       "yieldBps": 720,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "lime_ceramic",
@@ -389,7 +389,7 @@
         "workability": 42
       },
       "yieldBps": 720,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "quicklime",
@@ -450,7 +450,7 @@
         "workability": 46
       },
       "yieldBps": 720,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "salt_flux",
@@ -511,7 +511,7 @@
         "workability": 74
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "ash_cement",
@@ -580,7 +580,7 @@
         "workability": 54
       },
       "yieldBps": 580,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "glass_ingot",
@@ -643,7 +643,7 @@
         "workability": 32
       },
       "yieldBps": 800,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "obsidian_glass",
@@ -716,7 +716,7 @@
         "workability": 24
       },
       "yieldBps": 800,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "silicon_wafer",
@@ -779,7 +779,7 @@
         "workability": 28
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "ice_crystal",
@@ -846,7 +846,7 @@
         "workability": 20
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "iron_bloom",
@@ -919,7 +919,7 @@
         "workability": 62
       },
       "yieldBps": 620,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "copper_bloom",
@@ -982,7 +982,7 @@
         "workability": 84
       },
       "yieldBps": 620,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "alumina_plate",
@@ -1045,7 +1045,7 @@
         "workability": 30
       },
       "yieldBps": 720,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "nickel_iron",
@@ -1118,7 +1118,7 @@
         "workability": 56
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "carbon_plate",
@@ -1181,7 +1181,7 @@
         "workability": 44
       },
       "yieldBps": 550,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "carbon_steel",
@@ -1244,7 +1244,7 @@
         "workability": 52
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "basalt_fiber",
@@ -1310,7 +1310,7 @@
         "workability": 48
       },
       "yieldBps": 650,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "basalt_composite",
@@ -1381,7 +1381,7 @@
         "workability": 42
       },
       "yieldBps": 580,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "geopolymer_block",
@@ -1452,7 +1452,7 @@
         "workability": 46
       },
       "yieldBps": 580,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "coral_lime",
@@ -1517,7 +1517,7 @@
         "workability": 50
       },
       "yieldBps": 720,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "toxic_glass",
@@ -1588,7 +1588,7 @@
         "workability": 22
       },
       "yieldBps": 800,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "cotton_cloth",
@@ -1651,7 +1651,7 @@
         "workability": 92
       },
       "yieldBps": 650,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "white_dye",
@@ -1713,7 +1713,7 @@
         "workability": 90
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "yellow_dye",
@@ -1775,7 +1775,7 @@
         "workability": 90
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "red_dye",
@@ -1837,7 +1837,7 @@
         "workability": 90
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "blue_dye",
@@ -1899,7 +1899,7 @@
         "workability": 90
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "pink_dye",
@@ -1961,7 +1961,7 @@
         "workability": 90
       },
       "yieldBps": 600,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "wooden_plank",
@@ -2034,7 +2034,7 @@
       "mergeRecipeId": 2031,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "wooden_stick",
@@ -2107,7 +2107,7 @@
       "mergeRecipeId": 2032,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "squared_timber",
@@ -2180,7 +2180,7 @@
       "mergeRecipeId": 2033,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "clear_glass_panel",
@@ -2266,7 +2266,7 @@
       "mergeRecipeId": 2034,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "ice_blue_glass_panel",
@@ -2351,7 +2351,7 @@
       "mergeRecipeId": 2035,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "amber_glass_panel",
@@ -2437,7 +2437,7 @@
       "mergeRecipeId": 2036,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "basalt_reinforced_glass",
@@ -2526,7 +2526,7 @@
       "mergeRecipeId": 2037,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "fired_clay_brick",
@@ -2607,7 +2607,7 @@
       "mergeRecipeId": 2038,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "adobe_brick",
@@ -2692,7 +2692,7 @@
       "mergeRecipeId": 2039,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "stone_brick",
@@ -2769,7 +2769,7 @@
       "mergeRecipeId": 2040,
       "recipeTableId": 223,
       "mergeRecipeTableId": 323,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "deep_stone_brick",
@@ -2846,7 +2846,7 @@
       "mergeRecipeId": 2041,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "basalt_brick",
@@ -2927,7 +2927,7 @@
       "mergeRecipeId": 2042,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "sandstone_block",
@@ -3008,7 +3008,7 @@
       "mergeRecipeId": 2043,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "cobblestone",
@@ -3089,7 +3089,7 @@
       "mergeRecipeId": 2044,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "polished_stone_slab",
@@ -3170,7 +3170,7 @@
       "mergeRecipeId": 2045,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "lime_plaster",
@@ -3256,7 +3256,7 @@
       "mergeRecipeId": 2046,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "clay_plaster",
@@ -3345,7 +3345,7 @@
       "mergeRecipeId": 2047,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "rammed_earth",
@@ -3430,7 +3430,7 @@
       "mergeRecipeId": 2048,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "shell_terrazzo",
@@ -3516,7 +3516,7 @@
       "mergeRecipeId": 2049,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "white_ceramic_tile",
@@ -3598,7 +3598,7 @@
       "mergeRecipeId": 2050,
       "recipeTableId": 224,
       "mergeRecipeTableId": 324,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "blue_ceramic_tile",
@@ -3684,7 +3684,7 @@
       "mergeRecipeId": 2051,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "volcanic_ash_concrete",
@@ -3777,7 +3777,7 @@
       "mergeRecipeId": 2052,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "salt_crystal_block",
@@ -3854,7 +3854,7 @@
       "mergeRecipeId": 2053,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_terracotta",
@@ -3935,7 +3935,7 @@
       "mergeRecipeId": 2054,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_ice_blue",
@@ -4024,7 +4024,7 @@
       "mergeRecipeId": 2055,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_shell_white",
@@ -4109,7 +4109,7 @@
       "mergeRecipeId": 2056,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_charcoal",
@@ -4198,7 +4198,7 @@
       "mergeRecipeId": 2057,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_ash_gray",
@@ -4292,7 +4292,7 @@
       "mergeRecipeId": 2058,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "roof_tile_mycelium",
@@ -4382,7 +4382,7 @@
       "mergeRecipeId": 2059,
       "recipeTableId": 225,
       "mergeRecipeTableId": 325,
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     },
     {
       "id": "blasting_charge",
@@ -4471,7 +4471,7 @@
         "magnetism": 0,
         "workability": 26
       },
-      "mergeYieldBps": 1000
+      "mergeYieldBps": 10000
     }
   ]
 }
