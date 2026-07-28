@@ -147,6 +147,43 @@ test("market renders chain item icons, mobile views, and transaction progress", 
   }
 });
 
+test("market inventory keeps an incomplete row directly below the preceding row", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+    const page = await context.newPage();
+    await page.route(`${origin}/play/`, (route) => route.fulfill({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body: sourceHtml,
+    }));
+    await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
+    await installMarketHarness(page, { inventoryItemCount: 6 });
+    await page.locator("#marketButton").click({ force: true });
+    await page.waitForFunction(() => document.querySelectorAll("#marketInventoryGrid .market-inventory-item").length === 6);
+
+    const layout = await page.locator("#marketInventoryGrid").evaluate((grid) => {
+      const cards = [...grid.querySelectorAll(".market-inventory-item")]
+        .map((card) => card.getBoundingClientRect().toJSON());
+      const style = getComputedStyle(grid);
+      return {
+        cards,
+        rowGap: Number.parseFloat(style.rowGap) || 0,
+        columns: style.gridTemplateColumns.split(" ").filter(Boolean).length,
+      };
+    });
+    assert.equal(layout.columns, 4);
+    assert.ok(
+      layout.cards[4].top <= layout.cards[0].bottom + layout.rowGap + 1,
+      `incomplete inventory row was pushed away from the first row (${JSON.stringify(layout)})`,
+    );
+    assert.ok(Math.abs(layout.cards[4].top - layout.cards[5].top) <= 1);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
 test("market shows a retryable error instead of placeholder listings", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -276,7 +313,12 @@ test("a stale market refresh cannot overwrite a newer chain snapshot", async () 
 });
 
 async function installMarketHarness(page, options = {}) {
-  await page.evaluate(async ({ failInitialListingRead, marketJoined = true, includeLocalOnlySlot = false }) => {
+  await page.evaluate(async ({
+    failInitialListingRead,
+    marketJoined = true,
+    includeLocalOnlySlot = false,
+    inventoryItemCount = 1,
+  }) => {
     const [{ createPlayMarket }, chunk] = await Promise.all([
       import("/play/play-market.js"),
       import("/chunk.js/play.js"),
@@ -502,10 +544,19 @@ async function installMarketHarness(page, options = {}) {
       (value, [key, replacement]) => value.replaceAll(`{${key}}`, String(replacement)),
       String(text),
     );
+    const chainInventorySlots = Array.from(
+      { length: Math.max(1, Math.min(50, Math.trunc(Number(inventoryItemCount) || 1))) },
+      (_, index) => ({
+        ...copperSlot,
+        id: `chain-copper-bloom-${index}`,
+        chainIndex: index,
+        chainItemId: String(41 + index),
+      }),
+    );
     const gameState = {
       backpackCapacity: 50,
       backpackSlots: [
-        copperSlot,
+        ...chainInventorySlots,
         ...(includeLocalOnlySlot ? [{
           ...copperSlot,
           id: "local-only-copper",
@@ -529,7 +580,7 @@ async function installMarketHarness(page, options = {}) {
         category: "raw",
         currency: "NCK",
         price: "1",
-        itemSnapshot: gameState.backpackSlots[1],
+        itemSnapshot: gameState.backpackSlots.at(-1),
       }]));
     }
     const market = createPlayMarket({
