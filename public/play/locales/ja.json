@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-e606387d91fa831b",
-    "contentHash": "e606387d91fa831b"
+    "version": "play-locale-ja-914abbd2398b8908",
+    "contentHash": "914abbd2398b8908"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "装備中のバックパックを同期中...",
       "statusNoInput": "採掘資源を選択してください。",
       "statusNoFuel": "対応する燃料を追加してください。",
+      "statusFuelRequired": "熱レベル{tier}が必要です。{fuels}を追加してください。",
       "statusHeatMissing": "選択した燃料は必要な熱レベルに届きません。",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "精錬プレビュー準備完了。",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "{fuels}が必要 · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",

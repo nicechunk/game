@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-18e7e742197305ee",
-    "contentHash": "18e7e742197305ee"
+    "version": "play-locale-zh-Hans-b853565d6cb0f16b",
+    "contentHash": "b853565d6cb0f16b"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "正在同步已装备背包...",
       "statusNoInput": "选择一个已采集资源。",
       "statusNoFuel": "加入兼容燃料。",
+      "statusFuelRequired": "需要热量等级 {tier}：请加入{fuels}。",
       "statusHeatMissing": "所选燃料达不到需要的热量等级。",
       "statusHeatMissingMulti": "燃料热量等级 {fuel} 低于所需等级 {required}。",
       "statusReady": "可以预览熔炼。",
@@ -1153,6 +1154,7 @@
       "findInputs": "查找输入",
       "recipeReady": "可熔炼",
       "recipeFuelMissing": "缺少燃料",
+      "recipeFuelRequired": "需要{fuels} · T{tier}",
       "recipeMissingInputs": "缺少 {count} 个输入格",
       "recipePartial": "部分匹配",
       "coordinateUnknown": "坐标未知",

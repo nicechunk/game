@@ -2,8 +2,8 @@
   "_meta": {
     "language": "fr",
     "label": "French",
-    "version": "play-locale-fr-4101db025497febe",
-    "contentHash": "4101db025497febe"
+    "version": "play-locale-fr-8858f77b2172baef",
+    "contentHash": "8858f77b2172baef"
   },
   "siteFooter": {
     "tagline": "Un protocole de monde voxel seedé sur Solana.",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "Synchronisation du sac equipe...",
       "statusNoInput": "Choisissez une ressource minée.",
       "statusNoFuel": "Ajoutez un combustible compatible.",
+      "statusFuelRequired": "Le niveau de chaleur {tier} est requis. Ajoutez {fuels}.",
       "statusHeatMissing": "Le combustible ne fournit pas assez de chaleur.",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "Prêt pour l'aperçu.",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "Requiert {fuels} · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",

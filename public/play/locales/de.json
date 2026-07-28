@@ -2,8 +2,8 @@
   "_meta": {
     "language": "de",
     "label": "German",
-    "version": "play-locale-de-58b0f2e815b4acd8",
-    "contentHash": "58b0f2e815b4acd8"
+    "version": "play-locale-de-904f14d35749acae",
+    "contentHash": "904f14d35749acae"
   },
   "siteFooter": {
     "tagline": "Ein Seed-Voxelwelt-Protokoll auf Solana.",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "Ausgeruesteten Rucksack synchronisieren...",
       "statusNoInput": "Wähle eine abgebaute Ressource.",
       "statusNoFuel": "Füge passenden Brennstoff hinzu.",
+      "statusFuelRequired": "Hitzestufe {tier} ist erforderlich. Füge {fuels} hinzu.",
       "statusHeatMissing": "Der Brennstoff erreicht die nötige Hitzestufe nicht.",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "Bereit für die Vorschau.",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "Braucht {fuels} · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",

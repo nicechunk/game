@@ -2,8 +2,8 @@
   "_meta": {
     "language": "en",
     "label": "English",
-    "version": "play-locale-en-823f9e3865b56af1",
-    "contentHash": "823f9e3865b56af1"
+    "version": "play-locale-en-a0b59b491c3d14db",
+    "contentHash": "a0b59b491c3d14db"
   },
   "siteFooter": {
     "tagline": "A seeded voxel world protocol on Solana.",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "Syncing equipped backpack...",
       "statusNoInput": "Select a mined resource.",
       "statusNoFuel": "Add compatible fuel.",
+      "statusFuelRequired": "Heat tier {tier} required. Add {fuels}.",
       "statusHeatMissing": "Selected fuel cannot reach the required heat tier.",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "Ready to preview smelting.",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "Needs {fuels} · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",

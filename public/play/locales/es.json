@@ -2,8 +2,8 @@
   "_meta": {
     "language": "es",
     "label": "Spanish",
-    "version": "play-locale-es-f5afcb17b7c04aef",
-    "contentHash": "f5afcb17b7c04aef"
+    "version": "play-locale-es-23ebe6836404c741",
+    "contentHash": "23ebe6836404c741"
   },
   "siteFooter": {
     "tagline": "Un protocolo de mundo voxel con semillas en Solana.",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "Sincronizando mochila equipada...",
       "statusNoInput": "Selecciona un recurso minado.",
       "statusNoFuel": "Añade combustible compatible.",
+      "statusFuelRequired": "Se requiere calor de nivel {tier}. Añade {fuels}.",
       "statusHeatMissing": "El combustible no alcanza el calor requerido.",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "Listo para previsualizar.",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "Necesita {fuels} · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",

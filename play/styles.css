@@ -8164,7 +8164,7 @@ body {
   box-shadow: inset 0 0 0 1px rgba(208, 252, 255, 0.42), 0 0 11px rgba(21, 211, 255, 0.52);
 }
 
-.nice-smelting-view .nice-smelting-start:not(:disabled) {
+.nice-smelting-view .nice-smelting-start:not(:disabled):not([aria-disabled="true"]) {
   border-color: rgba(199, 255, 187, 0.74);
   color: #fff;
   background: linear-gradient(180deg, #38c93e, #159a27);
@@ -9133,6 +9133,14 @@ body {
   background: linear-gradient(180deg, rgba(66, 106, 107, 0.54), rgba(35, 70, 76, 0.64));
   box-shadow: none;
   cursor: default;
+}
+
+.nice-smelting-start[aria-disabled="true"]:not(:disabled) {
+  border-color: rgba(176, 210, 207, 0.26);
+  color: rgba(205, 229, 230, 0.62);
+  background: linear-gradient(180deg, rgba(66, 106, 107, 0.66), rgba(35, 70, 76, 0.72));
+  box-shadow: none;
+  cursor: help;
 }
 
 .nice-smelting-actions {

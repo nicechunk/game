@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-ab27d3f0fcee7fbf",
-    "contentHash": "ab27d3f0fcee7fbf"
+    "version": "play-locale-zh-Hant-5a284d815267d7db",
+    "contentHash": "5a284d815267d7db"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "正在同步已裝備背包...",
       "statusNoInput": "選擇一個已採集資源。",
       "statusNoFuel": "加入相容燃料。",
+      "statusFuelRequired": "需要熱量等級 {tier}：請加入{fuels}。",
       "statusHeatMissing": "所選燃料達不到需要的熱量等級。",
       "statusHeatMissingMulti": "燃料熱量等級 {fuel} 低於所需等級 {required}。",
       "statusReady": "可以預覽熔煉。",
@@ -1153,6 +1154,7 @@
       "findInputs": "查找輸入",
       "recipeReady": "可熔煉",
       "recipeFuelMissing": "缺少燃料",
+      "recipeFuelRequired": "需要{fuels} · T{tier}",
       "recipeMissingInputs": "缺少 {count} 個輸入格",
       "recipePartial": "部分匹配",
       "coordinateUnknown": "座標未知",

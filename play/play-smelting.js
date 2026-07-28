@@ -368,7 +368,7 @@ export function createPlaySmelting({
       ? ui("main.smelting.recipeReady", "Ready")
       : plan.complete
         ? summary.requiresFuel
-          ? ui("main.smelting.recipeFuelMissing", "Missing fuel")
+          ? fuelRequirementText(recipe, "main.smelting.recipeFuelRequired", "Needs {fuels} · T{tier}")
           : ui("main.smelting.recipeReady", "Ready")
         : ui("main.smelting.recipeMissingInputs", "Missing {count} input slots", {
             count: plan.requirements.reduce((sum, input) => sum + input.missing, 0),
@@ -453,7 +453,7 @@ export function createPlaySmelting({
       const flame = document.createElement("i");
       flame.className = "nice-smelting-empty-flame";
       const label = document.createElement("small");
-      label.textContent = ui("main.smelting.statusNoFuel", "Add compatible fuel.");
+      label.textContent = fuelRequirementText(recipe);
       elements.smeltingFuelSlot.append(flame, label);
       return;
     }
@@ -510,7 +510,9 @@ export function createPlaySmelting({
         : ui("main.smelting.processReady", "Process ready");
       return;
     }
-    elements.smeltingCoreLabel.textContent = ui("main.smelting.statusIdle", "Select input and fuel.");
+    elements.smeltingCoreLabel.textContent = view.requiresFuel && !view.fuelSlot
+      ? fuelRequirementText(view.recipe)
+      : ui("main.smelting.statusIdle", "Select input and fuel.");
   }
 
   function renderRecipeDetails(force) {
@@ -716,8 +718,11 @@ export function createPlaySmelting({
     if (elements.smeltingProgressBar) elements.smeltingProgressBar.style.width = `${Math.max(0, Math.min(100, state.progress))}%`;
     if (elements.smeltingProgressValue) elements.smeltingProgressValue.textContent = `${Math.round(state.progress)}%`;
     if (elements.smeltingStart) {
-      elements.smeltingStart.disabled = state.running || !view.ready;
+      elements.smeltingStart.disabled = state.running;
+      elements.smeltingStart.setAttribute("aria-disabled", state.running || !view.ready ? "true" : "false");
+      elements.smeltingStart.classList.toggle("is-blocked", !state.running && !view.ready);
       elements.smeltingStart.setAttribute("aria-busy", state.running ? "true" : "false");
+      elements.smeltingStart.title = !state.running && !view.ready ? statusText(view) : "";
       const text = elements.smeltingStart.querySelector("span") || elements.smeltingStart;
       text.textContent = state.running
         ? ui("main.smelting.running", "Smelting...")
@@ -743,7 +748,7 @@ export function createPlaySmelting({
         missing: missingInputText(view.recipe, view.inputSlots),
       });
     }
-    if (view.requiresFuel && !view.fuelSlot) return ui("main.smelting.statusNoFuel", "Add compatible fuel.");
+    if (view.requiresFuel && !view.fuelSlot) return fuelRequirementText(view.recipe);
     if (!view.heatReady) {
       return ui("main.smelting.statusHeatMissingMulti", "Fuel heat tier {fuel} is below required tier {required}.", {
         fuel: view.fuel?.heatTier || 0,
@@ -936,6 +941,7 @@ export function createPlaySmelting({
     const initialView = selectedRecipeView();
     if (!initialView.ready) {
       render();
+      onStatus(statusText(initialView));
       return;
     }
     let snapshot = getBackpackSnapshot?.() || {};
@@ -1285,6 +1291,20 @@ export function createPlaySmelting({
     return `${ui("main.smelting.fuelHeat", "Heat tier {tier}", { tier: fuel.heatTier })} · ${tier?.temperatureC || 0}°C · ${fuel.burnSeconds || 0}s`;
   }
 
+  function fuelRequirementText(recipe, key = "main.smelting.statusFuelRequired", fallback = "Heat tier {tier} required. Add {fuels}.") {
+    const tier = Math.max(1, Math.floor(Number(recipe?.requiredHeatTier) || 1));
+    const names = SMELTING_FUELS
+      .filter((fuel) => Number(fuel?.heatTier) >= tier)
+      .map((fuel) => fuel.sourceType === "material"
+        ? materialName(fuel.materialId)
+        : inputKeyLabel(fuel.sourceKeys?.[0] || fuel.id))
+      .filter((name, index, all) => name && all.indexOf(name) === index);
+    return ui(key, fallback, {
+      tier,
+      fuels: formatList(names) || ui("main.smelting.fuel", "Fuel"),
+    });
+  }
+
   function resourceCategory(slot) {
     const key = smeltingInputKeyForSlot(slot);
     if (["trunk", "dryGrass", "leaves", "moss", "reed", "vine", "pineTrunk"].includes(key)) return "organic";
@@ -1354,6 +1374,19 @@ function humanize(value) {
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length <= 14 ? value : `${value.slice(0, 6)}...${value.slice(-6)}`;
+}
+
+function formatList(values = []) {
+  const items = values.filter(Boolean);
+  if (!items.length) return "";
+  try {
+    return new Intl.ListFormat(document.documentElement.lang || "en", {
+      style: "short",
+      type: "disjunction",
+    }).format(items);
+  } catch {
+    return items.join(" / ");
+  }
 }
 
 function sameBackpack(before = {}, after = {}) {

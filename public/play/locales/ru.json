@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-1af2b46bb2329b69",
-    "contentHash": "1af2b46bb2329b69"
+    "version": "play-locale-ru-8bf34fc6759e99fc",
+    "contentHash": "8bf34fc6759e99fc"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -1066,6 +1066,7 @@
       "statusSyncing": "Синхронизация экипированного рюкзака...",
       "statusNoInput": "Выберите добытый ресурс.",
       "statusNoFuel": "Добавьте подходящее топливо.",
+      "statusFuelRequired": "Требуется уровень жара {tier}. Добавьте {fuels}.",
       "statusHeatMissing": "Топливо не достигает нужного жара.",
       "statusHeatMissingMulti": "Fuel heat tier {fuel} is below required tier {required}.",
       "statusReady": "Готово к просмотру плавки.",
@@ -1153,6 +1154,7 @@
       "findInputs": "Find Inputs",
       "recipeReady": "Ready",
       "recipeFuelMissing": "Missing fuel",
+      "recipeFuelRequired": "Нужно: {fuels} · T{tier}",
       "recipeMissingInputs": "Missing {count} input slots",
       "recipePartial": "Partial match",
       "coordinateUnknown": "Coordinate unknown",
