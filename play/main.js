@@ -161,8 +161,19 @@ const DEFAULT_PLAYER_COLLISION_BOX = createCollisionBox({
 });
 const PLAYER_RADIUS = maxCollisionHorizontalExtent([DEFAULT_PLAYER_COLLISION_BOX]);
 const PLAYER_BODY_HEIGHT = DEFAULT_PLAYER_COLLISION_BOX.offsetY + DEFAULT_PLAYER_COLLISION_BOX.height;
-const PLAYER_GRAVITY = 24;
-const PLAYER_JUMP_IMPULSE = 9.2;
+const PLAYER_JUMP_CONFIG = Object.freeze({
+  gravity: 24,
+  impulse: 9.2,
+  walkStepImpulse: 8.4,
+  walkStepIntentDelayMs: 300,
+  riseGravityMultiplier: 0.92,
+  apexGravityMultiplier: 0.62,
+  apexVelocity: 2.4,
+  releaseGravityMultiplier: 1.8,
+  fallGravityMultiplier: 1.08,
+  fallGravityMaxMultiplier: 1.38,
+  maxFallSpeed: 22,
+});
 const PLAYER_COLLISION_STEP = 0.14;
 const PLAYER_COLLISION_EPSILON = 0.0015;
 const PLAYER_GROUND_SNAP_UP = 0.22;
@@ -709,8 +720,17 @@ async function boot() {
       avatarHeightBlocks: AVATAR_HEIGHT_BLOCKS,
       playerRadius: PLAYER_RADIUS,
       playerBodyHeight: PLAYER_BODY_HEIGHT,
-      gravity: PLAYER_GRAVITY,
-      jumpImpulse: PLAYER_JUMP_IMPULSE,
+      gravity: PLAYER_JUMP_CONFIG.gravity,
+      jumpImpulse: PLAYER_JUMP_CONFIG.impulse,
+      walkStepJumpImpulse: PLAYER_JUMP_CONFIG.walkStepImpulse,
+      walkStepIntentDelayMs: PLAYER_JUMP_CONFIG.walkStepIntentDelayMs,
+      jumpRiseGravityMultiplier: PLAYER_JUMP_CONFIG.riseGravityMultiplier,
+      jumpApexGravityMultiplier: PLAYER_JUMP_CONFIG.apexGravityMultiplier,
+      jumpApexVelocity: PLAYER_JUMP_CONFIG.apexVelocity,
+      jumpReleaseGravityMultiplier: PLAYER_JUMP_CONFIG.releaseGravityMultiplier,
+      fallGravityMultiplier: PLAYER_JUMP_CONFIG.fallGravityMultiplier,
+      fallGravityMaxMultiplier: PLAYER_JUMP_CONFIG.fallGravityMaxMultiplier,
+      maxFallSpeed: PLAYER_JUMP_CONFIG.maxFallSpeed,
       collisionStep: PLAYER_COLLISION_STEP,
       collisionEpsilon: PLAYER_COLLISION_EPSILON,
       groundSnapUp: PLAYER_GROUND_SNAP_UP,

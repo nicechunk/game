@@ -26,6 +26,18 @@ export function createPlayerMotionController({
     playerBodyHeight: 4,
     gravity: 24,
     jumpImpulse: 9.2,
+    walkStepJumpImpulse: 8.4,
+    walkStepIntentDelayMs: 300,
+    jumpRiseGravityMultiplier: 0.92,
+    jumpApexGravityMultiplier: 0.62,
+    jumpApexVelocity: 2.4,
+    jumpReleaseGravityMultiplier: 1.8,
+    fallGravityMultiplier: 1.08,
+    fallGravityMaxMultiplier: 1.38,
+    maxFallSpeed: 22,
+    landingCompressionBlocks: 0.09,
+    landingRecoverySeconds: 0.2,
+    landingImpactThreshold: 3,
     collisionStep: 0.14,
     collisionEpsilon: 0.0015,
     groundSnapUp: 0.22,
@@ -51,6 +63,16 @@ export function createPlayerMotionController({
   let cameraFocusY = 0;
   let cameraFocusZ = 0;
   let flightVerticalIntent = 0;
+  let frameSprinting = false;
+  let frameStepContact = null;
+  let walkStepContactMs = 0;
+  let walkStepDirectionX = 0;
+  let walkStepDirectionZ = 0;
+  let walkStepGround = -Infinity;
+  let jumpHeldLastFrame = false;
+  let manualJumpHoldActive = false;
+  let landingAgeSeconds = Infinity;
+  let landingStrength = 0;
   const cameraCollisionOptions = {
     radius: cfg.cameraCollisionRadius,
     skin: cfg.cameraCollisionSkin,
@@ -103,11 +125,19 @@ export function createPlayerMotionController({
     const player = getPlayer?.();
     const controls = getControls?.();
     if (!player || !controls) return;
+    landingAgeSeconds += Math.max(0, Number(dt) || 0);
     if (player.flightEnabled) {
+      resetWalkStepIntent();
+      manualJumpHoldActive = false;
       applyPlayerFlight(dt);
       return;
     }
-    const horizontalMoved = movePlayerHorizontally(controls.move.dx || 0, controls.move.dz || 0);
+    const moveDx = controls.move.dx || 0;
+    const moveDz = controls.move.dz || 0;
+    frameSprinting = sprintHeld(controls);
+    frameStepContact = null;
+    const horizontalMoved = movePlayerHorizontally(moveDx, moveDz);
+    const assistedJumpRequested = updateWalkStepIntent(dt, moveDx, moveDz);
     controls.move.actualMoving = horizontalMoved;
     controls.move.moving = controls.move.moving && horizontalMoved;
     const movementYaw = player.firstPersonCamera ? player.controlYaw : controls.move.yaw;
@@ -119,20 +149,53 @@ export function createPlayerMotionController({
     const [x, y, z] = playerWorldFloat();
     const ground = groundYAt(x, z, { maxTopY: y + cfg.groundSnapUp });
     const canJump = player.grounded || (player.velocityY <= 0 && y <= ground + 0.065);
-    const jumpRequested = controls.consumeJump();
+    const jumpHeld = controls.keys?.has?.("Space") ?? false;
+    const rawJumpRequested = controls.consumeJump();
+    const jumpRequested = rawJumpRequested && (!jumpHeld || !jumpHeldLastFrame);
+    jumpHeldLastFrame = jumpHeld;
     if (jumpRequested && canJump) {
-      player.velocityY = cfg.jumpImpulse;
-      player.grounded = false;
+      beginJump(cfg.jumpImpulse, { manual: true });
+      resetWalkStepIntent();
+    } else if (assistedJumpRequested && canJump) {
+      beginJump(cfg.walkStepJumpImpulse, { manual: false });
     } else if (player.velocityY <= 0 && y <= ground + 0.045) {
+      recordLanding(Math.max(0, -player.velocityY));
       setPlayerWorldFloat(x, ground, z);
       player.velocityY = 0;
       player.grounded = true;
+      manualJumpHoldActive = false;
       return;
     }
 
-    player.velocityY -= cfg.gravity * dt;
+    player.velocityY = Math.max(
+      -cfg.maxFallSpeed,
+      player.velocityY - verticalGravity(jumpHeld) * dt,
+    );
     movePlayerVertically(player.velocityY * dt);
+    if (player.grounded || player.velocityY <= 0) manualJumpHoldActive = false;
     resolvePlayerPenetration();
+  }
+
+  function beginJump(impulse, { manual }) {
+    const player = getPlayer?.();
+    if (!player) return;
+    player.velocityY = Math.max(0, Number(impulse) || 0);
+    player.grounded = false;
+    manualJumpHoldActive = Boolean(manual);
+  }
+
+  function verticalGravity(jumpHeld) {
+    const velocityY = Number(getPlayer?.()?.velocityY) || 0;
+    if (velocityY > 0) {
+      const apexRatio = clamp(velocityY / Math.max(0.001, cfg.jumpApexVelocity), 0, 1);
+      let multiplier = lerp(cfg.jumpApexGravityMultiplier, cfg.jumpRiseGravityMultiplier, apexRatio);
+      if (manualJumpHoldActive && !jumpHeld) {
+        multiplier = Math.max(multiplier, cfg.jumpReleaseGravityMultiplier);
+      }
+      return cfg.gravity * multiplier;
+    }
+    const fallRatio = clamp(-velocityY / Math.max(0.001, cfg.maxFallSpeed), 0, 1);
+    return cfg.gravity * lerp(cfg.fallGravityMultiplier, cfg.fallGravityMaxMultiplier, fallRatio);
   }
 
   function applyPlayerFlight(dt) {
@@ -198,16 +261,20 @@ export function createPlayerMotionController({
     }
     const [px, py, pz] = playerWorldFloat();
     const shadowWorldY = groundYAt(px, pz, { maxTopY: py + cfg.groundSnapUp });
+    const landingOffset = landingVisualOffset();
     avatar.worldX = player.worldX;
     avatar.worldY = player.worldY;
     avatar.worldZ = player.worldZ;
     avatar.localOffsetX = player.localOffsetX;
-    avatar.localOffsetY = bob - cfg.avatarFootOffset;
+    avatar.localOffsetY = bob + landingOffset - cfg.avatarFootOffset;
     avatar.localOffsetZ = player.localOffsetZ;
     avatar.yaw = player.avatarYaw;
     avatar.animation = {
       moving: controls.move.actualMoving,
       timeMs: now,
+      airborne: !player.grounded,
+      verticalVelocity: Number(player.velocityY) || 0,
+      landingStrength,
       miningProgress,
       miningAimPitch: miningRemaining > 0 ? (Number(player.miningAimPitch) || 0) : 0,
     };
@@ -408,22 +475,69 @@ export function createPlayerMotionController({
     const [x, y, z] = playerWorldFloat();
     const nextX = x + dx;
     const nextZ = z + dz;
-    if (playerCollidesAt(nextX, y, nextZ)) return tryStepPlayerAxis(nextX, y, nextZ);
+    if (playerCollidesAt(nextX, y, nextZ)) {
+      const step = stepPlayerCandidate(nextX, y, nextZ);
+      if (!step) return false;
+      if (frameSprinting) return commitPlayerStep(step);
+      if (!frameStepContact || step.ground < frameStepContact.ground) frameStepContact = step;
+      return false;
+    }
     setPlayerWorldFloat(nextX, y, nextZ);
     return true;
   }
 
-  function tryStepPlayerAxis(nextX, y, nextZ) {
+  function stepPlayerCandidate(nextX, y, nextZ) {
     const player = getPlayer?.();
-    if (!player?.grounded) return false;
+    if (!player?.grounded) return null;
     const stepGround = groundYAt(nextX, nextZ, { maxTopY: y + cfg.stepHeightBlocks + cfg.groundSnapUp });
-    if (!Number.isFinite(stepGround)) return false;
-    if (stepGround <= y + 0.03 || stepGround > y + cfg.stepHeightBlocks + 0.04) return false;
-    if (playerCollidesAt(nextX, stepGround, nextZ)) return false;
-    setPlayerWorldFloat(nextX, stepGround, nextZ);
+    if (!Number.isFinite(stepGround)) return null;
+    if (stepGround <= y + 0.03 || stepGround > y + cfg.stepHeightBlocks + 0.04) return null;
+    if (playerCollidesAt(nextX, stepGround, nextZ)) return null;
+    return { x: nextX, z: nextZ, ground: stepGround };
+  }
+
+  function commitPlayerStep(step) {
+    const player = getPlayer?.();
+    if (!player) return false;
+    setPlayerWorldFloat(step.x, step.ground, step.z);
     player.velocityY = 0;
     player.grounded = true;
+    resetWalkStepIntent();
     return true;
+  }
+
+  function updateWalkStepIntent(dt, dx, dz) {
+    const player = getPlayer?.();
+    const length = Math.hypot(dx, dz);
+    if (frameSprinting || !player?.grounded || !frameStepContact || length <= 0.000001) {
+      resetWalkStepIntent();
+      return false;
+    }
+    const directionX = dx / length;
+    const directionZ = dz / length;
+    const sameDirection = walkStepContactMs > 0
+      && directionX * walkStepDirectionX + directionZ * walkStepDirectionZ >= Math.cos(Math.PI / 4)
+      && Math.abs(frameStepContact.ground - walkStepGround) <= 0.08;
+    if (!sameDirection) walkStepContactMs = 0;
+    walkStepDirectionX = directionX;
+    walkStepDirectionZ = directionZ;
+    walkStepGround = frameStepContact.ground;
+    walkStepContactMs += Math.max(0, Number(dt) || 0) * 1_000;
+    if (walkStepContactMs + 0.001 < cfg.walkStepIntentDelayMs) return false;
+    resetWalkStepIntent();
+    return true;
+  }
+
+  function resetWalkStepIntent() {
+    walkStepContactMs = 0;
+    walkStepDirectionX = 0;
+    walkStepDirectionZ = 0;
+    walkStepGround = -Infinity;
+    frameStepContact = null;
+  }
+
+  function sprintHeld(controls) {
+    return Boolean(controls?.keys?.has?.("ShiftLeft") || controls?.keys?.has?.("ShiftRight"));
   }
 
   function movePlayerVertically(dy) {
@@ -441,11 +555,14 @@ export function createPlayerMotionController({
         setPlayerWorldFloat(x, nextY, z);
         continue;
       }
+      const impactSpeed = Math.max(0, -player.velocityY);
       player.velocityY = 0;
       if (stepY < 0) {
         const ground = groundYAt(x, z, { maxTopY: y + cfg.groundSnapUp });
         setPlayerWorldFloat(x, ground, z);
         player.grounded = true;
+        manualJumpHoldActive = false;
+        recordLanding(impactSpeed);
       }
       return;
     }
@@ -639,6 +756,33 @@ export function createPlayerMotionController({
 
   function metersToBlocks(value) {
     return Number(value) / cfg.blockSizeMeters;
+  }
+
+  function recordLanding(impactSpeed) {
+    const normalized = clamp(
+      (Number(impactSpeed) - cfg.landingImpactThreshold)
+        / Math.max(0.001, cfg.jumpImpulse - cfg.landingImpactThreshold),
+      0,
+      1,
+    );
+    if (normalized <= 0) return;
+    landingStrength = normalized;
+    landingAgeSeconds = 0;
+  }
+
+  function landingVisualOffset() {
+    const duration = Math.max(0.001, cfg.landingRecoverySeconds);
+    const progress = clamp(landingAgeSeconds / duration, 0, 1);
+    if (progress >= 1) {
+      landingStrength = 0;
+      return 0;
+    }
+    if (landingStrength <= 0) return 0;
+    const envelope = (1 - progress) * (1 - progress);
+    return -cfg.landingCompressionBlocks
+      * landingStrength
+      * envelope
+      * Math.cos(progress * Math.PI * 1.5);
   }
 }
 
