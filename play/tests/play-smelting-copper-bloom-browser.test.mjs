@@ -54,24 +54,31 @@ test("a four-plank stack submits one wooden-stick input index", async () => {
     const result = await page.evaluate(async () => {
       const { createPlaySmelting } = await import("/play/play-smelting.js");
       const backpackAddress = "Backpack111111111111111111111111111111";
+      const itemPda = "Planks111111111111111111111111111111111";
+      const plankSlot = ({ id, count, chainIndex, volumeMm3, massGrams }) => ({
+        id,
+        kind: "smelted_material",
+        materialId: "wooden_plank",
+        itemCode: 1031,
+        chainItemId: "1031",
+        itemPda,
+        count,
+        pending: false,
+        source: "chain",
+        chainBackpack: backpackAddress,
+        chainIndex,
+        volumeMm3,
+        massGrams,
+      });
       const gameState = {
-        backpackSlots: [{
-          id: "wooden-plank-stack",
-          kind: "smelted_material",
-          materialId: "wooden_plank",
-          itemCode: 1031,
-          chainItemId: "wooden-plank-batch",
-          itemPda: "Planks111111111111111111111111111111111",
-          count: 4,
-          pending: false,
-          source: "chain",
-          chainBackpack: backpackAddress,
-          chainIndex: 7,
-          volumeMm3: 950_000,
-        }],
+        backpackSlots: [
+          plankSlot({ id: "wooden-plank-stack", count: 4, chainIndex: 7, volumeMm3: 950_000, massGrams: 520 }),
+          plankSlot({ id: "wooden-plank-decoy", count: 1, chainIndex: 8, volumeMm3: 2_000_000, massGrams: 1_100 }),
+        ],
       };
       const byId = (id) => document.getElementById(id);
       let submittedPayload = null;
+      let refreshCount = 0;
       const smelting = createPlaySmelting({
         elements: {
           backpackPanel: byId("backpackPanel"),
@@ -101,7 +108,16 @@ test("a four-plank stack submits one wooden-stick input index", async () => {
         resourceName: () => "Wooden Plank",
         voxelItemLabel: () => "Wooden Plank",
         getBackpackSnapshot: () => ({ backpackAddress, updatedSlot: "10" }),
-        refreshBackpack: async () => ({ ok: true }),
+        refreshBackpack: async () => {
+          refreshCount += 1;
+          if (refreshCount === 1) {
+            gameState.backpackSlots = [
+              plankSlot({ id: "refreshed-decoy", count: 1, chainIndex: 3, volumeMm3: 2_000_000, massGrams: 1_100 }),
+              plankSlot({ id: "refreshed-stack", count: 4, chainIndex: 11, volumeMm3: 950_000, massGrams: 520 }),
+            ];
+          }
+          return { ok: true };
+        },
         refreshPlayerProgress: async () => ({ ok: true }),
         loadChainModule: async () => ({
           async executeSmeltingOnChain(payload) {
@@ -118,15 +134,16 @@ test("a four-plank stack submits one wooden-stick input index", async () => {
       for (let attempt = 0; attempt < 40 && !submittedPayload; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 5));
       }
-      return { selectedText, submittedPayload };
+      return { selectedText, submittedPayload, refreshCount };
     });
 
     assert.match(result.selectedText, /x2\/2/);
     assert.equal(result.submittedPayload.recipeId, 1032);
     assert.equal(result.submittedPayload.recipeTableId, 223);
-    assert.deepEqual(result.submittedPayload.inputIndexes, [7]);
+    assert.deepEqual(result.submittedPayload.inputIndexes, [11]);
     assert.deepEqual(result.submittedPayload.fuelIndexes, []);
     assert.equal(result.submittedPayload.batchMultiplier, 1);
+    assert.ok(result.refreshCount >= 2);
   } finally {
     await browser.close();
   }

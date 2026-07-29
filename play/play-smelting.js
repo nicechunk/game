@@ -1449,10 +1449,32 @@ function chainSlotIdentity(slot = {}) {
     }
   }
   const itemPda = String(slot?.itemPda || "");
-  if (itemPda) return `item-pda:${backpack}:${itemPda}`;
   const chainItemId = String(slot?.chainItemId || "");
-  if (chainItemId) return `item:${backpack}:${Math.trunc(Number(slot.itemCode) || 0)}:${chainItemId}`;
+  if (itemPda || chainItemId) {
+    const record = [
+      slot.kind,
+      itemPda,
+      chainItemId,
+      slot.itemCode,
+      slot.count ?? slot.quantity,
+      slot.volumeMm3,
+      slot.massGrams,
+      slot.durabilityCurrent,
+      slot.durabilityMax,
+      slot.grade,
+      slot.itemLevel,
+      slot.qualityBps,
+      slot.metadata,
+    ].map(chainSlotIdentityField);
+    return `item:${backpack}:${record.join(":")}`;
+  }
   return Number.isInteger(slot?.chainIndex) ? `slot:${backpack}:${slot.chainIndex}` : "";
+}
+
+function chainSlotIdentityField(value) {
+  if (value === undefined || value === null || value === "") return "-";
+  if (typeof value === "bigint") return value.toString();
+  return String(value);
 }
 
 function wait(delayMs) {
