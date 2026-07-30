@@ -73,8 +73,8 @@ const buildingChunkAuthoritySeed = "chunk-authority-v1";
 const buildingManifestSeed = "building-v2";
 const buildingShardSeed = "building-data-v1";
 const playerProgressSeed = "player-progress";
-const playerSkillsSeed = "player-skills-v1";
-const skillRuleTableSeed = "skill-rules-v1";
+const playerSkillsSeed = "player-skills-v2";
+const skillRuleTableSeed = "skill-rules-v2";
 const backpackSeed = "backpack";
 const materialPhysicsSeed = "material-physics-v2";
 const blueprintItemSeed = "blueprint-item";
@@ -129,18 +129,22 @@ const forgedItemLength = 752;
 const forgedItemCodeOffset = 96;
 const forgedItemCreatedSlotOffset = 736;
 const forgedItemCreatedAtOffset = 744;
-const playerSkillsMagic = "NCKSKL01";
-const playerSkillsVersion = 1;
+const playerSkillsMagic = "NCKSKL02";
+const playerSkillsVersion = 2;
 const playerSkillsLength = 480;
 const playerSkillsXpOffset = 76;
 const playerSkillsLevelsOffset = 156;
+const playerSkillsCursorMaskOffset = 166;
 const playerSkillsRuleRevisionOffset = 172;
-const skillRuleTableMagic = "NCKXPR01";
-const skillRuleTableVersion = 1;
+const skillRuleTableMagic = "NCKXPR02";
+const skillRuleTableVersion = 2;
 const skillRuleTableLength = 912 + 32 * 136;
 const skillRuleTableSkillCountOffset = 77;
 const skillRuleTableRevisionOffset = 80;
 const skillRuleTableThresholdsOffset = 108;
+const precisionGatheringRuleIndexes = Object.freeze([0, 1]);
+const smeltingRuleIndexes = Object.freeze([3]);
+const forgingRuleIndexes = Object.freeze([4]);
 const chunkBrokenMagic = "NCBK";
 const chunkBrokenHeaderLength = 16;
 const chunkBrokenRecordLength = 3;
@@ -1059,8 +1063,17 @@ export async function executeSmeltingOnChain({
   if (!recipeTableAccount?.data?.length) {
     return { submitted: false, reason: "smelting-table-uninitialized", recipeTable: recipeTable.toBase58() };
   }
+  const smeltingProgress = deriveSmeltingPlayerProgressPdaForContext(provider.publicKey, context)[0];
+  const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+    payer: provider.publicKey,
+    owner: provider.publicKey,
+    sourceAccounts: [smeltingProgress],
+    ruleIndexes: smeltingRuleIndexes,
+    connection: conn,
+  });
   const tx = new Transaction();
   tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
+  if (baselineInstruction) tx.add(baselineInstruction);
   tx.add(createExecuteSmeltingInstruction({
     owner: provider.publicKey,
     recipeTable,
@@ -1075,7 +1088,7 @@ export async function executeSmeltingOnChain({
     payer: provider.publicKey,
     owner: provider.publicKey,
     sourceAccounts: [
-      deriveSmeltingPlayerProgressPdaForContext(provider.publicKey, context)[0],
+      smeltingProgress,
       derivePlayerProfilePda(provider.publicKey)[0],
       backpack,
     ],
@@ -2691,16 +2704,27 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
     }
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
     const session = await getOrCreateGameplaySession(provider);
+    const miningActionId = createMiningActionId();
     const tx = new Transaction();
     const solSpend = createSolSpendSummary();
     const initSignature = await ensureMiningAccountsInitialized(conn, session.keypair, blockChunkX(canonicalBlock.x), blockChunkZ(canonicalBlock.z), context);
     await addTransactionSolSpend(solSpend, conn, initSignature, session.keypair.publicKey);
+    const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
+    const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+      payer: session.keypair.publicKey,
+      owner: provider.publicKey,
+      sourceAccounts: [chunkProgress],
+      ruleIndexes: precisionGatheringRuleIndexes,
+      connection: conn,
+    });
     tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+    if (baselineInstruction) tx.add(baselineInstruction);
     tx.add(createMineBlockWithRewardsInstruction({
       authority: session.keypair.publicKey,
       block,
       owner: provider.publicKey,
       backpack: equippedBackpack.publicKey,
+      actionId: miningActionId,
       expectedBlockId: canonicalBlock.blockId,
       context,
     }));
@@ -2718,7 +2742,7 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       payer: session.keypair.publicKey,
       owner: provider.publicKey,
       sourceAccounts: [
-        derivePlayerProgressPdaForContext(provider.publicKey, context)[0],
+        chunkProgress,
         derivePlayerProfilePda(provider.publicKey)[0],
         equippedBackpack.publicKey,
       ],
@@ -2770,17 +2794,28 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
     }
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
     const session = await getOrCreateGameplaySession(provider);
+    const miningActionId = createMiningActionId();
     const tx = new Transaction();
     const context = gameContext;
     const solSpend = createSolSpendSummary();
 
     const chunks = treeFellCandidateChunks(canonicalBlock);
+    const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
+    const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+      payer: session.keypair.publicKey,
+      owner: provider.publicKey,
+      sourceAccounts: [chunkProgress],
+      ruleIndexes: precisionGatheringRuleIndexes,
+      connection: conn,
+    });
     tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+    if (baselineInstruction) tx.add(baselineInstruction);
     tx.add(createFellTreeWithRewardsInstruction({
       authority: session.keypair.publicKey,
       block: canonicalBlock,
       owner: provider.publicKey,
       backpack: equippedBackpack.publicKey,
+      actionId: miningActionId,
       expectedBlockId: canonicalBlock.blockId,
       chunks,
       context,
@@ -2799,7 +2834,7 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
       payer: session.keypair.publicKey,
       owner: provider.publicKey,
       sourceAccounts: [
-        derivePlayerProgressPdaForContext(provider.publicKey, context)[0],
+        chunkProgress,
         derivePlayerProfilePda(provider.publicKey)[0],
         equippedBackpack.publicKey,
       ],
@@ -2877,16 +2912,27 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
 
     const context = gameContext;
     const session = await getOrCreateGameplaySession(provider);
+    const miningActionId = createMiningActionId();
     const solSpend = createSolSpendSummary();
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
+    const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
+    let baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+      payer: session.keypair.publicKey,
+      owner: provider.publicKey,
+      sourceAccounts: [chunkProgress],
+      ruleIndexes: precisionGatheringRuleIndexes,
+      connection: conn,
+    });
     const outcome = await submitBulkMiningRanges(ranges, async (range) => {
       const tx = new Transaction();
       tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+      if (baselineInstruction) tx.add(baselineInstruction);
       tx.add(createRangeMineWithRewardsInstruction({
         authority: session.keypair.publicKey,
         range,
         owner: provider.publicKey,
         backpack: equippedBackpack.publicKey,
+        actionId: miningActionId,
         mode: BULK_MINING_RANGE_MODE_DEBUG,
         context,
       }));
@@ -2894,13 +2940,14 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
         payer: session.keypair.publicKey,
         owner: provider.publicKey,
         sourceAccounts: [
-          derivePlayerProgressPdaForContext(provider.publicKey, context)[0],
+          chunkProgress,
           derivePlayerProfilePda(provider.publicKey)[0],
           equippedBackpack.publicKey,
         ],
         miningCoordinate: { x: range.minX, y: range.minY, z: range.minZ },
       }));
       const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
+      baselineInstruction = null;
       await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
       return { signature };
     });
@@ -2986,6 +3033,7 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
 
     const context = gameContext;
     const session = await getOrCreateGameplaySession(provider);
+    const miningActionId = createMiningActionId();
     const solSpend = createSolSpendSummary();
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
     const primaryKey = minedBlockKey(canonicalBlock);
@@ -3014,13 +3062,23 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
     // A canonical terrain verification currently costs roughly 560k-625k CU.
     // Commit the clicked block first, then collapse blocks in pairs so no
     // transaction can contain the three verifications that exceed 1.4M CU.
+    const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
+    const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+      payer: session.keypair.publicKey,
+      owner: provider.publicKey,
+      sourceAccounts: [chunkProgress],
+      ruleIndexes: precisionGatheringRuleIndexes,
+      connection: conn,
+    });
     const primaryTx = new Transaction();
     primaryTx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+    if (baselineInstruction) primaryTx.add(baselineInstruction);
     primaryTx.add(createMineBlockWithRewardsInstruction({
       authority: session.keypair.publicKey,
       block: canonicalBlock,
       owner: provider.publicKey,
       backpack: equippedBackpack.publicKey,
+      actionId: miningActionId,
       expectedBlockId: canonicalBlock.blockId,
       context,
     }));
@@ -3038,7 +3096,7 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
       payer: session.keypair.publicKey,
       owner: provider.publicKey,
       sourceAccounts: [
-        derivePlayerProgressPdaForContext(provider.publicKey, context)[0],
+        chunkProgress,
         derivePlayerProfilePda(provider.publicKey)[0],
         equippedBackpack.publicKey,
       ],
@@ -3058,6 +3116,7 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
               block: collapseBlock,
               owner: provider.publicKey,
               backpack: equippedBackpack.publicKey,
+              actionId: miningActionId,
               expectedBlockId: collapseBlock.blockId,
               context,
             })
@@ -3312,8 +3371,17 @@ export async function forgeEquipmentOnChain({
   const itemId = createBackpackId();
   const [forgedItem] = deriveForgedItemPda(provider.publicKey, itemId, gameContext.backpackProgramId);
   const designHash = forgeDesignHashFromCodeBytes(rawCodeBytes);
+  const playerProfile = derivePlayerProfilePda(provider.publicKey)[0];
+  const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+    payer: provider.publicKey,
+    owner: provider.publicKey,
+    sourceAccounts: [playerProfile],
+    ruleIndexes: forgingRuleIndexes,
+    connection: conn,
+  });
   const tx = new Transaction();
   tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 320_000 }));
+  if (baselineInstruction) tx.add(baselineInstruction);
   tx.add(createForgeEquipmentVerifiedInstruction({
     owner: provider.publicKey,
     backpack,
@@ -3326,7 +3394,7 @@ export async function forgeEquipmentOnChain({
     payer: provider.publicKey,
     owner: provider.publicKey,
     sourceAccounts: [
-      derivePlayerProfilePda(provider.publicKey)[0],
+      playerProfile,
       backpack,
     ],
   }));
@@ -4194,6 +4262,7 @@ export async function fetchPlayerProgress(ownerAddress, {
     playerSkillsInitialized: Boolean(skillsDomain),
     skillXp: skillsDomain?.xp ?? emptySkills,
     skillLevels: skillsDomain?.levels ?? emptySkills,
+    skillCursorMask: skillsDomain?.cursorMask ?? 0,
     skillThresholds: skillRuleTable.thresholds,
     skillRuleRevision: skillsDomain?.ruleRevision ?? 0,
     skillRuleTableRevision: skillRuleTable.revision,
@@ -4254,6 +4323,7 @@ function decodePlayerSkillsDomain({ account, expectedBump, owner, globalConfig }
   return {
     xp,
     levels,
+    cursorMask: data.readUInt32LE(playerSkillsCursorMaskOffset),
     ruleRevision: data.readUInt32LE(playerSkillsRuleRevisionOffset),
   };
 }
@@ -4343,6 +4413,7 @@ export async function fetchPlayerSkillsForOwner(ownerAddress, { connection: conn
     owner: owner.toBase58(),
     xp: decoded?.xp ?? Object.fromEntries(PLAYER_SKILL_IDS.map((skillId) => [skillId, 0])),
     levels: decoded?.levels ?? Object.fromEntries(PLAYER_SKILL_IDS.map((skillId) => [skillId, 0])),
+    cursorMask: decoded?.cursorMask ?? 0,
     thresholds: skillRuleTable.thresholds,
     ruleRevision: decoded?.ruleRevision ?? 0,
     ruleTableRevision: skillRuleTable.revision,
@@ -4389,6 +4460,41 @@ export function createSyncPlayerSkillsInstruction({
       ...uniqueSources.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false })),
     ],
     data,
+  });
+}
+
+export function playerSkillRuleCursorsInitialized(cursorMask, ruleIndexes = []) {
+  const normalizedMask = Number(cursorMask) >>> 0;
+  return ruleIndexes.every((ruleIndex) => {
+    const index = Number(ruleIndex);
+    return Number.isInteger(index) && index >= 0 && index < 32
+      && ((normalizedMask >>> index) & 1) === 1;
+  });
+}
+
+export async function createPlayerSkillsBaselineInstructionIfNeeded({
+  payer,
+  owner,
+  sourceAccounts,
+  ruleIndexes,
+  connection: connectionOverride = null,
+}) {
+  const normalizedOwner = typeof owner === "string" ? new PublicKey(owner) : owner;
+  const [playerSkills, expectedBump] = derivePlayerSkillsPda(normalizedOwner);
+  const globalConfig = deriveGlobalConfigPda();
+  const conn = connectionOverride ?? getNicechunkConnection();
+  const account = await conn.getAccountInfo(playerSkills, "confirmed");
+  const decoded = decodePlayerSkillsDomain({
+    account,
+    expectedBump,
+    owner: normalizedOwner,
+    globalConfig,
+  });
+  if (playerSkillRuleCursorsInitialized(decoded?.cursorMask ?? 0, ruleIndexes)) return null;
+  return createSyncPlayerSkillsInstruction({
+    payer,
+    owner: normalizedOwner,
+    sourceAccounts,
   });
 }
 
@@ -5844,7 +5950,7 @@ function createMineBlockInstruction({ authority, block, owner, expectedBlockId, 
   });
 }
 
-export function createMineBlockWithRewardsInstruction({ authority, block, owner, backpack, expectedBlockId, context = gameContext }) {
+export function createMineBlockWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, context = gameContext }) {
   if (!owner) throw new Error("owner is required for canonical mining");
   if (!backpack) throw new Error("backpack is required for reward mining");
   if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for canonical mining");
@@ -5857,12 +5963,14 @@ export function createMineBlockWithRewardsInstruction({ authority, block, owner,
   const [playerProgress] = derivePlayerProgressPdaForContext(owner, context);
   const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
   const [playerSkills] = derivePlayerSkillsPda(owner);
-  const data = Buffer.alloc(13);
+  const normalizedActionId = normalizeMiningActionId(actionId);
+  const data = Buffer.alloc(21);
   data.writeUInt8(8, 0);
-  data.writeInt32LE(block.x, 1);
-  data.writeInt16LE(block.y, 5);
-  data.writeInt32LE(block.z, 7);
-  data.writeUInt16LE(expectedBlockId, 11);
+  data.writeBigUInt64LE(normalizedActionId, 1);
+  data.writeInt32LE(block.x, 9);
+  data.writeInt16LE(block.y, 13);
+  data.writeInt32LE(block.z, 15);
+  data.writeUInt16LE(expectedBlockId, 19);
 
   return new TransactionInstruction({
     programId: context.chunkProgramId,
@@ -5937,6 +6045,7 @@ export function createBatchMineWithRewardsInstruction({
   blocks,
   owner,
   backpack,
+  actionId,
   mode = bulkMiningModeDebug,
   context = gameContext,
 }) {
@@ -5964,12 +6073,14 @@ export function createBatchMineWithRewardsInstruction({
   const [playerProgress] = derivePlayerProgressPdaForContext(owner, context);
   const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
   const [playerSkills] = derivePlayerSkillsPda(owner);
-  const data = Buffer.alloc(3 + blocks.length * 12);
+  const normalizedActionId = normalizeMiningActionId(actionId);
+  const data = Buffer.alloc(11 + blocks.length * 12);
   data.writeUInt8(20, 0);
-  data.writeUInt8(mode, 1);
-  data.writeUInt8(blocks.length, 2);
+  data.writeBigUInt64LE(normalizedActionId, 1);
+  data.writeUInt8(mode, 9);
+  data.writeUInt8(blocks.length, 10);
   blocks.forEach((block, index) => {
-    const offset = 3 + index * 12;
+    const offset = 11 + index * 12;
     data.writeInt32LE(Math.trunc(block.x), offset);
     data.writeInt16LE(Math.trunc(block.y), offset + 4);
     data.writeInt32LE(Math.trunc(block.z), offset + 6);
@@ -6003,16 +6114,19 @@ export function createRangeMineWithRewardsInstruction({
   range,
   owner,
   backpack,
+  actionId,
   mode = BULK_MINING_RANGE_MODE_DEBUG,
   context = gameContext,
 }) {
   if (!owner) throw new Error("owner is required for range mining");
   if (!backpack) throw new Error("backpack is required for range mining");
   if (mode !== BULK_MINING_RANGE_MODE_DEBUG) throw new Error("unsupported range mining mode");
+  const normalizedActionId = normalizeMiningActionId(actionId);
   const payload = encodeBulkMiningRangePayload(range, { mode });
-  const data = Buffer.alloc(1 + payload.length);
+  const data = Buffer.alloc(9 + payload.length);
   data.writeUInt8(21, 0);
-  Buffer.from(payload).copy(data, 1);
+  data.writeBigUInt64LE(normalizedActionId, 1);
+  Buffer.from(payload).copy(data, 9);
 
   const chunkX = Math.trunc(Number(range?.chunkX));
   const chunkZ = Math.trunc(Number(range?.chunkZ));
@@ -6527,7 +6641,7 @@ async function fundBuildingUploadSession(provider, sessionAuthority, accountLeng
   await signAndSendWalletTransaction(provider, transaction, conn);
 }
 
-export function createFellTreeWithRewardsInstruction({ authority, block, owner, backpack, expectedBlockId, chunks = [], context = gameContext }) {
+export function createFellTreeWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, chunks = [], context = gameContext }) {
   if (!owner) throw new Error("owner is required for tree felling");
   if (!backpack) throw new Error("backpack is required for tree felling");
   if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for tree felling");
@@ -6538,12 +6652,14 @@ export function createFellTreeWithRewardsInstruction({ authority, block, owner, 
   const [playerProgress] = derivePlayerProgressPdaForContext(owner, context);
   const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
   const [playerSkills] = derivePlayerSkillsPda(owner);
-  const data = Buffer.alloc(13);
+  const normalizedActionId = normalizeMiningActionId(actionId);
+  const data = Buffer.alloc(21);
   data.writeUInt8(9, 0);
-  data.writeInt32LE(block.x, 1);
-  data.writeInt16LE(block.y, 5);
-  data.writeInt32LE(block.z, 7);
-  data.writeUInt16LE(expectedBlockId, 11);
+  data.writeBigUInt64LE(normalizedActionId, 1);
+  data.writeInt32LE(block.x, 9);
+  data.writeInt16LE(block.y, 13);
+  data.writeInt32LE(block.z, 15);
+  data.writeUInt16LE(expectedBlockId, 19);
 
   return new TransactionInstruction({
     programId: context.chunkProgramId,
@@ -6604,7 +6720,7 @@ function createInitializeBackpackInstruction({ owner, playerProfile, backpack, b
   });
 }
 
-function createForgeEquipmentVerifiedInstruction({
+export function createForgeEquipmentVerifiedInstruction({
   owner,
   backpack,
   itemId,
@@ -7265,6 +7381,25 @@ function createBackpackId() {
   const time = BigInt(Date.now()) & ((1n << 42n) - 1n);
   const random = BigInt(Math.floor(Math.random() * 2 ** 22));
   return (time << 22n) | random;
+}
+
+function createMiningActionId() {
+  const time = BigInt(Date.now()) & ((1n << 42n) - 1n);
+  const random = BigInt(Math.floor(Math.random() * 2 ** 22));
+  return ((time << 22n) | random) || 1n;
+}
+
+function normalizeMiningActionId(value) {
+  let actionId;
+  try {
+    actionId = BigInt(value);
+  } catch {
+    throw new Error("actionId must be a nonzero unsigned 64-bit integer");
+  }
+  if (actionId < 1n || actionId > 0xffff_ffff_ffff_ffffn) {
+    throw new Error("actionId must be a nonzero unsigned 64-bit integer");
+  }
+  return actionId;
 }
 
 function createMarketListingId() {

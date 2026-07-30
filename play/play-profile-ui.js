@@ -425,7 +425,7 @@ export function createPlayProfileUi({
   function skillMetricParams(skillId, level) {
     if (skillId === "precisionGathering") {
       const percent = skillEffectValue(skillId, level) / 100;
-      return { percent, liters: formatDecimal(percent / 100, 2) };
+      return { percent, volumeCm3: formatDecimal(percent * 10) };
     }
     if (skillId === "burden") return { kg: skillEffectValue(skillId, level) };
     if (skillId === "smelting") {

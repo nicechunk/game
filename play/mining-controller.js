@@ -359,7 +359,7 @@ export function createMiningController({
     const resourceId = Number.isFinite(hit.resourceId) ? hit.resourceId : def.resourceId;
     const txId = `local-pending-${txSerial++}`;
     const skillEffects = getSkillEffects?.() ?? {};
-    const yieldBps = Math.max(1, Math.min(10000, Math.trunc(skillEffects.precisionGatheringBps || 1000)));
+    const yieldBps = Math.max(1, Math.min(10000, Math.trunc(skillEffects.precisionGatheringBps || 5000)));
     const volumeMilliLiters = Math.max(1, Math.floor(1000 * yieldBps / 10000));
     const planBlocks = currentPlanBlocks(swing, hit);
     const plannedRewardBlocks = swing.miningPlan?.rewardBlocks?.length ? swing.miningPlan.rewardBlocks : planBlocks;

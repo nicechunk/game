@@ -34,7 +34,7 @@ export function smeltingSkillOutputBpsForLevel(level) {
 export function describeProfileSkillEffects(effects = {}) {
   return {
     movement: `${Math.round((effects.movementSpeedMultiplier || 1) * 100)}%`,
-    gathering: `${Math.round((effects.precisionGatheringBps || 1000) / 100)}%`,
+    gathering: `${Math.round((effects.precisionGatheringBps || 5000) / 100)}%`,
     smelting: `+${Math.round(((effects.smeltingOutputBps || 10000) - 10000) / 100)}% extra output`,
     carry: `${Math.round(effects.safeCarryKg || 50)} kg`,
   };

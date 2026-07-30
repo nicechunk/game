@@ -338,94 +338,94 @@
       },
       "skills": {
         "precisionGathering": {
-          "name": "Precision Gathering",
-          "description": "Controls how much real material volume is recovered when a resource block is mined.",
-          "xpSource": "Gain XP by successfully mining persistent resource blocks. Harder blocks and rarer material drops give more XP.",
-          "current": "{percent}% gathered · {liters} L per resource block",
-          "next": "Next level: {percent}% · {liters} L per block",
-          "max": "Max: 100% · 1 L per resource block",
-          "formula": "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L"
+          "name": "精密採集",
+          "description": "採掘した資源ブロックから回収できる検証済み体積を決定し、素材密度から重量を計算します。",
+          "xpSource": "採掘アクションを1回完了するごとに1 XPを獲得します。一括採掘、爆破、木1本の伐採はアクション全体で1 XPです。",
+          "current": "採集率 {percent}% · 資源ブロックごとに {volumeCm3} cm³",
+          "next": "次のレベル: {percent}% · ブロックごとに {volumeCm3} cm³",
+          "max": "最大: 100% · 資源ブロックごとに1,000 cm³",
+          "formula": "産出量 = 50% + レベル x 5%。資源ブロックは1,000 cm³で、重量 = 体積 x 素材密度"
         },
         "burden": {
-          "name": "Burden",
-          "description": "Sets the backpack carry-capacity attribute used by the Burden skill.",
-          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and the distance multiplier is capped at 5.",
-          "current": "{kg} kg safe carry capacity",
-          "next": "Next level: {kg} kg",
-          "max": "Max: 150 kg safe carry capacity",
-          "formula": "50 kg + Lv x 10 kg"
+          "name": "運搬",
+          "description": "検証済みのバックパック容量はレベル0の50 kgからレベル10の150 kgまで増加します。",
+          "xpSource": "検証済み採掘ごとに floor(運搬kg / 20) x Chunk距離 XPを獲得します。同じChunkでは0 XP、距離上限は5 Chunkです。",
+          "current": "安全運搬容量 {kg} kg",
+          "next": "次のレベル: {kg} kg",
+          "max": "最大: 安全運搬容量150 kg",
+          "formula": "容量 = 50 kg + レベル x 10 kg。各レベルに10,000 XPが必要"
         },
         "smelting": {
-          "name": "Smelting",
-          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
-          "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "+{bonus}% extra output",
-          "next": "Next level: +{bonus}% extra output",
-          "max": "Max: +50% extra output",
-          "formula": "Extra output = Lv x 5%"
+          "name": "製錬",
+          "description": "通常レシピの基本産出量にレベルごとに5%を追加し、最大50%増加します。",
+          "xpSource": "通常レシピを1回完了するごとに1 XPを獲得します。内部のスタック統合ではXPを獲得しません。",
+          "current": "追加産出 +{bonus}%",
+          "next": "次のレベル: 追加産出 +{bonus}%",
+          "max": "最大: 追加産出 +50%",
+          "formula": "追加産出 = レベル x 5%。通常レシピ1回完了 = 1 XP"
         },
         "forging": {
-          "name": "Forging",
-          "description": "Improves durability when materials are shaped into usable equipment.",
-          "xpSource": "Gain XP when a forged object is saved. More complete objects, valid grips, and higher material grades give more XP.",
-          "current": "+{bonus}% forged item durability",
-          "next": "Next level: +{bonus}% durability",
-          "max": "Max: +50% durability",
-          "formula": "Durability bonus = Lv x 5%"
+          "name": "鍛造",
+          "description": "正常に鍛造した装備の検証済み耐久度をレベルごとに5%増加させます。",
+          "xpSource": "アイテムを1個正常に鍛造するごとに1 XPを獲得します。",
+          "current": "鍛造アイテムの耐久度 +{bonus}%",
+          "next": "次のレベル: 耐久度 +{bonus}%",
+          "max": "最大: 耐久度 +50%",
+          "formula": "耐久度ボーナス = レベル x 5%。完成アイテム1個 = 1 XP"
         },
         "craftsmanship": {
-          "name": "Craftsmanship",
-          "description": "Unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
-          "xpSource": "Gain XP from advanced crafting operations: joining, shaping, cutting, assembling mechanisms, and using unlocked process tiers.",
-          "current": "Process tier {tier} available",
-          "next": "Next level: process tier {tier}",
-          "max": "Max: process tier 6",
-          "formula": "Tier = 1 + floor(Lv / 2); unlocks advanced craft methods"
+          "name": "工芸",
+          "description": "計画中: 複雑な道具、接合部、合金、機構向けの上位工程を解放します。",
+          "xpSource": "計画中のルール: 高度な製作または組み立てを1回成功するごとに1 XPを獲得します。",
+          "current": "工程ティア {tier} を計画中",
+          "next": "次のレベル: 工程ティア {tier} を計画中",
+          "max": "計画上の最大: 工程ティア6",
+          "formula": "計画中: ティア = 1 + floor(レベル / 2)。検証済み高度製作1回 = 1 XP"
         },
         "swiftness": {
-          "name": "Swiftness",
-          "description": "Improves ground movement speed while keeping camera control and collision rules stable.",
-          "xpSource": "Gain XP through active traversal: walking, sprinting, climbing, jumping obstacles, and covering distance without teleporting.",
-          "current": "{speed}% movement speed",
-          "next": "Next level: {speed}% movement speed",
-          "max": "Max: 130% movement speed",
-          "formula": "Speed = 100% + Lv x 3%"
+          "name": "俊敏",
+          "description": "カメラ、衝突、検証可能な移動ルールを保ったまま地上移動速度を上げます。",
+          "xpSource": "検証済み採掘地点が160ブロック以上離れていると1 XP、未満なら0 XPです。",
+          "current": "移動速度 {speed}%",
+          "next": "次のレベル: 移動速度 {speed}%",
+          "max": "最大: 移動速度130%",
+          "formula": "速度 = 100% + レベル x 3%。検証済み採掘距離 >= 160ブロック = 1 XP"
         },
         "exploration": {
-          "name": "Exploration",
-          "description": "Adds weight to rare extra-drop rolls that come from altitude, depth, biome, and civilization drop tables.",
-          "xpSource": "Gain XP by entering new chunks, discovering rare terrain, mining altitude/depth-specific resources, and triggering extra-drop tables.",
-          "current": "+{chance}% rare extra-drop roll weight",
-          "next": "Next level: +{chance}% rare roll weight",
-          "max": "Max: +100% rare extra-drop roll weight",
-          "formula": "Rare roll weight bonus = Lv x 10%; extra drops gain 1 XP when triggered"
+          "name": "探索",
+          "description": "座標に基づく資源判定を保ちながら、希少追加ドロップの抽選重みをレベルごとに10%増やします。",
+          "xpSource": "希少追加ドロップが実際に発生するごとに1 XPを獲得します。",
+          "current": "希少追加ドロップ重み +{chance}%",
+          "next": "次のレベル: 希少抽選重み +{chance}%",
+          "max": "最大: 希少追加ドロップ重み +100%",
+          "formula": "希少抽選重みボーナス = レベル x 10%。追加ドロップ1回発生 = 1 XP"
         },
         "stamina": {
-          "name": "Stamina",
-          "description": "Reduces fatigue from mining, running, jumping, and repeated heavy actions.",
-          "xpSource": "Gain XP by spending stamina through repeated mining, running, jumping, and carrying, then recovering without exceeding safe limits.",
-          "current": "{reduction}% lower mining and movement fatigue",
-          "next": "Next level: {reduction}% lower fatigue",
-          "max": "Max: 40% lower fatigue",
-          "formula": "Fatigue cost reduction = Lv x 4%"
+          "name": "スタミナ",
+          "description": "計画中: 採掘、走行、ジャンプ、連続する重作業による疲労を軽減します。",
+          "xpSource": "計画中のルール: 検証済みスタミナを100ポイント安全に消費して回復するごとに1 XPを獲得します。",
+          "current": "採掘と移動の疲労を {reduction}% 軽減予定",
+          "next": "次のレベル: 疲労を {reduction}% 軽減予定",
+          "max": "計画上の最大: 疲労40%軽減",
+          "formula": "計画中: 疲労コスト軽減 = レベル x 4%。安全な100ポイント回復 = 1 XP"
         },
         "strength": {
-          "name": "Strength",
-          "description": "Controls one-hand lift stability for forged objects using mass, gravity, center of mass, and torque.",
-          "xpSource": "Gain XP by lifting, holding, and manipulating valid heavy objects without body collision or grip failure.",
-          "current": "{kg} kg one-hand lift control",
-          "next": "Next level: {kg} kg one-hand control",
-          "max": "Max: 48 kg one-hand lift control",
-          "formula": "Grip lift control = 8 kg + Lv x 4 kg; later combines mass, gravity and torque"
+          "name": "筋力",
+          "description": "計画中: 質量、重力、重心、トルクから鍛造物の片手操作安定性を決定します。",
+          "xpSource": "計画中のルール: 安全な片手荷重の50%以上を扱う重作業を成功すると1 XPを獲得します。",
+          "current": "片手で {kg} kg を操作予定",
+          "next": "次のレベル: 片手で {kg} kg を操作予定",
+          "max": "計画上の最大: 片手操作48 kg",
+          "formula": "計画中: 握力制御 = 8 kg + レベル x 4 kg。条件を満たす重作業1回 = 1 XP"
         },
         "appraisal": {
-          "name": "Appraisal",
-          "description": "Reveals more material traits so players can understand rare materials and advanced recipes.",
-          "xpSource": "Gain XP by inspecting materials, identifying forged items, revealing resource attributes, and using discovered traits in recipes.",
-          "current": "Reveals {traits} material traits",
-          "next": "Next level: reveals {traits} traits",
-          "max": "Max: reveals 12 material traits",
-          "formula": "Visible traits = 2 + Lv; supports rare materials and civilization rules"
+          "name": "鑑定",
+          "description": "計画中: 希少資源、市場、レシピ、文明ルール向けの素材特性を表示します。",
+          "xpSource": "計画中のルール: 新しい素材特性を初めて識別すると1 XP、再識別では0 XPです。",
+          "current": "実装後に素材特性を {traits} 個表示",
+          "next": "次のレベル: 実装後に特性を {traits} 個表示",
+          "max": "計画上の最大: 素材特性12個を表示",
+          "formula": "計画中: 表示特性数 = 2 + レベル。特性の初回発見1件 = 1 XP"
         }
       },
       "settingsTab": "設定",

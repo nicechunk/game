@@ -8,17 +8,17 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     tone: "green",
     xpBase: 90,
     xpGrowth: 1.52,
-    effect: { key: "precisionGatheringBps", base: 1000, perLevel: 1000, max: 10000 },
+    effect: { key: "precisionGatheringBps", base: 5000, perLevel: 500, max: 10000 },
     description: "Controls how much verified resource yield is recovered from each mined resource block.",
-    xpSource: "Gains XP from confirmed mining and collected resources.",
+    xpSource: "Each successful mining action grants 1 XP. Batch mining, blasting, and whole-tree felling grant 1 XP for the complete action.",
     metrics(level) {
       const percent = profileSkillEffectValue(this, level) / 100;
       const nextPercent = profileSkillEffectValue(this, level + 1) / 100;
       return {
-        current: `${formatSkillNumber(percent)}% gathered · ${formatSkillNumber(percent / 100, 2)} L per resource block`,
-        next: `Next level: ${formatSkillNumber(nextPercent)}% · ${formatSkillNumber(nextPercent / 100, 2)} L per block`,
-        max: "Max: 100% · 1 L per resource block",
-        formula: "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L",
+        current: `${formatSkillNumber(percent)}% gathered · ${formatSkillNumber(percent * 10)} cm3 per resource block`,
+        next: `Next level: ${formatSkillNumber(nextPercent)}% · ${formatSkillNumber(nextPercent * 10)} cm3 per block`,
+        max: "Max: 100% · 1,000 cm3 per resource block",
+        formula: "Yield = 50% + Lv x 5%; one resource block is 1,000 cm3 and mass = volume x material density",
       };
     },
   },
@@ -50,7 +50,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpGrowth: 1.56,
     effect: { key: "smeltingOutputBps", base: 10000, perLevel: 500, max: 15000 },
     description: "Adds 5% output per level on top of each smelting recipe's base yield.",
-    xpSource: "Gains XP from smelting runs and confirmed output materials.",
+    xpSource: "Each completed normal recipe grants 1 XP. Internal stack-merge operations grant no XP.",
     metrics(level) {
       const bonusPercent = (profileSkillEffectValue(this, level) - 10000) / 100;
       const nextBonus = (profileSkillEffectValue(this, level + 1) - 10000) / 100;
@@ -70,7 +70,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpGrowth: 1.6,
     effect: { key: "forgingDurabilityBonusBps", base: 0, perLevel: 500, max: 5000 },
     description: "Improves forged equipment durability and future tool quality calculations.",
-    xpSource: "Gains XP from forging-ready material output and future forged equipment actions.",
+    xpSource: "Each successfully forged item grants 1 XP.",
     metrics(level) {
       const bonus = profileSkillEffectValue(this, level) / 100;
       const nextBonus = profileSkillEffectValue(this, level + 1) / 100;
@@ -89,8 +89,8 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpBase: 180,
     xpGrowth: 1.66,
     effect: { key: "craftsmanshipTier", base: 1, perLevel: 0.5, max: 6, rounding: "floor" },
-    description: "Unlocks more advanced build, assembly, and civilization production tiers.",
-    xpSource: "Gains XP from placement and material production.",
+    description: "Planned: unlocks more advanced build, assembly, and civilization production tiers.",
+    xpSource: "Planned rule: each successful advanced crafting or assembly action grants 1 XP.",
     metrics(level) {
       const tier = profileSkillEffectValue(this, level);
       const nextTier = profileSkillEffectValue(this, level + 1);
@@ -110,7 +110,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpGrowth: 1.5,
     effect: { key: "movementSpeedMultiplier", base: 1, perLevel: 0.03, max: 1.3 },
     description: "Improves movement efficiency without changing chain-verifiable world rules.",
-    xpSource: "Gains XP from traversal-like activity such as mining and placement sessions.",
+    xpSource: "Verified mining positions at least 160 blocks apart grant 1 XP; shorter moves grant 0 XP.",
     metrics(level) {
       const speed = Math.round(profileSkillEffectValue(this, level) * 100);
       const nextSpeed = Math.round(profileSkillEffectValue(this, level + 1) * 100);
@@ -130,7 +130,7 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpGrowth: 1.57,
     effect: { key: "rareRollWeightBps", base: 0, perLevel: 1000, max: 10000 },
     description: "Improves future rare discovery rolls while keeping resource truth coordinate based.",
-    xpSource: "Gains XP from confirmed mines and rare extra-drop events.",
+    xpSource: "Each rare extra drop that actually triggers grants 1 XP.",
     metrics(level) {
       const chance = profileSkillEffectValue(this, level) / 100;
       const nextChance = profileSkillEffectValue(this, level + 1) / 100;
@@ -149,8 +149,8 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpBase: 105,
     xpGrowth: 1.5,
     effect: { key: "fatigueCostMultiplier", base: 1, perLevel: -0.04, min: 0.6 },
-    description: "Reduces repeated action fatigue for mining, movement, and future work loops.",
-    xpSource: "Gains XP from mining and placement actions.",
+    description: "Planned: reduces repeated action fatigue for mining, movement, and future work loops.",
+    xpSource: "Planned rule: each 100 verified stamina points consumed and safely recovered grants 1 XP.",
     metrics(level) {
       const reduction = Math.round((1 - profileSkillEffectValue(this, level)) * 100);
       const nextReduction = Math.round((1 - profileSkillEffectValue(this, level + 1)) * 100);
@@ -169,8 +169,8 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpBase: 145,
     xpGrowth: 1.59,
     effect: { key: "oneHandLiftKg", base: 8, perLevel: 4, max: 48 },
-    description: "Controls one-hand equipment handling for future physically validated tools.",
-    xpSource: "Gains XP from mining actions and heavy material handling.",
+    description: "Planned: controls one-hand equipment handling for physically validated tools.",
+    xpSource: "Planned rule: a successful heavy-handling action at 50% or more of the safe one-hand load grants 1 XP.",
     metrics(level) {
       const liftKg = profileSkillEffectValue(this, level);
       const nextLiftKg = profileSkillEffectValue(this, level + 1);
@@ -189,8 +189,8 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     xpBase: 160,
     xpGrowth: 1.62,
     effect: { key: "visibleMaterialTraits", base: 2, perLevel: 1, max: 12 },
-    description: "Reveals material traits for rare resources, markets, and civilization rules.",
-    xpSource: "Gains XP from confirmed resources and processed materials.",
+    description: "Planned: reveals material traits for rare resources, markets, and civilization rules.",
+    xpSource: "Planned rule: first-time identification of a new material trait grants 1 XP; repeats grant 0 XP.",
     metrics(level) {
       const traits = profileSkillEffectValue(this, level);
       const nextTraits = profileSkillEffectValue(this, level + 1);

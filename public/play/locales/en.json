@@ -339,93 +339,93 @@
       "skills": {
         "precisionGathering": {
           "name": "Precision Gathering",
-          "description": "Controls how much real material volume is recovered when a resource block is mined.",
-          "xpSource": "Gain XP by successfully mining persistent resource blocks. Harder blocks and rarer material drops give more XP.",
-          "current": "{percent}% gathered · {liters} L per resource block",
-          "next": "Next level: {percent}% · {liters} L per block",
-          "max": "Max: 100% · 1 L per resource block",
-          "formula": "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L"
+          "description": "Controls the verified resource volume recovered from each mined resource block; material density converts that volume into mass.",
+          "xpSource": "Each successful mining action grants 1 XP. Batch mining, blasting, and whole-tree felling grant 1 XP for the complete action.",
+          "current": "{percent}% gathered · {volumeCm3} cm³ per resource block",
+          "next": "Next level: {percent}% · {volumeCm3} cm³ per block",
+          "max": "Max: 100% · 1,000 cm³ per resource block",
+          "formula": "Yield = 50% + Lv x 5%; one resource block is 1,000 cm³ and mass = volume x material density"
         },
         "burden": {
           "name": "Burden",
-          "description": "Sets the backpack carry-capacity attribute used by the Burden skill.",
-          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and the distance multiplier is capped at 5.",
+          "description": "Sets verified backpack carrying capacity from 50 kg at Lv.0 to 150 kg at Lv.10.",
+          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and distance is capped at 5 Chunks.",
           "current": "{kg} kg safe carry capacity",
           "next": "Next level: {kg} kg",
           "max": "Max: 150 kg safe carry capacity",
-          "formula": "50 kg + Lv x 10 kg"
+          "formula": "Capacity = 50 kg + Lv x 10 kg; every level requires 10,000 XP"
         },
         "smelting": {
           "name": "Smelting",
-          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
-          "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
+          "description": "Adds 5% output per level on top of each normal recipe's base yield, up to 50% extra output.",
+          "xpSource": "Each completed normal recipe grants 1 XP. Internal stack-merge operations grant no XP.",
           "current": "+{bonus}% extra output",
           "next": "Next level: +{bonus}% extra output",
           "max": "Max: +50% extra output",
-          "formula": "Extra output = Lv x 5%"
+          "formula": "Extra output = Lv x 5%; normal recipe completion = 1 XP"
         },
         "forging": {
           "name": "Forging",
-          "description": "Improves durability when materials are shaped into usable equipment.",
-          "xpSource": "Gain XP when a forged object is saved. More complete objects, valid grips, and higher material grades give more XP.",
+          "description": "Adds 5% verified durability per level to successfully forged equipment.",
+          "xpSource": "Each successfully forged item grants 1 XP.",
           "current": "+{bonus}% forged item durability",
           "next": "Next level: +{bonus}% durability",
           "max": "Max: +50% durability",
-          "formula": "Durability bonus = Lv x 5%"
+          "formula": "Durability bonus = Lv x 5%; each completed item = 1 XP"
         },
         "craftsmanship": {
           "name": "Craftsmanship",
-          "description": "Unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
-          "xpSource": "Gain XP from advanced crafting operations: joining, shaping, cutting, assembling mechanisms, and using unlocked process tiers.",
-          "current": "Process tier {tier} available",
-          "next": "Next level: process tier {tier}",
-          "max": "Max: process tier 6",
-          "formula": "Tier = 1 + floor(Lv / 2); unlocks advanced craft methods"
+          "description": "Planned: unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
+          "xpSource": "Planned rule: each successful advanced crafting or assembly action grants 1 XP.",
+          "current": "Process tier {tier} planned",
+          "next": "Next level: planned process tier {tier}",
+          "max": "Planned max: process tier 6",
+          "formula": "Planned: tier = 1 + floor(Lv / 2); one validated advanced craft = 1 XP"
         },
         "swiftness": {
           "name": "Swiftness",
-          "description": "Improves ground movement speed while keeping camera control and collision rules stable.",
-          "xpSource": "Gain XP through active traversal: walking, sprinting, climbing, jumping obstacles, and covering distance without teleporting.",
+          "description": "Improves ground movement speed while preserving camera, collision, and chain-verifiable traversal rules.",
+          "xpSource": "Verified mining positions at least 160 blocks apart grant 1 XP; shorter moves grant 0 XP.",
           "current": "{speed}% movement speed",
           "next": "Next level: {speed}% movement speed",
           "max": "Max: 130% movement speed",
-          "formula": "Speed = 100% + Lv x 3%"
+          "formula": "Speed = 100% + Lv x 3%; verified mining distance >= 160 blocks = 1 XP"
         },
         "exploration": {
           "name": "Exploration",
-          "description": "Adds weight to rare extra-drop rolls that come from altitude, depth, biome, and civilization drop tables.",
-          "xpSource": "Gain XP by entering new chunks, discovering rare terrain, mining altitude/depth-specific resources, and triggering extra-drop tables.",
+          "description": "Adds 10% rare extra-drop roll weight per level while keeping resource truth coordinate based.",
+          "xpSource": "Each rare extra drop that actually triggers grants 1 XP.",
           "current": "+{chance}% rare extra-drop roll weight",
           "next": "Next level: +{chance}% rare roll weight",
           "max": "Max: +100% rare extra-drop roll weight",
-          "formula": "Rare roll weight bonus = Lv x 10%; extra drops gain 1 XP when triggered"
+          "formula": "Rare roll weight bonus = Lv x 10%; each triggered extra drop = 1 XP"
         },
         "stamina": {
           "name": "Stamina",
-          "description": "Reduces fatigue from mining, running, jumping, and repeated heavy actions.",
-          "xpSource": "Gain XP by spending stamina through repeated mining, running, jumping, and carrying, then recovering without exceeding safe limits.",
-          "current": "{reduction}% lower mining and movement fatigue",
-          "next": "Next level: {reduction}% lower fatigue",
-          "max": "Max: 40% lower fatigue",
-          "formula": "Fatigue cost reduction = Lv x 4%"
+          "description": "Planned: reduces fatigue from mining, running, jumping, and repeated heavy actions.",
+          "xpSource": "Planned rule: each 100 verified stamina points consumed and safely recovered grants 1 XP.",
+          "current": "{reduction}% lower mining and movement fatigue planned",
+          "next": "Next level: {reduction}% lower fatigue planned",
+          "max": "Planned max: 40% lower fatigue",
+          "formula": "Planned: fatigue cost reduction = Lv x 4%; each safe 100-point recovery = 1 XP"
         },
         "strength": {
           "name": "Strength",
-          "description": "Controls one-hand lift stability for forged objects using mass, gravity, center of mass, and torque.",
-          "xpSource": "Gain XP by lifting, holding, and manipulating valid heavy objects without body collision or grip failure.",
-          "current": "{kg} kg one-hand lift control",
-          "next": "Next level: {kg} kg one-hand control",
-          "max": "Max: 48 kg one-hand lift control",
-          "formula": "Grip lift control = 8 kg + Lv x 4 kg; later combines mass, gravity and torque"
+          "description": "Planned: controls one-hand stability for forged objects using mass, gravity, center of mass, and torque.",
+          "xpSource": "Planned rule: a successful heavy-handling action at 50% or more of the safe one-hand load grants 1 XP.",
+          "current": "{kg} kg one-hand lift control planned",
+          "next": "Next level: {kg} kg one-hand control planned",
+          "max": "Planned max: 48 kg one-hand lift control",
+          "formula": "Planned: grip control = 8 kg + Lv x 4 kg; one qualified handling action = 1 XP"
         },
         "appraisal": {
           "name": "Appraisal",
-          "description": "Reveals more material traits so players can understand rare materials and advanced recipes.",
-          "xpSource": "Gain XP by inspecting materials, identifying forged items, revealing resource attributes, and using discovered traits in recipes.",
-          "current": "Reveals {traits} material traits",
-          "next": "Next level: reveals {traits} traits",
-          "max": "Max: reveals 12 material traits",
-          "formula": "Visible traits = 2 + Lv; supports rare materials and civilization rules"
+          "description": "Planned: reveals material traits for rare resources, markets, recipes, and civilization rules.",
+          "xpSource": "Planned rule: first-time identification of a new material trait grants 1 XP; repeats grant 0 XP.",
+          "current": "Reveals {traits} material traits when implemented",
+          "next": "Next level: reveals {traits} traits when implemented",
+          "max": "Planned max: reveals 12 material traits",
+          "formula": "Planned: visible traits = 2 + Lv; first discovery of one trait = 1 XP"
         }
       },
       "settingsTab": "Settings",

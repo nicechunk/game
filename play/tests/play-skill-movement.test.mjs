@@ -9,7 +9,7 @@ import {
   profileSkillExperienceRequirement,
   profileSkillTotalExperienceForLevel,
 } from "../play-profile-skills.js";
-import { createProfileSkillEffects } from "../play-skill-effects.js";
+import { createProfileSkillEffects, describeProfileSkillEffects } from "../play-skill-effects.js";
 import {
   PLAYER_MOVEMENT_CONFIG,
   applyPlayerMovementSpeeds,
@@ -43,6 +43,19 @@ test("every skill keeps its gameplay parameters in one skill definition", () => 
   assert.equal(profileSkillExperienceRequirement(burden, 0), 10_000);
   assert.equal(profileSkillExperienceRequirement(burden, 9), 10_000);
   assert.equal(profileSkillTotalExperienceForLevel(burden, 10), 100_000);
+
+  const precisionGathering = PLAYER_SKILL_DEFINITIONS.find((skill) => skill.id === "precisionGathering");
+  assert.deepEqual(precisionGathering.effect, {
+    key: "precisionGatheringBps",
+    base: 5000,
+    perLevel: 500,
+    max: 10000,
+  });
+  assert.equal(createProfileSkillEffects({ chainLevels: { precisionGathering: 0 } }).precisionGatheringBps, 5000);
+  assert.equal(createProfileSkillEffects({ chainLevels: { precisionGathering: 1 } }).precisionGatheringBps, 5500);
+  assert.equal(createProfileSkillEffects({ chainLevels: { precisionGathering: 10 } }).precisionGatheringBps, 10000);
+  assert.equal(createProfileSkillEffects({ chainLevels: { precisionGathering: 99 } }).precisionGatheringBps, 10000);
+  assert.equal(describeProfileSkillEffects({}).gathering, "50%");
 });
 
 test("movement effects use chain-authoritative skill levels", () => {

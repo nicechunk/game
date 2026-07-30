@@ -39,8 +39,8 @@ function progressAccount({ owner, programId, bump, precision = 0n, smelting = 0n
 function playerSkillsAccount({ owner, revision = 19, xp = 0n, level = 0 }) {
   const [, bump] = derivePlayerSkillsPda(owner);
   const data = Buffer.alloc(480);
-  data.write("NCKSKL01", 0, "utf8");
-  data.writeUInt16LE(1, 8);
+  data.write("NCKSKL02", 0, "utf8");
+  data.writeUInt16LE(2, 8);
   data.writeUInt8(bump, 10);
   data.writeUInt8(1, 11);
   owner.toBuffer().copy(data, 12);
@@ -54,8 +54,8 @@ function playerSkillsAccount({ owner, revision = 19, xp = 0n, level = 0 }) {
 function skillRuleTableAccount({ revision = 19 } = {}) {
   const [, bump] = deriveSkillRuleTablePda();
   const data = Buffer.alloc(912 + 32 * 136);
-  data.write("NCKXPR01", 0, "utf8");
-  data.writeUInt16LE(1, 8);
+  data.write("NCKXPR02", 0, "utf8");
+  data.writeUInt16LE(2, 8);
   data.writeUInt8(bump, 10);
   data.writeUInt8(1, 11);
   deriveGlobalConfigPda().toBuffer().copy(data, 44);

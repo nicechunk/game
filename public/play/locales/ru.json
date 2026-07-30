@@ -338,94 +338,94 @@
       },
       "skills": {
         "precisionGathering": {
-          "name": "Precision Gathering",
-          "description": "Controls how much real material volume is recovered when a resource block is mined.",
-          "xpSource": "Gain XP by successfully mining persistent resource blocks. Harder blocks and rarer material drops give more XP.",
-          "current": "{percent}% gathered · {liters} L per resource block",
-          "next": "Next level: {percent}% · {liters} L per block",
-          "max": "Max: 100% · 1 L per resource block",
-          "formula": "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L"
+          "name": "Точный сбор",
+          "description": "Определяет проверенный объем ресурса, получаемый из добытого блока; плотность материала преобразует объем в массу.",
+          "xpSource": "Каждое завершенное действие добычи дает 1 XP. Пакетная добыча, взрыв и вырубка целого дерева дают 1 XP за все действие.",
+          "current": "Собрано {percent}% · {volumeCm3} см³ с блока ресурса",
+          "next": "Следующий уровень: {percent}% · {volumeCm3} см³ с блока",
+          "max": "Максимум: 100% · 1 000 см³ с блока ресурса",
+          "formula": "Выход = 50% + уровень x 5%; один блок ресурса содержит 1 000 см³, масса = объем x плотность материала"
         },
         "burden": {
-          "name": "Burden",
-          "description": "Sets the backpack carry-capacity attribute used by the Burden skill.",
-          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and the distance multiplier is capped at 5.",
-          "current": "{kg} kg safe carry capacity",
-          "next": "Next level: {kg} kg",
-          "max": "Max: 150 kg safe carry capacity",
-          "formula": "50 kg + Lv x 10 kg"
+          "name": "Нагрузка",
+          "description": "Задает проверенную вместимость рюкзака от 50 кг на уровне 0 до 150 кг на уровне 10.",
+          "xpSource": "Каждая проверенная добыча дает floor(переносимые кг / 20) x расстояние в Chunk XP. В том же Chunk дается 0 XP, предел расстояния — 5 Chunks.",
+          "current": "Безопасная нагрузка {kg} кг",
+          "next": "Следующий уровень: {kg} кг",
+          "max": "Максимум: безопасная нагрузка 150 кг",
+          "formula": "Вместимость = 50 кг + уровень x 10 кг; каждый уровень требует 10 000 XP"
         },
         "smelting": {
-          "name": "Smelting",
-          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
-          "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "+{bonus}% extra output",
-          "next": "Next level: +{bonus}% extra output",
-          "max": "Max: +50% extra output",
-          "formula": "Extra output = Lv x 5%"
+          "name": "Плавка",
+          "description": "Добавляет 5% выхода за уровень к базовому выходу обычного рецепта, максимум 50%.",
+          "xpSource": "Каждый завершенный обычный рецепт дает 1 XP. Внутреннее объединение стеков XP не дает.",
+          "current": "+{bonus}% дополнительного выхода",
+          "next": "Следующий уровень: +{bonus}% дополнительного выхода",
+          "max": "Максимум: +50% дополнительного выхода",
+          "formula": "Дополнительный выход = уровень x 5%; завершение обычного рецепта = 1 XP"
         },
         "forging": {
-          "name": "Forging",
-          "description": "Improves durability when materials are shaped into usable equipment.",
-          "xpSource": "Gain XP when a forged object is saved. More complete objects, valid grips, and higher material grades give more XP.",
-          "current": "+{bonus}% forged item durability",
-          "next": "Next level: +{bonus}% durability",
-          "max": "Max: +50% durability",
-          "formula": "Durability bonus = Lv x 5%"
+          "name": "Ковка",
+          "description": "Добавляет 5% проверенной прочности за уровень успешно выкованному снаряжению.",
+          "xpSource": "Каждый успешно выкованный предмет дает 1 XP.",
+          "current": "+{bonus}% прочности выкованного предмета",
+          "next": "Следующий уровень: +{bonus}% прочности",
+          "max": "Максимум: +50% прочности",
+          "formula": "Бонус прочности = уровень x 5%; каждый готовый предмет = 1 XP"
         },
         "craftsmanship": {
-          "name": "Craftsmanship",
-          "description": "Unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
-          "xpSource": "Gain XP from advanced crafting operations: joining, shaping, cutting, assembling mechanisms, and using unlocked process tiers.",
-          "current": "Process tier {tier} available",
-          "next": "Next level: process tier {tier}",
-          "max": "Max: process tier 6",
-          "formula": "Tier = 1 + floor(Lv / 2); unlocks advanced craft methods"
+          "name": "Мастерство",
+          "description": "В планах: открывает более высокие уровни обработки для сложных инструментов, соединений, сплавов и механизмов.",
+          "xpSource": "Планируемое правило: каждое успешное сложное изготовление или сборка дает 1 XP.",
+          "current": "Уровень обработки {tier} в планах",
+          "next": "Следующий уровень: уровень обработки {tier} в планах",
+          "max": "Планируемый максимум: уровень обработки 6",
+          "formula": "В планах: уровень обработки = 1 + floor(уровень / 2); одно проверенное сложное изготовление = 1 XP"
         },
         "swiftness": {
-          "name": "Swiftness",
-          "description": "Improves ground movement speed while keeping camera control and collision rules stable.",
-          "xpSource": "Gain XP through active traversal: walking, sprinting, climbing, jumping obstacles, and covering distance without teleporting.",
-          "current": "{speed}% movement speed",
-          "next": "Next level: {speed}% movement speed",
-          "max": "Max: 130% movement speed",
-          "formula": "Speed = 100% + Lv x 3%"
+          "name": "Проворство",
+          "description": "Повышает скорость наземного движения, сохраняя правила камеры, столкновений и проверяемого перемещения.",
+          "xpSource": "Проверенные точки добычи на расстоянии не менее 160 блоков дают 1 XP; меньшее расстояние дает 0 XP.",
+          "current": "Скорость движения {speed}%",
+          "next": "Следующий уровень: скорость движения {speed}%",
+          "max": "Максимум: скорость движения 130%",
+          "formula": "Скорость = 100% + уровень x 3%; проверенное расстояние добычи >= 160 блоков = 1 XP"
         },
         "exploration": {
-          "name": "Exploration",
-          "description": "Adds weight to rare extra-drop rolls that come from altitude, depth, biome, and civilization drop tables.",
-          "xpSource": "Gain XP by entering new chunks, discovering rare terrain, mining altitude/depth-specific resources, and triggering extra-drop tables.",
-          "current": "+{chance}% rare extra-drop roll weight",
-          "next": "Next level: +{chance}% rare roll weight",
-          "max": "Max: +100% rare extra-drop roll weight",
-          "formula": "Rare roll weight bonus = Lv x 10%; extra drops gain 1 XP when triggered"
+          "name": "Исследование",
+          "description": "Добавляет 10% веса броску редкой дополнительной добычи за уровень, сохраняя координатную проверку ресурсов.",
+          "xpSource": "Каждое реально сработавшее редкое дополнительное выпадение дает 1 XP.",
+          "current": "+{chance}% веса редкой дополнительной добычи",
+          "next": "Следующий уровень: +{chance}% веса редкого броска",
+          "max": "Максимум: +100% веса редкой дополнительной добычи",
+          "formula": "Бонус веса редкого броска = уровень x 10%; каждое сработавшее дополнительное выпадение = 1 XP"
         },
         "stamina": {
-          "name": "Stamina",
-          "description": "Reduces fatigue from mining, running, jumping, and repeated heavy actions.",
-          "xpSource": "Gain XP by spending stamina through repeated mining, running, jumping, and carrying, then recovering without exceeding safe limits.",
-          "current": "{reduction}% lower mining and movement fatigue",
-          "next": "Next level: {reduction}% lower fatigue",
-          "max": "Max: 40% lower fatigue",
-          "formula": "Fatigue cost reduction = Lv x 4%"
+          "name": "Выносливость",
+          "description": "В планах: снижает усталость от добычи, бега, прыжков и повторяющихся тяжелых действий.",
+          "xpSource": "Планируемое правило: каждые 100 проверенных очков выносливости, безопасно потраченных и восстановленных, дают 1 XP.",
+          "current": "Планируется снижение усталости от добычи и движения на {reduction}%",
+          "next": "Следующий уровень: планируется снижение усталости на {reduction}%",
+          "max": "Планируемый максимум: снижение усталости на 40%",
+          "formula": "В планах: снижение затрат выносливости = уровень x 4%; безопасное восстановление 100 очков = 1 XP"
         },
         "strength": {
-          "name": "Strength",
-          "description": "Controls one-hand lift stability for forged objects using mass, gravity, center of mass, and torque.",
-          "xpSource": "Gain XP by lifting, holding, and manipulating valid heavy objects without body collision or grip failure.",
-          "current": "{kg} kg one-hand lift control",
-          "next": "Next level: {kg} kg one-hand control",
-          "max": "Max: 48 kg one-hand lift control",
-          "formula": "Grip lift control = 8 kg + Lv x 4 kg; later combines mass, gravity and torque"
+          "name": "Сила",
+          "description": "В планах: определяет устойчивость кованых предметов в одной руке по массе, гравитации, центру масс и моменту силы.",
+          "xpSource": "Планируемое правило: успешное тяжелое действие с нагрузкой не менее 50% безопасной одноручной нормы дает 1 XP.",
+          "current": "Планируемый контроль одной рукой: {kg} кг",
+          "next": "Следующий уровень: планируемый контроль одной рукой {kg} кг",
+          "max": "Планируемый максимум: 48 кг одной рукой",
+          "formula": "В планах: контроль хвата = 8 кг + уровень x 4 кг; одно подходящее тяжелое действие = 1 XP"
         },
         "appraisal": {
-          "name": "Appraisal",
-          "description": "Reveals more material traits so players can understand rare materials and advanced recipes.",
-          "xpSource": "Gain XP by inspecting materials, identifying forged items, revealing resource attributes, and using discovered traits in recipes.",
-          "current": "Reveals {traits} material traits",
-          "next": "Next level: reveals {traits} traits",
-          "max": "Max: reveals 12 material traits",
-          "formula": "Visible traits = 2 + Lv; supports rare materials and civilization rules"
+          "name": "Оценка",
+          "description": "В планах: раскрывает свойства материалов для редких ресурсов, рынков, рецептов и правил цивилизации.",
+          "xpSource": "Планируемое правило: первое определение нового свойства материала дает 1 XP; повторное — 0 XP.",
+          "current": "После реализации показывает {traits} свойств материала",
+          "next": "Следующий уровень: после реализации показывает {traits} свойств",
+          "max": "Планируемый максимум: 12 свойств материала",
+          "formula": "В планах: видимые свойства = 2 + уровень; первое открытие свойства = 1 XP"
         }
       },
       "settingsTab": "Настройки",

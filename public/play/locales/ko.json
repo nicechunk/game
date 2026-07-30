@@ -338,94 +338,94 @@
       },
       "skills": {
         "precisionGathering": {
-          "name": "Precision Gathering",
-          "description": "Controls how much real material volume is recovered when a resource block is mined.",
-          "xpSource": "Gain XP by successfully mining persistent resource blocks. Harder blocks and rarer material drops give more XP.",
-          "current": "{percent}% gathered · {liters} L per resource block",
-          "next": "Next level: {percent}% · {liters} L per block",
-          "max": "Max: 100% · 1 L per resource block",
-          "formula": "min(100%, 10% + Lv x 10%); one resource block is 0.1m x 0.1m x 0.1m = 1 L"
+          "name": "정밀 채집",
+          "description": "채굴한 자원 블록에서 회수하는 검증된 부피를 결정하고, 재료 밀도로 부피를 질량으로 변환합니다.",
+          "xpSource": "채굴 행동을 한 번 완료할 때마다 1 XP를 얻습니다. 일괄 채굴, 폭파, 나무 한 그루 벌목은 전체 행동당 1 XP입니다.",
+          "current": "{percent}% 채집 · 자원 블록당 {volumeCm3} cm³",
+          "next": "다음 레벨: {percent}% · 블록당 {volumeCm3} cm³",
+          "max": "최대: 100% · 자원 블록당 1,000 cm³",
+          "formula": "산출량 = 50% + 레벨 x 5%. 자원 블록 하나는 1,000 cm³이며 질량 = 부피 x 재료 밀도"
         },
         "burden": {
-          "name": "Burden",
-          "description": "Sets the backpack carry-capacity attribute used by the Burden skill.",
-          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and the distance multiplier is capped at 5.",
-          "current": "{kg} kg safe carry capacity",
-          "next": "Next level: {kg} kg",
-          "max": "Max: 150 kg safe carry capacity",
-          "formula": "50 kg + Lv x 10 kg"
+          "name": "적재",
+          "description": "검증된 배낭 적재 한도는 0레벨 50 kg에서 10레벨 150 kg까지 증가합니다.",
+          "xpSource": "검증된 채굴마다 floor(운반 kg / 20) x Chunk 거리 XP를 얻습니다. 같은 Chunk에서는 0 XP이며 거리는 최대 5 Chunks입니다.",
+          "current": "안전 적재 한도 {kg} kg",
+          "next": "다음 레벨: {kg} kg",
+          "max": "최대: 안전 적재 한도 150 kg",
+          "formula": "적재 한도 = 50 kg + 레벨 x 10 kg. 각 레벨에 10,000 XP 필요"
         },
         "smelting": {
-          "name": "Smelting",
-          "description": "Adds 5% output per level on top of each recipe's base yield, up to 50% extra output.",
-          "xpSource": "Gain 1 XP per consumed input material when a valid smelting recipe completes.",
-          "current": "+{bonus}% extra output",
-          "next": "Next level: +{bonus}% extra output",
-          "max": "Max: +50% extra output",
-          "formula": "Extra output = Lv x 5%"
+          "name": "제련",
+          "description": "일반 제조법의 기본 산출량에 레벨당 5%를 추가하며 최대 50%까지 증가합니다.",
+          "xpSource": "일반 제조법을 한 번 완료할 때마다 1 XP를 얻습니다. 내부 스택 병합은 XP를 주지 않습니다.",
+          "current": "추가 산출량 +{bonus}%",
+          "next": "다음 레벨: 추가 산출량 +{bonus}%",
+          "max": "최대: 추가 산출량 +50%",
+          "formula": "추가 산출량 = 레벨 x 5%. 일반 제조법 1회 완료 = 1 XP"
         },
         "forging": {
-          "name": "Forging",
-          "description": "Improves durability when materials are shaped into usable equipment.",
-          "xpSource": "Gain XP when a forged object is saved. More complete objects, valid grips, and higher material grades give more XP.",
-          "current": "+{bonus}% forged item durability",
-          "next": "Next level: +{bonus}% durability",
-          "max": "Max: +50% durability",
-          "formula": "Durability bonus = Lv x 5%"
+          "name": "단조",
+          "description": "성공적으로 단조한 장비의 검증된 내구도를 레벨당 5% 높입니다.",
+          "xpSource": "아이템을 하나 성공적으로 단조할 때마다 1 XP를 얻습니다.",
+          "current": "단조 아이템 내구도 +{bonus}%",
+          "next": "다음 레벨: 내구도 +{bonus}%",
+          "max": "최대: 내구도 +50%",
+          "formula": "내구도 보너스 = 레벨 x 5%. 완성 아이템 1개 = 1 XP"
         },
         "craftsmanship": {
-          "name": "Craftsmanship",
-          "description": "Unlocks higher process tiers for complex tools, joints, alloys, and mechanisms.",
-          "xpSource": "Gain XP from advanced crafting operations: joining, shaping, cutting, assembling mechanisms, and using unlocked process tiers.",
-          "current": "Process tier {tier} available",
-          "next": "Next level: process tier {tier}",
-          "max": "Max: process tier 6",
-          "formula": "Tier = 1 + floor(Lv / 2); unlocks advanced craft methods"
+          "name": "제작 기술",
+          "description": "계획 중: 복잡한 도구, 결합부, 합금, 장치를 위한 상위 공정 단계를 해금합니다.",
+          "xpSource": "계획 규칙: 고급 제작 또는 조립 행동을 한 번 성공할 때마다 1 XP를 얻습니다.",
+          "current": "공정 단계 {tier} 계획 중",
+          "next": "다음 레벨: 공정 단계 {tier} 계획 중",
+          "max": "계획상 최대: 공정 단계 6",
+          "formula": "계획 중: 단계 = 1 + floor(레벨 / 2). 검증된 고급 제작 1회 = 1 XP"
         },
         "swiftness": {
-          "name": "Swiftness",
-          "description": "Improves ground movement speed while keeping camera control and collision rules stable.",
-          "xpSource": "Gain XP through active traversal: walking, sprinting, climbing, jumping obstacles, and covering distance without teleporting.",
-          "current": "{speed}% movement speed",
-          "next": "Next level: {speed}% movement speed",
-          "max": "Max: 130% movement speed",
-          "formula": "Speed = 100% + Lv x 3%"
+          "name": "신속",
+          "description": "카메라, 충돌, 검증 가능한 이동 규칙을 유지하면서 지상 이동 속도를 높입니다.",
+          "xpSource": "검증된 두 채굴 위치가 160블록 이상 떨어져 있으면 1 XP, 그보다 가까우면 0 XP를 얻습니다.",
+          "current": "이동 속도 {speed}%",
+          "next": "다음 레벨: 이동 속도 {speed}%",
+          "max": "최대: 이동 속도 130%",
+          "formula": "속도 = 100% + 레벨 x 3%. 검증된 채굴 거리 >= 160블록 = 1 XP"
         },
         "exploration": {
-          "name": "Exploration",
-          "description": "Adds weight to rare extra-drop rolls that come from altitude, depth, biome, and civilization drop tables.",
-          "xpSource": "Gain XP by entering new chunks, discovering rare terrain, mining altitude/depth-specific resources, and triggering extra-drop tables.",
-          "current": "+{chance}% rare extra-drop roll weight",
-          "next": "Next level: +{chance}% rare roll weight",
-          "max": "Max: +100% rare extra-drop roll weight",
-          "formula": "Rare roll weight bonus = Lv x 10%; extra drops gain 1 XP when triggered"
+          "name": "탐험",
+          "description": "좌표 기반 자원 판정을 유지하면서 희귀 추가 드롭 가중치를 레벨당 10% 높입니다.",
+          "xpSource": "희귀 추가 드롭이 실제로 발생할 때마다 1 XP를 얻습니다.",
+          "current": "희귀 추가 드롭 가중치 +{chance}%",
+          "next": "다음 레벨: 희귀 판정 가중치 +{chance}%",
+          "max": "최대: 희귀 추가 드롭 가중치 +100%",
+          "formula": "희귀 판정 가중치 보너스 = 레벨 x 10%. 추가 드롭 1회 발생 = 1 XP"
         },
         "stamina": {
-          "name": "Stamina",
-          "description": "Reduces fatigue from mining, running, jumping, and repeated heavy actions.",
-          "xpSource": "Gain XP by spending stamina through repeated mining, running, jumping, and carrying, then recovering without exceeding safe limits.",
-          "current": "{reduction}% lower mining and movement fatigue",
-          "next": "Next level: {reduction}% lower fatigue",
-          "max": "Max: 40% lower fatigue",
-          "formula": "Fatigue cost reduction = Lv x 4%"
+          "name": "지구력",
+          "description": "계획 중: 채굴, 달리기, 점프, 반복되는 중작업의 피로를 줄입니다.",
+          "xpSource": "계획 규칙: 검증된 지구력 100포인트를 안전하게 소비하고 회복할 때마다 1 XP를 얻습니다.",
+          "current": "채굴 및 이동 피로 {reduction}% 감소 예정",
+          "next": "다음 레벨: 피로 {reduction}% 감소 예정",
+          "max": "계획상 최대: 피로 40% 감소",
+          "formula": "계획 중: 피로 비용 감소 = 레벨 x 4%. 안전한 100포인트 회복 = 1 XP"
         },
         "strength": {
-          "name": "Strength",
-          "description": "Controls one-hand lift stability for forged objects using mass, gravity, center of mass, and torque.",
-          "xpSource": "Gain XP by lifting, holding, and manipulating valid heavy objects without body collision or grip failure.",
-          "current": "{kg} kg one-hand lift control",
-          "next": "Next level: {kg} kg one-hand control",
-          "max": "Max: 48 kg one-hand lift control",
-          "formula": "Grip lift control = 8 kg + Lv x 4 kg; later combines mass, gravity and torque"
+          "name": "힘",
+          "description": "계획 중: 질량, 중력, 무게중심, 토크를 사용해 단조 물체의 한 손 조작 안정성을 결정합니다.",
+          "xpSource": "계획 규칙: 안전한 한 손 하중의 50% 이상인 중작업을 성공할 때마다 1 XP를 얻습니다.",
+          "current": "한 손으로 {kg} kg 조작 예정",
+          "next": "다음 레벨: 한 손으로 {kg} kg 조작 예정",
+          "max": "계획상 최대: 한 손 조작 48 kg",
+          "formula": "계획 중: 그립 제어 = 8 kg + 레벨 x 4 kg. 조건을 충족한 중작업 1회 = 1 XP"
         },
         "appraisal": {
-          "name": "Appraisal",
-          "description": "Reveals more material traits so players can understand rare materials and advanced recipes.",
-          "xpSource": "Gain XP by inspecting materials, identifying forged items, revealing resource attributes, and using discovered traits in recipes.",
-          "current": "Reveals {traits} material traits",
-          "next": "Next level: reveals {traits} traits",
-          "max": "Max: reveals 12 material traits",
-          "formula": "Visible traits = 2 + Lv; supports rare materials and civilization rules"
+          "name": "감정",
+          "description": "계획 중: 희귀 자원, 시장, 제조법, 문명 규칙에 필요한 재료 특성을 표시합니다.",
+          "xpSource": "계획 규칙: 새로운 재료 특성을 처음 식별하면 1 XP, 반복 식별은 0 XP입니다.",
+          "current": "구현 후 재료 특성 {traits}개 표시",
+          "next": "다음 레벨: 구현 후 특성 {traits}개 표시",
+          "max": "계획상 최대: 재료 특성 12개 표시",
+          "formula": "계획 중: 표시 특성 = 2 + 레벨. 특성 첫 발견 1건 = 1 XP"
         }
       },
       "settingsTab": "설정",
