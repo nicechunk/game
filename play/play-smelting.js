@@ -321,7 +321,7 @@ export function createPlaySmelting({
       ready: plan.complete && (!requiresFuel || Boolean(fuel)),
       selected: recipe.id === state.recipeId,
       ratio: plan.selectedCount / required,
-      maxServings: maxSmeltingRecipeServings(recipe, slots),
+      maxServings: maxSmeltingSelectableServings(recipe, slots),
     };
   }
 
@@ -757,7 +757,7 @@ export function createPlaySmelting({
         && (!requiresFuel || Boolean(fuelSlot)),
       maxServings: recipe?.recipeKind === "merge"
         ? inputSlots.length
-        : recipe ? maxSmeltingRecipeServings(recipe, slots) : 0,
+        : recipe ? maxSmeltingSelectableServings(recipe, slots) : 0,
     };
   }
 
@@ -912,7 +912,7 @@ export function createPlaySmelting({
     if (!button) return;
     const recipe = selectedRecipeView().recipe;
     if (!recipe || recipe.recipeKind === "merge") return;
-    const max = Math.max(1, maxSmeltingRecipeServings(recipe, authoritativeSlots()));
+    const max = Math.max(1, maxSmeltingSelectableServings(recipe, authoritativeSlots()));
     state.servings = Math.max(1, Math.min(max, state.servings + Number(button.dataset.servingDelta)));
     fillRecipe(recipe);
   }
@@ -940,7 +940,7 @@ export function createPlaySmelting({
       render();
       return;
     }
-    const max = Math.max(1, maxSmeltingRecipeServings(recipe, slots));
+    const max = Math.max(1, maxSmeltingSelectableServings(recipe, slots));
     state.servings = Math.max(1, Math.min(max, state.servings));
     const plan = smeltingRecipePlan(recipe, slots, state.servings);
     state.inputSlotIds = plan.slots.map((slot) => slot.id).slice(0, smeltingInputRecordLimit(recipe));
@@ -1422,6 +1422,21 @@ export function createPlaySmelting({
 
 export function smeltingInputRecordLimit(recipe, { hasFuel = false } = {}) {
   return SELECTION_RECORD_LIMIT - (hasFuel || smeltingRecipeRequiresFuel(recipe) ? 1 : 0);
+}
+
+export function maxSmeltingSelectableServings(recipe, slots = []) {
+  const available = Math.max(0, maxSmeltingRecipeServings(recipe, slots));
+  if (!recipe || available < 1 || recipe.recipeKind === "merge") return available;
+  const recordLimit = smeltingInputRecordLimit(recipe);
+  let lower = 0;
+  let upper = available;
+  while (lower < upper) {
+    const candidate = Math.ceil((lower + upper) / 2);
+    const plan = smeltingRecipePlan(recipe, slots, candidate);
+    if (plan.complete && plan.slots.length <= recordLimit) lower = candidate;
+    else upper = candidate - 1;
+  }
+  return lower;
 }
 
 function smeltingInputPlanVolumeMm3(plan) {

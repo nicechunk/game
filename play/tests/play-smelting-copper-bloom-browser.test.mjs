@@ -229,6 +229,47 @@ test("ambient recipes can use 99 input records while heated recipes reserve one 
   }
 });
 
+test("maximum servings never advertises a batch that exceeds the transaction record limit", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-serving-limits`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><html lang=\"en\"><body></body></html>",
+    }));
+    await page.goto(`${origin}/play/tests/smelting-serving-limits`, { waitUntil: "domcontentloaded" });
+    const limits = await page.evaluate(async () => {
+      const { maxSmeltingSelectableServings } = await import("/play/play-smelting.js");
+      const { SMELTING_RECIPES } = await import("/play/smelting-rules-lite.js");
+      const copper = SMELTING_RECIPES.find((recipe) => recipe.id === "copper_bloom");
+      const basaltBrick = SMELTING_RECIPES.find((recipe) => recipe.id === "basalt_brick");
+      const rawSlot = (id, blockId, count = 1) => ({ id, kind: "resource", blockId, count });
+      const unstackedCopperInputs = [
+        ...Array.from({ length: 66 }, (_, index) => rawSlot(`gravel-${index}`, 6)),
+        ...Array.from({ length: 33 }, (_, index) => rawSlot(`basalt-${index}`, 14)),
+      ];
+      return {
+        heatedUnstacked: maxSmeltingSelectableServings(copper, unstackedCopperInputs),
+        heatedStacked: maxSmeltingSelectableServings(copper, [
+          rawSlot("gravel-stack", 6, 66),
+          rawSlot("basalt-stack", 14, 33),
+        ]),
+        ambient: maxSmeltingSelectableServings(
+          basaltBrick,
+          Array.from({ length: 99 }, (_, index) => rawSlot(`ambient-basalt-${index}`, 14)),
+        ),
+      };
+    });
+    assert.deepEqual(limits, {
+      heatedUnstacked: 32,
+      heatedStacked: 33,
+      ambient: 24,
+    });
+  } finally {
+    await browser.close();
+  }
+});
+
 test("material merge displays and submits the real item quantity without skill output", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
