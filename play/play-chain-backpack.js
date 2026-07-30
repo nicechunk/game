@@ -4,6 +4,7 @@ import {
   smeltingMaterialById,
   smeltingMaterialIdForItemCode,
 } from "/src/data/smeltingRules.js";
+import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { loadPlayChainModule } from "./play-chain-adapter.js";
 
 const CHAIN_BACKPACK_SYNC_INTERVAL_MS = 14_000;
@@ -119,7 +120,7 @@ export function createPlayChainBackpackSync({
       const backpack = await loadBackpack(module, status.backpack);
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
       const applied = applyBackpack(backpack, status.backpack.publicKey);
-      if (!quiet) onStatus(`Synced chain backpack PDA: ${applied.chainSlots.length}/${state.capacity || 50} slots.`);
+      if (!quiet) onStatus(`Synced chain backpack PDA: ${applied.usedSlots}/${state.capacity || 50} slots.`);
       return { ok: true, backpack, ...applied };
     } catch (error) {
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
@@ -188,12 +189,16 @@ export function createPlayChainBackpackSync({
     state.itemCount = Math.max(0, Math.trunc(Number(backpack.itemCount) || 0));
     state.totalMassGrams = normalizeU64String(backpack.totalMassGrams);
     state.updatedSlot = String(backpack.updatedSlot ?? "0");
-    state.syncedSlots = chainSlots.length;
+    state.syncedSlots = visibleBackpackSlotCount(chainSlots);
     state.lastError = "";
     state.lastSyncAt = performance.now();
     const availability = setAvailability(true, true);
     if (merged?.changed || availability.changed) onChanged();
-    return { chainSlots, changed: Boolean(merged?.changed || availability.changed) };
+    return {
+      chainSlots,
+      usedSlots: state.syncedSlots,
+      changed: Boolean(merged?.changed || availability.changed),
+    };
   }
 
   function isCurrentRequest(requestId, wallet) {
@@ -203,13 +208,16 @@ export function createPlayChainBackpackSync({
   function refreshDecorationIdentity() {
     if (!loadedBackpack) return { ok: false, reason: "backpack-not-loaded" };
     const chainSlots = chainSlotsFromBackpack(loadedBackpack, { chunkSize, resolveSurfaceDecoration });
+    const previousSyncedSlots = state.syncedSlots;
+    state.syncedSlots = visibleBackpackSlotCount(chainSlots);
     const merged = gameState?.mergeChainBackpackSlots?.(chainSlots, {
       source: CHAIN_BACKPACK_SOURCE,
       capacity: state.capacity,
       totalMassGrams: state.totalMassGrams,
     });
-    if (merged?.changed) onChanged();
-    return { ok: true, changed: Boolean(merged?.changed), chainSlots };
+    const changed = Boolean(merged?.changed || previousSyncedSlots !== state.syncedSlots);
+    if (changed) onChanged();
+    return { ok: true, changed, chainSlots, usedSlots: state.syncedSlots };
   }
 
   function fail(reason, quiet) {
@@ -287,6 +295,10 @@ export function createPlayChainBackpackSync({
     ));
     return Boolean(currentSlot && gameState?.isBackpackSlotEquipped?.(currentSlot));
   }
+}
+
+function visibleBackpackSlotCount(slots) {
+  return buildBackpackDisplayStacks(slots).length;
 }
 
 async function loadBackpack(module, backpack) {

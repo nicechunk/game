@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-856151bdffdeda18",
-    "contentHash": "856151bdffdeda18"
+    "version": "play-locale-ja-af8ffc6dd9a699c5",
+    "contentHash": "af8ffc6dd9a699c5"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "確認画面を利用できません。何も破棄されていません。",
       "displayStack": "{count} スタック",
       "displayStacks": "{count} スタック",
-      "pdaUsage": "{used} / {capacity} PDA · アイテム {items} 個",
+      "slotUsage": "{used} / {capacity} スロット · アイテム {items} 個",
       "stackAria": "{item}、表示スロット {slot}、数量 {count}",
       "pdaRecord": "PDA レコード {count} 件",
       "pdaRecords": "PDA レコード {count} 件",

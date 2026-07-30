@@ -85,8 +85,8 @@ export function createPlayBackpackUi({
       );
       const itemMeta = document.createElement("span");
       itemMeta.className = "backpack-meta-items";
-      itemMeta.textContent = ui("main.backpack.pdaUsage", "{used} / {capacity} PDA · {items} items", {
-        used: slots.length,
+      itemMeta.textContent = ui("main.backpack.slotUsage", "{used} / {capacity} slots · {items} items", {
+        used: displayStacks.length,
         capacity,
         items: totalItems,
       });
@@ -104,8 +104,8 @@ export function createPlayBackpackUi({
       ? entries
       : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
     const cells = visible.map((stack, displayIndex) => backpackCell(stack, displayIndex));
-    const freePdaSlots = Math.max(0, capacity - slots.length);
-    for (let offset = 0; offset < freePdaSlots; offset += 1) {
+    const emptyDisplaySlots = Math.max(0, capacity - visible.length);
+    for (let offset = 0; offset < emptyDisplaySlots; offset += 1) {
       cells.push(emptyBackpackCell(cells.length));
     }
     elements.backpackGrid.replaceChildren(...cells);

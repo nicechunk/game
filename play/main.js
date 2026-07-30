@@ -1950,19 +1950,14 @@ function chainBackpackAnimationTarget() {
 function refreshPdaBackpackAfterAction(pending) {
   if (!pending?.chainSubmitted) return;
   const chainResult = pending.chainResult ?? {};
-  const previousCount = Number(chainResult.backpackPreviousItemCount);
   const storedRewardCount = Number(chainResult.storedRewardCount);
   const lossyRewards = Boolean(chainResult.lossyRewards);
-  const minimumItemCount = pending.miningKind && Number.isFinite(previousCount)
-    ? previousCount + (lossyRewards && Number.isFinite(storedRewardCount) ? Math.max(0, storedRewardCount) : 1)
-    : null;
   const expectsBackpackMutation = !lossyRewards || !Number.isFinite(storedRewardCount) || storedRewardCount > 0;
   const refresh = pending.miningKind && expectsBackpackMutation
     && chainResult.backpackPreviousUpdatedSlot !== undefined && chainBackpack?.refreshAfterMutation
-    ? chainBackpack.refreshAfterMutation({
-        previousUpdatedSlot: chainResult.backpackPreviousUpdatedSlot,
-        minimumItemCount,
-      })
+      ? chainBackpack.refreshAfterMutation({
+          previousUpdatedSlot: chainResult.backpackPreviousUpdatedSlot,
+        })
     : chainBackpack?.refresh({ force: true, quiet: true });
   refresh?.then((result) => {
     if (result?.ok) renderGameUi();

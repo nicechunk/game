@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-b465b8f74ae7eaa5",
-    "contentHash": "b465b8f74ae7eaa5"
+    "version": "play-locale-zh-Hans-4187764665b4f71a",
+    "contentHash": "4187764665b4f71a"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "当前无法确认，未丢弃任何物品。",
       "displayStack": "{count} 组堆叠",
       "displayStacks": "{count} 组堆叠",
-      "pdaUsage": "{used} / {capacity} PDA · {items} 件物品",
+      "slotUsage": "{used} / {capacity} 格 · {items} 件物品",
       "stackAria": "{item}，显示格 {slot}，数量 {count}",
       "pdaRecord": "{count} 条 PDA 记录",
       "pdaRecords": "{count} 条 PDA 记录",

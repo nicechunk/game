@@ -5,6 +5,7 @@ import {
 } from "../src/data/smeltingRules.js";
 import { marketCategoryForBackpackSlot } from "../src/market/marketCategories.js";
 import { resourceIdForBlock } from "../src/world/blocks.js";
+import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
 
 const MARKET_RULE_SET = "nicechunk-play-market-v1";
@@ -176,7 +177,7 @@ export function createPlayMarket({
     const chain = getChainSnapshot?.() || {};
     if (elements.marketWallet) elements.marketWallet.textContent = chain.walletShort || ui("main.market.localWallet", "Local wallet");
     const capacity = Math.max(1, Math.trunc(Number(gameState.backpackCapacity) || 50));
-    const count = gameState.backpackSlots.length;
+    const count = buildBackpackDisplayStacks(gameState.backpackSlots).length;
     if (elements.marketBackpack) elements.marketBackpack.textContent = ui("main.market.backpackCount", "{count}/{capacity}", { count, capacity });
     if (elements.marketInventoryCount) elements.marketInventoryCount.textContent = ui("main.market.backpackCount", "{count}/{capacity}", { count, capacity });
     if (elements.marketRefresh) {

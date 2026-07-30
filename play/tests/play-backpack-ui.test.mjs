@@ -82,7 +82,7 @@ test("backpack header renders the authoritative on-chain total mass", () => {
   }
 });
 
-test("matching resources share one visible cell while PDA capacity stays truthful", () => {
+test("matching resources occupy one of the fixed visual backpack slots", () => {
   const originalDocument = globalThis.document;
   const document = new FakeDocument();
   globalThis.document = document;
@@ -124,12 +124,66 @@ test("matching resources share one visible cell while PDA capacity stays truthfu
     ui.render({ force: true });
 
     const stackCell = backpackGrid.children[0];
-    assert.equal(backpackGrid.children.length, 3);
+    assert.equal(backpackGrid.children.length, 5);
     assert.equal(stackCell.dataset.backpackIndexes, "0,1,2");
     assert.equal(stackCell.children[3].textContent, "3");
     assert.match(stackCell.attributes.get("aria-label"), /display slot 1, count 3/);
     assert.equal(backpackMeta.children[0].textContent, "1 stack");
-    assert.equal(backpackMeta.children[1].textContent, "3 / 5 PDA · 3 items");
+    assert.equal(backpackMeta.children[1].textContent, "1 / 5 slots · 3 items");
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
+test("32 PDA records grouped into 12 stacks render 50 visual slots", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const backpackGrid = document.createElement("div");
+    const backpackMeta = document.createElement("span");
+    const slots = Array.from({ length: 32 }, (_, index) => {
+      const group = index % 12;
+      return {
+        id: `resource-${index}`,
+        kind: "resource",
+        source: "chain",
+        chainBackpack: "backpack-a",
+        chainIndex: index,
+        resourceId: group + 1,
+        blockId: group + 1,
+        metadata: 0,
+        count: index < 7 ? 2 : 1,
+        volumeMm3: 1_000,
+        massGrams: 2,
+      };
+    });
+    const ui = createPlayBackpackUi({
+      elements: {
+        backpackGrid,
+        backpackMeta,
+        backpackPanel: { hidden: false },
+        backpackCategoryButtons: [],
+      },
+      gameState: {
+        backpackSlots: slots,
+        backpackCapacity: 50,
+        totalBackpackItems: () => 39,
+        totalBackpackMassGrams: () => 64,
+        isBackpackSlotEquipped: () => false,
+        getBackpackSlotEquipment: () => null,
+      },
+      createVoxelItemIconCanvas: () => document.createElement("canvas"),
+      voxelItemLabel: () => "Resource",
+    });
+
+    ui.render({ force: true });
+
+    assert.equal(backpackGrid.children.length, 50);
+    assert.equal(backpackGrid.children.filter((cell) => cell.classList.contains("empty")).length, 38);
+    assert.equal(backpackMeta.children[0].textContent, "12 stacks");
+    assert.equal(backpackMeta.children[1].textContent, "12 / 50 slots · 39 items");
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;

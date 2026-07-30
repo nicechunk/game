@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-037f29a9306dcb4c",
-    "contentHash": "037f29a9306dcb4c"
+    "version": "play-locale-ru-b24f75042ce5af34",
+    "contentHash": "b24f75042ce5af34"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "Подтверждение недоступно. Ничего не удалено.",
       "displayStack": "Стопок: {count}",
       "displayStacks": "Стопок: {count}",
-      "pdaUsage": "{used} / {capacity} PDA · предметов: {items}",
+      "slotUsage": "{used} / {capacity} слотов · предметов: {items}",
       "stackAria": "{item}, отображаемая ячейка {slot}, количество {count}",
       "pdaRecord": "Записей PDA: {count}",
       "pdaRecords": "Записей PDA: {count}",

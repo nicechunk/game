@@ -2,8 +2,8 @@
   "_meta": {
     "language": "en",
     "label": "English",
-    "version": "play-locale-en-7117af31e05adba7",
-    "contentHash": "7117af31e05adba7"
+    "version": "play-locale-en-f4a4d1aa87f271d3",
+    "contentHash": "f4a4d1aa87f271d3"
   },
   "siteFooter": {
     "tagline": "A seeded voxel world protocol on Solana.",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "Confirmation is unavailable. Nothing was discarded.",
       "displayStack": "{count} stack",
       "displayStacks": "{count} stacks",
-      "pdaUsage": "{used} / {capacity} PDA · {items} items",
+      "slotUsage": "{used} / {capacity} slots · {items} items",
       "stackAria": "{item}, display slot {slot}, count {count}",
       "pdaRecord": "{count} PDA record",
       "pdaRecords": "{count} PDA records",

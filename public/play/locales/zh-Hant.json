@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-2ea1971b3bcd3096",
-    "contentHash": "2ea1971b3bcd3096"
+    "version": "play-locale-zh-Hant-01c8192f2d28de11",
+    "contentHash": "01c8192f2d28de11"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "目前無法確認，未丟棄任何物品。",
       "displayStack": "{count} 組堆疊",
       "displayStacks": "{count} 組堆疊",
-      "pdaUsage": "{used} / {capacity} PDA · {items} 件物品",
+      "slotUsage": "{used} / {capacity} 格 · {items} 件物品",
       "stackAria": "{item}，顯示欄位 {slot}，數量 {count}",
       "pdaRecord": "{count} 筆 PDA 記錄",
       "pdaRecords": "{count} 筆 PDA 記錄",

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "es",
     "label": "Spanish",
-    "version": "play-locale-es-6ad332b497b81f55",
-    "contentHash": "6ad332b497b81f55"
+    "version": "play-locale-es-d5dd78d5e81fb76b",
+    "contentHash": "d5dd78d5e81fb76b"
   },
   "siteFooter": {
     "tagline": "Un protocolo de mundo voxel con semillas en Solana.",
@@ -624,7 +624,7 @@
       "confirmUnavailable": "La confirmación no está disponible. No se descartó nada.",
       "displayStack": "{count} pila",
       "displayStacks": "{count} pilas",
-      "pdaUsage": "{used} / {capacity} PDA · {items} objetos",
+      "slotUsage": "{used} / {capacity} ranuras · {items} objetos",
       "stackAria": "{item}, ranura visible {slot}, cantidad {count}",
       "pdaRecord": "{count} registro PDA",
       "pdaRecords": "{count} registros PDA",

@@ -34,6 +34,13 @@ import {
   submitBulkMiningRanges,
 } from "./bulkMiningSubmission.js";
 import { marketCategoryForBackpackSlot } from "../market/marketCategories.js";
+import {
+  BACKPACK_STACK_LIMIT,
+  availableBackpackResourceUnits,
+  canBackpackAcceptSlot,
+  diffBackpackBlockQuantities,
+  snapshotBackpackBlockQuantities,
+} from "./backpackCapacity.js";
 
 if (!globalThis.Buffer) globalThis.Buffer = Buffer;
 
@@ -1202,9 +1209,6 @@ export async function cancelMarketListingOnChain({
     ? await loadBackpackAccountForOwner(sourceInventory, provider.publicKey, conn).catch(() => null)
     : await loadEquippedBackpackForOwner(provider.publicKey, conn);
   if (!destinationState?.publicKey) return { submitted: false, reason: "no-backpack" };
-  if (destinationState.itemCount >= destinationState.capacity) {
-    return { submitted: false, reason: "backpack-full" };
-  }
   const destinationBackpack = destinationState.publicKey;
   const marketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
   if (!marketUserState) return { submitted: false, reason: "market-membership-required" };
@@ -1247,7 +1251,9 @@ export async function buyMarketListingOnChain({ listing, buyerBackpackAddress = 
   if (!buyerBackpack?.publicKey || buyerBackpack.owner !== provider.publicKey.toBase58()) {
     return { submitted: false, reason: "no-backpack" };
   }
-  if (buyerBackpack.itemCount >= buyerBackpack.capacity) return { submitted: false, reason: "backpack-full" };
+  if (!canBackpackAcceptSlot(buyerBackpack, listing.sourceSlot)) {
+    return { submitted: false, reason: "backpack-full" };
+  }
   const [sellerMarketUser, buyerMarketUser] = await Promise.all([
     fetchMarketUserStateOnChain(seller),
     fetchMarketUserStateOnChain(provider.publicKey),
@@ -2070,10 +2076,7 @@ async function loadAuthoritativeMiningBackpack(owner, conn, options = {}) {
 }
 
 function availableBackpackSlots(backpack) {
-  const itemCount = Number(backpack?.itemCount);
-  const capacity = Number(backpack?.capacity);
-  if (!Number.isInteger(itemCount) || !Number.isInteger(capacity) || itemCount < 0 || capacity < itemCount) return 0;
-  return Math.max(0, capacity - itemCount);
+  return availableBackpackResourceUnits(backpack);
 }
 
 function miningBackpackSnapshot(backpack) {
@@ -2081,37 +2084,27 @@ function miningBackpackSnapshot(backpack) {
     backpackPreviousItemCount: Math.max(0, Math.trunc(Number(backpack?.itemCount) || 0)),
     backpackPreviousCapacity: Math.max(0, Math.trunc(Number(backpack?.capacity) || 0)),
     backpackPreviousUpdatedSlot: String(backpack?.updatedSlot ?? "0"),
+    backpackPreviousResources: snapshotBackpackBlockQuantities(backpack),
   };
 }
 
-async function storedBackpackRewardsSince(backpack, previousItemCount) {
+async function storedBackpackRewardsSince(backpack, previousResources) {
   if (!backpack || !Array.isArray(backpack.slots)) return [];
-  const start = Math.max(0, Math.min(
-    backpack.slots.length,
-    Math.trunc(Number(previousItemCount) || 0),
-  ));
-  const end = Math.max(start, Math.min(
-    backpack.slots.length,
-    Math.trunc(Number(backpack.itemCount) || 0),
-  ));
-  if (end <= start) return [];
   let resourceIdForBlock = () => 0;
   try {
     ({ resourceIdForBlock } = await import("../world/blocks.js"));
   } catch {
     // The block id remains authoritative if the optional display mapping is unavailable.
   }
-  return backpack.slots.slice(start, end)
-    .filter((slot) => slot?.kind === "block" && Number(slot?.resource?.blockId) > 0)
-    .map((slot) => ({
-      worldX: Math.trunc(Number(slot.resource.worldX) || 0),
-      worldY: Math.trunc(Number(slot.resource.worldY) || 0),
-      worldZ: Math.trunc(Number(slot.resource.worldZ) || 0),
-      blockId: Math.trunc(Number(slot.resource.blockId) || 0),
-      resourceId: Math.trunc(Number(resourceIdForBlock(slot.resource.blockId)) || 0),
-      metadata: Math.max(0, Math.trunc(Number(slot.metadata) || 0)),
-      count: 1,
-    }));
+  return diffBackpackBlockQuantities(backpack, previousResources).map((entry) => ({
+    worldX: entry.worldX,
+    worldY: entry.worldY,
+    worldZ: entry.worldZ,
+    blockId: entry.blockId,
+    resourceId: Math.trunc(Number(resourceIdForBlock(entry.blockId)) || 0),
+    metadata: entry.metadata,
+    count: entry.quantity,
+  }));
 }
 
 export async function createFoundationOnChain(input = {}) {
@@ -2673,7 +2666,12 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       return { submitted: false, reason: "no-backpack" };
     }
     const context = gameContext;
-    if (availableBackpackSlots(equippedBackpack) < 1) {
+    if (!canBackpackAcceptSlot(equippedBackpack, {
+      kind: "block",
+      quantity: 1,
+      metadata: 0,
+      resource: { blockId: canonicalBlock.blockId },
+    })) {
       return { submitted: false, reason: "backpack-full" };
     }
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
@@ -2803,7 +2801,7 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
     ).catch(() => null);
     const storedRewards = await storedBackpackRewardsSince(
       backpackAfter,
-      backpackBefore.backpackPreviousItemCount,
+      backpackBefore.backpackPreviousResources,
     );
     return {
       submitted: true,
@@ -2812,7 +2810,7 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
       ...backpackBefore,
       playerPositionSaved,
       backpack: equippedBackpack?.publicKey?.toBase58?.() ?? null,
-      storedRewardCount: storedRewards.length,
+      storedRewardCount: storedRewards.reduce((sum, reward) => sum + reward.count, 0),
       storedRewards,
       lossyRewards: true,
       block: canonicalBlock,
@@ -2915,7 +2913,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
     ).catch(() => null);
     const storedRewards = await storedBackpackRewardsSince(
       backpackAfter,
-      backpackBefore.backpackPreviousItemCount,
+      backpackBefore.backpackPreviousResources,
     );
     return {
       submitted: true,
@@ -2926,7 +2924,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
       backpack: equippedBackpack.publicKey.toBase58(),
       confirmedBlocks,
       rewardBlocks: [],
-      storedRewardCount: storedRewards.length,
+      storedRewardCount: storedRewards.reduce((sum, reward) => sum + reward.count, 0),
       storedRewards,
       lossyRewards: true,
       failedBulkBlocks,
@@ -2962,7 +2960,12 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
     if (alreadyBroken) return { submitted: false, reason: "already-mined" };
     if (!equippedBackpack?.publicKey) return { submitted: false, reason: "no-backpack" };
     const availableSlots = availableBackpackSlots(equippedBackpack);
-    if (availableSlots < 1) {
+    if (!canBackpackAcceptSlot(equippedBackpack, {
+      kind: "block",
+      quantity: 1,
+      metadata: 0,
+      resource: { blockId: canonicalBlock.blockId },
+    })) {
       return { submitted: false, reason: "backpack-full" };
     }
 
@@ -5032,6 +5035,7 @@ function decodeBackpackSlot(data, offset) {
   if (
     (kindCode !== backpackSlotKindBlock && kindCode !== backpackSlotKindItem)
     || quantity === 0
+    || (kindCode === backpackSlotKindBlock && quantity > BACKPACK_STACK_LIMIT)
     || (flags & backpackItemFlagMassValid) === 0
   ) {
     throw new Error("Invalid Backpack slot record.");
