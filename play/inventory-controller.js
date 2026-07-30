@@ -1,7 +1,42 @@
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
+import { buildBackpackDisplayStacks, findBackpackDisplayStack } from "./backpack-display-stacks.js";
 
 const DRAG_START_PX = 8;
 const LONG_PRESS_MS = 560;
+
+export function backpackPhysicalDetailRows(slot, translate = (_key, fallback) => fallback) {
+  const quantity = Math.max(1, Math.trunc(Number(slot?.count) || 1));
+  const totalVolume = Number(slot?.volumeMm3);
+  const totalWeight = Number(slot?.massGrams);
+  const hasVolume = Number.isFinite(totalVolume) && totalVolume > 0;
+  const hasWeight = Number.isFinite(totalWeight) && totalWeight >= 0;
+  const rows = [[translate("main.backpack.detailQuantity", "Quantity"), String(quantity)]];
+  if (hasVolume) {
+    rows.push([
+      translate("main.backpack.detailUnitVolume", "Unit volume"),
+      formatVolumeCm3(totalVolume / quantity),
+    ]);
+  }
+  if (hasWeight) {
+    rows.push([
+      translate("main.backpack.detailUnitWeight", "Unit weight"),
+      formatMassGrams(totalWeight / quantity),
+    ]);
+  }
+  if (hasVolume) {
+    rows.push([
+      translate("main.backpack.detailTotalVolume", "Total volume"),
+      formatVolumeCm3(totalVolume),
+    ]);
+  }
+  if (hasWeight) {
+    rows.push([
+      translate("main.backpack.detailTotalWeight", "Total weight"),
+      formatMassGrams(totalWeight),
+    ]);
+  }
+  return rows;
+}
 
 export function createInventoryController({
   elements,
@@ -73,6 +108,20 @@ export function createInventoryController({
     refresh();
   }
 
+  function currentDisplayStacks() {
+    return buildBackpackDisplayStacks(gameState.backpackSlots, {
+      isStackable: (slot) => !isEquippedBackpackSlot(slot),
+    });
+  }
+
+  function currentDisplayStack(index) {
+    return findBackpackDisplayStack(currentDisplayStacks(), index);
+  }
+
+  function currentDisplayIndexes(index) {
+    return currentDisplayStack(index)?.indexes ?? (Number.isInteger(index) ? [index] : []);
+  }
+
   function handleHotbarPointerDown(event) {
     if (event.button !== 0) return;
     const index = hotbarSlotIndexFromEvent(event);
@@ -120,6 +169,7 @@ export function createInventoryController({
       selectionSweep = {
         pointerId: event.pointerId,
         from: index,
+        fromIndexes: backpackSlotIndexesFromEvent(event),
         startX: event.clientX,
         startY: event.clientY,
         lastX: event.clientX,
@@ -217,7 +267,7 @@ export function createInventoryController({
       selectionSweep.active = true;
       selectionSweep.candidates = selectableSweepCandidates();
       elements.backpackGrid?.classList.add("selection-sweeping");
-      changed = addSelectionSweepIndex(selectionSweep.from);
+      changed = addSelectionSweepIndexes(selectionSweep.fromIndexes);
     }
     if (!selectionSweep.active) return;
     event.preventDefault();
@@ -266,9 +316,10 @@ export function createInventoryController({
       .map((element) => ({
         element,
         index: Number(element.dataset.backpackSlot),
+        indexes: backpackSlotIndexesFromElement(element),
         rect: element.getBoundingClientRect(),
       }))
-      .filter(({ index }) => canSweepSelectIndex(index));
+      .filter(({ indexes }) => indexes.some((index) => canSweepSelectIndex(index)));
   }
 
   function selectAlongSweepSegment(fromX, fromY, toX, toY) {
@@ -276,12 +327,12 @@ export function createInventoryController({
     let focusedIndex = null;
     for (const candidate of selectionSweep.candidates || []) {
       if (!segmentIntersectsRect(fromX, fromY, toX, toY, candidate.rect)) continue;
-      changed = addSelectionSweepIndex(candidate.index) || changed;
+      changed = addSelectionSweepIndexes(candidate.indexes) || changed;
       focusedIndex = candidate.index;
     }
     const pointIndex = backpackSlotIndexFromPoint(toX, toY);
     if (canSweepSelectIndex(pointIndex)) {
-      changed = addSelectionSweepIndex(pointIndex) || changed;
+      changed = addSelectionSweepIndexes(currentDisplayIndexes(pointIndex)) || changed;
       focusedIndex = pointIndex;
     }
     if (focusedIndex !== null && focusedBackpackIndex !== focusedIndex) {
@@ -291,10 +342,14 @@ export function createInventoryController({
     return changed;
   }
 
-  function addSelectionSweepIndex(index) {
-    if (!canSweepSelectIndex(index) || selectedBackpackIndexes.has(index)) return false;
-    selectedBackpackIndexes.add(index);
-    return true;
+  function addSelectionSweepIndexes(indexes) {
+    let changed = false;
+    for (const index of indexes ?? []) {
+      if (!canSweepSelectIndex(index) || selectedBackpackIndexes.has(index)) continue;
+      selectedBackpackIndexes.add(index);
+      changed = true;
+    }
+    return changed;
   }
 
   function canSweepSelectIndex(index) {
@@ -384,27 +439,34 @@ export function createInventoryController({
   }
 
   function openContextMenu(index, x, y) {
-    const slot = gameState.backpackSlots[index];
+    const displayStack = currentDisplayStack(index);
+    const slot = displayStack?.slot ?? gameState.backpackSlots[index];
+    const indexes = displayStack?.indexes ?? [index];
     if (!slot) return;
     const menu = ensureContextMenu();
     menu.dataset.backpackSlot = String(index);
+    menu.dataset.backpackIndexes = indexes.join(",");
     menu.querySelector("strong").textContent = backpackSlotLabel(slot);
     const equip = menu.querySelector("[data-action='equip']");
     const discard = menu.querySelector("[data-action='discard']");
     const select = menu.querySelector("[data-action='select']");
     const discardSelected = menu.querySelector("[data-action='discard-selected']");
     const cancelSelection = menu.querySelector("[data-action='cancel-selection']");
-    const equipment = gameState.getBackpackSlotEquipment?.(slot) ?? null;
+    const sourceSlot = gameState.backpackSlots[index];
+    const equipment = gameState.getBackpackSlotEquipment?.(sourceSlot) ?? null;
     const equipped = Boolean(equipment);
     equip.disabled = equipped || !isPlaceableBackpackSlot(slot);
     equip.textContent = equipped ? ui("main.backpack.equipped", "Equipped") : "Equip to hotbar";
-    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || discardingBackpackIndexes.has(index));
+    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || indexes.some((entry) => discardingBackpackIndexes.has(entry)));
     select.disabled = equipped;
-    select.textContent = selectedBackpackIndexes.has(index) ? "Unselect item" : "Select item";
+    const stackSelected = indexes.length > 0 && indexes.every((entry) => selectedBackpackIndexes.has(entry));
+    select.textContent = stackSelected
+      ? ui("main.backpack.unselectStack", "Unselect stack")
+      : ui("main.backpack.selectStack", "Select stack");
     menu.dataset.equipped = equipped ? "true" : "false";
-    menu.title = equipped ? equippedLockedMessage(slot) : "";
+    menu.title = equipped ? equippedLockedMessage(sourceSlot) : "";
     discardSelected.hidden = selectedBackpackIndexes.size === 0;
-    discardSelected.textContent = `Discard selected (${selectedBackpackIndexes.size})`;
+    discardSelected.textContent = `Discard selected (${selectedDisplayStackCount()})`;
     cancelSelection.hidden = selectedBackpackIndexes.size === 0;
     menu.hidden = false;
     const width = menu.offsetWidth || 190;
@@ -453,23 +515,26 @@ export function createInventoryController({
     });
     menu.querySelector("[data-action='discard']")?.addEventListener("click", () => {
       const index = Number(menu.dataset.backpackSlot);
-      const slot = gameState.backpackSlots[index];
-      if (!slot || slot.pending || isEquippedBackpackSlot(slot)) {
-        if (isEquippedBackpackSlot(slot)) onStatus(equippedLockedMessage(slot));
+      const indexes = backpackSlotIndexesFromDataset(menu.dataset.backpackIndexes, index);
+      const displayStack = currentDisplayStack(index);
+      const slot = displayStack?.slot ?? gameState.backpackSlots[index];
+      const sourceSlots = indexes.map((entry) => gameState.backpackSlots[entry]);
+      if (!slot || sourceSlots.some((entry) => entry?.pending || isEquippedBackpackSlot(entry))) {
+        if (sourceSlots.some(isEquippedBackpackSlot)) onStatus(equippedLockedMessage(sourceSlots.find(isEquippedBackpackSlot)));
         else onStatus("Pending resources cannot be discarded before confirmation or rollback.");
         closeContextMenu();
         return;
       }
       requestDiscardConfirmation(singleDiscardDialog(slot), () => {
-        if (!sameBackpackSlot(index, slot)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
-        const result = discardBackpackIndexes([index]);
+        if (!sameBackpackSlots(indexes, sourceSlots)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
+        const result = discardBackpackIndexes(indexes);
         if (result?.then) return;
         closeContextMenu();
         renderGameUi();
-        selectedBackpackIndexes.delete(index);
+        indexes.forEach((entry) => selectedBackpackIndexes.delete(entry));
         focusedBackpackIndex = null;
         refresh();
-        onStatus(result.ok ? `Discarded ${backpackSlotLabel(result.discarded?.[0])}.` : result.reason);
+        onStatus(result.ok ? `Discarded ${backpackSlotLabel(slot)}.` : result.reason);
       });
     });
     menu.querySelector("[data-action='discard-selected']")?.addEventListener("click", () => {
@@ -490,6 +555,7 @@ export function createInventoryController({
     if (!contextMenu) return;
     contextMenu.hidden = true;
     contextMenu.dataset.backpackSlot = "";
+    contextMenu.dataset.backpackIndexes = "";
   }
 
   function refresh() {
@@ -537,8 +603,12 @@ export function createInventoryController({
       onStatus("Pending resources cannot be batch-discarded before confirmation or rollback.");
       return;
     }
-    if (selectedBackpackIndexes.has(index)) selectedBackpackIndexes.delete(index);
-    else selectedBackpackIndexes.add(index);
+    const indexes = currentDisplayIndexes(index).filter((entry) => canSweepSelectIndex(entry));
+    const selected = indexes.length > 0 && indexes.every((entry) => selectedBackpackIndexes.has(entry));
+    for (const entry of indexes) {
+      if (selected) selectedBackpackIndexes.delete(entry);
+      else selectedBackpackIndexes.add(entry);
+    }
     focusedBackpackIndex = index;
     refresh();
   }
@@ -553,8 +623,9 @@ export function createInventoryController({
     }
     const totalCount = indexes.reduce((sum, index) => sum + (gameState.backpackSlots[index]?.count || 0), 0);
     const selectedSlots = indexes.map((index) => gameState.backpackSlots[index]);
-    requestDiscardConfirmation(batchDiscardDialog(indexes.length, totalCount), () => {
-      if (!indexes.every((index, offset) => sameBackpackSlot(index, selectedSlots[offset]))) {
+    const displayStackCount = displayStackCountForIndexes(indexes);
+    requestDiscardConfirmation(batchDiscardDialog(displayStackCount, totalCount), () => {
+      if (!sameBackpackSlots(indexes, selectedSlots)) {
         return onStatus(ui("main.backpack.discardChanged", "The selected items changed before confirmation. Nothing was discarded."));
       }
       const result = discardBackpackIndexes(indexes);
@@ -564,7 +635,7 @@ export function createInventoryController({
       renderGameUi();
       refresh();
       onStatus(result.ok
-        ? `Discarded ${result.discarded.length} backpack stack${result.discarded.length === 1 ? "" : "s"}.`
+        ? `Discarded ${displayStackCount} backpack stack${displayStackCount === 1 ? "" : "s"}.`
         : result.reason);
     });
   }
@@ -574,20 +645,29 @@ export function createInventoryController({
       const slot = gameState.backpackSlots[index];
       if (!slot || slot.pending || isEquippedBackpackSlot(slot) || discardingBackpackIndexes.has(index)) selectedBackpackIndexes.delete(index);
     }
+    for (const stack of currentDisplayStacks()) {
+      const selected = stack.indexes.filter((index) => selectedBackpackIndexes.has(index));
+      if (selected.length > 0 && selected.length !== stack.indexes.length) {
+        selected.forEach((index) => selectedBackpackIndexes.delete(index));
+      }
+    }
     if (focusedBackpackIndex !== null && !gameState.backpackSlots[focusedBackpackIndex]) focusedBackpackIndex = null;
   }
 
   function updateSelectionClasses() {
     elements.backpackGrid?.querySelectorAll(".backpack-slot[data-backpack-slot]").forEach((slot) => {
-      const index = Number(slot.dataset.backpackSlot);
-      if (!Number.isInteger(index)) return;
-      const equipped = isEquippedBackpackIndex(index);
-      slot.classList.toggle("selected-for-discard", selectedBackpackIndexes.has(index));
-      slot.classList.toggle("focused", index === focusedBackpackIndex);
-      slot.classList.toggle("discarding", discardingBackpackIndexes.has(index));
+      const indexes = backpackSlotIndexesFromElement(slot);
+      if (!indexes.length) return;
+      const equipped = indexes.some((index) => isEquippedBackpackIndex(index));
+      const selected = indexes.every((index) => selectedBackpackIndexes.has(index));
+      const focused = indexes.includes(focusedBackpackIndex);
+      const discarding = indexes.some((index) => discardingBackpackIndexes.has(index));
+      slot.classList.toggle("selected-for-discard", selected);
+      slot.classList.toggle("focused", focused);
+      slot.classList.toggle("discarding", discarding);
       slot.classList.toggle("equipped", equipped);
       slot.dataset.equipped = equipped ? "true" : "false";
-      slot.setAttribute("aria-disabled", equipped || discardingBackpackIndexes.has(index) ? "true" : "false");
+      slot.setAttribute("aria-disabled", equipped || discarding ? "true" : "false");
     });
   }
 
@@ -603,7 +683,9 @@ export function createInventoryController({
     }
     if (elements.discardSelectedBackpack) {
       elements.discardSelectedBackpack.disabled = selected <= 0;
-      elements.discardSelectedBackpack.textContent = selected > 0 ? `Discard selected (${selected})` : "Discard selected";
+      elements.discardSelectedBackpack.textContent = selected > 0
+        ? `Discard selected (${selectedDisplayStackCount()})`
+        : "Discard selected";
     }
     if (elements.cancelBackpackSelection) elements.cancelBackpackSelection.disabled = selected <= 0;
   }
@@ -612,14 +694,17 @@ export function createInventoryController({
     const detail = elements.backpackDetail;
     if (!detail) return;
     const index = focusedBackpackIndex ?? selectedBackpackIndexes.values().next().value ?? null;
-    const slot = Number.isInteger(index) ? gameState.backpackSlots[index] : null;
+    const displayStack = Number.isInteger(index) ? currentDisplayStack(index) : null;
+    const slot = displayStack?.slot ?? (Number.isInteger(index) ? gameState.backpackSlots[index] : null);
+    const stackIndexes = displayStack?.indexes ?? (Number.isInteger(index) ? [index] : []);
+    const sourceSlot = Number.isInteger(index) ? gameState.backpackSlots[index] : null;
     if (!slot) {
       detail.classList.remove("has-item");
       detail.innerHTML = "<i class=\"backpack-detail-empty-icon\" aria-hidden=\"true\"></i><strong>No item selected</strong><span>Choose a slot to inspect its item and proof data.</span>";
       return;
     }
     detail.classList.add("has-item");
-    const equipment = gameState.getBackpackSlotEquipment?.(slot) ?? null;
+    const equipment = gameState.getBackpackSlotEquipment?.(sourceSlot) ?? null;
     const equipped = Boolean(equipment);
 
     const kicker = document.createElement("div");
@@ -635,7 +720,12 @@ export function createInventoryController({
     if (typeof createVoxelItemIconCanvas === "function") {
       preview.append(createVoxelItemIconCanvas(slot, { size: 112 }));
     }
-    const title = detailTitle(backpackItemName(slot), `x${slot.count || 0} · Slot ${index + 1}`);
+    const pdaRecordLabel = ui(
+      stackIndexes.length === 1 ? "main.backpack.pdaRecord" : "main.backpack.pdaRecords",
+      stackIndexes.length === 1 ? "{count} PDA record" : "{count} PDA records",
+      { count: stackIndexes.length },
+    );
+    const title = detailTitle(backpackItemName(slot), `x${slot.count || 0} · ${pdaRecordLabel}`);
     const tags = document.createElement("div");
     tags.className = "backpack-detail-tags";
     tags.append(detailTag(slot.kind === "resource"
@@ -646,27 +736,15 @@ export function createInventoryController({
     const description = document.createElement("p");
     description.className = "backpack-detail-description";
     description.textContent = equipped
-      ? `${backpackDescription(slot)} ${equippedLockedMessage(slot)}`
+      ? `${backpackDescription(slot)} ${equippedLockedMessage(sourceSlot)}`
       : backpackDescription(slot);
     const rows = [
       ["Kind", slot.kind || "resource"],
-      ["Count", String(slot.count || 0)],
+      ...backpackPhysicalDetailRows(slot, ui),
       ["Source", slot.source === "chain" ? "chain backpack" : "local"],
     ];
-    if (Number.isFinite(slot.massGrams)) {
-      rows.push([
-        ui("main.backpack.massLine", "Mass {mass}", { mass: "" }).trim(),
-        formatMassGrams(slot.massGrams),
-      ]);
-    }
-    if (Number.isFinite(slot.volumeMm3) && slot.volumeMm3 > 0) {
-      rows.push([
-        ui("main.backpack.volumeLine", "Volume {volume}", { volume: "" }).trim(),
-        formatVolumeCm3(slot.volumeMm3),
-      ]);
-    }
     if (slot.source === "chain") {
-      rows.push(["Chain Slot", Number.isInteger(slot.chainIndex) ? String(slot.chainIndex) : "-"]);
+      rows.push([ui("main.backpack.detailChainSlots", "Chain slots"), chainSlotSummary(stackIndexes)]);
       rows.push(["Backpack PDA", shortAddress(slot.chainBackpack)]);
     }
     if (equipment) {
@@ -707,12 +785,12 @@ export function createInventoryController({
     const actions = document.createElement("div");
     actions.className = "backpack-detail-actions";
     const equip = detailAction(equipped ? ui("main.backpack.equipped", "Equipped") : "Equip", "primary", () => {
-      if (isEquippedBackpackSlot(slot)) {
+      if (equipped) {
         onStatus(equippedLockedMessage(slot));
         refresh();
         return;
       }
-      const result = gameState.equipBackpackSlotToHotbar(slot.id);
+      const result = gameState.equipBackpackSlotToHotbar(sourceSlot?.id);
       renderGameUi();
       refresh();
       onStatus(result.ok
@@ -720,23 +798,31 @@ export function createInventoryController({
         : result.reason);
     });
     equip.disabled = equipped || !isPlaceableBackpackSlot(slot);
-    const select = detailAction(selectedBackpackIndexes.has(index) ? "Unselect" : "Select", "secondary", () => {
-      toggleBackpackSelection(index);
-    });
+    const stackSelected = stackIndexes.length > 0 && stackIndexes.every((entry) => selectedBackpackIndexes.has(entry));
+    const select = detailAction(
+      stackSelected
+        ? ui("main.backpack.unselectStack", "Unselect stack")
+        : ui("main.backpack.selectStack", "Select stack"),
+      "secondary",
+      () => {
+        toggleBackpackSelection(index);
+      },
+    );
     select.disabled = Boolean(equipped || slot.pending);
     const discard = detailAction("Discard", "danger", () => {
+      const expectedSlots = stackIndexes.map((entry) => gameState.backpackSlots[entry]);
       requestDiscardConfirmation(singleDiscardDialog(slot), () => {
-        if (!sameBackpackSlot(index, slot)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
-        const result = discardBackpackIndexes([index]);
+        if (!sameBackpackSlots(stackIndexes, expectedSlots)) return onStatus(ui("main.backpack.discardChanged", "The selected item changed before confirmation. Nothing was discarded."));
+        const result = discardBackpackIndexes(stackIndexes);
         if (result?.then) return;
-        selectedBackpackIndexes.delete(index);
+        stackIndexes.forEach((entry) => selectedBackpackIndexes.delete(entry));
         focusedBackpackIndex = null;
         renderGameUi();
         refresh();
         onStatus(result.ok ? `Discarded ${backpackSlotLabel(slot)}.` : result.reason);
       });
     });
-    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || discardingBackpackIndexes.has(index));
+    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || stackIndexes.some((entry) => discardingBackpackIndexes.has(entry)));
     actions.append(equip, select, discard);
     detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, actions);
   }
@@ -764,20 +850,22 @@ export function createInventoryController({
       refresh();
       return { ok: false, reason: "equipped-backpack-item" };
     }
+    const displayStackCount = Math.max(1, displayStackCountForIndexes(safeIndexes));
+    const itemCount = slots.reduce((sum, entry) => sum + (Number(entry.slot?.count) || 0), 0);
     const run = typeof onDiscardBackpackSlots === "function"
       ? onDiscardBackpackSlots(safeIndexes, { slots: slots.map((entry) => entry.slot) })
       : gameState.discardBackpackSlots(safeIndexes);
     if (!run?.then) return run;
     setDiscardingIndexes(safeIndexes, true);
     closeContextMenu();
-    onStatus(safeIndexes.length === 1 ? "Discarding backpack item..." : `Discarding ${safeIndexes.length} backpack stacks...`);
+    onStatus(`Discarding ${displayStackCount} backpack stack${displayStackCount === 1 ? "" : "s"} containing ${itemCount} item${itemCount === 1 ? "" : "s"}...`);
     run.then((result) => {
       selectedBackpackIndexes.clear();
       focusedBackpackIndex = null;
       renderGameUi();
       refresh();
       onStatus(result?.ok
-        ? `Discarded ${result.count || safeIndexes.length} backpack stack${(result.count || safeIndexes.length) === 1 ? "" : "s"}.`
+        ? `Discarded ${displayStackCount} backpack stack${displayStackCount === 1 ? "" : "s"}.`
         : `Discard skipped: ${result?.reason || "not-submitted"}.`);
     }).catch((error) => {
       refresh();
@@ -839,6 +927,33 @@ export function createInventoryController({
     if (!current || !expected) return false;
     if (current === expected) return true;
     return Boolean(current.id && expected.id && current.id === expected.id);
+  }
+
+  function sameBackpackSlots(indexes, expectedSlots) {
+    if (!Array.isArray(indexes) || !Array.isArray(expectedSlots) || indexes.length !== expectedSlots.length) return false;
+    return indexes.every((index, offset) => sameBackpackSlot(index, expectedSlots[offset]));
+  }
+
+  function chainSlotSummary(indexes) {
+    const chainIndexes = Array.from(new Set((indexes ?? [])
+      .map((index) => gameState.backpackSlots[index]?.chainIndex)
+      .filter((index) => Number.isInteger(index) && index >= 0)))
+      .sort((a, b) => a - b);
+    if (!chainIndexes.length) return "-";
+    const ranges = [];
+    let start = chainIndexes[0];
+    let end = start;
+    for (const index of chainIndexes.slice(1)) {
+      if (index === end + 1) {
+        end = index;
+        continue;
+      }
+      ranges.push(start === end ? String(start) : `${start}-${end}`);
+      start = index;
+      end = index;
+    }
+    ranges.push(start === end ? String(start) : `${start}-${end}`);
+    return ranges.join(", ");
   }
 
   function setDiscardingIndexes(indexes, discarding) {
@@ -933,9 +1048,17 @@ export function createInventoryController({
   }
 
   function renderedBackpackIndexes() {
-    return Array.from(elements.backpackGrid?.querySelectorAll(".backpack-slot[data-backpack-slot]") || [])
-      .map((element) => Number(element.dataset.backpackSlot))
-      .filter(Number.isInteger);
+    return Array.from(new Set(Array.from(elements.backpackGrid?.querySelectorAll(".backpack-slot[data-backpack-slot]") || [])
+      .flatMap((element) => backpackSlotIndexesFromElement(element))));
+  }
+
+  function displayStackCountForIndexes(indexes) {
+    const selected = new Set(indexes ?? []);
+    return currentDisplayStacks().filter((stack) => stack.indexes.some((index) => selected.has(index))).length;
+  }
+
+  function selectedDisplayStackCount() {
+    return displayStackCountForIndexes(selectedBackpackIndexes);
   }
 
   function sourceElementForDrag() {
@@ -971,9 +1094,12 @@ export function createInventoryController({
   }
 
   function updateDragClasses() {
-    elements.backpackGrid?.querySelectorAll(".backpack-slot").forEach((slot, index) => {
-      slot.classList.toggle("drag-source", drag?.type === "backpack" && index === drag.from);
-      slot.classList.toggle("drag-over", index === drag?.overBackpack && !(drag.type === "backpack" && index === drag.from));
+    elements.backpackGrid?.querySelectorAll(".backpack-slot").forEach((slot) => {
+      const indexes = backpackSlotIndexesFromElement(slot);
+      const isSource = drag?.type === "backpack" && indexes.includes(drag.from);
+      const isOver = indexes.includes(drag?.overBackpack);
+      slot.classList.toggle("drag-source", isSource);
+      slot.classList.toggle("drag-over", isOver && !isSource);
     });
     elements.hotbar?.querySelectorAll(".hotbar-slot").forEach((slot, index) => {
       const blocked = drag?.type === "backpack" && !gameState.canModifyHotbarSlot(index);
@@ -1051,6 +1177,26 @@ function backpackSlotIndexFromEvent(event) {
   if (!slot) return null;
   const index = Number(slot.dataset.backpackSlot);
   return Number.isInteger(index) ? index : null;
+}
+
+function backpackSlotIndexesFromEvent(event) {
+  return backpackSlotIndexesFromElement(event.target.closest(".backpack-slot"));
+}
+
+function backpackSlotIndexesFromElement(element) {
+  if (!element) return [];
+  return backpackSlotIndexesFromDataset(element.dataset?.backpackIndexes, Number(element.dataset?.backpackSlot));
+}
+
+function backpackSlotIndexesFromDataset(value, fallback = null) {
+  const indexes = String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => /^\d+$/u.test(entry))
+    .map(Number)
+    .filter((index) => Number.isInteger(index) && index >= 0);
+  if (indexes.length) return Array.from(new Set(indexes));
+  return Number.isInteger(fallback) && fallback >= 0 ? [fallback] : [];
 }
 
 function backpackSlotIndexFromPoint(x, y) {

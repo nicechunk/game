@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ko",
     "label": "Korean",
-    "version": "play-locale-ko-0392a31d099b5a8c",
-    "contentHash": "0392a31d099b5a8c"
+    "version": "play-locale-ko-b22d9bada8bdcf8f",
+    "contentHash": "b22d9bada8bdcf8f"
   },
   "siteFooter": {
     "tagline": "Solana 기반 시드형 복셀 월드 프로토콜.",
@@ -621,7 +621,21 @@
       "discardWarning": "이 작업은 되돌릴 수 없습니다.",
       "discardConfirm": "버리기",
       "discardChanged": "확인 전에 선택한 아이템이 변경되었습니다. 아무것도 버리지 않았습니다.",
-      "confirmUnavailable": "확인 창을 사용할 수 없습니다. 아무것도 버리지 않았습니다."
+      "confirmUnavailable": "확인 창을 사용할 수 없습니다. 아무것도 버리지 않았습니다.",
+      "displayStack": "묶음 {count}개",
+      "displayStacks": "묶음 {count}개",
+      "pdaUsage": "{used} / {capacity} PDA · 아이템 {items}개",
+      "stackAria": "{item}, 표시 슬롯 {slot}, 수량 {count}",
+      "pdaRecord": "PDA 레코드 {count}개",
+      "pdaRecords": "PDA 레코드 {count}개",
+      "selectStack": "묶음 선택",
+      "unselectStack": "묶음 선택 해제",
+      "detailChainSlots": "온체인 슬롯",
+      "detailQuantity": "수량",
+      "detailUnitVolume": "단위 부피",
+      "detailUnitWeight": "단위 무게",
+      "detailTotalVolume": "총 부피",
+      "detailTotalWeight": "총 무게"
     },
     "loading": {
       "eyebrow": "World Gateway",

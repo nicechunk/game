@@ -2,8 +2,8 @@
   "_meta": {
     "language": "de",
     "label": "German",
-    "version": "play-locale-de-904f14d35749acae",
-    "contentHash": "904f14d35749acae"
+    "version": "play-locale-de-1ef3c068fdc1fc3d",
+    "contentHash": "1ef3c068fdc1fc3d"
   },
   "siteFooter": {
     "tagline": "Ein Seed-Voxelwelt-Protokoll auf Solana.",
@@ -621,7 +621,21 @@
       "discardWarning": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
       "discardConfirm": "Wegwerfen",
       "discardChanged": "Die ausgewählten Gegenstände wurden vor der Bestätigung geändert. Nichts wurde weggeworfen.",
-      "confirmUnavailable": "Die Bestätigung ist nicht verfügbar. Nichts wurde weggeworfen."
+      "confirmUnavailable": "Die Bestätigung ist nicht verfügbar. Nichts wurde weggeworfen.",
+      "displayStack": "{count} Stapel",
+      "displayStacks": "{count} Stapel",
+      "pdaUsage": "{used} / {capacity} PDA · {items} Gegenstände",
+      "stackAria": "{item}, Anzeigefeld {slot}, Anzahl {count}",
+      "pdaRecord": "{count} PDA-Datensatz",
+      "pdaRecords": "{count} PDA-Datensätze",
+      "selectStack": "Stapel auswählen",
+      "unselectStack": "Stapelauswahl aufheben",
+      "detailChainSlots": "On-Chain-Fächer",
+      "detailQuantity": "Anzahl",
+      "detailUnitVolume": "Volumen je Einheit",
+      "detailUnitWeight": "Gewicht je Einheit",
+      "detailTotalVolume": "Gesamtvolumen",
+      "detailTotalWeight": "Gesamtgewicht"
     },
     "loading": {
       "eyebrow": "World Gateway",

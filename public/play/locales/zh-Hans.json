@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-b853565d6cb0f16b",
-    "contentHash": "b853565d6cb0f16b"
+    "version": "play-locale-zh-Hans-b465b8f74ae7eaa5",
+    "contentHash": "b465b8f74ae7eaa5"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -621,7 +621,21 @@
       "discardWarning": "此操作永久生效且无法撤销。",
       "discardConfirm": "丢弃",
       "discardChanged": "确认前所选物品已发生变化，未丢弃任何物品。",
-      "confirmUnavailable": "当前无法确认，未丢弃任何物品。"
+      "confirmUnavailable": "当前无法确认，未丢弃任何物品。",
+      "displayStack": "{count} 组堆叠",
+      "displayStacks": "{count} 组堆叠",
+      "pdaUsage": "{used} / {capacity} PDA · {items} 件物品",
+      "stackAria": "{item}，显示格 {slot}，数量 {count}",
+      "pdaRecord": "{count} 条 PDA 记录",
+      "pdaRecords": "{count} 条 PDA 记录",
+      "selectStack": "选择整组",
+      "unselectStack": "取消选择整组",
+      "detailChainSlots": "链上格位",
+      "detailQuantity": "数量",
+      "detailUnitVolume": "单位体积",
+      "detailUnitWeight": "单位重量",
+      "detailTotalVolume": "总体积",
+      "detailTotalWeight": "总重量"
     },
     "loading": {
       "eyebrow": "世界网关",

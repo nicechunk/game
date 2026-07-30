@@ -1,4 +1,5 @@
 import { BACKPACK_CAPACITY } from "./game-state.js";
+import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { backpackSlotMeta, formatMassGrams } from "./play-ui-format.js";
 
 const DEFAULT_CATEGORY = "all";
@@ -69,13 +70,26 @@ export function createPlayBackpackUi({
     const slots = gameState.backpackSlots;
     const capacity = Math.max(1, Math.trunc(Number(gameState.backpackCapacity) || BACKPACK_CAPACITY));
     const totalItems = gameState.totalBackpackItems();
+    const displayStacks = buildBackpackDisplayStacks(slots, {
+      isStackable: (slot) => !gameState.isBackpackSlotEquipped?.(slot),
+    });
     if (elements.backpackMeta) {
       const stackMeta = document.createElement("span");
       stackMeta.className = "backpack-meta-stacks";
-      stackMeta.textContent = `${slots.length} / ${capacity}`;
+      stackMeta.textContent = ui(
+        displayStacks.length === 1 ? "main.backpack.displayStack" : "main.backpack.displayStacks",
+        displayStacks.length === 1 ? "{count} stack" : "{count} stacks",
+        {
+          count: displayStacks.length,
+        },
+      );
       const itemMeta = document.createElement("span");
       itemMeta.className = "backpack-meta-items";
-      itemMeta.textContent = `${totalItems} items`;
+      itemMeta.textContent = ui("main.backpack.pdaUsage", "{used} / {capacity} PDA · {items} items", {
+        used: slots.length,
+        capacity,
+        items: totalItems,
+      });
       const weightMeta = document.createElement("span");
       weightMeta.className = "backpack-meta-weight";
       weightMeta.textContent = ui("main.backpack.totalWeight", "Weight: {weight}", {
@@ -83,15 +97,16 @@ export function createPlayBackpackUi({
       });
       elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
     }
-    updateCategoryButtons(slots);
+    updateCategoryButtons(displayStacks.map((stack) => stack.slot));
 
-    const entries = slots.map((slot, index) => ({ slot, index }));
+    const entries = displayStacks;
     const visible = activeCategory === DEFAULT_CATEGORY
       ? entries
       : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
-    const cells = visible.map(({ slot, index }, displayIndex) => backpackCell(slot, index, displayIndex));
-    for (let displayIndex = cells.length; displayIndex < capacity; displayIndex += 1) {
-      cells.push(emptyBackpackCell(displayIndex));
+    const cells = visible.map((stack, displayIndex) => backpackCell(stack, displayIndex));
+    const freePdaSlots = Math.max(0, capacity - slots.length);
+    for (let offset = 0; offset < freePdaSlots; offset += 1) {
+      cells.push(emptyBackpackCell(cells.length));
     }
     elements.backpackGrid.replaceChildren(...cells);
   }
@@ -112,13 +127,15 @@ export function createPlayBackpackUi({
     });
   }
 
-  function backpackCell(slot, index, displayIndex) {
+  function backpackCell(stack, displayIndex) {
+    const { slot, indexes, primaryIndex: index } = stack;
     const cell = document.createElement("div");
     cell.className = "backpack-slot";
-    const equipment = gameState.getBackpackSlotEquipment?.(slot) ?? null;
+    const equipment = gameState.getBackpackSlotEquipment?.(stack.members[0]) ?? null;
     const equipped = Boolean(equipment);
     if (equipped) cell.classList.add("equipped");
     cell.dataset.backpackSlot = String(index);
+    cell.dataset.backpackIndexes = indexes.join(",");
     cell.dataset.backpackItemCategory = backpackCategory(slot);
     cell.dataset.backpackItemId = String(slot.id || "");
     cell.dataset.equipped = equipped ? "true" : "false";
@@ -134,7 +151,11 @@ export function createPlayBackpackUi({
     ) : "";
     cell.title = [titleText, backpackSlotMeta(slot), equipmentText].filter(Boolean).join(" · ");
     cell.setAttribute("aria-label", [
-      `${titleText}, slot ${index + 1}, count ${slot.count || 0}`,
+      ui("main.backpack.stackAria", "{item}, display slot {slot}, count {count}", {
+        item: titleText,
+        slot: displayIndex + 1,
+        count: slot.count || 0,
+      }),
       equipmentText,
     ].filter(Boolean).join(", "));
 

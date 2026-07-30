@@ -11,7 +11,7 @@ test("chain backpack state preserves per-slot mass and authoritative total mass"
     source: "chain",
     resourceId: 3,
     blockId: 3,
-    count: 1,
+    count: 4,
     chainIndex: 0,
     volumeMm3: 1_000_000,
     massGrams: 2_600,
@@ -21,6 +21,7 @@ test("chain backpack state preserves per-slot mass and authoritative total mass"
   });
 
   assert.equal(first.changed, true);
+  assert.equal(state.backpackSlots[0].count, 4);
   assert.equal(state.backpackSlots[0].volumeMm3, 1_000_000);
   assert.equal(state.backpackSlots[0].massGrams, 2_600);
   assert.equal(state.totalBackpackMassGrams(), "2600");

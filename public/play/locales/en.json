@@ -2,8 +2,8 @@
   "_meta": {
     "language": "en",
     "label": "English",
-    "version": "play-locale-en-a0b59b491c3d14db",
-    "contentHash": "a0b59b491c3d14db"
+    "version": "play-locale-en-7117af31e05adba7",
+    "contentHash": "7117af31e05adba7"
   },
   "siteFooter": {
     "tagline": "A seeded voxel world protocol on Solana.",
@@ -621,7 +621,21 @@
       "discardWarning": "This action is permanent and cannot be undone.",
       "discardConfirm": "Discard",
       "discardChanged": "The selected items changed before confirmation. Nothing was discarded.",
-      "confirmUnavailable": "Confirmation is unavailable. Nothing was discarded."
+      "confirmUnavailable": "Confirmation is unavailable. Nothing was discarded.",
+      "displayStack": "{count} stack",
+      "displayStacks": "{count} stacks",
+      "pdaUsage": "{used} / {capacity} PDA · {items} items",
+      "stackAria": "{item}, display slot {slot}, count {count}",
+      "pdaRecord": "{count} PDA record",
+      "pdaRecords": "{count} PDA records",
+      "selectStack": "Select stack",
+      "unselectStack": "Unselect stack",
+      "detailChainSlots": "Chain slots",
+      "detailQuantity": "Quantity",
+      "detailUnitVolume": "Unit volume",
+      "detailUnitWeight": "Unit weight",
+      "detailTotalVolume": "Total volume",
+      "detailTotalWeight": "Total weight"
     },
     "loading": {
       "eyebrow": "World Gateway",

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-8bf34fc6759e99fc",
-    "contentHash": "8bf34fc6759e99fc"
+    "version": "play-locale-ru-037f29a9306dcb4c",
+    "contentHash": "037f29a9306dcb4c"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -621,7 +621,21 @@
       "discardWarning": "Это действие необратимо.",
       "discardConfirm": "Удалить",
       "discardChanged": "Выбранные предметы изменились до подтверждения. Ничего не удалено.",
-      "confirmUnavailable": "Подтверждение недоступно. Ничего не удалено."
+      "confirmUnavailable": "Подтверждение недоступно. Ничего не удалено.",
+      "displayStack": "Стопок: {count}",
+      "displayStacks": "Стопок: {count}",
+      "pdaUsage": "{used} / {capacity} PDA · предметов: {items}",
+      "stackAria": "{item}, отображаемая ячейка {slot}, количество {count}",
+      "pdaRecord": "Записей PDA: {count}",
+      "pdaRecords": "Записей PDA: {count}",
+      "selectStack": "Выбрать стопку",
+      "unselectStack": "Снять выбор стопки",
+      "detailChainSlots": "Ончейн-ячейки",
+      "detailQuantity": "Количество",
+      "detailUnitVolume": "Объём единицы",
+      "detailUnitWeight": "Вес единицы",
+      "detailTotalVolume": "Общий объём",
+      "detailTotalWeight": "Общий вес"
     },
     "loading": {
       "eyebrow": "World Gateway",

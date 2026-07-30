@@ -95,6 +95,12 @@ export function createPlayInputActions({
     if (event.code.startsWith("Digit")) {
       const slot = Number(event.code.slice(5)) - 1;
       if (slot >= 0 && slot < (gameState?.hotbarSlots?.length ?? 0)) {
+        if (gameState.hotbarSlots[slot]?.itemId === "backpack") {
+          if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+          event.preventDefault();
+          toggleBackpackPanel();
+          return;
+        }
         if (!gameState?.isHotbarSlotSelectable?.(slot)) return;
         gameState.selectHotbarSlot(slot);
         renderHotbar();

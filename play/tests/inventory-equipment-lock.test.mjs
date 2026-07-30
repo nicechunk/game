@@ -107,6 +107,65 @@ test("destructive inventory actions wait for the shared confirmation dialog", as
   }
 });
 
+test("discarding one merged display stack submits every underlying PDA index", async () => {
+  const originalDocument = globalThis.document;
+  globalThis.document = { addEventListener() {} };
+  try {
+    const backpackGrid = new FakeEventTarget();
+    const mergedCell = new FakeCell(0, [0, 1, 2]);
+    backpackGrid.querySelectorAll = () => [mergedCell];
+    const selectAllBackpack = new FakeEventTarget();
+    const discardSelectedBackpack = new FakeEventTarget();
+    const slots = Array.from({ length: 3 }, (_, index) => ({
+      id: `stone-${index}`,
+      kind: "resource",
+      source: "chain",
+      chainBackpack: "backpack-a",
+      chainIndex: index,
+      resourceId: 3,
+      blockId: 3,
+      metadata: 0,
+      count: 1,
+    }));
+    const discarded = [];
+    const statuses = [];
+    const controller = createInventoryController({
+      elements: {
+        backpackGrid,
+        backpackActions: { classList: new FakeClassList() },
+        selectAllBackpack,
+        discardSelectedBackpack,
+        cancelBackpackSelection: new FakeEventTarget(),
+      },
+      gameState: {
+        backpackSlots: slots,
+        isBackpackSlotEquipped: () => false,
+      },
+      onDiscardBackpackSlots: async (indexes) => {
+        discarded.push(...indexes);
+        return { ok: true, discarded: indexes.map((index) => slots[index]) };
+      },
+      onStatus: (status) => statuses.push(status),
+      voxelItemLabel: () => "Stone",
+    });
+
+    controller.bind();
+    selectAllBackpack.dispatch("click");
+
+    assert.equal(mergedCell.classList.contains("selected-for-discard"), true);
+    assert.equal(discardSelectedBackpack.textContent, "Discard selected (1)");
+
+    discardSelectedBackpack.dispatch("click");
+    assert.deepEqual(discarded, [0, 1, 2]);
+    assert.equal(statuses.at(-1), "Discarding 1 backpack stack containing 3 items...");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(statuses.at(-1), "Discarded 1 backpack stack.");
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
 class FakeEventTarget {
   constructor() {
     this.listeners = new Map();
@@ -128,8 +187,11 @@ class FakeEventTarget {
 }
 
 class FakeCell {
-  constructor(index) {
-    this.dataset = { backpackSlot: String(index) };
+  constructor(index, indexes = [index]) {
+    this.dataset = {
+      backpackSlot: String(index),
+      backpackIndexes: indexes.join(","),
+    };
     this.classList = new FakeClassList();
     this.attributes = new Map();
   }

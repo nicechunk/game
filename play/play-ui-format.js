@@ -9,6 +9,11 @@ export function backpackSlotMeta(slot) {
 }
 
 export function formatMassGrams(value) {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value < 0) return "-";
+    if (value < 1_000) return `${formatDecimal(value, 3)} g`;
+    return `${formatDecimal(value / 1_000, 3)} kg`;
+  }
   const grams = nonNegativeBigInt(value);
   if (grams === null) return "-";
   if (grams < 1_000n) return `${grams} g`;

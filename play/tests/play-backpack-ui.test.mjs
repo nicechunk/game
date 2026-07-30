@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { backpackCategoryForSlot, createPlayBackpackUi } from "../play-backpack-ui.js";
+import { backpackPhysicalDetailRows } from "../inventory-controller.js";
 import { formatMassGrams, formatVolumeCm3 } from "../play-ui-format.js";
 
 test("PDA surface decorations stay visible in the Resources category", () => {
@@ -25,8 +26,25 @@ test("backpack physical values use grams, kilograms, and cubic centimeters", () 
   assert.equal(formatMassGrams(999), "999 g");
   assert.equal(formatMassGrams("2600"), "2.6 kg");
   assert.equal(formatMassGrams(34_125), "34.125 kg");
+  assert.equal(formatMassGrams(2_600 / 3), "866.667 g");
   assert.equal(formatVolumeCm3(227_500), "227.5 cm³");
   assert.equal(formatVolumeCm3(1_000_000), "1000 cm³");
+});
+
+test("stack details separate quantity, unit values, and totals", () => {
+  const rows = backpackPhysicalDetailRows({
+    count: 4,
+    volumeMm3: 800_000,
+    massGrams: 2_080,
+  });
+
+  assert.deepEqual(rows, [
+    ["Quantity", "4"],
+    ["Unit volume", "200 cm³"],
+    ["Unit weight", "520 g"],
+    ["Total volume", "800 cm³"],
+    ["Total weight", "2.08 kg"],
+  ]);
 });
 
 test("backpack header renders the authoritative on-chain total mass", () => {
@@ -58,6 +76,60 @@ test("backpack header renders the authoritative on-chain total mass", () => {
 
     assert.equal(backpackMeta.children[2].className, "backpack-meta-weight");
     assert.equal(backpackMeta.children[2].textContent, "Weight: 2.6 kg");
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
+test("matching resources share one visible cell while PDA capacity stays truthful", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const backpackGrid = document.createElement("div");
+    const backpackMeta = document.createElement("span");
+    const slots = Array.from({ length: 3 }, (_, index) => ({
+      id: `stone-${index}`,
+      kind: "resource",
+      source: "chain",
+      chainBackpack: "backpack-a",
+      chainIndex: index,
+      resourceId: 3,
+      blockId: 3,
+      metadata: 0,
+      count: 1,
+      volumeMm3: 1_000,
+      massGrams: 2.6,
+    }));
+    const ui = createPlayBackpackUi({
+      elements: {
+        backpackGrid,
+        backpackMeta,
+        backpackPanel: { hidden: false },
+        backpackCategoryButtons: [],
+      },
+      gameState: {
+        backpackSlots: slots,
+        backpackCapacity: 5,
+        totalBackpackItems: () => 3,
+        totalBackpackMassGrams: () => 7.8,
+        isBackpackSlotEquipped: () => false,
+        getBackpackSlotEquipment: () => null,
+      },
+      createVoxelItemIconCanvas: () => document.createElement("canvas"),
+      voxelItemLabel: () => "Stone",
+    });
+
+    ui.render({ force: true });
+
+    const stackCell = backpackGrid.children[0];
+    assert.equal(backpackGrid.children.length, 3);
+    assert.equal(stackCell.dataset.backpackIndexes, "0,1,2");
+    assert.equal(stackCell.children[3].textContent, "3");
+    assert.match(stackCell.attributes.get("aria-label"), /display slot 1, count 3/);
+    assert.equal(backpackMeta.children[0].textContent, "1 stack");
+    assert.equal(backpackMeta.children[1].textContent, "3 / 5 PDA · 3 items");
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;

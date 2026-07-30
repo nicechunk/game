@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-914abbd2398b8908",
-    "contentHash": "914abbd2398b8908"
+    "version": "play-locale-ja-856151bdffdeda18",
+    "contentHash": "856151bdffdeda18"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -621,7 +621,21 @@
       "discardWarning": "この操作は取り消せません。",
       "discardConfirm": "破棄",
       "discardChanged": "確認前に選択したアイテムが変更されました。何も破棄されていません。",
-      "confirmUnavailable": "確認画面を利用できません。何も破棄されていません。"
+      "confirmUnavailable": "確認画面を利用できません。何も破棄されていません。",
+      "displayStack": "{count} スタック",
+      "displayStacks": "{count} スタック",
+      "pdaUsage": "{used} / {capacity} PDA · アイテム {items} 個",
+      "stackAria": "{item}、表示スロット {slot}、数量 {count}",
+      "pdaRecord": "PDA レコード {count} 件",
+      "pdaRecords": "PDA レコード {count} 件",
+      "selectStack": "スタックを選択",
+      "unselectStack": "スタックの選択を解除",
+      "detailChainSlots": "オンチェーンスロット",
+      "detailQuantity": "数量",
+      "detailUnitVolume": "単位体積",
+      "detailUnitWeight": "単位重量",
+      "detailTotalVolume": "総体積",
+      "detailTotalWeight": "総重量"
     },
     "loading": {
       "eyebrow": "World Gateway",

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-5a284d815267d7db",
-    "contentHash": "5a284d815267d7db"
+    "version": "play-locale-zh-Hant-2ea1971b3bcd3096",
+    "contentHash": "2ea1971b3bcd3096"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -621,7 +621,21 @@
       "discardWarning": "此操作永久生效，且無法復原。",
       "discardConfirm": "丟棄",
       "discardChanged": "確認前所選物品已改變，未丟棄任何物品。",
-      "confirmUnavailable": "目前無法確認，未丟棄任何物品。"
+      "confirmUnavailable": "目前無法確認，未丟棄任何物品。",
+      "displayStack": "{count} 組堆疊",
+      "displayStacks": "{count} 組堆疊",
+      "pdaUsage": "{used} / {capacity} PDA · {items} 件物品",
+      "stackAria": "{item}，顯示欄位 {slot}，數量 {count}",
+      "pdaRecord": "{count} 筆 PDA 記錄",
+      "pdaRecords": "{count} 筆 PDA 記錄",
+      "selectStack": "選取整組",
+      "unselectStack": "取消選取整組",
+      "detailChainSlots": "鏈上欄位",
+      "detailQuantity": "數量",
+      "detailUnitVolume": "單位體積",
+      "detailUnitWeight": "單位重量",
+      "detailTotalVolume": "總體積",
+      "detailTotalWeight": "總重量"
     },
     "loading": {
       "eyebrow": "世界閘道",

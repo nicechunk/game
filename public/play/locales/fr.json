@@ -2,8 +2,8 @@
   "_meta": {
     "language": "fr",
     "label": "French",
-    "version": "play-locale-fr-8858f77b2172baef",
-    "contentHash": "8858f77b2172baef"
+    "version": "play-locale-fr-e8e1038f1c376915",
+    "contentHash": "e8e1038f1c376915"
   },
   "siteFooter": {
     "tagline": "Un protocole de monde voxel seedé sur Solana.",
@@ -621,7 +621,21 @@
       "discardWarning": "Cette action est définitive et ne peut pas être annulée.",
       "discardConfirm": "Jeter",
       "discardChanged": "Les objets sélectionnés ont changé avant la confirmation. Rien n’a été jeté.",
-      "confirmUnavailable": "La confirmation est indisponible. Rien n’a été jeté."
+      "confirmUnavailable": "La confirmation est indisponible. Rien n’a été jeté.",
+      "displayStack": "{count} pile",
+      "displayStacks": "{count} piles",
+      "pdaUsage": "{used} / {capacity} PDA · {items} objets",
+      "stackAria": "{item}, emplacement affiché {slot}, quantité {count}",
+      "pdaRecord": "{count} enregistrement PDA",
+      "pdaRecords": "{count} enregistrements PDA",
+      "selectStack": "Sélectionner la pile",
+      "unselectStack": "Désélectionner la pile",
+      "detailChainSlots": "Emplacements on-chain",
+      "detailQuantity": "Quantité",
+      "detailUnitVolume": "Volume unitaire",
+      "detailUnitWeight": "Poids unitaire",
+      "detailTotalVolume": "Volume total",
+      "detailTotalWeight": "Poids total"
     },
     "loading": {
       "eyebrow": "World Gateway",
