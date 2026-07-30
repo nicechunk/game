@@ -1439,18 +1439,27 @@ export function maxSmeltingSelectableServings(recipe, slots = []) {
   return lower;
 }
 
-function smeltingInputPlanVolumeMm3(plan) {
-  return Math.max(1, (plan?.allocations || []).reduce((total, allocation) => {
+export function smeltingInputPlanVolumeMm3(plan) {
+  const total = (plan?.allocations || []).reduce((sum, allocation) => {
     const slotQuantity = smeltingSlotQuantity(allocation.slot);
     const consumedQuantity = Math.max(1, Math.min(
       slotQuantity,
       Math.floor(Number(allocation.quantity) || 1),
     ));
     const slotVolume = Math.max(1, Math.floor(Number(allocation.slot?.volumeMm3) || 1_000_000));
-    if (consumedQuantity === slotQuantity) return total + slotVolume;
-    const consumedVolume = Math.floor(slotVolume * consumedQuantity / slotQuantity);
-    return total + Math.max(1, Math.min(slotVolume - 1, consumedVolume));
-  }, 0));
+    if (consumedQuantity === slotQuantity) return sum + BigInt(slotVolume);
+    const consumedVolume = BigInt(slotVolume) * BigInt(consumedQuantity) / BigInt(slotQuantity);
+    return sum + maxBigInt(1n, minBigInt(BigInt(slotVolume - 1), consumedVolume));
+  }, 0n);
+  return Number(maxBigInt(1n, total));
+}
+
+function minBigInt(a, b) {
+  return a < b ? a : b;
+}
+
+function maxBigInt(a, b) {
+  return a > b ? a : b;
 }
 
 function ui(key, fallback, params = {}) {

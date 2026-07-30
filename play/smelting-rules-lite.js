@@ -155,7 +155,7 @@ export function smeltingRecipePlan(recipe, slots = [], servings = 1) {
     const required = Math.max(1, Math.floor(Number(requirement.amount) || 1)) * multiplier;
     const candidates = slots
       .filter((slot) => !used.has(slot.id) && smeltingInputKeyForSlot(slot) === requirement.key)
-      .sort(compareSmeltingSlots);
+      .sort(compareSmeltingInputSlots);
     const selected = [];
     let remaining = required;
     for (const slot of candidates) {
@@ -242,4 +242,9 @@ export function smeltingMaterialColor(materialOrId) {
 function compareSmeltingSlots(a, b) {
   const volume = (Number(a?.volumeMm3) || 0) - (Number(b?.volumeMm3) || 0);
   return volume || String(a?.id || "").localeCompare(String(b?.id || ""));
+}
+
+function compareSmeltingInputSlots(a, b) {
+  const quantity = smeltingSlotQuantity(b) - smeltingSlotQuantity(a);
+  return quantity || compareSmeltingSlots(a, b);
 }

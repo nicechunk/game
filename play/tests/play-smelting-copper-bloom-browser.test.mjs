@@ -270,6 +270,68 @@ test("maximum servings never advertises a batch that exceeds the transaction rec
   }
 });
 
+test("smelting plans prefer dense stacks so small fragments do not exhaust transaction records", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-dense-stacks`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><html lang=\"en\"><body></body></html>",
+    }));
+    await page.goto(`${origin}/play/tests/smelting-dense-stacks`, { waitUntil: "domcontentloaded" });
+    const result = await page.evaluate(async () => {
+      const { maxSmeltingSelectableServings } = await import("/play/play-smelting.js");
+      const { SMELTING_RECIPES, smeltingRecipePlan } = await import("/play/smelting-rules-lite.js");
+      const copper = SMELTING_RECIPES.find((recipe) => recipe.id === "copper_bloom");
+      const rawSlot = (id, blockId, count, volumeMm3) => ({ id, kind: "resource", blockId, count, volumeMm3 });
+      const slots = [
+        ...Array.from({ length: 98 }, (_, index) => rawSlot(`gravel-fragment-${index}`, 6, 1, 1_000_000)),
+        rawSlot("gravel-stack", 6, 198, 198_000_000),
+        rawSlot("basalt-stack", 14, 99, 99_000_000),
+      ];
+      const plan = smeltingRecipePlan(copper, slots, 99);
+      return {
+        maxServings: maxSmeltingSelectableServings(copper, slots),
+        complete: plan.complete,
+        selectedIds: plan.slots.map((slot) => slot.id),
+        selectedCount: plan.selectedCount,
+      };
+    });
+    assert.deepEqual(result, {
+      maxServings: 99,
+      complete: true,
+      selectedIds: ["gravel-stack", "basalt-stack"],
+      selectedCount: 297,
+    });
+  } finally {
+    await browser.close();
+  }
+});
+
+test("partial-stack volume preview matches the chain's integer arithmetic", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-volume-integers`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><html lang=\"en\"><body></body></html>",
+    }));
+    await page.goto(`${origin}/play/tests/smelting-volume-integers`, { waitUntil: "domcontentloaded" });
+    const volume = await page.evaluate(async () => {
+      const { smeltingInputPlanVolumeMm3 } = await import("/play/play-smelting.js");
+      return smeltingInputPlanVolumeMm3({
+        allocations: [{
+          slot: { count: 3_250_607_365, volumeMm3: 3_188_604_465 },
+          quantity: 2_987_081_575,
+        }],
+      });
+    });
+    assert.equal(volume, 2_930_105_231);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("material merge displays and submits the real item quantity without skill output", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
