@@ -1206,7 +1206,8 @@
       "ambientProcess": "常温加工 · {station}",
       "noFuelRequired": "无需燃料",
       "processReady": "加工已就绪",
-      "statusReadyCold": "可以在无燃料的情况下提交链上加工。"
+      "statusReadyCold": "可以在无燃料的情况下提交链上加工。",
+      "outputTooLarge": "产出超过单个链上记录的上限，请减少批次数量。"
     },
     "materialGrade": {
       "crude": "粗制",

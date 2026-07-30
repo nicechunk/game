@@ -1206,7 +1206,8 @@
       "ambientProcess": "常温加工 · {station}",
       "noFuelRequired": "燃料不要",
       "processReady": "加工準備完了",
-      "statusReadyCold": "燃料なしでオンチェーン加工を実行できます。"
+      "statusReadyCold": "燃料なしでオンチェーン加工を実行できます。",
+      "outputTooLarge": "出力がオンチェーンの1レコード上限を超えています。バッチ数を減らしてください。"
     },
     "materialGrade": {
       "crude": "Crude",

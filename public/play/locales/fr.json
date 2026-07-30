@@ -1206,7 +1206,8 @@
       "ambientProcess": "Procédé à froid · {station}",
       "noFuelRequired": "Aucun combustible requis",
       "processReady": "Procédé prêt",
-      "statusReadyCold": "Prêt pour le traitement sur la chaîne sans combustible."
+      "statusReadyCold": "Prêt pour le traitement sur la chaîne sans combustible.",
+      "outputTooLarge": "La sortie dépasse la limite d'un enregistrement sur la chaîne. Réduisez la taille du lot."
     },
     "materialGrade": {
       "crude": "Crude",

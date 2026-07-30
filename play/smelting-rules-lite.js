@@ -1,6 +1,9 @@
 import { BLOCK_ID, RESOURCE_ID, blockDef } from "/chunk.js/play.js";
 import {
   SMELTING_MATERIAL_ATTRIBUTE_KEYS,
+  calculateSmeltingOutputQuantity,
+  calculateSmeltingOutputQuantityResult,
+  calculateSmeltingOutputVolumeResult,
   createSmeltingInputCounts,
   deriveSmeltingMaterialProperties,
   findBestSmeltingRecipeForKeys,
@@ -63,6 +66,9 @@ const MATERIAL_CLASS_COLORS = Object.freeze({
 
 export {
   SMELTING_MATERIAL_ATTRIBUTE_KEYS,
+  calculateSmeltingOutputQuantity,
+  calculateSmeltingOutputQuantityResult,
+  calculateSmeltingOutputVolumeResult,
   createSmeltingInputCounts,
   deriveSmeltingMaterialProperties,
   findBestSmeltingRecipeForKeys,
@@ -120,6 +126,7 @@ export function isSmeltingFuelSlot(slot) {
 }
 
 export function isSmeltingInputSlot(slot) {
+  if (smeltingMaterialForSlot(slot)) return true;
   const key = smeltingInputKeyForSlot(slot);
   return Boolean(key && SMELTING_RECIPES.some((recipe) => recipeRequirements(recipe).some((input) => input.key === key)));
 }

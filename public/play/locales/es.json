@@ -1206,7 +1206,8 @@
       "ambientProcess": "Proceso en frío · {station}",
       "noFuelRequired": "No requiere combustible",
       "processReady": "Proceso listo",
-      "statusReadyCold": "Listo para procesar en cadena sin combustible."
+      "statusReadyCold": "Listo para procesar en cadena sin combustible.",
+      "outputTooLarge": "La salida supera el límite de un registro en cadena. Reduce el tamaño del lote."
     },
     "materialGrade": {
       "crude": "Crude",

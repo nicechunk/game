@@ -206,6 +206,134 @@ test("every primary recipe can be planned from canonical quantity-aware slots", 
   }
 });
 
+test("ambient recipes can use 99 input records while heated recipes reserve one fuel record", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-record-limits`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><html lang=\"en\"><body></body></html>",
+    }));
+    await page.goto(`${origin}/play/tests/smelting-record-limits`, { waitUntil: "domcontentloaded" });
+    const limits = await page.evaluate(async () => {
+      const { smeltingInputRecordLimit } = await import("/play/play-smelting.js");
+      return {
+        ambient: smeltingInputRecordLimit({ requiredHeatTier: 0 }),
+        heated: smeltingInputRecordLimit({ requiredHeatTier: 3 }),
+        selectedFuel: smeltingInputRecordLimit({ requiredHeatTier: 0 }, { hasFuel: true }),
+      };
+    });
+    assert.deepEqual(limits, { ambient: 99, heated: 98, selectedFuel: 98 });
+  } finally {
+    await browser.close();
+  }
+});
+
+test("material merge displays and submits the real item quantity without skill output", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route(`${origin}/play/tests/smelting-material-merge`, (route) => route.fulfill({
+      contentType: "text/html",
+      body: fixtureHtml(),
+    }));
+    await page.goto(`${origin}/play/tests/smelting-material-merge`, { waitUntil: "domcontentloaded" });
+
+    const result = await page.evaluate(async () => {
+      const { createPlaySmelting } = await import("/play/play-smelting.js");
+      const backpackAddress = "Backpack111111111111111111111111111111";
+      const materialSlot = (id, count, chainIndex, volumeMm3) => ({
+        id,
+        kind: "smelted_material",
+        materialId: "copper_bloom",
+        itemCode: 1015,
+        chainItemId: "1015",
+        itemPda: "CopperBloom11111111111111111111111111111",
+        count,
+        pending: false,
+        source: "chain",
+        chainBackpack: backpackAddress,
+        chainIndex,
+        volumeMm3,
+      });
+      const gameState = {
+        backpackSlots: [
+          materialSlot("copper-a", 6, 7, 600_000),
+          materialSlot("copper-b", 4, 9, 313_880),
+        ],
+      };
+      const byId = (id) => document.getElementById(id);
+      let submittedPayload = null;
+      const smelting = createPlaySmelting({
+        elements: {
+          backpackPanel: byId("backpackPanel"),
+          inventoryModeButton: byId("inventoryModeButton"),
+          smeltingModeButton: byId("smeltingModeButton"),
+          backpackInventoryView: byId("backpackInventoryView"),
+          smeltingPanel: byId("smeltingPanel"),
+          smeltingResourceGrid: byId("smeltingResourceGrid"),
+          smeltingRecipeList: byId("smeltingRecipeList"),
+          smeltingInputSlot: byId("smeltingInputSlot"),
+          smeltingFuelSlot: byId("smeltingFuelSlot"),
+          smeltingOutput: byId("smeltingOutput"),
+          smeltingRecipeDetails: byId("smeltingRecipeDetails"),
+          smeltingCoreLabel: byId("smeltingCoreLabel"),
+          smeltingStatus: byId("smeltingStatus"),
+          smeltingProgressValue: byId("smeltingProgressValue"),
+          smeltingProgressBar: byId("smeltingProgressBar"),
+          smeltingStart: byId("smeltingStart"),
+        },
+        gameState,
+        createVoxelItemIconCanvas(_item, { size = 48 } = {}) {
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          return canvas;
+        },
+        resourceName: () => "Copper Bloom",
+        voxelItemLabel: () => "Copper Bloom",
+        getSkillEffects: () => ({ levels: { smelting: 10 }, smeltingOutputBps: 15_000 }),
+        getBackpackSnapshot: () => ({ backpackAddress, updatedSlot: "10" }),
+        refreshBackpack: async () => ({ ok: true }),
+        refreshPlayerProgress: async () => ({ ok: true }),
+        loadChainModule: async () => ({
+          async executeSmeltingOnChain(payload) {
+            submittedPayload = payload;
+            return { submitted: true, signature: "merge-signature" };
+          },
+        }),
+      });
+      smelting.bind();
+      smelting.openPanel();
+      document.querySelector('[data-smelting-slot-id="copper-a"] [data-smelting-use="input"]').click();
+      document.querySelector('[data-smelting-slot-id="copper-b"] [data-smelting-use="input"]').click();
+      const display = {
+        input: byId("smeltingInputSlot").textContent,
+        output: byId("smeltingOutput").textContent,
+        details: byId("smeltingRecipeDetails").textContent,
+        stepperHidden: byId("smeltingRecipeDetails").querySelector(".nice-smelting-serving-stepper")?.hidden,
+      };
+      byId("smeltingStart").click();
+      for (let attempt = 0; attempt < 40 && !submittedPayload; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      return { display, submittedPayload };
+    });
+
+    assert.match(result.display.input, /x10\/10/);
+    assert.match(result.display.output, /x10/);
+    assert.match(result.display.details, /x10/);
+    assert.equal(result.display.stepperHidden, true);
+    assert.equal(result.submittedPayload.recipeId, 2015);
+    assert.equal(result.submittedPayload.recipeTableId, 321);
+    assert.deepEqual(result.submittedPayload.inputIndexes, [7, 9]);
+    assert.deepEqual(result.submittedPayload.fuelIndexes, []);
+    assert.equal(result.submittedPayload.batchMultiplier, 2);
+  } finally {
+    await browser.close();
+  }
+});
+
 async function runScenario(page, includeFuel) {
   return page.evaluate(async ({ includeFuel: hasFuel }) => {
     const { createPlaySmelting } = await import("/play/play-smelting.js");

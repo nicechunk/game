@@ -1206,7 +1206,8 @@
       "ambientProcess": "Холодная обработка · {station}",
       "noFuelRequired": "Топливо не требуется",
       "processReady": "Обработка готова",
-      "statusReadyCold": "Готово к ончейн-обработке без топлива."
+      "statusReadyCold": "Готово к ончейн-обработке без топлива.",
+      "outputTooLarge": "Результат превышает лимит одной ончейн-записи. Уменьшите размер партии."
     },
     "materialGrade": {
       "crude": "Crude",

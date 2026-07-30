@@ -3,7 +3,12 @@ import test from "node:test";
 
 import { smeltingSkillOutputBpsForLevel as profileSkillOutputBps } from "../play-skill-effects.js";
 import {
+  calculateSmeltingOutputQuantity,
+  calculateSmeltingOutputQuantityResult,
   calculateSmeltingOutputVolumeMm3,
+  calculateSmeltingOutputVolumeResult,
+  createSmeltingMergeRecipe,
+  smeltingRules,
   smeltingSkillOutputBpsForLevel as rulesSkillOutputBps,
 } from "../../src/data/smeltingRules.js";
 
@@ -53,4 +58,53 @@ test("copper bloom yields 18.6 cm3 from 300 cm3 at level zero", () => {
     pdaOutputVolumeMm3: 3_000_000,
     skillOutputBps: rulesSkillOutputBps(0),
   }), 18_600);
+});
+
+test("material merges preserve exact volume and quantity without a skill bonus", () => {
+  const primary = smeltingRules.materials.find((material) => material.id === "copper_bloom");
+  const recipe = createSmeltingMergeRecipe(primary);
+
+  assert.equal(calculateSmeltingOutputVolumeMm3({
+    recipe,
+    inputVolumeMm3: 913_880,
+    servings: 2,
+    skillOutputBps: rulesSkillOutputBps(10),
+  }), 913_880);
+  assert.equal(calculateSmeltingOutputQuantity({
+    recipe,
+    consumedInputUnits: 10,
+    servings: 2,
+    skillOutputBps: rulesSkillOutputBps(10),
+  }), 10);
+});
+
+test("ordinary recipe quantity includes batches and the floored skill bonus", () => {
+  const recipe = { yieldCount: 4 };
+
+  assert.equal(calculateSmeltingOutputQuantity({
+    recipe,
+    servings: 2,
+    skillOutputBps: rulesSkillOutputBps(10),
+  }), 12);
+  assert.equal(calculateSmeltingOutputQuantity({
+    recipe: { yieldCount: 1 },
+    skillOutputBps: rulesSkillOutputBps(10),
+  }), 1);
+});
+
+test("output calculations report chain-record overflow instead of hiding it", () => {
+  const primary = { yieldCount: 0xffffffff };
+  assert.deepEqual(calculateSmeltingOutputQuantityResult({
+    recipe: primary,
+    servings: 2,
+    skillOutputBps: 10_000,
+  }), { value: 0xffffffff, overflow: true });
+
+  const merge = createSmeltingMergeRecipe(
+    smeltingRules.materials.find((material) => material.id === "copper_bloom"),
+  );
+  assert.deepEqual(calculateSmeltingOutputVolumeResult({
+    recipe: merge,
+    inputVolumeMm3: 0x1_0000_0000,
+  }), { value: 0xffffffff, overflow: true });
 });

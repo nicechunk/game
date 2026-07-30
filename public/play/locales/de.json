@@ -1206,7 +1206,8 @@
       "ambientProcess": "Kaltverfahren · {station}",
       "noFuelRequired": "Kein Brennstoff erforderlich",
       "processReady": "Verfahren bereit",
-      "statusReadyCold": "Bereit zur On-Chain-Verarbeitung ohne Brennstoff."
+      "statusReadyCold": "Bereit zur On-Chain-Verarbeitung ohne Brennstoff.",
+      "outputTooLarge": "Die Ausgabe überschreitet das Limit eines On-Chain-Datensatzes. Verkleinere die Charge."
     },
     "materialGrade": {
       "crude": "Crude",

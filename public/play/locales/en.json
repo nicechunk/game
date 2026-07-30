@@ -1206,7 +1206,8 @@
       "ambientProcess": "Ambient process · {station}",
       "noFuelRequired": "No fuel required",
       "processReady": "Process ready",
-      "statusReadyCold": "Ready to process on-chain without fuel."
+      "statusReadyCold": "Ready to process on-chain without fuel.",
+      "outputTooLarge": "The output exceeds one on-chain record. Reduce the batch size."
     },
     "materialGrade": {
       "crude": "Crude",

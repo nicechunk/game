@@ -1038,7 +1038,12 @@ export async function executeSmeltingOnChain({
   if (!provider) return { submitted: false, reason: "wallet-unavailable" };
   const normalizedInputIndexes = normalizeBackpackIndexes(inputIndexes);
   const normalizedFuelIndexes = normalizeBackpackIndexes(fuelIndexes);
-  if (!isValidSmeltingSubmissionSelection({ recipeId, inputIndexes, fuelIndexes })) {
+  if (!isValidSmeltingSubmissionSelection({
+    recipeId,
+    inputIndexes,
+    fuelIndexes,
+    batchMultiplier,
+  })) {
     return { submitted: false, reason: "invalid-smelting-inputs" };
   }
   const conn = getNicechunkConnection();
@@ -1094,6 +1099,7 @@ export function isValidSmeltingSubmissionSelection({
   recipeId,
   inputIndexes = [],
   fuelIndexes = [],
+  batchMultiplier = 1,
 } = {}) {
   let normalizedRecipeId;
   try {
@@ -1105,8 +1111,17 @@ export function isValidSmeltingSubmissionSelection({
   const rawFuels = Array.isArray(fuelIndexes) ? fuelIndexes : [];
   const inputs = normalizeBackpackIndexes(rawInputs);
   const fuels = normalizeBackpackIndexes(rawFuels);
-  if (normalizedRecipeId <= 0n || !inputs.length) return false;
+  const multiplier = Number(batchMultiplier);
+  if (
+    normalizedRecipeId <= 0n
+    || normalizedRecipeId > 0xffffffffffffffffn
+    || !Number.isSafeInteger(multiplier)
+    || multiplier < 1
+    || multiplier > 0xffff
+    || !inputs.length
+  ) return false;
   if (inputs.length !== rawInputs.length || fuels.length !== rawFuels.length) return false;
+  if (inputs.length + fuels.length > 99) return false;
   return new Set([...inputs, ...fuels]).size === inputs.length + fuels.length;
 }
 
@@ -6732,6 +6747,14 @@ export function createExecuteSmeltingInstruction({
   batchMultiplier = 1,
   context = gameContext,
 }) {
+  if (!isValidSmeltingSubmissionSelection({
+    recipeId,
+    inputIndexes,
+    fuelIndexes,
+    batchMultiplier,
+  })) {
+    throw new Error("invalid smelting instruction selection");
+  }
   const [smeltingAuthority] = deriveSmeltingAuthorityPdaForContext(context);
   const [playerProgress] = deriveSmeltingPlayerProgressPdaForContext(owner, context);
   const globalConfig = deriveGlobalConfigPda();
@@ -6739,7 +6762,7 @@ export function createExecuteSmeltingInstruction({
   const [playerSkills] = derivePlayerSkillsPda(owner);
   const inputs = normalizeBackpackIndexes(inputIndexes);
   const fuels = normalizeBackpackIndexes(fuelIndexes);
-  const multiplier = Math.max(1, Math.min(0xffff, Math.floor(Number(batchMultiplier) || 1)));
+  const multiplier = Number(batchMultiplier);
   const data = Buffer.alloc(13 + inputs.length + fuels.length);
   data.writeUInt8(2, 0);
   data.writeBigUInt64LE(BigInt(recipeId), 1);

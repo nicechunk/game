@@ -62,14 +62,45 @@ test("ambient smelting accepts inputs without a fuel slot", () => {
     inputIndexes: [1, 2, 3, 4, 5, 6],
     fuelIndexes: [7],
   }), true);
+  assert.equal(isValidSmeltingSubmissionSelection({
+    recipeId: 1042,
+    inputIndexes: Array.from({ length: 99 }, (_, index) => index),
+    fuelIndexes: [],
+  }), true);
+  assert.equal(isValidSmeltingSubmissionSelection({
+    recipeId: 1015,
+    inputIndexes: Array.from({ length: 98 }, (_, index) => index),
+    fuelIndexes: [98],
+  }), true);
 });
 
-test("smelting rejects missing, duplicate, overlapping, or malformed indexes", () => {
+test("smelting rejects malformed identities, batches, and index payloads", () => {
   assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [] }), false);
   assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [12, 12] }), false);
   assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [12], fuelIndexes: [12] }), false);
   assert.equal(isValidSmeltingSubmissionSelection({ recipeId: "invalid", inputIndexes: [12] }), false);
+  assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 0x1_0000_0000_0000_0000n, inputIndexes: [12] }), false);
   assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [99] }), false);
+  assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [12], batchMultiplier: 0 }), false);
+  assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [12], batchMultiplier: 1.5 }), false);
+  assert.equal(isValidSmeltingSubmissionSelection({ recipeId: 1031, inputIndexes: [12], batchMultiplier: 0x1_0000 }), false);
+  assert.equal(isValidSmeltingSubmissionSelection({
+    recipeId: 1031,
+    inputIndexes: Array.from({ length: 99 }, (_, index) => index),
+    fuelIndexes: [0],
+  }), false);
+});
+
+test("smelting instruction construction never normalizes an invalid batch", () => {
+  assert.throws(() => createExecuteSmeltingInstruction({
+    owner: Keypair.generate().publicKey,
+    recipeTable: Keypair.generate().publicKey,
+    backpack: Keypair.generate().publicKey,
+    recipeId: 1031,
+    inputIndexes: [12],
+    fuelIndexes: [],
+    batchMultiplier: 0x1_0000,
+  }), /invalid smelting instruction selection/u);
 });
 
 test("ambient smelting instruction encodes an explicit zero fuel count", () => {

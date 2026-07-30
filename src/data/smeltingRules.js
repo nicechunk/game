@@ -2114,7 +2114,7 @@ export function smeltingRecipePdaOutputVolumeMm3(recipe, rules = smeltingRules) 
   return smeltingRecipeInputVolumeMm3(recipe, rules);
 }
 
-export function calculateSmeltingOutputVolumeMm3({
+export function calculateSmeltingOutputVolumeResult({
   recipe,
   inputVolumeMm3,
   servings = 1,
@@ -2123,13 +2123,16 @@ export function calculateSmeltingOutputVolumeMm3({
   recipeInputVolumeMm3,
   rules = smeltingRules,
 } = {}) {
-  if (!recipe) return 0;
+  if (!recipe) return { value: 0, overflow: false };
   const batchCount = BigInt(Math.max(1, Math.floor(Number(servings) || 1)));
   const expectedPerBatch = BigInt(clampSmeltingVolumeMm3(
     recipeInputVolumeMm3 ?? smeltingRecipeInputVolumeMm3(recipe, rules),
   ));
   const expectedBatch = expectedPerBatch * batchCount;
   const actualInput = BigInt(clampSmeltingSafeVolume(inputVolumeMm3 ?? Number(expectedBatch)));
+  if (recipe.recipeKind === "merge") {
+    return smeltingU32Result(actualInput);
+  }
   const outputPerBatch = BigInt(clampSmeltingVolumeMm3(
     pdaOutputVolumeMm3 ?? smeltingRecipePdaOutputVolumeMm3(recipe, rules),
   ));
@@ -2142,7 +2145,45 @@ export function calculateSmeltingOutputVolumeMm3({
   const scaledOutput = outputPerBatch * batchCount * actualInput / expectedBatch;
   const recipeOutput = scaledOutput * recipeYield / denominator;
   const finalOutput = recipeOutput * skillYield / denominator;
-  return Number(finalOutput > 0xffffffffn ? 0xffffffffn : finalOutput > 0n ? finalOutput : 1n);
+  return smeltingU32Result(finalOutput);
+}
+
+export function calculateSmeltingOutputVolumeMm3(options = {}) {
+  return calculateSmeltingOutputVolumeResult(options).value;
+}
+
+export function calculateSmeltingOutputQuantityResult({
+  recipe,
+  servings = 1,
+  skillOutputBps,
+  consumedInputUnits = 0,
+} = {}) {
+  if (!recipe) return { value: 0, overflow: false };
+  if (recipe.recipeKind === "merge") {
+    const consumed = BigInt(Math.max(1, Math.floor(Number(consumedInputUnits) || 1)));
+    return smeltingU32Result(consumed);
+  }
+  const batchCount = BigInt(Math.max(1, Math.floor(Number(servings) || 1)));
+  const baseQuantity = BigInt(Math.max(1, Math.floor(Number(recipe.yieldCount) || 1)));
+  const skillYield = BigInt(Math.max(SMELTING_RECIPE_YIELD_BPS_DENOMINATOR, Math.min(
+    SMELTING_SKILL_MAX_OUTPUT_BPS,
+    Math.floor(Number(skillOutputBps) || smeltingSkillOutputBpsForLevel(0)),
+  )));
+  const quantity = baseQuantity * batchCount * skillYield
+    / BigInt(SMELTING_RECIPE_YIELD_BPS_DENOMINATOR);
+  return smeltingU32Result(quantity);
+}
+
+export function calculateSmeltingOutputQuantity(options = {}) {
+  return calculateSmeltingOutputQuantityResult(options).value;
+}
+
+function smeltingU32Result(value) {
+  const normalized = value > 0n ? value : 1n;
+  return {
+    value: Number(normalized > 0xffffffffn ? 0xffffffffn : normalized),
+    overflow: normalized > 0xffffffffn,
+  };
 }
 
 function clampSmeltingVolumeMm3(value) {
