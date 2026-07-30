@@ -86,6 +86,7 @@ try {
     });
     const equippedLocalMesh = await avatarSession.init();
     const avatar = equippedLocalMesh;
+    const equippedForgePart = avatar.parts.find((part) => part.forgeDesignHash === designHash);
     const payloadBytes = Uint8Array.from(rawBytes);
     const guardian = await import("/play/play-guardian.js");
     const equipmentPacket = guardian.guardianEquipmentFromAvatarEquipment({
@@ -116,12 +117,18 @@ try {
     });
     const appearance = await import("/play/play-guardian-appearance.js");
     const uploadedMeshIds = [];
+    const uploadedRemoteAvatarMeshes = [];
     const removedMeshIds = [];
     const appearanceCache = appearance.createGuardianAppearanceMeshCache({
       renderer: {
-        uploadAvatarMesh(meshId) { uploadedMeshIds.push(meshId); },
+        uploadAvatarMesh(meshId, mesh) {
+          uploadedMeshIds.push(meshId);
+          uploadedRemoteAvatarMeshes.push(mesh);
+        },
         removeAvatarMesh(meshId) { removedMeshIds.push(meshId); },
       },
+      scale: (1.75 / 0.4) / 2.52,
+      blockSizeMeters: 0.4,
       maxWalletEntries: 2,
       maxModelMeshes: 1,
       fetchModelCode: async (wallet) => wallet === "wallet-b"
@@ -136,6 +143,8 @@ try {
     const firstRemoteMeshId = await appearanceCache.resolveMeshIdForWallet("wallet-a", { equipment: remoteEquipment });
     const refusedRemoteMeshId = await appearanceCache.resolveMeshIdForWallet("wallet-b", { equipment: remoteEquipment });
     await appearanceCache.resolveMeshIdForWallet("wallet-c", { equipment: remoteEquipment });
+    const remoteForgePart = uploadedRemoteAvatarMeshes[0]?.parts
+      ?.find((part) => part.forgeDesignHash === designHash);
     const appearanceCacheBeforeClear = appearanceCache.snapshot();
     appearanceCache.clear();
     const appearanceCacheAfterClear = appearanceCache.snapshot();
@@ -193,6 +202,11 @@ try {
       firstRemoteMeshId,
       refusedRemoteMeshId,
       uploadedRemoteMeshes: uploadedMeshIds.length,
+      remoteForgeSizeMeters: [
+        remoteForgePart?.sx ?? 0,
+        remoteForgePart?.sy ?? 0,
+        remoteForgePart?.sz ?? 0,
+      ].map((value) => value * 0.4).sort((left, right) => left - right),
       removedRemoteMeshes: removedMeshIds.length,
       appearanceCacheBeforeClear,
       appearanceCacheAfterClear,
@@ -202,6 +216,11 @@ try {
       exactIconHash,
       rotatedExactIconHash,
       equippedLocalVertices: equippedLocalMesh.vertexCount,
+      equippedLocalForgeSizeMeters: [
+        equippedForgePart.sx,
+        equippedForgePart.sy,
+        equippedForgePart.sz,
+      ].map((value) => value * 0.4).sort((left, right) => left - right),
       unequippedLocalVertices: unequippedLocalMesh.vertexCount,
       equippedLocalForgeParts: equippedLocalMesh.parts.filter((part) => part.forgeDesignHash === designHash).length,
       unequippedLocalForgeParts: unequippedLocalMesh.parts.filter((part) => part.forgeDesignHash === designHash).length,
@@ -247,6 +266,11 @@ try {
   assert.notEqual(result.firstRemoteMeshId, "peasant-guy");
   assert.equal(result.refusedRemoteMeshId, "peasant-guy");
   assert.equal(result.uploadedRemoteMeshes, 1, "remote forged meshes must remain under the configured GPU cache cap");
+  assert.deepEqual(
+    result.remoteForgeSizeMeters.map((value) => Number(value.toFixed(6))),
+    [0.625, 0.8125, 1.625],
+    "remote avatars must use the same NCF1 metre scale as the local player",
+  );
   assert.equal(result.appearanceCacheBeforeClear.cachedWallets, 2);
   assert.equal(result.appearanceCacheBeforeClear.cachedModels, 1);
   assert.ok(result.appearanceCacheBeforeClear.refusedModelCount >= 1);
@@ -257,6 +281,11 @@ try {
   assert.notEqual(result.exactIconHash, result.fallbackIconHash, "the exact forged mesh must replace the generic tool thumbnail");
   assert.notEqual(result.rotatedExactIconHash, result.exactIconHash, "thumbnail rotation must redraw the exact forged mesh");
   assert.equal(result.equippedLocalForgeParts, 1);
+  assert.deepEqual(
+    result.equippedLocalForgeSizeMeters.map((value) => Number(value.toFixed(6))),
+    [0.625, 0.8125, 1.625],
+    "Play must convert NCF1 metre dimensions into its 0.4 metre world blocks",
+  );
   assert.equal(result.unequippedLocalForgeParts, 0, "unequipping must remove custom forge vertices from the per-frame avatar buffer");
   assert.equal(result.noGripLocalForgeParts, 0, "a gripless forged item must not create a generic hammer on the avatar");
   assert.equal(result.noGripEquipment, "empty", "a gripless forged item must not bind to the hand action channel");

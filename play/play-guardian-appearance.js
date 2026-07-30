@@ -14,6 +14,7 @@ const DEFAULT_REMOTE_MODEL_MESHES = 64;
 export function createGuardianAppearanceMeshCache({
   renderer,
   scale = 1,
+  blockSizeMeters = 0.4,
   defaultMeshId = DEFAULT_REMOTE_AVATAR_MESH_ID,
   defaultModelCode = DEFAULT_AVATAR_MODEL_CODE,
   attachIronPickaxe = true,
@@ -130,6 +131,7 @@ export function createGuardianAppearanceMeshCache({
         scale,
         attachIronPickaxe,
         forgeRuntime,
+        forgeMetersToWorldUnits: 1 / positiveBlockSizeMeters(blockSizeMeters),
         name: /^NCM2:/i.test(code) ? `remote_ncm_${meshId.slice(-8)}` : "remote_avatar",
       });
       if (meshGeneration !== generation) return defaultMeshId;
@@ -201,6 +203,11 @@ function positiveInteger(value, label) {
   const number = Number(value);
   if (!Number.isInteger(number) || number <= 0) throw new RangeError(`${label} must be a positive integer.`);
   return number;
+}
+
+function positiveBlockSizeMeters(value) {
+  const meters = Number(value);
+  return Number.isFinite(meters) && meters > 0 ? meters : 0.4;
 }
 
 function shortWallet(value) {

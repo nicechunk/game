@@ -44,6 +44,7 @@ export function createPlayAvatarSession({
   let modelLoadSerial = 0;
   let equipmentCacheKey = "";
   let equipmentCache = Object.freeze({ rightHand: "empty" });
+  const forgeMetersToWorldUnits = 1 / positiveBlockSizeMeters(blockSizeMeters);
   const toolCollision = createAvatarToolCollisionResolver({
     getAvatarMesh: () => avatarMesh,
     getAvatar: () => avatar,
@@ -77,6 +78,7 @@ export function createPlayAvatarSession({
       const remoteDefaultMesh = await loadPeasantGuyAvatarMesh({
         scale: visualScale,
         attachIronPickaxe: true,
+        forgeMetersToWorldUnits,
         name: remoteDefaultMeshId,
       });
       renderer.uploadAvatarMesh(remoteDefaultMeshId, remoteDefaultMesh);
@@ -139,6 +141,7 @@ export function createPlayAvatarSession({
         attachIronPickaxe: true,
         attachForgedPickaxe: Boolean(forgeRequest?.forged && forgeInteraction?.hasGrip),
         forgeRuntime: nextForgeRuntime,
+        forgeMetersToWorldUnits,
         name: avatarMeshNameForCode(modelCode),
       });
       if (serial !== modelLoadSerial) return null;
@@ -159,6 +162,7 @@ export function createPlayAvatarSession({
             attachIronPickaxe: true,
             attachForgedPickaxe: Boolean(forgeRequest?.forged && forgedItemInteraction(forgeRequest.slot).hasGrip),
             forgeRuntime: nextForgeRuntime,
+            forgeMetersToWorldUnits,
             name: "peasant_guy",
           });
           if (serial !== modelLoadSerial) return null;
@@ -404,6 +408,11 @@ function normalizeAngle(value) {
   while (angle > Math.PI) angle -= Math.PI * 2;
   while (angle < -Math.PI) angle += Math.PI * 2;
   return angle;
+}
+
+function positiveBlockSizeMeters(value) {
+  const meters = Number(value);
+  return Number.isFinite(meters) && meters > 0 ? meters : 0.4;
 }
 
 function boundsOfAvatarParts(parts) {
