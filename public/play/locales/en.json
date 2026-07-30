@@ -1207,7 +1207,8 @@
       "noFuelRequired": "No fuel required",
       "processReady": "Process ready",
       "statusReadyCold": "Ready to process on-chain without fuel.",
-      "outputTooLarge": "The output exceeds one on-chain record. Reduce the batch size."
+      "outputTooLarge": "The output exceeds one on-chain record. Reduce the batch size.",
+      "backpackOutputFull": "The backpack cannot hold this output. Free inventory space or consume a complete input stack."
     },
     "materialGrade": {
       "crude": "Crude",

@@ -1207,7 +1207,8 @@
       "noFuelRequired": "No requiere combustible",
       "processReady": "Proceso listo",
       "statusReadyCold": "Listo para procesar en cadena sin combustible.",
-      "outputTooLarge": "La salida supera el límite de un registro en cadena. Reduce el tamaño del lote."
+      "outputTooLarge": "La salida supera el límite de un registro en cadena. Reduce el tamaño del lote.",
+      "backpackOutputFull": "La mochila no puede contener esta salida. Libera espacio o consume una pila de entrada completa."
     },
     "materialGrade": {
       "crude": "Crude",

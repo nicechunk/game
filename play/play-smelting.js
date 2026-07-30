@@ -54,6 +54,7 @@ export function createPlaySmelting({
     inputSlotIds: [],
     fuelSlotId: "",
     recipeId: SMELTING_RECIPES[0]?.id || "",
+    recipePinned: false,
     servings: 1,
     resourceFilter: "all",
     recipeFilter: "all",
@@ -195,7 +196,7 @@ export function createPlaySmelting({
 
     const selectedSlots = selectedInputSlots(slots);
     const currentPlan = smeltingRecipePlan(recipe, selectedSlots, state.servings);
-    const selectedMatch = selectionUsesPlan(currentPlan, selectedSlots)
+    const selectedMatch = state.recipePinned || selectionUsesPlan(currentPlan, selectedSlots)
       ? null
       : smeltingRecipeForSelectedSlots(selectedSlots);
     if (selectedMatch?.recipe) {
@@ -716,6 +717,12 @@ export function createPlaySmelting({
     const skillLevel = Math.max(0, Math.min(10, Math.floor(Number(skillEffects.levels?.smelting) || 0)));
     const skillOutputBps = Math.max(10000, Math.min(15000, Math.floor(Number(skillEffects.smeltingOutputBps) || smeltingSkillOutputBpsForLevel(skillLevel))));
     const recipeYieldBps = recipe ? smeltingRecipeYieldBps(recipe) : 0;
+    const backpackSpaceReady = smeltingSelectionFitsBackpack({
+      snapshot: getBackpackSnapshot?.() || {},
+      inputPlan,
+      fuelSlot,
+      requiresFuel,
+    });
     const properties = recipe
       ? deriveSmeltingMaterialProperties({ material: recipe })
       : emptyMaterialProperties();
@@ -744,6 +751,7 @@ export function createPlaySmelting({
       outputQuantity: outputQuantityResult.value,
       outputVolumeMm3: outputVolumeResult.value,
       outputOverflow,
+      backpackSpaceReady,
       skillLevel,
       skillOutputBps,
       recipeYieldBps,
@@ -752,6 +760,7 @@ export function createPlaySmelting({
       ready: selectedRecipeMatches
         && heatReady
         && !outputOverflow
+        && backpackSpaceReady
         && inputSlots.length > 0
         && inputSlots.length + (requiresFuel ? 1 : 0) <= SELECTION_RECORD_LIMIT
         && (!requiresFuel || Boolean(fuelSlot)),
@@ -805,6 +814,9 @@ export function createPlaySmelting({
         fuel: view.fuel?.heatTier || 0,
         required: view.recipe.requiredHeatTier,
       });
+    }
+    if (!view.backpackSpaceReady) {
+      return ui("main.smelting.backpackOutputFull", "The backpack cannot hold this output. Free inventory space or consume a complete input stack.");
     }
     return view.requiresFuel
       ? ui("main.smelting.statusReady", "Ready to smelt on-chain.")
@@ -869,6 +881,7 @@ export function createPlaySmelting({
   }
 
   function syncRecipeFromInputs() {
+    if (state.recipePinned) return;
     const match = smeltingRecipeForSelectedSlots(selectedInputSlots(authoritativeSlots()));
     if (!match?.recipe) return;
     state.recipeId = match.recipe.id;
@@ -882,6 +895,7 @@ export function createPlaySmelting({
     const recipe = recipeById(button.dataset.recipeId);
     if (!recipe) return;
     state.recipeId = recipe.id;
+    state.recipePinned = true;
     state.servings = 1;
     fillRecipe(recipe);
     setMobileSection("furnace");
@@ -956,6 +970,7 @@ export function createPlaySmelting({
     if (state.running) return;
     state.inputSlotIds = [];
     state.fuelSlotId = "";
+    state.recipePinned = false;
     state.servings = 1;
     state.result = null;
     state.complete = false;
@@ -1422,6 +1437,47 @@ export function createPlaySmelting({
 
 export function smeltingInputRecordLimit(recipe, { hasFuel = false } = {}) {
   return SELECTION_RECORD_LIMIT - (hasFuel || smeltingRecipeRequiresFuel(recipe) ? 1 : 0);
+}
+
+export function smeltingSelectionFitsBackpack({
+  snapshot = {},
+  inputPlan = null,
+  fuelSlot = null,
+  requiresFuel = false,
+  outputCount = 1,
+} = {}) {
+  const capacity = Number(snapshot?.capacity);
+  const itemCount = Number(snapshot?.itemCount);
+  if (!Number.isInteger(capacity) || capacity < 1 || !Number.isInteger(itemCount) || itemCount < 0) return true;
+
+  const consumedBySlot = new Map();
+  const slotsByKey = new Map();
+  for (const allocation of inputPlan?.allocations || []) {
+    const slot = allocation?.slot;
+    const key = smeltingCapacitySlotKey(slot);
+    if (!key) continue;
+    const consumed = Math.max(0, Math.floor(Number(allocation?.quantity) || 0));
+    consumedBySlot.set(key, (consumedBySlot.get(key) || 0) + consumed);
+    slotsByKey.set(key, slot);
+  }
+
+  const removed = new Set();
+  for (const [key, consumed] of consumedBySlot) {
+    if (consumed >= smeltingSlotQuantity(slotsByKey.get(key))) removed.add(key);
+  }
+  if (requiresFuel && fuelSlot && smeltingSlotQuantity(fuelSlot) <= 1) {
+    const fuelKey = smeltingCapacitySlotKey(fuelSlot);
+    if (fuelKey) removed.add(fuelKey);
+  }
+
+  const outputs = Math.max(1, Math.floor(Number(outputCount) || 1));
+  return itemCount - removed.size + outputs <= capacity;
+}
+
+function smeltingCapacitySlotKey(slot) {
+  if (!slot) return "";
+  if (slot.id !== undefined && slot.id !== null && String(slot.id)) return `id:${slot.id}`;
+  return Number.isInteger(slot.chainIndex) ? `index:${slot.chainIndex}` : "";
 }
 
 export function maxSmeltingSelectableServings(recipe, slots = []) {

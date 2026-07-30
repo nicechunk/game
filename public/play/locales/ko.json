@@ -1207,7 +1207,8 @@
       "noFuelRequired": "연료 불필요",
       "processReady": "가공 준비 완료",
       "statusReadyCold": "연료 없이 온체인 가공할 수 있습니다.",
-      "outputTooLarge": "결과가 온체인 레코드 1개의 한도를 초과합니다. 배치 크기를 줄이세요."
+      "outputTooLarge": "결과가 온체인 레코드 1개의 한도를 초과합니다. 배치 크기를 줄이세요.",
+      "backpackOutputFull": "배낭에 결과물을 넣을 공간이 없습니다. 공간을 비우거나 입력 스택 하나를 전부 사용하세요."
     },
     "materialGrade": {
       "crude": "Crude",

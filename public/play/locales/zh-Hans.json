@@ -1207,7 +1207,8 @@
       "noFuelRequired": "无需燃料",
       "processReady": "加工已就绪",
       "statusReadyCold": "可以在无燃料的情况下提交链上加工。",
-      "outputTooLarge": "产出超过单个链上记录的上限，请减少批次数量。"
+      "outputTooLarge": "产出超过单个链上记录的上限，请减少批次数量。",
+      "backpackOutputFull": "背包无法容纳本次产出，请腾出空间或完整消耗一个输入堆叠。"
     },
     "materialGrade": {
       "crude": "粗制",

@@ -1207,7 +1207,8 @@
       "noFuelRequired": "Aucun combustible requis",
       "processReady": "Procédé prêt",
       "statusReadyCold": "Prêt pour le traitement sur la chaîne sans combustible.",
-      "outputTooLarge": "La sortie dépasse la limite d'un enregistrement sur la chaîne. Réduisez la taille du lot."
+      "outputTooLarge": "La sortie dépasse la limite d'un enregistrement sur la chaîne. Réduisez la taille du lot.",
+      "backpackOutputFull": "Le sac ne peut pas contenir ce résultat. Libérez de l'espace ou consommez une pile d'entrée complète."
     },
     "materialGrade": {
       "crude": "Crude",

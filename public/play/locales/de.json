@@ -1207,7 +1207,8 @@
       "noFuelRequired": "Kein Brennstoff erforderlich",
       "processReady": "Verfahren bereit",
       "statusReadyCold": "Bereit zur On-Chain-Verarbeitung ohne Brennstoff.",
-      "outputTooLarge": "Die Ausgabe überschreitet das Limit eines On-Chain-Datensatzes. Verkleinere die Charge."
+      "outputTooLarge": "Die Ausgabe überschreitet das Limit eines On-Chain-Datensatzes. Verkleinere die Charge.",
+      "backpackOutputFull": "Der Rucksack kann diese Ausgabe nicht aufnehmen. Schaffe Platz oder verbrauche einen vollständigen Eingabestapel."
     },
     "materialGrade": {
       "crude": "Crude",
