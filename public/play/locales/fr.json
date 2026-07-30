@@ -2,8 +2,8 @@
   "_meta": {
     "language": "fr",
     "label": "French",
-    "version": "play-locale-fr-1de8dc459cb92550",
-    "contentHash": "1de8dc459cb92550"
+    "version": "play-locale-fr-87c49498d0b06bcd",
+    "contentHash": "87c49498d0b06bcd"
   },
   "siteFooter": {
     "tagline": "Un protocole de monde voxel seedé sur Solana.",
@@ -348,12 +348,12 @@
         },
         "burden": {
           "name": "Burden",
-          "description": "Sets safe backpack carry capacity before movement, stamina, and action penalties begin.",
-          "xpSource": "Gain XP by moving, mining, and returning with carried mass. Heavier legal loads give more XP, but overweight states do not.",
+          "description": "Sets the backpack carry-capacity attribute used by the Burden skill.",
+          "xpSource": "Each verified mine grants floor(carried kg / 20) x Chunk distance XP. Same-Chunk mines grant 0 XP, and the distance multiplier is capped at 5.",
           "current": "{kg} kg safe carry capacity",
           "next": "Next level: {kg} kg",
-          "max": "Max: 130 kg safe carry capacity",
-          "formula": "30 kg + Lv x 10 kg"
+          "max": "Max: 150 kg safe carry capacity",
+          "formula": "50 kg + Lv x 10 kg"
         },
         "smelting": {
           "name": "Smelting",

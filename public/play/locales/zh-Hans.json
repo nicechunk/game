@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-4187764665b4f71a",
-    "contentHash": "4187764665b4f71a"
+    "version": "play-locale-zh-Hans-f2ca1b0cd90775d9",
+    "contentHash": "f2ca1b0cd90775d9"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -348,12 +348,12 @@
         },
         "burden": {
           "name": "负重",
-          "description": "决定角色可安全携带的背包重量，超过后会影响移动、耐力和动作。",
-          "xpSource": "携带资源移动、挖掘和返回时获得经验。合法负重越高经验越多，超重状态不计入有效训练。",
+          "description": "设定负重技能使用的背包安全负重属性。",
+          "xpSource": "每次有效挖掘获得 floor(当前负重kg / 20) x Chunk距离 点经验；同一 Chunk 为 0，距离系数最高为 5。",
           "current": "安全负重 {kg} kg",
           "next": "下一级：{kg} kg",
-          "max": "满级：安全负重 130 kg",
-          "formula": "30 kg + Lv x 10 kg"
+          "max": "满级：安全负重 150 kg",
+          "formula": "50 kg + Lv x 10 kg"
         },
         "smelting": {
           "name": "熔炼",

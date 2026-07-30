@@ -33,6 +33,16 @@ test("every skill keeps its gameplay parameters in one skill definition", () => 
     perLevel: 500,
     max: 15000,
   });
+  const burden = PLAYER_SKILL_DEFINITIONS.find((skill) => skill.id === "burden");
+  assert.deepEqual(burden.effect, {
+    key: "safeCarryKg",
+    base: 50,
+    perLevel: 10,
+    max: 150,
+  });
+  assert.equal(profileSkillExperienceRequirement(burden, 0), 10_000);
+  assert.equal(profileSkillExperienceRequirement(burden, 9), 10_000);
+  assert.equal(profileSkillTotalExperienceForLevel(burden, 10), 100_000);
 });
 
 test("movement effects use chain-authoritative skill levels", () => {

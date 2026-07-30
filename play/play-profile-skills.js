@@ -26,19 +26,19 @@ export const PLAYER_SKILL_DEFINITIONS = Object.freeze([
     id: "burden",
     name: "Burden",
     tone: "amber",
-    xpBase: 130,
-    xpGrowth: 1.58,
-    effect: { key: "safeCarryKg", base: 30, perLevel: 10, max: 130 },
-    description: "Defines safe carry capacity for mined resources, tools, and future equipment mass.",
-    xpSource: "Gains XP from hauling mined and crafted items.",
+    xpBase: 1000,
+    xpGrowth: 0,
+    effect: { key: "safeCarryKg", base: 50, perLevel: 10, max: 150 },
+    description: "Defines safe carry capacity for mined resources, tools, and equipment mass.",
+    xpSource: "Each verified mine grants floor(carried kg / 20) x Chunk distance XP; same-Chunk mines grant 0 and distance is capped at 5.",
     metrics(level) {
       const kg = profileSkillEffectValue(this, level);
       const nextKg = profileSkillEffectValue(this, level + 1);
       return {
         current: `${kg} kg safe carry capacity`,
         next: `Next level: ${nextKg} kg`,
-        max: "Max: 130 kg safe carry capacity",
-        formula: "30 kg + Lv x 10 kg",
+        max: "Max: 150 kg safe carry capacity",
+        formula: "50 kg + Lv x 10 kg",
       };
     },
   },
