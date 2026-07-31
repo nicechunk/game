@@ -2,6 +2,9 @@ import {
   BLOCK_ID,
   ChunkManager,
   DEFAULT_MESH_BUDGET_MS,
+  PEASANT_GUY_SOURCE_HEIGHT_UNITS,
+  PLAYER_AVATAR_HEIGHT_METERS,
+  WORLD_BLOCK_SIZE_METERS,
   FrameStatsCounter,
   RESOURCE_ID,
   RenderLog,
@@ -141,10 +144,10 @@ const spawnX = spawnCoord(params, "x", spawnState?.worldX ?? 0);
 const spawnYOverride = spawnCoordOrNull(params, "y", spawnState?.worldY);
 const spawnZ = spawnCoord(params, "z", spawnState?.worldZ ?? 0);
 const spawnFlightEnabled = Boolean(spawnState?.flightEnabled || params.get("fly") === "1" || params.get("flight") === "1");
-const BLOCK_SIZE_METERS = 0.4;
-const AVATAR_HEIGHT_METERS = 1.75;
+const BLOCK_SIZE_METERS = WORLD_BLOCK_SIZE_METERS;
+const AVATAR_HEIGHT_METERS = PLAYER_AVATAR_HEIGHT_METERS;
 const AVATAR_HEIGHT_BLOCKS = AVATAR_HEIGHT_METERS / BLOCK_SIZE_METERS;
-const PEASANT_GUY_SOURCE_HEIGHT_BLOCKS = 2.52;
+const PEASANT_GUY_SOURCE_HEIGHT_BLOCKS = PEASANT_GUY_SOURCE_HEIGHT_UNITS;
 const AVATAR_VISUAL_SCALE = AVATAR_HEIGHT_BLOCKS / PEASANT_GUY_SOURCE_HEIGHT_BLOCKS;
 const PLAYER_CORE_WIDTH_METERS = 0.5;
 const PLAYER_CORE_DEPTH_METERS = 0.38;
@@ -836,6 +839,7 @@ async function boot() {
   guardianAppearanceMeshes = createGuardianAppearanceMeshCache({
     renderer,
     scale: AVATAR_VISUAL_SCALE,
+    blockSizeMeters: BLOCK_SIZE_METERS,
     defaultMeshId: REMOTE_DEFAULT_AVATAR_MESH_ID,
     defaultModelCode: DEFAULT_AVATAR_MODEL_CODE,
     attachIronPickaxe: true,
@@ -1252,6 +1256,7 @@ async function boot() {
     onStatus: setForgedPlacementStatus,
     onChanged: renderGameUi,
     placementReach: ACTION_PLAYER_REACH_BLOCKS,
+    blockSizeMeters: BLOCK_SIZE_METERS,
   });
   debugControllerOptions = {
     elements,

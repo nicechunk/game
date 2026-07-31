@@ -1,4 +1,6 @@
 import {
+  PLAYER_AVATAR_HEIGHT_METERS,
+  WORLD_BLOCK_SIZE_METERS,
   blockColor,
   createAvatarToolCollisionResolver,
   createCollisionBox,
@@ -29,8 +31,8 @@ export function createPlayAvatarSession({
   visualScale = 1,
   defaultCollisionBox,
   playerBodyHeight = 4,
-  avatarHeightMeters = 1.75,
-  blockSizeMeters = 0.4,
+  avatarHeightMeters = PLAYER_AVATAR_HEIGHT_METERS,
+  blockSizeMeters = WORLD_BLOCK_SIZE_METERS,
   collisionSkinBlocks = 0.02,
   footClearanceBlocks = 0.02,
   miningSwingDurationMs = 260,
@@ -412,7 +414,7 @@ function normalizeAngle(value) {
 
 function positiveBlockSizeMeters(value) {
   const meters = Number(value);
-  return Number.isFinite(meters) && meters > 0 ? meters : 0.4;
+  return Number.isFinite(meters) && meters > 0 ? meters : WORLD_BLOCK_SIZE_METERS;
 }
 
 function boundsOfAvatarParts(parts) {

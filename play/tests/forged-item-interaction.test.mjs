@@ -7,6 +7,7 @@ import {
   encodeNcf1,
   forgeChainDesignHash,
   restoreForgeRuntime,
+  WORLD_BLOCK_SIZE_METERS,
 } from "../../chunk.js/index.js";
 import { createForgedWorldItemMesh } from "../../chunk.js/renderer/forged-world-mesh.js";
 import { createPlayGameState } from "../game-state.js";
@@ -62,6 +63,12 @@ test("gripless forged objects keep exact NCF1 scale in the world preview", () =>
   assert.equal(mesh.vertexCount, placeableRuntime.vertexCount);
   assert.equal(mesh.triangleCount, placeableRuntime.triangleCount);
   assert.ok(mesh.bounds.width > 0 && mesh.bounds.height > 0 && mesh.bounds.depth > 0);
+  assert.deepEqual(
+    [mesh.bounds.width, mesh.bounds.height, mesh.bounds.depth]
+      .map((value) => Number((value * WORLD_BLOCK_SIZE_METERS).toFixed(6))),
+    [76, 112, 52].map((value) => Number((value / 64).toFixed(6))),
+    "world placement must convert NCF1 metres into the live game's block units exactly once",
+  );
 
   let minY = Infinity;
   let maxY = -Infinity;

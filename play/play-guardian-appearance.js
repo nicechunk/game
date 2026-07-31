@@ -1,4 +1,7 @@
-import { loadPeasantGuyAvatarMesh } from "/chunk.js/play.js";
+import {
+  WORLD_BLOCK_SIZE_METERS,
+  loadPeasantGuyAvatarMesh,
+} from "/chunk.js/play.js";
 import {
   forgePayloadIdentity,
   validatedNcf1EquipmentPayload,
@@ -14,7 +17,7 @@ const DEFAULT_REMOTE_MODEL_MESHES = 64;
 export function createGuardianAppearanceMeshCache({
   renderer,
   scale = 1,
-  blockSizeMeters = 0.4,
+  blockSizeMeters = WORLD_BLOCK_SIZE_METERS,
   defaultMeshId = DEFAULT_REMOTE_AVATAR_MESH_ID,
   defaultModelCode = DEFAULT_AVATAR_MODEL_CODE,
   attachIronPickaxe = true,
@@ -207,7 +210,7 @@ function positiveInteger(value, label) {
 
 function positiveBlockSizeMeters(value) {
   const meters = Number(value);
-  return Number.isFinite(meters) && meters > 0 ? meters : 0.4;
+  return Number.isFinite(meters) && meters > 0 ? meters : WORLD_BLOCK_SIZE_METERS;
 }
 
 function shortWallet(value) {

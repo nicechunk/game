@@ -1,4 +1,5 @@
 import { createForgedWorldItemMesh } from "../chunk.js/renderer/forged-world-mesh.js";
+import { WORLD_BLOCK_SIZE_METERS } from "../chunk.js/core/constants.js";
 import {
   FORGED_ITEM_INTERACTION_MODE,
   forgedItemInteraction,
@@ -18,6 +19,7 @@ export function createForgedItemPlacementController({
   onStatus = () => {},
   onChanged = () => {},
   placementReach = 6,
+  blockSizeMeters = WORLD_BLOCK_SIZE_METERS,
 } = {}) {
   const meshByRuntime = new WeakMap();
   const meshEntries = [];
@@ -191,7 +193,9 @@ export function createForgedItemPlacementController({
     if (cached) return cached;
     let mesh;
     try {
-      mesh = createForgedWorldItemMesh(runtime);
+      mesh = createForgedWorldItemMesh(runtime, {
+        metersToWorldUnits: 1 / positiveBlockSizeMeters(blockSizeMeters),
+      });
     } catch {
       return null;
     }
@@ -217,6 +221,11 @@ export function createForgedItemPlacementController({
     selectedPlacement = null;
     for (const entry of meshEntries.splice(0)) getRenderer()?.removeAvatarMesh?.(entry.meshId);
   }
+}
+
+function positiveBlockSizeMeters(value) {
+  const meters = Number(value);
+  return Number.isFinite(meters) && meters > 0 ? meters : WORLD_BLOCK_SIZE_METERS;
 }
 
 function isTopFace(hit) {
