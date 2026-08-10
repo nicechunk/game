@@ -31,12 +31,34 @@ test("support collapse starts only from blocks touching the mined block", () => 
   assert.ok(!plan.blocks.some((entry) => key(entry) === key(unrelatedLeaf)));
 });
 
-function plannerFor(blocks) {
+test("a placed primary block never enters support-collapse mining", () => {
+  const primary = block(0, 10, 0, BLOCK_ID.grass);
+  const trunk = block(0, 11, 0, BLOCK_ID.trunk);
+  const planner = plannerFor([primary, trunk], [primary]);
+
+  assert.equal(planner(primary), null);
+});
+
+test("placed blocks anchor natural support components instead of collapsing", () => {
+  const primary = block(0, 10, 0, BLOCK_ID.grass);
+  const trunk = block(0, 11, 0, BLOCK_ID.trunk);
+  const placedLeaf = block(0, 12, 0, BLOCK_ID.leaves);
+  const planner = plannerFor([primary, trunk, placedLeaf], [placedLeaf]);
+
+  assert.equal(planner(primary), null);
+});
+
+function plannerFor(blocks, placedBlocks = []) {
   const byPosition = new Map(blocks.map((entry) => [key(entry), entry.blockId]));
+  const placed = new Set(placedBlocks.map(key));
   const chunks = {
     chunkSize: 16,
     getBlockAtWorld(worldX, worldY, worldZ) {
       return byPosition.get(`${worldX},${worldY},${worldZ}`) ?? BLOCK_ID.air;
+    },
+    getDeltaAtWorld(worldX, worldY, worldZ) {
+      const position = `${worldX},${worldY},${worldZ}`;
+      return placed.has(position) ? byPosition.get(position) : null;
     },
   };
   return createSupportCollapseMiningPlanner({

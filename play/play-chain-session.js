@@ -683,6 +683,9 @@ export function createPlayChainSession({
       worldX: pending.worldX,
       worldY: pending.worldY,
       worldZ: pending.worldZ,
+      anchorWorldX: pending.anchorWorldX,
+      anchorWorldY: pending.anchorWorldY,
+      anchorWorldZ: pending.anchorWorldZ,
       blockId: pending.blockId,
       resourceId: pending.resourceId,
       playerX: Math.floor(px),
@@ -698,7 +701,7 @@ export function createPlayChainSession({
       const reason = "chain-submission-disabled";
       logSubmissionFailure(action, pending, { stage: "preflight", reason });
       state.chainResults.set(pending.txId, { reason });
-      const rolledBack = action === "mine" ? controls.rollbackTx?.(pending.txId) : null;
+      const rolledBack = controls.rollbackTx?.(pending.txId);
       if (!rolledBack) {
         appendSubmissionState(action, pending, `${pending.txId} not submitted: chain submission is disabled.`, "error", {
           reason,
@@ -716,10 +719,8 @@ export function createPlayChainSession({
       appendSubmissionState(action, pending, `${pending.txId} not submitted: connect wallet to submit chain proof.`, "error", {
         phase: "wallet-needed",
       });
-      if (action === "mine") {
-        state.chainResults.set(pending.txId, { reason: "wallet-needed" });
-        controls.rollbackTx?.(pending.txId);
-      }
+      state.chainResults.set(pending.txId, { reason: "wallet-needed" });
+      controls.rollbackTx?.(pending.txId);
       render();
       return;
     }
@@ -782,13 +783,9 @@ export function createPlayChainSession({
       });
       state.chainResults.set(pending.txId, { reason, result: result?.result });
       if (reason === "no-backpack") onBackpackRequired({ source: "chain", pending });
-      if (action === "mine" || shouldRollbackRejectedSubmission(reason)) {
-        const rolledBack = controls.rollbackTx?.(pending.txId);
-        if (!rolledBack) {
-          appendSubmissionState(action, pending, `${pending.txId} chain rejected (${reason}), but local pending was already resolved.`, "error", { reason });
-        }
-      } else {
-        appendSubmissionState(action, pending, `${pending.txId} chain adapter skipped: ${reason}. Pending remains local.`, "error", { reason });
+      const rolledBack = controls.rollbackTx?.(pending.txId);
+      if (!rolledBack) {
+        appendSubmissionState(action, pending, `${pending.txId} chain rejected (${reason}), but local pending was already resolved.`, "error", { reason });
       }
       render();
     } catch (error) {
@@ -800,7 +797,7 @@ export function createPlayChainSession({
         error,
       });
       state.chainResults.set(pending.txId, { reason });
-      const rolledBack = action === "mine" ? controls.rollbackTx?.(pending.txId) : null;
+      const rolledBack = controls.rollbackTx?.(pending.txId);
       if (!rolledBack) {
         appendSubmissionState(
           action,
@@ -1111,19 +1108,6 @@ function formatWalletSol(lamports) {
 function shortSignature(signature) {
   const value = String(signature || "");
   return value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-6)}` : value || "no-signature";
-}
-
-function shouldRollbackRejectedSubmission(reason) {
-  return [
-    "already-mined",
-    "backpack-full",
-    "invalid-backpack-index",
-    "no-backpack",
-    "not-tree-trunk",
-    "record-support-collapse-unavailable",
-    "record-tree-fell-unavailable",
-    "unmineable-block",
-  ].includes(String(reason || ""));
 }
 
 function chainFailureError(failure) {

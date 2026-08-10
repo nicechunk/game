@@ -8,11 +8,18 @@ import { createPlayerMotionController } from "../player-motion-controller.js";
 test("a valid resource placement starts one hand action at the committed preview target", () => {
   const starts = [];
   const pendingDeltas = [];
+  const confirmed = [];
   const slot = { resourceId: 41, blockId: 7, count: 3 };
   const gameState = {
     playerProfile: {},
     getSelectedPlaceableSlot: () => ({ slot, index: 2 }),
-    consumeSelectedPlaceable: () => ({ ok: true, consumed: { slot: 2 } }),
+    getHotbarEquipmentChainReference: () => ({
+      kind: "block",
+      blockId: 7,
+      sourceType: "equipment",
+      equipmentSlot: 2,
+      backpackAddress: "backpack-pda",
+    }),
     savePlayerProfile() {},
   };
   const controller = createPlacementController({
@@ -20,6 +27,7 @@ test("a valid resource placement starts one hand action at the committed preview
     chunks: {
       getBlockAtWorld: () => 0,
       applyPendingDelta(delta, txId) { pendingDeltas.push({ delta, txId }); },
+      confirmPendingDelta(txId) { confirmed.push(txId); },
     },
     getHit: () => ({ hit: true, worldX: 4, worldY: 5, worldZ: 6, faceX: 1, faceY: 0, faceZ: 0 }),
     getPlayerBounds: () => null,
@@ -35,9 +43,59 @@ test("a valid resource placement starts one hand action at the committed preview
     { worldX: pending.worldX, worldY: pending.worldY, worldZ: pending.worldZ },
     { worldX: 5, worldY: 5, worldZ: 6 },
   );
+  assert.deepEqual(
+    { worldX: pending.anchorWorldX, worldY: pending.anchorWorldY, worldZ: pending.anchorWorldZ },
+    { worldX: 4, worldY: 5, worldZ: 6 },
+  );
   assert.equal(starts.length, 1);
   assert.equal(starts[0], pending);
   assert.equal(pendingDeltas.length, 1);
+  assert.equal(pending.sourceReference.sourceType, "equipment");
+  assert.equal(controller.placePending(), null, "a second placement must not start while the first is in flight");
+  assert.equal(controller.confirmLast(), null, "manual confirmation cannot bypass chain finality");
+  assert.equal(controller.pendingCount(), 1);
+  assert.equal(controller.confirmTx(pending.txId, { chainResolution: true }), pending);
+  assert.deepEqual(confirmed, [pending.txId]);
+  assert.equal(controller.pendingCount(), 0);
+});
+
+test("a rejected chain placement removes only the preview and never restores fake local inventory", () => {
+  let restored = 0;
+  let rolledBack = "";
+  const gameState = {
+    playerProfile: {},
+    getSelectedPlaceableSlot: () => ({ slot: { resourceId: 41, blockId: 7, count: 3 }, index: 2 }),
+    getHotbarEquipmentChainReference: () => ({
+      kind: "block",
+      blockId: 7,
+      sourceType: "backpack",
+      backpackIndex: 4,
+      backpackAddress: "backpack-pda",
+    }),
+    restoreBackpackSlotSnapshot() { restored += 1; },
+    syncHotbarResourceSlots() {},
+    savePlayerProfile() {},
+  };
+  const controller = createPlacementController({
+    gameState,
+    chunks: {
+      getBlockAtWorld: () => 0,
+      applyPendingDelta() {},
+      rollbackPendingDelta(txId) { rolledBack = txId; },
+    },
+    getHit: () => ({ hit: true, worldX: 4, worldY: 5, worldZ: 6, faceX: 1, faceY: 0, faceZ: 0 }),
+    getPlayerBounds: () => null,
+    blockDef: () => ({ name: "Clay" }),
+    isBlockingBlock: () => true,
+    isFluidBlock: () => false,
+    blockAirId: 0,
+  });
+
+  const pending = controller.placePending();
+  assert.equal(controller.rollbackLast(), null, "manual rollback must not race an in-flight transaction");
+  assert.equal(controller.rollbackTx(pending.txId, { chainResolution: true }), pending);
+  assert.equal(rolledBack, pending.txId);
+  assert.equal(restored, 0, "inventory is authoritative on chain and must never be locally restored");
 });
 
 test("placement progress and target-facing pose are forwarded to the avatar renderer", () => {
@@ -81,4 +139,3 @@ test("placement progress and target-facing pose are forwarded to the avatar rend
   assert.equal(avatar.animation.placementAimPitch, 0);
   assert.equal(player.placementAimYaw, null);
 });
-

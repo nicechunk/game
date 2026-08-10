@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "A block placement is already being confirmed on chain.",
+      "selectResource": "Select a confirmed resource block in the hotbar before placing.",
+      "sourceUnavailable": "The selected resource is not linked to an authoritative chain inventory slot.",
+      "pending": "Pending place {txId}: {block} at {x}, {y}, {z}.",
+      "confirming": "Placement is still being confirmed on chain.",
+      "noPendingConfirm": "No pending placement to confirm.",
+      "chainConfirmOnly": "Only a confirmed chain transaction can finalize this placement.",
+      "confirmed": "Confirmed placement {txId}.",
+      "submittingLocked": "Placement is being submitted and cannot be canceled locally.",
+      "noPendingRollback": "No pending placement to roll back.",
+      "chainRollbackOnly": "Only the chain submission result can roll back this placement preview.",
+      "rolledBack": "Rolled back placement {txId}. The unconfirmed preview was removed.",
+      "notSolid": "{block} cannot be placed as a solid world block.",
+      "noFace": "No block face in range for placement.",
+      "clearFace": "Placement needs a clear block face.",
+      "outOfReach": "Placement target is out of reach.",
+      "occupied": "Placement target is occupied.",
+      "intersectsPlayer": "Cannot place a block inside the player body."
     }
   },
   "resourceSimulator": {

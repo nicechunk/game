@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "Ya se está confirmando una colocación de bloque en la cadena.",
+      "selectResource": "Selecciona un bloque de recurso confirmado en la barra rápida antes de colocarlo.",
+      "sourceUnavailable": "El recurso seleccionado no está vinculado a una ranura de inventario autorizada en cadena.",
+      "pending": "Colocación pendiente {txId}: {block} en {x}, {y}, {z}.",
+      "confirming": "La colocación todavía se está confirmando en cadena.",
+      "noPendingConfirm": "No hay ninguna colocación pendiente que confirmar.",
+      "chainConfirmOnly": "Solo una transacción confirmada en cadena puede finalizar esta colocación.",
+      "confirmed": "Colocación {txId} confirmada.",
+      "submittingLocked": "La colocación se está enviando y no puede cancelarse localmente.",
+      "noPendingRollback": "No hay ninguna colocación pendiente que revertir.",
+      "chainRollbackOnly": "Solo el resultado del envío en cadena puede revertir esta vista previa.",
+      "rolledBack": "Se revirtió la colocación {txId}. Se eliminó la vista previa sin confirmar.",
+      "notSolid": "{block} no se puede colocar como bloque sólido del mundo.",
+      "noFace": "No hay una cara de bloque al alcance para colocar.",
+      "clearFace": "La colocación necesita una cara de bloque despejada.",
+      "outOfReach": "El objetivo de colocación está fuera de alcance.",
+      "occupied": "El objetivo de colocación está ocupado.",
+      "intersectsPlayer": "No se puede colocar un bloque dentro del cuerpo del jugador."
     }
   },
   "resourceSimulator": {

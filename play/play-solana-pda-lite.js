@@ -5,13 +5,13 @@ const ED25519_D = BigInt("0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb
 const INT32_MIN = -0x80000000;
 const INT32_MAX = 0x7fffffff;
 
-export function createChunkBrokenPdaDeriver({ seed, globalConfig, programId } = {}) {
+export function createChunkPdaDeriver({ seed, globalConfig, programId } = {}) {
   const seedBytes = new TextEncoder().encode(String(seed || ""));
   if (!seedBytes.length || seedBytes.length > 32) throw new Error("Invalid chunk PDA seed.");
   const globalConfigBytes = decodeBase58PublicKey(globalConfig);
   const programIdBytes = decodeBase58PublicKey(programId);
 
-  return async function deriveChunkBrokenPda(chunkX, chunkZ) {
+  return async function deriveChunkPda(chunkX, chunkZ) {
     const x = checkedInt32(chunkX, "chunkX");
     const z = checkedInt32(chunkZ, "chunkZ");
     const input = new Uint8Array(seedBytes.length + 32 + 4 + 4 + 1 + 32 + PDA_MARKER.length);
@@ -38,6 +38,8 @@ export function createChunkBrokenPdaDeriver({ seed, globalConfig, programId } = 
     throw new Error(`Unable to derive chunk PDA ${x},${z}.`);
   };
 }
+
+export const createChunkBrokenPdaDeriver = createChunkPdaDeriver;
 
 export function decodeBase58PublicKey(value) {
   const text = String(value || "");

@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "別のブロック配置をチェーン上で確認中です。",
+      "selectResource": "配置する前に、ホットバーで確認済みの資源ブロックを選択してください。",
+      "sourceUnavailable": "選択した資源は、チェーン上の正規インベントリスロットに関連付けられていません。",
+      "pending": "配置確認中 {txId}: {block} ({x}, {y}, {z})。",
+      "confirming": "配置をチェーン上で確認しています。",
+      "noPendingConfirm": "確認待ちの配置はありません。",
+      "chainConfirmOnly": "確認済みのチェーントランザクションだけが配置を確定できます。",
+      "confirmed": "配置 {txId} を確認しました。",
+      "submittingLocked": "配置を送信中のため、ローカルではキャンセルできません。",
+      "noPendingRollback": "取り消す確認待ちの配置はありません。",
+      "chainRollbackOnly": "チェーン送信結果だけが配置プレビューを取り消せます。",
+      "rolledBack": "配置 {txId} を取り消し、未確認のプレビューを削除しました。",
+      "notSolid": "{block} は固体のワールドブロックとして配置できません。",
+      "noFace": "配置可能な範囲にブロック面がありません。",
+      "clearFace": "配置には空いているブロック面が必要です。",
+      "outOfReach": "配置先が範囲外です。",
+      "occupied": "配置先は使用されています。",
+      "intersectsPlayer": "プレイヤーの体内にはブロックを配置できません。"
     }
   },
   "resourceSimulator": {

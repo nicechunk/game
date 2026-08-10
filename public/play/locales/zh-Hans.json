@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "已有方块正在链上确认放置。",
+      "selectResource": "放置前请先在快捷栏选择已确认的资源方块。",
+      "sourceUnavailable": "所选资源未关联到链上权威背包槽位。",
+      "pending": "等待确认 {txId}：在 {x}, {y}, {z} 放置 {block}。",
+      "confirming": "仍在链上确认本次放置。",
+      "noPendingConfirm": "没有等待确认的放置。",
+      "chainConfirmOnly": "只有已确认的链上交易才能完成本次放置。",
+      "confirmed": "放置 {txId} 已确认。",
+      "submittingLocked": "放置交易正在提交，无法在本地取消。",
+      "noPendingRollback": "没有可回滚的待确认放置。",
+      "chainRollbackOnly": "只有链上提交结果才能回滚此放置预览。",
+      "rolledBack": "已回滚放置 {txId}，并移除未确认的预览。",
+      "notSolid": "{block} 无法作为实体世界方块放置。",
+      "noFace": "放置范围内没有方块表面。",
+      "clearFace": "放置需要一个未被遮挡的方块表面。",
+      "outOfReach": "放置目标超出距离。",
+      "occupied": "放置目标已被占用。",
+      "intersectsPlayer": "不能在角色身体内放置方块。"
     }
   },
   "resourceSimulator": {

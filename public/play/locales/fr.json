@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "Un placement de bloc est déjà en cours de confirmation sur la chaîne.",
+      "selectResource": "Sélectionnez un bloc de ressource confirmé dans la barre rapide avant de le placer.",
+      "sourceUnavailable": "La ressource sélectionnée n'est pas liée à un emplacement d'inventaire autoritaire sur la chaîne.",
+      "pending": "Placement en attente {txId} : {block} en {x}, {y}, {z}.",
+      "confirming": "Le placement est toujours en cours de confirmation sur la chaîne.",
+      "noPendingConfirm": "Aucun placement en attente à confirmer.",
+      "chainConfirmOnly": "Seule une transaction confirmée sur la chaîne peut finaliser ce placement.",
+      "confirmed": "Placement {txId} confirmé.",
+      "submittingLocked": "Le placement est en cours d'envoi et ne peut pas être annulé localement.",
+      "noPendingRollback": "Aucun placement en attente à annuler.",
+      "chainRollbackOnly": "Seul le résultat de l'envoi sur la chaîne peut annuler cet aperçu.",
+      "rolledBack": "Placement {txId} annulé. L'aperçu non confirmé a été retiré.",
+      "notSolid": "{block} ne peut pas être placé comme bloc solide du monde.",
+      "noFace": "Aucune face de bloc à portée pour le placement.",
+      "clearFace": "Le placement nécessite une face de bloc dégagée.",
+      "outOfReach": "La cible de placement est hors de portée.",
+      "occupied": "La cible de placement est occupée.",
+      "intersectsPlayer": "Impossible de placer un bloc dans le corps du joueur."
     }
   },
   "resourceSimulator": {

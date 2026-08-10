@@ -64,6 +64,7 @@ const playerPositionSaveReasonResourceMine = "resource-mine-confirm";
 const usernameIndexSeed = "player-name-v1";
 const inviteIndexSeed = "invite-index-v1";
 const chunkBrokenSeed = "chunk-broken";
+const chunkPlacedSeed = "chunk-placed";
 const resourceDropTableSeed = "resource-drops-v2";
 const surfaceDecorationTableSeed = "surface-decor-v1";
 const foundationSeed = "foundation";
@@ -146,8 +147,15 @@ const precisionGatheringRuleIndexes = Object.freeze([0, 1]);
 const smeltingRuleIndexes = Object.freeze([3]);
 const forgingRuleIndexes = Object.freeze([4]);
 const chunkBrokenMagic = "NCBK";
+const chunkBrokenVersion = 1;
 const chunkBrokenHeaderLength = 16;
 const chunkBrokenRecordLength = 3;
+const chunkBrokenMaxCapacity = 2048;
+const chunkPlacedMagic = "NCPB";
+const chunkPlacedVersion = 1;
+const chunkPlacedHeaderLength = 16;
+const chunkPlacedRecordLength = 9;
+const chunkPlacedMaxCapacity = 2048;
 const surfaceDecorationTableMagic = "NCKDEC01";
 const surfaceDecorationTableVersion = 1;
 const surfaceDecorationTableHeaderLength = 16;
@@ -212,6 +220,9 @@ const backpackLastMineActionIdOffset = 106;
 const backpackMineSequenceOffset = 114;
 const backpackSlotKindBlock = 1;
 const backpackSlotKindItem = 2;
+export const PLACEMENT_SOURCE_BACKPACK = 0;
+export const PLACEMENT_SOURCE_EQUIPMENT = 1;
+const equipmentBackpackSlotOffset = 40;
 const backpackItemCategoryForged = 2;
 const backpackItemCategoryBlueprint = 3;
 const backpackForgedItemCode = 8;
@@ -373,6 +384,16 @@ function isCanonicalMineableBlockId(blockId) {
   return ![EMPTY_BLOCK, WorldMapBlock.Water, WorldMapBlock.Bedrock].includes(Number(blockId));
 }
 
+export function isCanonicalPlaceableBlockId(blockId) {
+  const normalized = Number(blockId);
+  return Number.isInteger(normalized) && (
+    normalized >= WorldMapBlock.Grass && normalized <= WorldMapBlock.Ash
+    || normalized >= WorldMapBlock.Quicksand && normalized <= WorldMapBlock.GiantRoot
+    || normalized === WorldMapBlock.Cactus
+    || normalized >= WorldMapBlock.Coral && normalized <= WorldMapBlock.Coal
+  );
+}
+
 const blockIdByRenderType = new Map([
   ["grass", WorldMapBlock.Grass],
   ["dirt", WorldMapBlock.Dirt],
@@ -441,6 +462,7 @@ const renderTypeByBlockId = new Map(
 let connection = null;
 let connectionRpcUrl = "";
 let globalConfigPda = null;
+let placementSubmissionInFlight = false;
 
 export function getNicechunkConnection() {
   const rpcUrl = getNicechunkRpcUrl();
@@ -598,6 +620,17 @@ function deriveChunkBrokenPdaForProgram(chunkX, chunkZ, programId = chunkProgram
   );
 }
 
+function deriveChunkPlacedPdaForProgram(chunkX, chunkZ, programId = chunkProgramId) {
+  const chunkXBytes = Buffer.alloc(4);
+  const chunkZBytes = Buffer.alloc(4);
+  chunkXBytes.writeInt32LE(chunkX, 0);
+  chunkZBytes.writeInt32LE(chunkZ, 0);
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(chunkPlacedSeed), deriveGlobalConfigPda().toBuffer(), chunkXBytes, chunkZBytes],
+    programId,
+  );
+}
+
 export function deriveChunkBrokenPda(chunkX, chunkZ) {
   return deriveChunkBrokenPdaForProgram(chunkX, chunkZ, chunkProgramId);
 }
@@ -606,13 +639,24 @@ export function deriveGameChunkBrokenPda(chunkX, chunkZ) {
   return deriveChunkBrokenPdaForProgram(chunkX, chunkZ, chunkProgramId);
 }
 
+export function deriveChunkPlacedPda(chunkX, chunkZ) {
+  return deriveChunkPlacedPdaForProgram(chunkX, chunkZ, chunkProgramId);
+}
+
+export function deriveGameChunkPlacedPda(chunkX, chunkZ) {
+  return deriveChunkPlacedPdaForProgram(chunkX, chunkZ, chunkProgramId);
+}
+
 export function getChunkBrokenPdaDerivationConfig() {
   return Object.freeze({
     seed: chunkBrokenSeed,
+    placedSeed: chunkPlacedSeed,
     globalConfig: deriveGlobalConfigPda().toBase58(),
     programId: chunkProgramId.toBase58(),
   });
 }
+
+export const getChunkPdaDerivationConfig = getChunkBrokenPdaDerivationConfig;
 
 function deriveFoundationPdaForProgram(owner, foundationId, programId = chunkProgramId) {
   const idBytes = Buffer.alloc(8);
@@ -968,6 +1012,10 @@ function contextInstructionData(context, namespace, data) {
 
 function deriveChunkBrokenPdaForContext(chunkX, chunkZ, context = gameContext) {
   return deriveChunkBrokenPdaForProgram(chunkX, chunkZ, context.chunkProgramId);
+}
+
+function deriveChunkPlacedPdaForContext(chunkX, chunkZ, context = gameContext) {
+  return deriveChunkPlacedPdaForProgram(chunkX, chunkZ, context.chunkProgramId);
 }
 
 function deriveFoundationPdaForContext(owner, foundationId, context = gameContext) {
@@ -1655,21 +1703,37 @@ export async function loadChunkBlockDeltasBatch(chunks, { batchSize = 50 } = {})
   }
   const conn = getNicechunkConnection();
 
-  for (let start = 0; start < chunksToFetch.length; start += batchSize) {
-    const batch = chunksToFetch.slice(start, start + batchSize);
-    const accounts = batch.map((chunk) => deriveChunkBrokenPdaForContext(chunk.chunkX, chunk.chunkZ, gameContext)[0]);
+  const chunkBatchSize = Math.max(1, Math.min(50, Math.trunc(Number(batchSize) || 50)));
+  for (let start = 0; start < chunksToFetch.length; start += chunkBatchSize) {
+    const batch = chunksToFetch.slice(start, start + chunkBatchSize);
+    const accounts = batch.flatMap((chunk) => [
+      deriveChunkBrokenPdaForContext(chunk.chunkX, chunk.chunkZ, gameContext)[0],
+      deriveChunkPlacedPdaForContext(chunk.chunkX, chunk.chunkZ, gameContext)[0],
+    ]);
     const batchPromise = conn.getMultipleAccountsInfo(accounts, "confirmed")
       .then((infos) => {
+        if (!Array.isArray(infos) || infos.length !== batch.length * 2) {
+          throw new Error("Invalid chunk PDA account batch length.");
+        }
         const loadedAt = Date.now();
         const batchResults = new Map();
         for (let index = 0; index < batch.length; index += 1) {
           const chunk = batch[index];
           const key = chunkCacheKey(chunk.chunkX, chunk.chunkZ);
-          const brokenAccount = infos[index];
-          const exists = Boolean(brokenAccount?.data?.length);
-          const deltas = exists ? decodeChunkBrokenDeltas(brokenAccount.data, chunk.chunkX, chunk.chunkZ) : [];
+          const brokenAccount = infos[index * 2];
+          const placedAccount = infos[index * 2 + 1];
+          validateChunkStateAccount(brokenAccount, "ChunkBroken");
+          validateChunkStateAccount(placedAccount, "ChunkPlaced");
+          const brokenDeltas = brokenAccount?.data?.length
+            ? decodeChunkBrokenDeltas(brokenAccount.data, chunk.chunkX, chunk.chunkZ)
+            : [];
+          const placedDeltas = placedAccount?.data?.length
+            ? decodeChunkPlacedDeltas(placedAccount.data, chunk.chunkX, chunk.chunkZ, minBuildY)
+            : [];
+          const deltas = mergeChunkBlockDeltas(brokenDeltas, placedDeltas);
+          const exists = Boolean(brokenAccount?.data?.length || placedAccount?.data?.length);
           chunkDeltaCache.set(key, { deltas, exists, loadedAt, promise: null });
-          if (exists) initializedChunkBrokenCache.add(chunkProgramCacheKey(gameContext, chunk.chunkX, chunk.chunkZ));
+          if (brokenAccount?.data?.length) initializedChunkBrokenCache.add(chunkProgramCacheKey(gameContext, chunk.chunkX, chunk.chunkZ));
           batchResults.set(key, deltas);
         }
         return batchResults;
@@ -2679,20 +2743,31 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
     const provider = await connectedWalletProvider();
     if (!provider) return { submitted: false, reason: "wallet-unavailable" };
 
+    const conn = getNicechunkConnection();
+    const [placedBlock, equippedBackpack] = await Promise.all([
+      loadPlacedBlockAt(block, conn),
+      loadAuthoritativeMiningBackpack(provider.publicKey, conn, options),
+    ]);
+    if (!equippedBackpack?.publicKey) {
+      return { submitted: false, reason: "no-backpack" };
+    }
+    if (placedBlock) {
+      return minePlacedBlockOnChain({
+        provider,
+        connection: conn,
+        block: placedBlock,
+        equippedBackpack,
+        options,
+      });
+    }
+
     const canonicalBlock = await resolveCanonicalMinedBlock(block);
     if (!isCanonicalMineableBlockId(canonicalBlock.blockId)) {
       return { submitted: false, reason: "unmineable-block", blockId: canonicalBlock.blockId };
     }
 
-    const conn = getNicechunkConnection();
-    const [alreadyBroken, equippedBackpack] = await Promise.all([
-      isBlockAlreadyBrokenOnChain(block),
-      loadAuthoritativeMiningBackpack(provider.publicKey, conn, options),
-    ]);
+    const alreadyBroken = await isBlockAlreadyBrokenOnChain(block);
     if (alreadyBroken) return { submitted: false, reason: "already-mined" };
-    if (!equippedBackpack?.publicKey) {
-      return { submitted: false, reason: "no-backpack" };
-    }
     const context = gameContext;
     if (!canBackpackAcceptSlot(equippedBackpack, {
       kind: "block",
@@ -2768,6 +2843,105 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
     reportRpcError(error, "mine-block");
     throw error;
   }
+}
+
+export async function loadPlacedBlockAt(block, conn = getNicechunkConnection()) {
+  const coordinate = normalizeWorldBlock(block, "placed block coordinate");
+  const chunkX = blockChunkX(coordinate.x);
+  const chunkZ = blockChunkZ(coordinate.z);
+  const [chunkPlaced] = deriveChunkPlacedPdaForContext(chunkX, chunkZ, gameContext);
+  const account = await conn.getAccountInfo(chunkPlaced, "confirmed");
+  if (!account) return null;
+  validateChunkStateAccount(account, "ChunkPlaced");
+  const deltas = decodeChunkPlacedDeltas(account.data, chunkX, chunkZ, minBuildY);
+  const placed = deltas.find((entry) => (
+    entry.x === coordinate.x && entry.y === coordinate.y && entry.z === coordinate.z
+  ));
+  return placed ? {
+    x: placed.x,
+    y: placed.y,
+    z: placed.z,
+    key: `${placed.x},${placed.y},${placed.z}`,
+    blockId: placed.blockId,
+    type: renderTypeForBlockId(placed.blockId),
+    volumeMm3: placed.volumeMm3,
+    placed: true,
+  } : null;
+}
+
+async function minePlacedBlockOnChain({ provider, connection: conn, block, equippedBackpack, options }) {
+  if (!canBackpackAcceptSlot(equippedBackpack, {
+    kind: "block",
+    quantity: 1,
+    metadata: 0,
+    resource: { blockId: block.blockId },
+  })) {
+    return { submitted: false, reason: "backpack-full" };
+  }
+
+  const context = gameContext;
+  const backpackBefore = miningBackpackSnapshot(equippedBackpack);
+  const session = await getOrCreateGameplaySession(provider);
+  const miningActionId = createMiningActionId();
+  const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
+  const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+    payer: session.keypair.publicKey,
+    owner: provider.publicKey,
+    sourceAccounts: [chunkProgress],
+    ruleIndexes: precisionGatheringRuleIndexes,
+    connection: conn,
+  });
+  const tx = new Transaction();
+  tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+  if (baselineInstruction) tx.add(baselineInstruction);
+  tx.add(createMinePlacedBlockWithRewardsInstruction({
+    authority: session.keypair.publicKey,
+    owner: provider.publicKey,
+    backpack: equippedBackpack.publicKey,
+    block,
+    actionId: miningActionId,
+    expectedBlockId: block.blockId,
+    context,
+  }));
+  addEquipmentDurabilityInstructions(tx, {
+    authority: session.keypair.publicKey,
+    owner: provider.publicKey,
+    damage: options?.durabilityDamage,
+  });
+  const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(tx, {
+    provider,
+    session,
+    position: playerPositionForResourceMine(block, options),
+  });
+  tx.add(createSyncPlayerSkillsInstruction({
+    payer: session.keypair.publicKey,
+    owner: provider.publicKey,
+    sourceAccounts: [
+      chunkProgress,
+      derivePlayerProfilePda(provider.publicKey)[0],
+      equippedBackpack.publicKey,
+    ],
+    miningCoordinate: block,
+  }));
+
+  const solSpend = createSolSpendSummary();
+  const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
+  await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
+  invalidateChunkDeltaCache(blockChunkX(block.x), blockChunkZ(block.z));
+  return {
+    submitted: true,
+    signature,
+    ...solSpendResult(solSpend),
+    ...backpackBefore,
+    backpack: equippedBackpack.publicKey.toBase58(),
+    block,
+    blockId: block.blockId,
+    type: block.type,
+    volumeMm3: block.volumeMm3,
+    placedBlock: true,
+    playerPositionSaved,
+    programId: context.chunkProgramId.toBase58(),
+  };
 }
 
 export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
@@ -4807,8 +4981,166 @@ function isGameplaySessionReadyCached(owner, sessionAuthority) {
   return Boolean(cached && Date.now() - cached.loadedAt < gameplaySessionReadyCacheTtlMs);
 }
 
-export async function recordBlockPlacementOnChain(_target, _renderType, _toolSlot = 0) {
-  return { submitted: false, reason: "chain-placement-disabled" };
+export async function recordBlockPlacementOnChain(target, renderType, _toolSlot = 0, options = {}) {
+  if (!isNicechunkChainSyncEnabled()) {
+    return { submitted: false, reason: "chain-sync-disabled" };
+  }
+  if (placementSubmissionInFlight) {
+    return { submitted: false, reason: "placement-in-flight" };
+  }
+  placementSubmissionInFlight = true;
+  try {
+    const provider = await connectedWalletProvider();
+    if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+    const block = normalizeWorldBlock(target, "placement target");
+    const anchor = normalizeWorldBlock(options?.anchor ?? target?.anchor, "placement anchor");
+    requireFaceAdjacentBlocks(block, anchor);
+    const expectedBlockId = normalizeU16(target?.blockId, "placement block id", { nonzero: true });
+    if (!isCanonicalPlaceableBlockId(expectedBlockId)) {
+      return { submitted: false, reason: "unplaceable-block", blockId: expectedBlockId };
+    }
+    if (renderType && blockRenderTypeId(renderType) !== expectedBlockId) {
+      return { submitted: false, reason: "placement-render-type-mismatch", blockId: expectedBlockId };
+    }
+
+    const conn = getNicechunkConnection();
+    const source = await loadAuthoritativePlacementSource({
+      owner: provider.publicKey,
+      reference: options?.sourceReference,
+      expectedBlockId,
+      connection: conn,
+    });
+    if (!source) return { submitted: false, reason: "placement-source-unavailable" };
+    const session = await getOrCreateGameplaySession(provider);
+    const tx = new Transaction();
+    tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 700_000 }));
+    tx.add(createPlaceBlockInstruction({
+      authority: session.keypair.publicKey,
+      owner: provider.publicKey,
+      backpack: source.backpack,
+      target: block,
+      anchor,
+      sourceKind: source.sourceKind,
+      sourceIndex: source.sourceIndex,
+      expectedSlot: source.expectedSlot,
+      context: gameContext,
+    }));
+
+    const solSpend = createSolSpendSummary();
+    const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
+    await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
+    invalidateChunkDeltaCache(blockChunkX(block.x), blockChunkZ(block.z));
+    return {
+      submitted: true,
+      signature,
+      ...solSpendResult(solSpend),
+      ...source.backpackBefore,
+      backpack: source.backpack.toBase58(),
+      sourceType: source.sourceType,
+      sourceIndex: source.sourceIndex,
+      block: { ...block, blockId: expectedBlockId, type: renderTypeForBlockId(expectedBlockId) },
+      blockId: expectedBlockId,
+      type: renderTypeForBlockId(expectedBlockId),
+      programId: gameContext.chunkProgramId.toBase58(),
+    };
+  } catch (error) {
+    reportRpcError(error, "place-block");
+    throw error;
+  } finally {
+    placementSubmissionInFlight = false;
+  }
+}
+
+async function loadAuthoritativePlacementSource({ owner, reference, expectedBlockId, connection }) {
+  const sourceType = String(reference?.sourceType || "").trim();
+  if (reference?.kind !== "block" || !["backpack", "equipment"].includes(sourceType)) return null;
+  if (Math.trunc(Number(reference.blockId)) !== expectedBlockId) return null;
+  let backpack;
+  try {
+    backpack = new PublicKey(String(reference.backpackAddress || ""));
+  } catch {
+    return null;
+  }
+
+  const equipmentSlot = sourceType === "equipment"
+    ? normalizeOptionalU8(reference.equipmentSlot, playerEquipmentSlotCount - 1)
+    : null;
+  const backpackIndex = sourceType === "backpack"
+    ? normalizeOptionalU8(reference.backpackIndex, backpackMaxCapacity - 1)
+    : null;
+  if (sourceType === "equipment" && equipmentSlot === null) return null;
+  if (sourceType === "backpack" && backpackIndex === null) return null;
+
+  const [playerEquipment] = derivePlayerEquipmentPda(owner);
+  const addresses = sourceType === "equipment" ? [backpack, playerEquipment] : [backpack];
+  const accounts = await connection.getMultipleAccountsInfo(addresses, "confirmed");
+  const backpackAccount = accounts[0];
+  if (!backpackAccount?.data?.length || backpackAccount.executable || !backpackAccount.owner?.equals?.(gameContext.backpackProgramId)) {
+    return null;
+  }
+  const backpackData = Buffer.from(backpackAccount.data);
+  const decodedBackpack = decodeBackpack(backpackData);
+  if (decodedBackpack.owner !== owner.toBase58()) return null;
+  const [expectedBackpack] = deriveBackpackPdaForContext(owner, decodedBackpack.backpackId, gameContext);
+  if (!expectedBackpack.equals(backpack)) return null;
+  const backpackBefore = miningBackpackSnapshot(decodedBackpack);
+
+  if (sourceType === "backpack") {
+    if (backpackIndex >= decodedBackpack.itemCount) return null;
+    const offset = backpackHeaderLength + backpackIndex * backpackSlotRecordLength;
+    const expectedSlot = Buffer.from(backpackData.subarray(offset, offset + backpackSlotRecordLength));
+    const slot = decodeBackpackSlot(expectedSlot, 0);
+    if (!isMatchingPlacementBlockSlot(slot, expectedBlockId)) return null;
+    return {
+      sourceType,
+      sourceKind: PLACEMENT_SOURCE_BACKPACK,
+      sourceIndex: backpackIndex,
+      backpack,
+      backpackBefore,
+      expectedSlot,
+      slot,
+    };
+  }
+
+  const equipmentAccount = accounts[1];
+  if (!equipmentAccount?.data?.length || equipmentAccount.executable || !equipmentAccount.owner?.equals?.(playerProgramId)) {
+    return null;
+  }
+  const equipmentData = Buffer.from(equipmentAccount.data);
+  const equipment = decodePlayerEquipment(equipmentData);
+  const [playerProfile] = derivePlayerProfilePda(owner);
+  if (equipment.owner !== owner.toBase58()
+    || equipment.playerProfile !== playerProfile.toBase58()
+    || equipment.globalConfig !== deriveGlobalConfigPda().toBase58()) {
+    return null;
+  }
+  const record = equipment.slots[equipmentSlot];
+  if (!record?.equipped || !record.custodied || record.backpack !== backpack.toBase58()) return null;
+  const offset = playerEquipmentHeaderLength
+    + equipmentSlot * playerEquipmentSlotLength
+    + equipmentBackpackSlotOffset;
+  const expectedSlot = Buffer.from(equipmentData.subarray(offset, offset + backpackSlotRecordLength));
+  const slot = decodeBackpackSlot(expectedSlot, 0);
+  if (!isMatchingPlacementBlockSlot(slot, expectedBlockId)) return null;
+  return {
+    sourceType,
+    sourceKind: PLACEMENT_SOURCE_EQUIPMENT,
+    sourceIndex: equipmentSlot,
+    backpack,
+    backpackBefore,
+    expectedSlot,
+    slot,
+  };
+}
+
+function isMatchingPlacementBlockSlot(slot, expectedBlockId) {
+  return Boolean(slot
+    && isCanonicalPlaceableBlockId(expectedBlockId)
+    && slot.kindCode === backpackSlotKindBlock
+    && slot.category === 0
+    && slot.quantity > 0
+    && slot.volumeMm3 > 0
+    && slot.resource?.blockId === expectedBlockId);
 }
 
 
@@ -4944,17 +5276,24 @@ export function isNicechunkChainSyncEnabled() {
 }
 
 function decodeChunkBrokenDeltas(data, chunkX, chunkZ) {
-  if (data.length < chunkBrokenHeaderLength) return [];
-  if (data.subarray(0, 4).toString("utf8") !== chunkBrokenMagic) return [];
+  if (data.length < chunkBrokenHeaderLength) throw new Error("Invalid ChunkBroken account header length.");
+  if (data.subarray(0, 4).toString("utf8") !== chunkBrokenMagic) throw new Error("Invalid ChunkBroken account magic.");
+  if (data.readUInt8(4) !== chunkBrokenVersion) throw new Error("Invalid ChunkBroken account version.");
   const count = data.readUInt16LE(6);
   const capacity = data.readUInt16LE(8);
   const minY = data.readInt16LE(10);
-  if (count > capacity || data.length !== chunkBrokenHeaderLength + capacity * chunkBrokenRecordLength) return [];
+  if (capacity < 1 || capacity > chunkBrokenMaxCapacity || count > capacity
+    || data.length !== chunkBrokenHeaderLength + capacity * chunkBrokenRecordLength) {
+    throw new Error("Invalid ChunkBroken account size or capacity.");
+  }
 
   const deltas = [];
+  const coordinates = new Set();
   for (let index = 0; index < count; index += 1) {
     const offset = chunkBrokenHeaderLength + index * chunkBrokenRecordLength;
     const packed = data.readUIntLE(offset, chunkBrokenRecordLength);
+    if (coordinates.has(packed)) throw new Error("Duplicate ChunkBroken coordinate.");
+    coordinates.add(packed);
     const localX = packed & 0x0f;
     const localZ = (packed >> 4) & 0x0f;
     const yOffset = (packed >> 8) & 0x01ff;
@@ -4973,6 +5312,69 @@ function decodeChunkBrokenDeltas(data, chunkX, chunkZ) {
     });
   }
   return deltas;
+}
+
+export function decodeChunkPlacedDeltas(dataValue, chunkX, chunkZ, expectedMinY = null) {
+  const data = Buffer.from(dataValue ?? []);
+  if (data.length < chunkPlacedHeaderLength) throw new Error("Invalid ChunkPlaced account header length.");
+  if (data.subarray(0, 4).toString("utf8") !== chunkPlacedMagic) throw new Error("Invalid ChunkPlaced account magic.");
+  if (data.readUInt8(4) !== chunkPlacedVersion) throw new Error("Invalid ChunkPlaced account version.");
+  const count = data.readUInt16LE(6);
+  const capacity = data.readUInt16LE(8);
+  const minY = data.readInt16LE(10);
+  if (Number.isInteger(expectedMinY) && minY !== expectedMinY) throw new Error("ChunkPlaced minY does not match the active world.");
+  if (capacity < 1 || capacity > chunkPlacedMaxCapacity || count > capacity
+    || data.length !== chunkPlacedHeaderLength + capacity * chunkPlacedRecordLength) {
+    throw new Error("Invalid ChunkPlaced account size or capacity.");
+  }
+
+  const deltas = [];
+  const coordinates = new Set();
+  for (let index = 0; index < count; index += 1) {
+    const offset = chunkPlacedHeaderLength + index * chunkPlacedRecordLength;
+    const packedCoordinate = data.readUIntLE(offset, 3);
+    const blockId = data.readUInt16LE(offset + 3);
+    const volumeMm3 = data.readUInt32LE(offset + 5);
+    if (coordinates.has(packedCoordinate)) throw new Error("Duplicate ChunkPlaced coordinate.");
+    if (!isCanonicalPlaceableBlockId(blockId) || volumeMm3 === 0) {
+      throw new Error("Invalid ChunkPlaced record.");
+    }
+    coordinates.add(packedCoordinate);
+    const localX = packedCoordinate & 0x0f;
+    const localZ = (packedCoordinate >> 4) & 0x0f;
+    const yOffset = (packedCoordinate >> 8) & 0x01ff;
+    deltas.push({
+      sequence: index + 1,
+      x: chunkX * chunkSize + localX,
+      y: minY + yOffset,
+      z: chunkZ * chunkSize + localZ,
+      localX,
+      localZ,
+      previousBlockId: null,
+      newBlockId: blockId,
+      blockId,
+      volumeMm3,
+      action: 2,
+      toolSlot: 0,
+      packed: data.subarray(offset, offset + chunkPlacedRecordLength).toString("hex"),
+    });
+  }
+  return deltas;
+}
+
+function mergeChunkBlockDeltas(brokenDeltas, placedDeltas) {
+  const byCoordinate = new Map();
+  for (const delta of brokenDeltas ?? []) byCoordinate.set(`${delta.x},${delta.y},${delta.z}`, delta);
+  for (const delta of placedDeltas ?? []) byCoordinate.set(`${delta.x},${delta.y},${delta.z}`, delta);
+  return [...byCoordinate.values()].sort((left, right) => (
+    left.y - right.y || left.z - right.z || left.x - right.x || left.newBlockId - right.newBlockId
+  ));
+}
+
+function validateChunkStateAccount(account, label) {
+  if (!account) return;
+  if (account.executable) throw new Error(`${label} account cannot be executable.`);
+  if (!account.owner?.equals?.(gameContext.chunkProgramId)) throw new Error(`${label} account owner mismatch.`);
 }
 
 export function decodeBackpack(data) {
@@ -5303,6 +5705,7 @@ async function isBlockAlreadyBrokenOnChain(block) {
     const deltas = await loadChunkBlockDeltas(chunkX, chunkZ);
     return deltas.some((delta) =>
       delta.x === block.x && delta.y === block.y && delta.z === block.z
+      && (delta.action === 1 || delta.newBlockId === EMPTY_BLOCK)
     );
   } catch (error) {
     reportRpcError(error, "already-broken-check");
@@ -5984,6 +6387,128 @@ export function createMineBlockWithRewardsInstruction({ authority, block, owner,
       { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
       { pubkey: resourceDropTable, isSigner: false, isWritable: false },
       { pubkey: surfaceDecorationTable, isSigner: false, isWritable: false },
+      { pubkey: context.backpackProgramId, isSigner: false, isWritable: false },
+      { pubkey: backpack, isSigner: false, isWritable: true },
+      { pubkey: materialPhysics, isSigner: false, isWritable: false },
+      { pubkey: playerSkills, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: contextInstructionData(context, gameNamespaceChunk, data),
+  });
+}
+
+export function createPlaceBlockInstruction({
+  authority,
+  owner,
+  backpack,
+  target,
+  anchor,
+  sourceKind,
+  sourceIndex,
+  expectedSlot,
+  context = gameContext,
+}) {
+  if (!owner) throw new Error("owner is required for block placement");
+  if (!backpack) throw new Error("backpack is required for block placement");
+  const normalizedTarget = normalizeWorldBlock(target, "placement target");
+  const normalizedAnchor = normalizeWorldBlock(anchor, "placement anchor");
+  requireFaceAdjacentBlocks(normalizedTarget, normalizedAnchor);
+  const normalizedSourceKind = normalizePlacementSourceKind(sourceKind);
+  const normalizedSourceIndex = normalizeU8(sourceIndex, "placement source index");
+  const slotBytes = Buffer.from(expectedSlot ?? []);
+  if (slotBytes.length !== backpackSlotRecordLength) {
+    throw new Error(`placement slot snapshot must contain exactly ${backpackSlotRecordLength} bytes`);
+  }
+
+  const chunkX = blockChunkX(normalizedTarget.x);
+  const chunkZ = blockChunkZ(normalizedTarget.z);
+  const [playerProfile] = derivePlayerProfilePda(owner);
+  const [playerSession] = derivePlayerSessionPda(owner, authority);
+  const [playerEquipment] = derivePlayerEquipmentPda(owner);
+  const [chunkBroken] = deriveChunkBrokenPdaForContext(chunkX, chunkZ, context);
+  const [chunkPlaced] = deriveChunkPlacedPdaForContext(chunkX, chunkZ, context);
+  const anchorChunkX = blockChunkX(normalizedAnchor.x);
+  const anchorChunkZ = blockChunkZ(normalizedAnchor.z);
+  const [anchorChunkBroken] = deriveChunkBrokenPdaForContext(anchorChunkX, anchorChunkZ, context);
+  const [anchorChunkPlaced] = deriveChunkPlacedPdaForContext(anchorChunkX, anchorChunkZ, context);
+  const [foundationChunk] = deriveFoundationChunkPdaForContext(chunkX, chunkZ, context);
+  const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
+  const data = Buffer.alloc(1 + 4 + 2 + 4 + 4 + 2 + 4 + 1 + 1 + backpackSlotRecordLength);
+  data.writeUInt8(14, 0);
+  data.writeInt32LE(normalizedTarget.x, 1);
+  data.writeInt16LE(normalizedTarget.y, 5);
+  data.writeInt32LE(normalizedTarget.z, 7);
+  data.writeInt32LE(normalizedAnchor.x, 11);
+  data.writeInt16LE(normalizedAnchor.y, 15);
+  data.writeInt32LE(normalizedAnchor.z, 17);
+  data.writeUInt8(normalizedSourceKind, 21);
+  data.writeUInt8(normalizedSourceIndex, 22);
+  slotBytes.copy(data, 23);
+
+  return new TransactionInstruction({
+    programId: context.chunkProgramId,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: playerProfile, isSigner: false, isWritable: true },
+      { pubkey: playerSession, isSigner: false, isWritable: false },
+      { pubkey: chunkBroken, isSigner: false, isWritable: false },
+      { pubkey: chunkPlaced, isSigner: false, isWritable: true },
+      { pubkey: anchorChunkBroken, isSigner: false, isWritable: false },
+      { pubkey: anchorChunkPlaced, isSigner: false, isWritable: false },
+      { pubkey: foundationChunk, isSigner: false, isWritable: false },
+      { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
+      { pubkey: context.backpackProgramId, isSigner: false, isWritable: false },
+      { pubkey: backpack, isSigner: false, isWritable: true },
+      { pubkey: materialPhysics, isSigner: false, isWritable: false },
+      { pubkey: playerProgramId, isSigner: false, isWritable: false },
+      { pubkey: playerEquipment, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: contextInstructionData(context, gameNamespaceChunk, data),
+  });
+}
+
+export function createMinePlacedBlockWithRewardsInstruction({
+  authority,
+  owner,
+  backpack,
+  block,
+  actionId,
+  expectedBlockId,
+  context = gameContext,
+}) {
+  if (!owner) throw new Error("owner is required for placed-block mining");
+  if (!backpack) throw new Error("backpack is required for placed-block mining");
+  const normalizedBlock = normalizeWorldBlock(block, "placed block");
+  const normalizedBlockId = normalizeU16(expectedBlockId, "placed block id", { nonzero: true });
+  const normalizedActionId = normalizeMiningActionId(actionId);
+  const chunkX = blockChunkX(normalizedBlock.x);
+  const chunkZ = blockChunkZ(normalizedBlock.z);
+  const [playerProfile] = derivePlayerProfilePda(owner);
+  const [playerSession] = derivePlayerSessionPda(owner, authority);
+  const [playerProgress] = derivePlayerProgressPdaForContext(owner, context);
+  const [chunkPlaced] = deriveChunkPlacedPdaForContext(chunkX, chunkZ, context);
+  const [foundationChunk] = deriveFoundationChunkPdaForContext(chunkX, chunkZ, context);
+  const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
+  const [playerSkills] = derivePlayerSkillsPda(owner);
+  const data = Buffer.alloc(21);
+  data.writeUInt8(16, 0);
+  data.writeBigUInt64LE(normalizedActionId, 1);
+  data.writeInt32LE(normalizedBlock.x, 9);
+  data.writeInt16LE(normalizedBlock.y, 13);
+  data.writeInt32LE(normalizedBlock.z, 15);
+  data.writeUInt16LE(normalizedBlockId, 19);
+
+  return new TransactionInstruction({
+    programId: context.chunkProgramId,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: playerProfile, isSigner: false, isWritable: false },
+      { pubkey: playerSession, isSigner: false, isWritable: false },
+      { pubkey: playerProgress, isSigner: false, isWritable: true },
+      { pubkey: chunkPlaced, isSigner: false, isWritable: true },
+      { pubkey: foundationChunk, isSigner: false, isWritable: false },
+      { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
       { pubkey: context.backpackProgramId, isSigner: false, isWritable: false },
       { pubkey: backpack, isSigner: false, isWritable: true },
       { pubkey: materialPhysics, isSigner: false, isWritable: false },
@@ -7758,6 +8283,52 @@ function createWalletNetworkMessageError(error) {
 
 function readableErrorMessage(error) {
   return error?.transactionMessage || error?.message || String(error || "Unknown error");
+}
+
+function normalizeWorldBlock(value, label) {
+  return {
+    x: normalizeIntegerRange(value?.x ?? value?.worldX, -0x80000000, 0x7fffffff, `${label} x`),
+    y: normalizeIntegerRange(value?.y ?? value?.worldY, -0x8000, 0x7fff, `${label} y`),
+    z: normalizeIntegerRange(value?.z ?? value?.worldZ, -0x80000000, 0x7fffffff, `${label} z`),
+  };
+}
+
+function requireFaceAdjacentBlocks(target, anchor) {
+  const distance = Math.abs(target.x - anchor.x)
+    + Math.abs(target.y - anchor.y)
+    + Math.abs(target.z - anchor.z);
+  if (distance !== 1) {
+    throw new Error("placement anchor must be exactly one block face away from target");
+  }
+}
+
+function normalizeU8(value, label) {
+  return normalizeIntegerRange(value, 0, 0xff, label);
+}
+
+function normalizeOptionalU8(value, maximum = 0xff) {
+  const normalized = Number(value);
+  return Number.isInteger(normalized) && normalized >= 0 && normalized <= maximum ? normalized : null;
+}
+
+function normalizeU16(value, label, { nonzero = false } = {}) {
+  return normalizeIntegerRange(value, nonzero ? 1 : 0, 0xffff, label);
+}
+
+function normalizePlacementSourceKind(value) {
+  const normalized = Number(value);
+  if (normalized !== PLACEMENT_SOURCE_BACKPACK && normalized !== PLACEMENT_SOURCE_EQUIPMENT) {
+    throw new Error("placement source kind must be Backpack or PlayerEquipment");
+  }
+  return normalized;
+}
+
+function normalizeIntegerRange(value, minimum, maximum, label) {
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized < minimum || normalized > maximum) {
+    throw new Error(`${label} is outside the supported integer range`);
+  }
+  return normalized;
 }
 
 function positiveModulo(value, divisor) {

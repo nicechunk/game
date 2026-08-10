@@ -1,4 +1,5 @@
 import { BLOCK_FLAGS, BLOCK_ID, worldToChunk } from "../chunk.js/play.js";
+import { isPlacedWorldBlock } from "./placed-block-state.js";
 
 const DEFAULT_HORIZONTAL_RADIUS = 7;
 const DEFAULT_DOWN_REACH = 8;
@@ -32,6 +33,7 @@ export function createSupportCollapseMiningPlanner({
   return function supportCollapsePlanForHit(hit) {
     const primary = normalizeBlock(hit, chunks, blockDef);
     if (!primary || !isSupportCandidateBlock(primary.blockId, blockDef, isFluidBlock, isMineableBlock, blockAirId)) return null;
+    if (isPlacedWorldBlock(chunks, primary.worldX, primary.worldY, primary.worldZ, blockAirId)) return null;
 
     const collapseBlocks = collectSupportCollapseBlocks(primary, {
       chunks,
@@ -155,6 +157,7 @@ function supportCollapseBlockAt(worldX, worldY, worldZ, plannedRemoved, bounds, 
   if (!isWithinBounds(worldX, worldY, worldZ, bounds)) return null;
   const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
   if (plannedRemoved.has(key)) return null;
+  if (isPlacedWorldBlock(options.chunks, worldX, worldY, worldZ, options.blockAirId)) return null;
   const blockId = Math.trunc(Number(options.chunks?.getBlockAtWorld?.(worldX, worldY, worldZ)) || options.blockAirId);
   if (!isSupportCandidateBlock(blockId, options.blockDef, options.isFluidBlock, options.isMineableBlock, options.blockAirId)) return null;
   return blockFromWorld(options.chunks, options.blockDef, worldX, worldY, worldZ, blockId);
@@ -163,6 +166,7 @@ function supportCollapseBlockAt(worldX, worldY, worldZ, plannedRemoved, bounds, 
 function isSupportAnchorCell(worldX, worldY, worldZ, plannedRemoved, options) {
   const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
   if (plannedRemoved.has(key)) return false;
+  if (isPlacedWorldBlock(options.chunks, worldX, worldY, worldZ, options.blockAirId)) return true;
   const blockId = Math.trunc(Number(options.chunks?.getBlockAtWorld?.(worldX, worldY, worldZ)) || options.blockAirId);
   return blockId === BLOCK_ID.bedrock;
 }

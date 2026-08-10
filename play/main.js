@@ -934,7 +934,7 @@ async function boot() {
     },
     onStatus: setStatus,
     appendEvent: (message) => chainSession?.appendChainEvent?.(message),
-    batchSize: 100,
+    batchSize: 50,
     persistentScopeHint: DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT,
   });
   const cacheMaintenance = createPlayCacheMaintenance({
@@ -1243,15 +1243,18 @@ async function boot() {
     onPending: (pending) => {
       lastWorldDeltaKind = "place";
       chainSession?.handlePendingPlace(pending, {
-        confirmTx: (txId) => placement?.confirmTx?.(txId),
-        rollbackTx: (txId) => placement?.rollbackTx?.(txId),
+        confirmTx: (txId) => placement?.confirmTx?.(txId, { chainResolution: true }),
+        rollbackTx: (txId) => placement?.rollbackTx?.(txId, { chainResolution: true }),
       });
     },
     onConfirm: (pending) => {
       chainSession?.handleConfirmedPlace(pending);
+      chainChunkDeltas?.invalidateChunkForWorld(pending.worldX, pending.worldZ);
+      chainChunkDeltas?.requestSync({ reason: "place-confirm", quiet: true });
       refreshPdaBackpackAfterAction(pending);
     },
     onRollback: (pending) => chainSession?.handleRollbackPlace(pending),
+    translate: translateWithFallback,
   });
   forgedPlacement = createForgedItemPlacementController({
     gameState,
@@ -1977,14 +1980,18 @@ function refreshPdaBackpackAfterAction(pending) {
   const storedRewardCount = Number(chainResult.storedRewardCount);
   const lossyRewards = Boolean(chainResult.lossyRewards);
   const expectsBackpackMutation = !lossyRewards || !Number.isFinite(storedRewardCount) || storedRewardCount > 0;
-  const refresh = pending.miningKind && expectsBackpackMutation
+  const backpackRefresh = pending.miningKind && expectsBackpackMutation
     && chainResult.backpackPreviousUpdatedSlot !== undefined && chainBackpack?.refreshAfterMutation
       ? chainBackpack.refreshAfterMutation({
           previousUpdatedSlot: chainResult.backpackPreviousUpdatedSlot,
         })
     : chainBackpack?.refresh({ force: true, quiet: true });
-  refresh?.then((result) => {
-    if (result?.ok) renderGameUi();
+  const refreshes = [backpackRefresh];
+  if (pending.chainAction === "place") {
+    refreshes.push(chainPlayer?.refresh?.({ force: true, quiet: true }));
+  }
+  Promise.allSettled(refreshes.filter(Boolean)).then((results) => {
+    if (results.some((result) => result.status === "fulfilled" && result.value?.ok)) renderGameUi();
   });
 }
 

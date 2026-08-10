@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "다른 블록 배치를 체인에서 확인 중입니다.",
+      "selectResource": "배치하기 전에 단축바에서 확인된 자원 블록을 선택하세요.",
+      "sourceUnavailable": "선택한 자원이 체인의 권위 있는 인벤토리 슬롯에 연결되어 있지 않습니다.",
+      "pending": "배치 확인 중 {txId}: {block}, 위치 {x}, {y}, {z}.",
+      "confirming": "체인에서 배치를 계속 확인 중입니다.",
+      "noPendingConfirm": "확인할 대기 중 배치가 없습니다.",
+      "chainConfirmOnly": "확인된 체인 트랜잭션만 이 배치를 완료할 수 있습니다.",
+      "confirmed": "배치 {txId} 확인 완료.",
+      "submittingLocked": "배치를 전송 중이므로 로컬에서 취소할 수 없습니다.",
+      "noPendingRollback": "되돌릴 대기 중 배치가 없습니다.",
+      "chainRollbackOnly": "체인 전송 결과만 이 배치 미리보기를 되돌릴 수 있습니다.",
+      "rolledBack": "배치 {txId}을(를) 되돌리고 확인되지 않은 미리보기를 제거했습니다.",
+      "notSolid": "{block}은(는) 고체 월드 블록으로 배치할 수 없습니다.",
+      "noFace": "배치 범위 안에 블록 면이 없습니다.",
+      "clearFace": "배치하려면 비어 있는 블록 면이 필요합니다.",
+      "outOfReach": "배치 대상이 범위를 벗어났습니다.",
+      "occupied": "배치 대상 위치가 이미 차 있습니다.",
+      "intersectsPlayer": "플레이어 몸 안에는 블록을 배치할 수 없습니다."
     }
   },
   "resourceSimulator": {

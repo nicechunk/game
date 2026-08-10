@@ -20,7 +20,7 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
         import("/play/play-chain-chunk-cache.js"),
       ]);
       const delta = { worldX: 2, worldY: 80, worldZ: 3, blockId: 0 };
-      let rpcAccount = chunkBrokenAccount(delta);
+      let rpcAccounts = [chunkBrokenAccount(delta), null];
       let rpcSlot = 101;
       const persistentWrites = [];
       let finishPersistentClear;
@@ -96,18 +96,20 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
       const connection = {
         rpcEndpoint: "",
         async getMultipleAccountsInfo() {
-          return [rpcAccount];
+          return rpcAccounts;
         },
         async getMultipleAccountsInfoAndContext() {
-          return { value: [rpcAccount], context: { slot: rpcSlot } };
+          return { value: rpcAccounts, context: { slot: rpcSlot } };
         },
       };
       const chainModule = {
         isNicechunkChainSyncEnabled: () => true,
         getNicechunkConnection: () => connection,
         deriveGameChunkBrokenPda: () => ["test-pda"],
+        deriveGameChunkPlacedPda: () => ["test-placed-pda"],
         getChunkBrokenPdaDerivationConfig: () => ({
           seed: "chunk-broken",
+          placedSeed: "chunk-placed",
           globalConfig: "GlobalConfig111",
           programId: "ChunkProgram111",
         }),
@@ -144,8 +146,20 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
         contextSlot: sameSync.contextSlot,
       };
 
-      rpcAccount = null;
+      rpcAccounts = [chunkBrokenAccount(delta), chunkPlacedAccount({ ...delta, blockId: 7, volumeMm3: 625_000 })];
       rpcSlot = 102;
+      await sync.syncLoadedChunks({ force: true, reason: "test-placement" });
+      const placementApply = sync.applyQueuedDeltas({ budgetMs: 10, maxDeltas: 100 });
+      const afterPlacement = {
+        replaceCalls: calls.replace,
+        changedCalls: calls.changed,
+        deltaCount: chunk.chainDeltas.size,
+        blockId: [...chunk.chainDeltas.values()][0]?.blockId,
+        changedChunks: placementApply.changedChunks,
+      };
+
+      rpcAccounts = [null, null];
+      rpcSlot = 103;
       await sync.syncLoadedChunks({ force: true, reason: "test-delete" });
       const deleteApply = sync.applyQueuedDeltas({ budgetMs: 10, maxDeltas: 100 });
       await new Promise((resolve) => setTimeout(resolve, 80));
@@ -179,6 +193,7 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
       return {
         afterWarm,
         afterSame,
+        afterPlacement,
         afterDelete,
         clearWait,
         indexedDb: {
@@ -209,6 +224,27 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
         bytes[18] = (packed >> 16) & 0xff;
         return { data: bytes, owner: "ChunkProgram111", executable: false };
       }
+
+      function chunkPlacedAccount(item) {
+        const bytes = new Uint8Array(25);
+        bytes.set([78, 67, 80, 66], 0);
+        bytes[4] = 1;
+        bytes[6] = 1;
+        bytes[8] = 1;
+        bytes[10] = 0xe0;
+        bytes[11] = 0xff;
+        const localX = item.worldX & 0x0f;
+        const localZ = item.worldZ & 0x0f;
+        const yOffset = item.worldY + 32;
+        const packed = localX | (localZ << 4) | (yOffset << 8);
+        bytes[16] = packed & 0xff;
+        bytes[17] = (packed >> 8) & 0xff;
+        bytes[18] = (packed >> 16) & 0xff;
+        bytes[19] = item.blockId & 0xff;
+        bytes[20] = (item.blockId >> 8) & 0xff;
+        new DataView(bytes.buffer).setUint32(21, item.volumeMm3, true);
+        return { data: bytes, owner: "ChunkProgram111", executable: false };
+      }
     });
 
     assert.deepEqual(result.afterWarm, {
@@ -224,8 +260,15 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
     assert.equal(result.afterSame.pendingSnapshots, 0);
     assert.equal(result.afterSame.unchangedSnapshots, 1);
     assert.equal(result.afterSame.contextSlot, 101);
-    assert.equal(result.afterDelete.replaceCalls, 2);
-    assert.equal(result.afterDelete.changedCalls, 2);
+    assert.deepEqual(result.afterPlacement, {
+      replaceCalls: 2,
+      changedCalls: 2,
+      deltaCount: 1,
+      blockId: 7,
+      changedChunks: 1,
+    });
+    assert.equal(result.afterDelete.replaceCalls, 3);
+    assert.equal(result.afterDelete.changedCalls, 3);
     assert.equal(result.afterDelete.deltaCount, 0);
     assert.equal(result.afterDelete.changedChunks, 1);
     assert.equal(result.afterDelete.persistedDeltaCount, 0);

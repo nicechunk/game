@@ -124,8 +124,17 @@ export function createPlayChainAdapter({
     if (!getWalletAddress()) return skipped("wallet-unavailable");
     const module = await loadPlayChainModule();
     if (typeof module.recordBlockPlacementOnChain !== "function") return skipped("record-placement-unavailable");
+    const block = blockFromPending(pending);
     const renderType = module.renderTypeForBlockId?.(pending.blockId) ?? null;
-    const result = await module.recordBlockPlacementOnChain(blockFromPending(pending), renderType, pending.hotbarSlotIndex ?? 0);
+    const result = await module.recordBlockPlacementOnChain(
+      block,
+      renderType,
+      pending.hotbarSlotIndex ?? 0,
+      {
+        anchor: block.anchor,
+        sourceReference: clonePlacementSourceReference(pending.sourceReference),
+      },
+    );
     return normalizeChainResult(result);
   }
 
@@ -150,6 +159,15 @@ export function createPlayChainAdapter({
   function skipped(reason) {
     return { submitted: false, reason };
   }
+}
+
+function clonePlacementSourceReference(reference) {
+  if (!reference || typeof reference !== "object") return null;
+  return {
+    ...reference,
+    modelBytes: Array.from(reference.modelBytes ?? []),
+    proof: reference.proof ? { ...reference.proof } : null,
+  };
 }
 
 export function migrateLegacyChainSyncPreference(storage = globalThis.localStorage) {
@@ -346,7 +364,7 @@ function pushUrl(urls, value) {
 }
 
 function blockFromPending(pending) {
-  return {
+  const block = {
     x: Math.trunc(pending.worldX),
     y: Math.trunc(pending.worldY),
     z: Math.trunc(pending.worldZ),
@@ -354,6 +372,14 @@ function blockFromPending(pending) {
     resourceId: Math.trunc(pending.resourceId ?? 0),
     key: `${Math.trunc(pending.worldX)},${Math.trunc(pending.worldY)},${Math.trunc(pending.worldZ)}`,
   };
+  if ([pending.anchorWorldX, pending.anchorWorldY, pending.anchorWorldZ].every(Number.isFinite)) {
+    block.anchor = {
+      x: Math.trunc(pending.anchorWorldX),
+      y: Math.trunc(pending.anchorWorldY),
+      z: Math.trunc(pending.anchorWorldZ),
+    };
+  }
+  return block;
 }
 
 function playerPositionProof(getPlayerPosition) {

@@ -1,4 +1,5 @@
-import { BLOCK_ID, worldToChunk } from "/chunk.js/play.js";
+import { BLOCK_ID, worldToChunk } from "../chunk.js/play.js";
+import { isPlacedWorldBlock } from "./placed-block-state.js";
 
 const DEFAULT_MAX_TREE_BLOCKS = 96;
 const MAX_TRUNK_SCAN = 16;
@@ -8,16 +9,18 @@ const EXTRA_LEAF_Y = 3;
 export function createTreeMiningPlanner({
   chunks,
   blockDef,
+  blockAirId = BLOCK_ID.air,
   maxTreeBlocks = DEFAULT_MAX_TREE_BLOCKS,
 } = {}) {
   return function treeMiningPlanForHit(hit) {
     const primary = normalizeHit(hit, chunks, blockDef);
     if (!primary || !isTreeTrunkBlockId(primary.blockId)) return null;
+    if (isPlacedWorldBlock(chunks, primary.worldX, primary.worldY, primary.worldZ, blockAirId)) return null;
     const x = primary.worldX;
     const z = primary.worldZ;
     const trunkBlockId = primary.blockId;
-    const baseY = findTrunkBaseY(chunks, x, primary.worldY, z, trunkBlockId);
-    const topY = findTrunkTopY(chunks, x, primary.worldY, z, trunkBlockId);
+    const baseY = findTrunkBaseY(chunks, x, primary.worldY, z, trunkBlockId, blockAirId);
+    const topY = findTrunkTopY(chunks, x, primary.worldY, z, trunkBlockId, blockAirId);
     if (!Number.isFinite(baseY) || !Number.isFinite(topY) || topY < baseY) return null;
 
     const blocks = collectTreeBlocks(chunks, blockDef, {
@@ -26,6 +29,7 @@ export function createTreeMiningPlanner({
       baseY,
       topY,
       trunkBlockId,
+      blockAirId,
       maxTreeBlocks,
     });
     if (blocks.length <= 1) return null;
@@ -54,11 +58,11 @@ export function selectTreeRewardBlocks(blocks = [], trunkBlockId = BLOCK_ID.trun
   return rewards;
 }
 
-function collectTreeBlocks(chunks, blockDef, { x, z, baseY, topY, trunkBlockId, maxTreeBlocks }) {
+function collectTreeBlocks(chunks, blockDef, { x, z, baseY, topY, trunkBlockId, blockAirId, maxTreeBlocks }) {
   const blocks = [];
   const seen = new Set();
   for (let y = baseY; y <= topY; y += 1) {
-    pushTreeBlock(blocks, seen, chunks, blockDef, x, y, z, trunkBlockId);
+    pushTreeBlock(blocks, seen, chunks, blockDef, x, y, z, trunkBlockId, blockAirId);
   }
   const minY = baseY;
   const maxY = topY + EXTRA_LEAF_Y;
@@ -67,14 +71,15 @@ function collectTreeBlocks(chunks, blockDef, { x, z, baseY, topY, trunkBlockId, 
     for (let dz = -LEAF_RADIUS; dz <= LEAF_RADIUS && blocks.length < maxCount; dz += 1) {
       for (let dx = -LEAF_RADIUS; dx <= LEAF_RADIUS && blocks.length < maxCount; dx += 1) {
         if (dx === 0 && dz === 0 && y <= topY) continue;
-        pushTreeBlock(blocks, seen, chunks, blockDef, x + dx, y, z + dz, trunkBlockId);
+        pushTreeBlock(blocks, seen, chunks, blockDef, x + dx, y, z + dz, trunkBlockId, blockAirId);
       }
     }
   }
   return blocks.sort((a, b) => (a.worldY - b.worldY) || (a.worldX - b.worldX) || (a.worldZ - b.worldZ));
 }
 
-function pushTreeBlock(blocks, seen, chunks, blockDef, worldX, worldY, worldZ, trunkBlockId) {
+function pushTreeBlock(blocks, seen, chunks, blockDef, worldX, worldY, worldZ, trunkBlockId, blockAirId) {
+  if (isPlacedWorldBlock(chunks, worldX, worldY, worldZ, blockAirId)) return false;
   const blockId = Math.trunc(Number(chunks?.getBlockAtWorld?.(worldX, worldY, worldZ)) || BLOCK_ID.air);
   if (!isSameTreeBlock(blockId, trunkBlockId)) return false;
   const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
@@ -103,9 +108,10 @@ function pushTreeBlock(blocks, seen, chunks, blockDef, worldX, worldY, worldZ, t
   return true;
 }
 
-function findTrunkBaseY(chunks, x, y, z, trunkBlockId) {
+function findTrunkBaseY(chunks, x, y, z, trunkBlockId, blockAirId) {
   let current = Math.trunc(y);
   for (let step = 0; step < MAX_TRUNK_SCAN; step += 1) {
+    if (isPlacedWorldBlock(chunks, x, current - 1, z, blockAirId)) break;
     const below = Math.trunc(Number(chunks?.getBlockAtWorld?.(x, current - 1, z)) || BLOCK_ID.air);
     if (below !== trunkBlockId) break;
     current -= 1;
@@ -113,9 +119,10 @@ function findTrunkBaseY(chunks, x, y, z, trunkBlockId) {
   return current;
 }
 
-function findTrunkTopY(chunks, x, y, z, trunkBlockId) {
+function findTrunkTopY(chunks, x, y, z, trunkBlockId, blockAirId) {
   let current = Math.trunc(y);
   for (let step = 0; step < MAX_TRUNK_SCAN; step += 1) {
+    if (isPlacedWorldBlock(chunks, x, current + 1, z, blockAirId)) break;
     const above = Math.trunc(Number(chunks?.getBlockAtWorld?.(x, current + 1, z)) || BLOCK_ID.air);
     if (above !== trunkBlockId) break;
     current += 1;

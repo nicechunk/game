@@ -13,15 +13,20 @@ export function createPlacementController({
   onPending = () => {},
   onConfirm = () => {},
   onRollback = () => {},
+  translate = (_, fallback) => fallback,
   placementReach = 6,
 } = {}) {
   const pendingTx = [];
   let txSerial = 1;
 
   function placePending() {
+    if (pendingTx.length) {
+      onStatus(text("main.placement.inFlight", "A block placement is already being confirmed on chain."));
+      return null;
+    }
     const selected = gameState.getSelectedPlaceableSlot?.();
     if (!selected) {
-      onStatus("Select a confirmed resource block in the hotbar before placing.");
+      onStatus(text("main.placement.selectResource", "Select a confirmed resource block in the hotbar before placing."));
       return null;
     }
     const hit = getHit?.();
@@ -33,10 +38,9 @@ export function createPlacementController({
     const target = validation.target;
     const blockId = validation.blockId;
     const def = blockDef(blockId);
-
-    const consumed = gameState.consumeSelectedPlaceable?.(1);
-    if (!consumed?.ok) {
-      onStatus(consumed?.reason || "Selected block stack could not be consumed.");
+    const sourceReference = gameState.getHotbarEquipmentChainReference?.(selected.index);
+    if (!sourceReference || sourceReference.kind !== "block" || sourceReference.blockId !== blockId) {
+      onStatus(text("main.placement.sourceUnavailable", "The selected resource is not linked to an authoritative chain inventory slot."));
       return null;
     }
 
@@ -56,64 +60,83 @@ export function createPlacementController({
       blockId,
       resourceId: selected.slot.resourceId,
       hotbarSlotIndex: selected.index,
-      consumed: consumed.consumed,
+      sourceReference: cloneSourceReference(sourceReference),
     };
     pendingTx.push(pending);
-    gameState.playerProfile.placedBlocks = (gameState.playerProfile.placedBlocks || 0) + 1;
-    gameState.savePlayerProfile();
     onPlacementStart(pending);
     onPending(pending);
     onChanged();
-    onStatus(`Pending place ${txId}: ${def.name} at ${target.worldX}, ${target.worldY}, ${target.worldZ}.`);
+    onStatus(text("main.placement.pending", "Pending place {txId}: {block} at {x}, {y}, {z}.", {
+      txId,
+      block: blockName(def),
+      x: target.worldX,
+      y: target.worldY,
+      z: target.worldZ,
+    }));
     return pending;
   }
 
   function confirmLast() {
-    return confirmPendingAt(pendingTx.length - 1);
+    onStatus(pendingTx.length
+      ? text("main.placement.confirming", "Placement is still being confirmed on chain.")
+      : text("main.placement.noPendingConfirm", "No pending placement to confirm."));
+    return null;
   }
 
-  function confirmTx(txId) {
+  function confirmTx(txId, { chainResolution = false } = {}) {
+    if (!chainResolution) {
+      onStatus(text("main.placement.chainConfirmOnly", "Only a confirmed chain transaction can finalize this placement."));
+      return null;
+    }
     return confirmPendingAt(pendingTx.findIndex((pending) => pending.txId === txId));
   }
 
   function confirmPendingAt(index) {
     const pending = index >= 0 ? pendingTx.splice(index, 1)[0] : null;
     if (!pending) {
-      onStatus("No pending placement to confirm.");
+      onStatus(text("main.placement.noPendingConfirm", "No pending placement to confirm."));
       return null;
     }
     chunks.confirmPendingDelta(pending.txId);
+    gameState.playerProfile.placedBlocks = (gameState.playerProfile.placedBlocks || 0) + 1;
     gameState.playerProfile.confirmedPlacements = (gameState.playerProfile.confirmedPlacements || 0) + 1;
     gameState.savePlayerProfile();
     onConfirm(pending);
     onChanged();
-    onStatus(`Confirmed placement ${pending.txId}.`);
+    onStatus(text("main.placement.confirmed", "Confirmed placement {txId}.", { txId: pending.txId }));
     return pending;
   }
 
   function rollbackLast() {
-    return rollbackPendingAt(pendingTx.length - 1);
+    onStatus(pendingTx.length
+      ? text("main.placement.submittingLocked", "Placement is being submitted and cannot be canceled locally.")
+      : text("main.placement.noPendingRollback", "No pending placement to rollback."));
+    return null;
   }
 
-  function rollbackTx(txId) {
+  function rollbackTx(txId, { chainResolution = false } = {}) {
+    if (!chainResolution) {
+      onStatus(text("main.placement.chainRollbackOnly", "Only the chain submission result can roll back this placement preview."));
+      return null;
+    }
     return rollbackPendingAt(pendingTx.findIndex((pending) => pending.txId === txId));
   }
 
   function rollbackPendingAt(index) {
     const pending = index >= 0 ? pendingTx.splice(index, 1)[0] : null;
     if (!pending) {
-      onStatus("No pending placement to rollback.");
+      onStatus(text("main.placement.noPendingRollback", "No pending placement to rollback."));
       return null;
     }
     chunks.rollbackPendingDelta(pending.txId);
-    if (pending.consumed) gameState.restoreBackpackSlotSnapshot?.(pending.consumed);
     gameState.syncHotbarResourceSlots?.();
     gameState.playerProfile.rolledBackPlacements = (gameState.playerProfile.rolledBackPlacements || 0) + 1;
-    gameState.playerProfile.placedBlocks = Math.max(0, (gameState.playerProfile.placedBlocks || 0) - 1);
     gameState.savePlayerProfile();
     onRollback(pending);
     onChanged();
-    onStatus(`Rolled back placement ${pending.txId}. Block and backpack stack restored.`);
+    onStatus(text("main.placement.rolledBack", "Rolled back placement {txId}. The unconfirmed preview was removed.", {
+      txId: pending.txId,
+    }));
     return pending;
   }
 
@@ -123,13 +146,19 @@ export function createPlacementController({
 
   function previewForHit(hit, selected = gameState.getSelectedPlaceableSlot?.()) {
     const slot = selected?.slot ?? selected;
-    if (!slot) return { ok: false, reason: "Select a confirmed resource block in the hotbar before placing.", hit: hit ?? null };
+    if (!slot) return {
+      ok: false,
+      reason: text("main.placement.selectResource", "Select a confirmed resource block in the hotbar before placing."),
+      hit: hit ?? null,
+    };
     const blockId = Math.trunc(slot.blockId || 0);
     const def = blockDef(blockId);
     if (!isPlaceableBlock(blockId)) {
       return {
         ok: false,
-        reason: `${def.name} cannot be placed as a solid world block.`,
+        reason: text("main.placement.notSolid", "{block} cannot be placed as a solid world block.", {
+          block: blockName(def),
+        }),
         hit: hit ?? null,
         blockId,
         resourceId: slot.resourceId,
@@ -138,7 +167,7 @@ export function createPlacementController({
     if (!hit?.hit) {
       return {
         ok: false,
-        reason: "No block face in range for placement.",
+        reason: text("main.placement.noFace", "No block face in range for placement."),
         hit: hit ?? null,
         blockId,
         resourceId: slot.resourceId,
@@ -150,6 +179,7 @@ export function createPlacementController({
       getPlayerBounds,
       blockAirId,
       placementReach,
+      translate,
     });
     return {
       ...validation,
@@ -169,7 +199,28 @@ export function createPlacementController({
     rollbackTx,
     previewForHit,
     pendingCount: () => pendingTx.length,
-    pendingSnapshot: () => pendingTx.map((entry) => ({ ...entry, consumed: entry.consumed ? { ...entry.consumed } : null })),
+    pendingSnapshot: () => pendingTx.map((entry) => ({
+      ...entry,
+      sourceReference: cloneSourceReference(entry.sourceReference),
+    })),
+  };
+
+  function blockName(definition) {
+    const name = String(definition?.name || "block");
+    return translate(`main.block.${name}`, name) || name;
+  }
+
+  function text(key, fallback, params = {}) {
+    return translate(key, fallback, params) || fallback;
+  }
+}
+
+function cloneSourceReference(reference) {
+  if (!reference || typeof reference !== "object") return null;
+  return {
+    ...reference,
+    modelBytes: Array.from(reference.modelBytes ?? []),
+    proof: reference.proof ? { ...reference.proof } : null,
   };
 }
 
@@ -192,14 +243,21 @@ export function validatePlacementTargetRaw(target, {
   getPlayerBounds = () => null,
   blockAirId = 0,
   placementReach = 6,
+  translate = (_, fallback) => fallback,
 } = {}) {
   if (!target || (Math.abs(target.faceX) + Math.abs(target.faceY) + Math.abs(target.faceZ)) !== 1) {
-    return { ok: false, reason: "Placement needs a clear block face." };
+    return { ok: false, reason: translate("main.placement.clearFace", "Placement needs a clear block face.") };
   }
-  if (!isPlacementTargetInRangeRaw(target, getPlayerBounds, placementReach)) return { ok: false, reason: "Placement target is out of reach." };
+  if (!isPlacementTargetInRangeRaw(target, getPlayerBounds, placementReach)) {
+    return { ok: false, reason: translate("main.placement.outOfReach", "Placement target is out of reach.") };
+  }
   const existing = chunks?.getBlockAtWorld?.(target.worldX, target.worldY, target.worldZ);
-  if (existing !== blockAirId) return { ok: false, reason: "Placement target is occupied." };
-  if (wouldPlacementBlockIntersectPlayer(target, getPlayerBounds)) return { ok: false, reason: "Cannot place a block inside the player body." };
+  if (existing !== blockAirId) {
+    return { ok: false, reason: translate("main.placement.occupied", "Placement target is occupied.") };
+  }
+  if (wouldPlacementBlockIntersectPlayer(target, getPlayerBounds)) {
+    return { ok: false, reason: translate("main.placement.intersectsPlayer", "Cannot place a block inside the player body.") };
+  }
   return { ok: true };
 }
 

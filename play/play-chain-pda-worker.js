@@ -1,4 +1,4 @@
-import { createChunkBrokenPdaDeriver } from "./play-solana-pda-lite.js";
+import { createChunkPdaDeriver } from "./play-solana-pda-lite.js";
 
 const pdaCache = new Map();
 let activeConfigKey = "";
@@ -7,14 +7,14 @@ self.onmessage = async (event) => {
   const task = event.data;
   if (!task || task.type !== "fetchChunkPdas") return;
   try {
-    const deriveChunkBrokenPda = configuredDeriver(task.pdaConfig);
+    const derivers = configuredDerivers(task.pdaConfig);
     const batches = Array.isArray(task.batches) ? task.batches : [];
     const batchResults = await Promise.all(batches.map(async (batch, batchIndex) => {
-      const pubkeys = await Promise.all((batch ?? []).map((chunk) => deriveCachedPda(
-        deriveChunkBrokenPda,
-        chunk.chunkX,
-        chunk.chunkZ,
-      )));
+      const pubkeyPairs = await Promise.all((batch ?? []).map((chunk) => Promise.all([
+        deriveCachedPda("broken", derivers.broken, chunk.chunkX, chunk.chunkZ),
+        deriveCachedPda("placed", derivers.placed, chunk.chunkX, chunk.chunkZ),
+      ])));
+      const pubkeys = pubkeyPairs.flat();
       return fetchAccountBatch({
         rpcUrl: task.rpcUrl,
         pubkeys,
@@ -39,21 +39,28 @@ self.onmessage = async (event) => {
   }
 };
 
-function configuredDeriver(config) {
-  const key = [config?.seed, config?.globalConfig, config?.programId].map((value) => String(value || "")).join(":");
-  if (!config?.seed || !config?.globalConfig || !config?.programId) throw new Error("Chunk PDA derivation config is unavailable.");
+function configuredDerivers(config) {
+  const key = [config?.seed, config?.placedSeed, config?.globalConfig, config?.programId]
+    .map((value) => String(value || ""))
+    .join(":");
+  if (!config?.seed || !config?.placedSeed || !config?.globalConfig || !config?.programId) {
+    throw new Error("Chunk PDA derivation config is unavailable.");
+  }
   if (key !== activeConfigKey) {
     activeConfigKey = key;
     pdaCache.clear();
   }
-  return createChunkBrokenPdaDeriver(config);
+  return {
+    broken: createChunkPdaDeriver(config),
+    placed: createChunkPdaDeriver({ ...config, seed: config.placedSeed }),
+  };
 }
 
-async function deriveCachedPda(deriveChunkBrokenPda, chunkX, chunkZ) {
-  const key = `${Math.trunc(chunkX)},${Math.trunc(chunkZ)}`;
+async function deriveCachedPda(kind, deriveChunkPda, chunkX, chunkZ) {
+  const key = `${kind}:${Math.trunc(chunkX)},${Math.trunc(chunkZ)}`;
   const cached = pdaCache.get(key);
   if (cached) return cached;
-  const address = await deriveChunkBrokenPda(Math.trunc(chunkX), Math.trunc(chunkZ));
+  const address = await deriveChunkPda(Math.trunc(chunkX), Math.trunc(chunkZ));
   if (!address) throw new Error(`Failed to derive chunk PDA ${chunkX},${chunkZ}.`);
   if (pdaCache.size >= 4096) pdaCache.delete(pdaCache.keys().next().value);
   pdaCache.set(key, address);

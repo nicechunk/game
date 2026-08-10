@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "已有方塊正在鏈上確認放置。",
+      "selectResource": "放置前請先在快捷欄選擇已確認的資源方塊。",
+      "sourceUnavailable": "所選資源未連結到鏈上權威背包欄位。",
+      "pending": "等待確認 {txId}：在 {x}, {y}, {z} 放置 {block}。",
+      "confirming": "仍在鏈上確認本次放置。",
+      "noPendingConfirm": "沒有等待確認的放置。",
+      "chainConfirmOnly": "只有已確認的鏈上交易才能完成本次放置。",
+      "confirmed": "放置 {txId} 已確認。",
+      "submittingLocked": "放置交易正在提交，無法在本機取消。",
+      "noPendingRollback": "沒有可回滾的待確認放置。",
+      "chainRollbackOnly": "只有鏈上提交結果才能回滾此放置預覽。",
+      "rolledBack": "已回滾放置 {txId}，並移除未確認的預覽。",
+      "notSolid": "{block} 無法作為實體世界方塊放置。",
+      "noFace": "放置範圍內沒有方塊表面。",
+      "clearFace": "放置需要一個未被遮擋的方塊表面。",
+      "outOfReach": "放置目標超出距離。",
+      "occupied": "放置目標已被佔用。",
+      "intersectsPlayer": "不能在角色身體內放置方塊。"
     }
   },
   "resourceSimulator": {

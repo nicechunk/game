@@ -1571,6 +1571,26 @@
           }
         }
       }
+    },
+    "placement": {
+      "inFlight": "Eine Blockplatzierung wird bereits auf der Chain bestätigt.",
+      "selectResource": "Wähle vor dem Platzieren einen bestätigten Ressourcenblock in der Schnellleiste.",
+      "sourceUnavailable": "Die gewählte Ressource ist keinem maßgeblichen Chain-Inventarplatz zugeordnet.",
+      "pending": "Platzierung ausstehend {txId}: {block} bei {x}, {y}, {z}.",
+      "confirming": "Die Platzierung wird noch auf der Chain bestätigt.",
+      "noPendingConfirm": "Keine ausstehende Platzierung zum Bestätigen.",
+      "chainConfirmOnly": "Nur eine bestätigte Chain-Transaktion kann diese Platzierung abschließen.",
+      "confirmed": "Platzierung {txId} bestätigt.",
+      "submittingLocked": "Die Platzierung wird übermittelt und kann lokal nicht abgebrochen werden.",
+      "noPendingRollback": "Keine ausstehende Platzierung zum Zurücksetzen.",
+      "chainRollbackOnly": "Nur das Ergebnis der Chain-Übermittlung kann diese Vorschau zurücksetzen.",
+      "rolledBack": "Platzierung {txId} zurückgesetzt. Die unbestätigte Vorschau wurde entfernt.",
+      "notSolid": "{block} kann nicht als fester Weltblock platziert werden.",
+      "noFace": "Keine Blockfläche zum Platzieren in Reichweite.",
+      "clearFace": "Zum Platzieren wird eine freie Blockfläche benötigt.",
+      "outOfReach": "Das Platzierungsziel ist außer Reichweite.",
+      "occupied": "Das Platzierungsziel ist belegt.",
+      "intersectsPlayer": "Ein Block kann nicht im Körper der Spielfigur platziert werden."
     }
   },
   "resourceSimulator": {
