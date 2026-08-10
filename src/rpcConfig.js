@@ -49,8 +49,19 @@ export function saveCustomRpcUrl(rpcUrl) {
 
 export function resetRpcConfig() {
   sessionStorage.removeItem(heliusApiKeyStorageKey);
+  localStorage.removeItem(heliusApiKeyStorageKey);
   localStorage.removeItem(rpcOverrideStorageKey);
   dispatchRpcConfigChanged();
+}
+
+export function migrateHeliusApiKeyFromLocalStorage() {
+  const legacy = localStorage.getItem(heliusApiKeyStorageKey);
+  if (!legacy) return;
+  const cleaned = cleanApiKey(legacy);
+  if (cleaned && !sessionStorage.getItem(heliusApiKeyStorageKey)) {
+    sessionStorage.setItem(heliusApiKeyStorageKey, cleaned);
+  }
+  localStorage.removeItem(heliusApiKeyStorageKey);
 }
 
 export function isUsingPublicRpc() {

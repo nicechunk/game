@@ -69,7 +69,7 @@ test("RPC settings preserve failure context, verify Devnet, and never expose cre
     await page.waitForFunction(() => globalThis.__rpcResult?.action === "saved");
     const saved = await page.evaluate(() => ({
       result: globalThis.__rpcResult,
-      key: localStorage.getItem("nicechunk.heliusApiKey"),
+      key: sessionStorage.getItem("nicechunk.heliusApiKey"),
       override: localStorage.getItem("nicechunk.devnetRpcUrl"),
       panelHidden: document.querySelector("#rpcConfigPanel").hidden,
       bodyText: document.body.textContent,
@@ -118,7 +118,7 @@ test("RPC settings reject non-Devnet endpoints, support custom HTTPS RPC, and re
     await page.waitForFunction(() => globalThis.__rpcResult?.mode === "custom");
     const custom = await page.evaluate(() => ({
       endpoint: localStorage.getItem("nicechunk.devnetRpcUrl"),
-      key: localStorage.getItem("nicechunk.heliusApiKey"),
+      key: sessionStorage.getItem("nicechunk.heliusApiKey"),
     }));
     assert.equal(custom.endpoint, "https://rpc.example.test/devnet?token=private-value");
     assert.equal(custom.key, null);
@@ -128,7 +128,7 @@ test("RPC settings reject non-Devnet endpoints, support custom HTTPS RPC, and re
     await page.waitForFunction(() => globalThis.__rpcResult?.mode === "public");
     const reset = await page.evaluate(() => ({
       endpoint: localStorage.getItem("nicechunk.devnetRpcUrl"),
-      key: localStorage.getItem("nicechunk.heliusApiKey"),
+      key: sessionStorage.getItem("nicechunk.heliusApiKey"),
     }));
     assert.deepEqual(reset, { endpoint: null, key: null });
   } finally {
@@ -143,12 +143,12 @@ test("Dismissing RPC settings resolves without changing the stored connection", 
     await page.goto(`${origin}/fixture`, { waitUntil: "networkidle" });
     await page.waitForFunction(() => globalThis.__rpcReady === true);
     await page.evaluate(() => {
-      localStorage.setItem("nicechunk.heliusApiKey", "existing-key");
+      sessionStorage.setItem("nicechunk.heliusApiKey", "existing-key");
       return globalThis.openRpcSettings();
     });
     await page.locator("#rpcConfigDismiss").click();
     await page.waitForFunction(() => globalThis.__rpcResult?.action === "dismissed");
-    assert.equal(await page.evaluate(() => localStorage.getItem("nicechunk.heliusApiKey")), "existing-key");
+    assert.equal(await page.evaluate(() => sessionStorage.getItem("nicechunk.heliusApiKey")), "existing-key");
   } finally {
     await browser.close();
   }

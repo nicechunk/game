@@ -7,22 +7,9 @@
     <meta name="color-scheme" content="light" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://devnet.helius-rpc.com https://explorer-api.devnet.solana.com https://api.devnet.solana.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
     <title>NiceChunk Play</title>
-    <script>
-      (() => {
-        try {
-          const wallet = localStorage.getItem("nicechunk.walletAddress");
-          const boundAt = localStorage.getItem("nicechunk.walletBoundAt");
-          if (wallet && boundAt) return;
-        } catch {
-          // A game session cannot be maintained when browser storage is unavailable.
-        }
-        document.documentElement.hidden = true;
-        const loginUrl = new URL("/login/", location.origin);
-        loginUrl.searchParams.set("redirect", `${location.pathname}${location.search}${location.hash}` || "/play/");
-        location.replace(loginUrl);
-      })();
-    </script>
+    <script src="/play/play-boot.js"></script>
     <script vite-ignore src="/play/play-loader.js" fetchpriority="high" data-nicechunk-loader></script>
     <script vite-ignore src="/play/play-onboarding-loader.js" defer data-nicechunk-onboarding data-module="/play/play-onboarding.js" data-style="/play/play-onboarding.css"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=0.1.53" />
@@ -180,7 +167,7 @@
           <div class="rpc-config-explainer" data-i18n-aria-label="main.rpcConfig.explainerAria" aria-label="RPC setting details">
             <article><span data-i18n="main.rpcConfig.pointGatewayLabel">Chain gateway</span><strong data-i18n="main.rpcConfig.pointGatewayTitle">RPC decides how the browser reaches Solana</strong><p data-i18n="main.rpcConfig.pointGatewayBody">NiceChunk uses RPC endpoints to read accounts, refresh world state, and submit signed transactions.</p></article>
             <article><span data-i18n="main.rpcConfig.pointReliabilityLabel">Reliability</span><strong data-i18n="main.rpcConfig.pointReliabilityTitle">A dedicated endpoint avoids public congestion</strong><p data-i18n="main.rpcConfig.pointReliabilityBody">A Helius Free plan is normally sufficient for testing and gives this browser an independent request allowance.</p></article>
-            <article><span data-i18n="main.rpcConfig.pointCostLabel">Cost boundary</span><strong data-i18n="main.rpcConfig.pointCostTitle">The key is not a payment to NiceChunk</strong><p data-i18n="main.rpcConfig.pointCostBody">The API key is stored locally in your browser and used only to build your RPC URL.</p></article>
+            <article><span data-i18n="main.rpcConfig.pointCostLabel">Cost boundary</span><strong data-i18n="main.rpcConfig.pointCostTitle">The key is not a payment to NiceChunk</strong><p data-i18n="main.rpcConfig.pointCostBody">Your API key is stored for this browser session only and sent directly to Helius from your browser. It is cleared when the tab closes.</p></article>
             <article><span data-i18n="main.rpcConfig.pointSecurityLabel">Security</span><strong data-i18n="main.rpcConfig.pointSecurityTitle">RPC cannot spend SOL by itself</strong><p data-i18n="main.rpcConfig.pointSecurityBody">Transactions still require a wallet signature. NiceChunk never sends the saved credential to its own server.</p></article>
           </div>
         </div>

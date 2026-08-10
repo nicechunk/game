@@ -604,7 +604,7 @@ export function createPlayProfileUi({
       const durability = document.createElement("section");
       durability.className = "profile-equipment-durability";
       durability.innerHTML = `
-        <div><span>${escapeHtml(ui("main.profile.equipment.durability", "Durability"))}</span><strong>${entry.durability.current} / ${entry.durability.max}</strong></div>
+        <div><span>${escapeHtml(ui("main.profile.equipment.durability", "Durability"))}</span><strong>${escapeHtml(String(entry.durability.current))} / ${escapeHtml(String(entry.durability.max))}</strong></div>
         <div class="equipment-meter ${entry.durability.ratio < 0.18 ? "low" : ""}"><i style="width:${Math.round(entry.durability.ratio * 100)}%"></i></div>
       `;
       target.append(durability);
