@@ -8,13 +8,13 @@ export const rpcErrorEventName = "nicechunk:rpc-error";
 export function getNicechunkRpcUrl() {
   const override = getStoredRpcOverride();
   if (override) return override;
-  const apiKey = cleanApiKey(localStorage.getItem(heliusApiKeyStorageKey));
+  const apiKey = cleanApiKey(sessionStorage.getItem(heliusApiKeyStorageKey));
   if (apiKey) return heliusDevnetRpcUrl(apiKey);
   return publicDevnetRpcUrl;
 }
 
 export function getStoredHeliusApiKey() {
-  return cleanApiKey(localStorage.getItem(heliusApiKeyStorageKey));
+  return cleanApiKey(sessionStorage.getItem(heliusApiKeyStorageKey));
 }
 
 export function getStoredRpcOverride() {
@@ -30,9 +30,9 @@ export function getRpcConfigMode() {
 export function saveHeliusApiKey(apiKey) {
   const cleaned = cleanApiKey(apiKey);
   if (!cleaned) {
-    localStorage.removeItem(heliusApiKeyStorageKey);
+    sessionStorage.removeItem(heliusApiKeyStorageKey);
   } else {
-    localStorage.setItem(heliusApiKeyStorageKey, cleaned);
+    sessionStorage.setItem(heliusApiKeyStorageKey, cleaned);
   }
   localStorage.removeItem(rpcOverrideStorageKey);
   dispatchRpcConfigChanged();
@@ -42,13 +42,13 @@ export function saveCustomRpcUrl(rpcUrl) {
   const cleaned = normalizeHttpsRpcUrl(rpcUrl);
   if (!cleaned) throw new TypeError("invalid-https-rpc-url");
   localStorage.setItem(rpcOverrideStorageKey, cleaned);
-  localStorage.removeItem(heliusApiKeyStorageKey);
+  sessionStorage.removeItem(heliusApiKeyStorageKey);
   dispatchRpcConfigChanged();
   return cleaned;
 }
 
 export function resetRpcConfig() {
-  localStorage.removeItem(heliusApiKeyStorageKey);
+  sessionStorage.removeItem(heliusApiKeyStorageKey);
   localStorage.removeItem(rpcOverrideStorageKey);
   dispatchRpcConfigChanged();
 }
