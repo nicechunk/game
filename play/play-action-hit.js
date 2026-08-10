@@ -23,15 +23,21 @@ export function createPlayActionHit({
   firstPersonPitchMin = pitchMin,
   firstPersonPitchMax = pitchMax,
   updateIntervalMs = 90,
+  raycastFromCamera = raycastBlock,
+  raycastFromScreen = raycastBlockFromScreen,
 } = {}) {
   const actionRayCamera = createCameraState({ worldX: 0, worldY: 0, worldZ: 0 });
   let actionHitOverride = null;
+  let pointerScreenPoint = null;
+  let pointerDirty = false;
   let lastHit = null;
   let lastUpdateAt = 0;
 
   return {
     currentHit: () => lastHit,
     handleCanvasPointer,
+    handleCanvasPointerMove,
+    handleCanvasPointerLeave,
     updateForFrame,
     getPointerActionHit,
     getActionHit,
@@ -47,8 +53,22 @@ export function createPlayActionHit({
       return lastHit;
     }
     const point = actionScreenPoint(event);
-    actionHitOverride = raycastBlockFromScreen(camera, point.x, point.y, canvas, raycastDistance, chunks);
+    if (!getFirstPersonCamera()) rememberPointerScreenPoint(point);
+    actionHitOverride = raycastFromScreen(camera, point.x, point.y, canvas, raycastDistance, chunks);
     lastHit = isWithinReach(actionHitOverride) ? actionHitOverride : { hit: false };
+    return lastHit;
+  }
+
+  function handleCanvasPointerMove(event) {
+    if (!event || getFirstPersonCamera()) return lastHit;
+    rememberPointerScreenPoint({ x: event.clientX, y: event.clientY });
+    return lastHit;
+  }
+
+  function handleCanvasPointerLeave() {
+    pointerScreenPoint = null;
+    pointerDirty = false;
+    if (!getFirstPersonCamera()) lastHit = { hit: false };
     return lastHit;
   }
 
@@ -62,16 +82,24 @@ export function createPlayActionHit({
   }
 
   function updateForFrame(now = performance.now(), { force = false } = {}) {
-    if (!force && now - lastUpdateAt < updateIntervalMs) return lastHit;
+    if (!force && !pointerDirty && now - lastUpdateAt < updateIntervalMs) return lastHit;
     lastUpdateAt = now;
+    pointerDirty = false;
+    if (!getFirstPersonCamera()) {
+      const hit = raycastPointerScreenPoint();
+      lastHit = isWithinReach(hit) ? hit : { hit: false };
+      return lastHit;
+    }
     lastHit = resolve({ allowOutOfReach: false });
     return lastHit;
   }
 
   function getActionHit(now = performance.now()) {
-    const screenHit = actionHitOverride;
+    const screenHit = actionHitOverride ?? (!getFirstPersonCamera() ? raycastPointerScreenPoint() : null);
     actionHitOverride = null;
-    const hit = resolve({ screenHit, allowOutOfReach: true });
+    const hit = !getFirstPersonCamera()
+      ? (screenHit?.hit ? screenHit : { hit: false })
+      : resolve({ screenHit, allowOutOfReach: true });
     lastUpdateAt = now;
     lastHit = isWithinReach(hit) ? hit : { hit: false };
     return hit;
@@ -95,7 +123,7 @@ export function createPlayActionHit({
     const eyeHit = raycastFromPlayerEye(playerActionDirection(), playerEyeRaycastDistance);
     if (isWithinReach(eyeHit)) return eyeHit;
 
-    const cameraHit = raycastBlock(camera, null, raycastDistance, chunks);
+    const cameraHit = raycastFromCamera(camera, null, raycastDistance, chunks);
     if (isWithinReach(cameraHit)) return cameraHit;
 
     const cameraEyeHit = raycastFromPlayerEye(cameraForward(camera), playerEyeRaycastDistance);
@@ -115,7 +143,29 @@ export function createPlayActionHit({
     const [px, py, pz] = getPlayerWorldFloat();
     const eyeY = py + Math.min(playerBodyHeight * 0.82, playerEyeHeightBlocks);
     setActionRayCameraWorldFloat(px, eyeY, pz);
-    return raycastBlock(actionRayCamera, direction, maxDistance, chunks);
+    return raycastFromCamera(actionRayCamera, direction, maxDistance, chunks);
+  }
+
+  function rememberPointerScreenPoint(point) {
+    const x = Number(point?.x);
+    const y = Number(point?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    pointerScreenPoint = { x, y };
+    pointerDirty = true;
+  }
+
+  function raycastPointerScreenPoint() {
+    const camera = getCamera();
+    const chunks = getChunks();
+    if (!pointerScreenPoint || !camera || !chunks || !canvas) return { hit: false };
+    return raycastFromScreen(
+      camera,
+      pointerScreenPoint.x,
+      pointerScreenPoint.y,
+      canvas,
+      raycastDistance,
+      chunks,
+    );
   }
 
   function setActionRayCameraWorldFloat(x, y, z) {

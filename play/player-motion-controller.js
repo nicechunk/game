@@ -248,12 +248,20 @@ export function createPlayerMotionController({
     const miningRemaining = Math.max(0, (player.miningSwingUntil || 0) - now);
     const miningDuration = Math.max(1, player.miningSwingDurationMs || 1);
     const miningProgress = miningRemaining > 0 ? 1 - miningRemaining / miningDuration : 0;
+    const placementRemaining = Math.max(0, (player.placementActionUntil || 0) - now);
+    const placementDuration = Math.max(1, player.placementActionDurationMs || 1);
+    const placementProgress = placementRemaining > 0 ? 1 - placementRemaining / placementDuration : 0;
     if (miningRemaining > 0 && Number.isFinite(player.miningAimYaw)) {
       player.avatarYaw = player.miningAimYaw;
       player.yaw = player.miningAimYaw;
+    } else if (placementRemaining > 0 && Number.isFinite(player.placementAimYaw)) {
+      player.avatarYaw = player.placementAimYaw;
+      player.yaw = player.placementAimYaw;
     } else {
       player.miningAimYaw = null;
       player.miningAimPitch = 0;
+      player.placementAimYaw = null;
+      player.placementAimPitch = 0;
       if (player.firstPersonCamera && Number.isFinite(player.controlYaw)) {
         player.avatarYaw = player.controlYaw;
         player.yaw = player.controlYaw;
@@ -277,6 +285,8 @@ export function createPlayerMotionController({
       landingStrength,
       miningProgress,
       miningAimPitch: miningRemaining > 0 ? (Number(player.miningAimPitch) || 0) : 0,
+      placementProgress,
+      placementAimPitch: placementRemaining > 0 ? (Number(player.placementAimPitch) || 0) : 0,
     };
     avatar.shadowWorldY = shadowWorldY;
     avatar.shadowCasterHeight = cfg.avatarHeightBlocks;

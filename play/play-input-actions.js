@@ -28,6 +28,8 @@ export function createPlayInputActions({
   setViewDistance = () => {},
   clampViewDistance = (value) => value,
   onCanvasAction = () => {},
+  onCanvasPointerMove = () => {},
+  onCanvasPointerLeave = () => {},
   mouseActionDragPx = DEFAULT_MOUSE_ACTION_DRAG_PX,
   touchActionDragPx = DEFAULT_TOUCH_ACTION_DRAG_PX,
 } = {}) {
@@ -169,6 +171,7 @@ export function createPlayInputActions({
       };
     });
     canvas.addEventListener("pointermove", (event) => {
+      onCanvasPointerMove(event);
       if (!canvasActionPointer || event.pointerId !== canvasActionPointer.pointerId) return;
       const dx = event.clientX - canvasActionPointer.x;
       const dy = event.clientY - canvasActionPointer.y;
@@ -186,6 +189,9 @@ export function createPlayInputActions({
     canvas.addEventListener("pointerup", finish);
     canvas.addEventListener("pointercancel", () => {
       canvasActionPointer = null;
+    });
+    canvas.addEventListener("pointerleave", (event) => {
+      onCanvasPointerLeave(event);
     });
   }
 

@@ -90,6 +90,7 @@ test("gripless clicks select an exact model placement instead of mining", async 
 
   const uploads = [];
   const statuses = [];
+  const placementStarts = [];
   const hit = { hit: true, worldX: 2, worldY: 4, worldZ: 2, faceX: 0, faceY: 1, faceZ: 0 };
   const controller = createForgedItemPlacementController({
     gameState,
@@ -101,12 +102,15 @@ test("gripless clicks select an exact model placement instead of mining", async 
       removeAvatarMesh() {},
     }),
     onStatus: (reason) => statuses.push(reason),
+    onPlacementStart: (placement) => placementStarts.push(placement),
   });
 
   const selected = await controller.selectAtHit();
   assert.equal(selected.ok, true);
   assert.equal(statuses.at(-1), "selected");
   assert.deepEqual(selected.target, { worldX: 2, worldY: 5, worldZ: 2 });
+  assert.equal(placementStarts.length, 1);
+  assert.deepEqual(placementStarts[0].target, selected.target);
   assert.equal(uploads.length, 1);
   const entity = controller.previewEntity(hit);
   assert.equal(entity.opacity, 0.48);

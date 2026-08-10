@@ -36,6 +36,7 @@ export function createPlayAvatarSession({
   collisionSkinBlocks = 0.02,
   footClearanceBlocks = 0.02,
   miningSwingDurationMs = 260,
+  placementActionDurationMs = 360,
 } = {}) {
   let avatar = null;
   let avatarMesh = null;
@@ -67,6 +68,7 @@ export function createPlayAvatarSession({
     selectedForgedInteraction,
     ensureSelectedForgedRuntime,
     startMiningSwing,
+    startPlacementAction,
     toolCollisionFrame,
     toolReachSphere,
     toolTargetingSolution,
@@ -359,6 +361,35 @@ export function createPlayAvatarSession({
     player.miningSwingUntil = now + miningSwingDurationMs;
   }
 
+  function startPlacementAction(placement = null) {
+    const player = getPlayer();
+    if (!player) return;
+    const now = performance.now();
+    const target = placement?.target ?? placement;
+    const targetX = Number(target?.worldX);
+    const targetY = Number(target?.worldY);
+    const targetZ = Number(target?.worldZ);
+    player.placementAimYaw = null;
+    player.placementAimPitch = 0;
+    if (target && [targetX, targetY, targetZ].every(Number.isFinite)) {
+      const [playerX, playerY, playerZ] = getPlayerWorldFloat();
+      const dx = targetX + 0.5 - playerX;
+      const dz = targetZ + 0.5 - playerZ;
+      const horizontal = Math.hypot(dx, dz);
+      if (horizontal > 1e-6) {
+        player.placementAimYaw = normalizeAngle(Math.atan2(-dx, -dz));
+        player.avatarYaw = player.placementAimYaw;
+        player.yaw = player.placementAimYaw;
+        if (avatar) avatar.yaw = player.placementAimYaw;
+      }
+      const shoulderY = playerY + playerBodyHeight * 0.62;
+      player.placementAimPitch = clamp(Math.atan2(targetY + 0.5 - shoulderY, Math.max(0.001, horizontal)), -0.7, 0.7);
+    }
+    player.placementActionStartedAt = now;
+    player.placementActionDurationMs = placementActionDurationMs;
+    player.placementActionUntil = now + placementActionDurationMs;
+  }
+
   function toolCollisionFrame(args = {}) {
     return toolCollision?.toolCollisionFrame(args) ?? { boxes: [] };
   }
@@ -410,6 +441,10 @@ function normalizeAngle(value) {
   while (angle > Math.PI) angle -= Math.PI * 2;
   while (angle < -Math.PI) angle += Math.PI * 2;
   return angle;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
 function positiveBlockSizeMeters(value) {

@@ -18,6 +18,7 @@ export function createForgedItemPlacementController({
   ensureSelectedRuntime = async () => null,
   onStatus = () => {},
   onChanged = () => {},
+  onPlacementStart = () => {},
   placementReach = 6,
   blockSizeMeters = WORLD_BLOCK_SIZE_METERS,
 } = {}) {
@@ -86,6 +87,7 @@ export function createForgedItemPlacementController({
       bounds: { ...preview.bounds },
       yaw: preview.yaw,
     };
+    onPlacementStart(selectedPlacement);
     onStatus("selected", preview);
     onChanged();
     return { ...preview, selected: true };

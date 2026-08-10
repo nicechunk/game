@@ -182,6 +182,7 @@ const PLAYER_COLLISION_EPSILON = 0.0015;
 const PLAYER_GROUND_SNAP_UP = 0.22;
 const PLAYER_STEP_HEIGHT_BLOCKS = 1.05;
 const MINING_SWING_DURATION_MS = 260;
+const PLACEMENT_ACTION_DURATION_MS = 360;
 const ACTION_RAYCAST_DISTANCE = 48;
 const ACTION_PLAYER_EYE_RAYCAST_DISTANCE = 14;
 const ACTION_PLAYER_REACH_BLOCKS = metersToBlocks(3.8);
@@ -705,6 +706,11 @@ async function boot() {
     miningSwingDurationMs: MINING_SWING_DURATION_MS,
     miningAimYaw: null,
     miningAimPitch: 0,
+    placementActionStartedAt: 0,
+    placementActionUntil: 0,
+    placementActionDurationMs: PLACEMENT_ACTION_DURATION_MS,
+    placementAimYaw: null,
+    placementAimPitch: 0,
     radius: PLAYER_RADIUS,
     bodyHeight: PLAYER_BODY_HEIGHT,
   };
@@ -832,6 +838,7 @@ async function boot() {
     collisionSkinBlocks: PLAYER_COLLISION_SKIN_BLOCKS,
     footClearanceBlocks: PLAYER_FOOT_CLEARANCE_BLOCKS,
     miningSwingDurationMs: MINING_SWING_DURATION_MS,
+    placementActionDurationMs: PLACEMENT_ACTION_DURATION_MS,
   });
   startupLogger.end(gameplaySetupToken);
   await startupLogger.track("avatar model and tool mesh", avatarSession.init());
@@ -1232,6 +1239,7 @@ async function boot() {
     blockAirId: BLOCK_ID.air,
     onStatus: setStatus,
     onChanged: renderGameUi,
+    onPlacementStart: (pending) => avatarSession?.startPlacementAction(pending),
     onPending: (pending) => {
       lastWorldDeltaKind = "place";
       chainSession?.handlePendingPlace(pending, {
@@ -1255,6 +1263,7 @@ async function boot() {
     ensureSelectedRuntime: () => avatarSession?.ensureSelectedForgedRuntime?.(),
     onStatus: setForgedPlacementStatus,
     onChanged: renderGameUi,
+    onPlacementStart: (selected) => avatarSession?.startPlacementAction(selected),
     placementReach: ACTION_PLAYER_REACH_BLOCKS,
     blockSizeMeters: BLOCK_SIZE_METERS,
   });
@@ -1325,6 +1334,8 @@ async function boot() {
     setViewDistance,
     clampViewDistance: (value) => clampInt(value, 2, PLAYABLE_MAX_VIEW_DISTANCE),
     onCanvasAction: handleCanvasActionPointer,
+    onCanvasPointerMove: handleCanvasActionPointerMove,
+    onCanvasPointerLeave: handleCanvasActionPointerLeave,
   });
   positionPersistence = createPositionPersistence({
     storageKey: POSITION_STORAGE_KEY,
@@ -1542,6 +1553,14 @@ function handleCanvasActionPointer(event) {
     }));
   }
   inputActions?.useSelectedHotbarAction();
+}
+
+function handleCanvasActionPointerMove(event) {
+  actionHit?.handleCanvasPointerMove?.(event);
+}
+
+function handleCanvasActionPointerLeave() {
+  lastHit = actionHit?.handleCanvasPointerLeave?.() ?? { hit: false };
 }
 
 function updateMinimapForFrame(now, { worldVisible = false } = {}) {

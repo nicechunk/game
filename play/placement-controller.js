@@ -9,6 +9,7 @@ export function createPlacementController({
   blockAirId,
   onStatus = () => {},
   onChanged = () => {},
+  onPlacementStart = () => {},
   onPending = () => {},
   onConfirm = () => {},
   onRollback = () => {},
@@ -60,6 +61,7 @@ export function createPlacementController({
     pendingTx.push(pending);
     gameState.playerProfile.placedBlocks = (gameState.playerProfile.placedBlocks || 0) + 1;
     gameState.savePlayerProfile();
+    onPlacementStart(pending);
     onPending(pending);
     onChanged();
     onStatus(`Pending place ${txId}: ${def.name} at ${target.worldX}, ${target.worldY}, ${target.worldZ}.`);
