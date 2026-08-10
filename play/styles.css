@@ -15088,3 +15088,65 @@ body {
     display: none;
   }
 }
+
+/* Reserve a real desktop column for the close control. Long localized labels or
+   backpack totals may truncate inside their own cells, but never push it out. */
+@media (min-width: 901px) {
+  .backpack-panel.play-panel .backpack-header {
+    display: grid;
+    grid-template-columns: minmax(132px, 0.75fr) minmax(210px, 1fr) max-content minmax(0, 2.2fr);
+    gap: 10px;
+  }
+
+  .backpack-panel.play-panel .backpack-heading,
+  .backpack-panel.play-panel .inventory-mode-switch,
+  .backpack-panel.play-panel .backpack-header-actions,
+  .backpack-panel.play-panel .backpack-header .panel-meta {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .backpack-panel.play-panel .backpack-heading strong,
+  .backpack-panel.play-panel .inventory-mode-switch button span,
+  .backpack-panel.play-panel .backpack-header .panel-meta,
+  .backpack-panel.play-panel .backpack-header .panel-meta > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .backpack-panel.play-panel .inventory-mode-switch {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .backpack-panel.play-panel .inventory-mode-switch button {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .backpack-panel.play-panel .backpack-header-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 38px;
+    gap: 10px;
+  }
+
+  .backpack-panel.play-panel .backpack-header .panel-meta {
+    display: flex;
+  }
+
+  .backpack-panel.play-panel .backpack-header .panel-meta > span {
+    min-width: 0;
+  }
+
+  .backpack-panel.play-panel .backpack-header .backpack-meta-weight {
+    flex: 0 0 auto;
+  }
+
+  .backpack-panel.play-panel .backpack-header #closeBackpackButton {
+    grid-column: 2;
+    justify-self: end;
+  }
+}
