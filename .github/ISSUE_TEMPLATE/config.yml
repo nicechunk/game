@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: NICECHUNK documentation
+    url: https://nicechunk.com/docs/
+    about: Read game, wallet, chain, and world documentation before filing an issue.
+  - name: Support guide
+    url: https://github.com/nicechunk/game/blob/main/SUPPORT.md
+    about: Review diagnostics and the information needed for a useful report.
+  - name: Private security report
+    url: https://github.com/nicechunk/game/security/advisories/new
+    about: Report vulnerabilities privately and never publish exploit details or secrets.

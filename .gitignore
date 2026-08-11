@@ -17,6 +17,7 @@ node_modules/
 coverage/
 dist/
 .play-runtime/
+.play-preview/
 .vite/
 *.log
 .DS_Store

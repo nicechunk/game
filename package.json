@@ -1,8 +1,29 @@
 {
   "name": "@nicechunk/game",
   "version": "0.1.0",
+  "description": "Open-source browser client for the NICECHUNK voxel civilization on Solana.",
   "private": true,
+  "license": "Apache-2.0",
+  "homepage": "https://nicechunk.com/play",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicechunk/game.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nicechunk/game/issues"
+  },
+  "keywords": [
+    "solana",
+    "voxel",
+    "webgl2",
+    "on-chain-game",
+    "multiplayer",
+    "chunkjs"
+  ],
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "check": "npm run check:policy && npm run check:i18n && npm test",
     "check:policy": "node scripts/repository-policy.mjs",
@@ -10,7 +31,8 @@
     "test": "node scripts/test-play.mjs",
     "build:chain": "vite build --config vite.chain.config.js",
     "build:play": "node scripts/build-play-debug-runtime.mjs",
-    "build": "npm run check:i18n && npm run build:chain && npm run build:play"
+    "build": "npm run check:i18n && npm run build:chain && npm run build:play",
+    "preview": "node scripts/preview-play.mjs"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
@@ -19,8 +41,8 @@
     "buffer": "^6.0.3"
   },
   "devDependencies": {
-    "playwright": "^1.60.0",
+    "playwright": "^1.62.1",
     "typescript": "^6.0.3",
-    "vite": "^8.1.0"
+    "vite": "^8.2.1"
   }
 }

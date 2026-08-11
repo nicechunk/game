@@ -1,0 +1,64 @@
+name: Feature request
+description: Propose a focused improvement to the NICECHUNK Game client.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the player problem before proposing implementation. Large account-schema or cross-repository changes should identify all affected repositories.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Player problem
+      description: What is difficult, missing, or unclear today, and who is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the interaction and observable result, not only a code-level solution.
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Primary authority boundary
+      options:
+        - Browser presentation or input
+        - Guardian real-time state
+        - Solana transaction or PDA state
+        - Deterministic world reconstruction
+        - Chunk.js engine
+        - Unknown or cross-repository
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing workarounds and why they are insufficient.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List concrete behavior that would make the request complete and testable.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add sanitized screenshots, mockups, or related repository links when useful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and documentation.
+          required: true
+        - label: This request does not include secrets or private wallet data.
+          required: true
