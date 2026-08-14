@@ -44,7 +44,7 @@ test("building submission uses the explicitly selected land foundation ID", asyn
   const controller = controllerFor({
     submitBuilding: async (payload) => {
       submissions.push(payload);
-      return { submitted: true, guardianIndexed: false, signature: "test-signature" };
+      return { submitted: true, signature: "test-signature" };
     },
   });
   controller.activate();

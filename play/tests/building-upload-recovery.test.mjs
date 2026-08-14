@@ -149,14 +149,14 @@ test("maximum building writes fit the Solana legacy transaction packet", () => {
 test("building cache batches preserve input order and misses", async () => {
   const scope = `upload-test-${Date.now()}`;
   const cache = createPlayBuildingCache({ getScope: () => scope });
-  const first = cacheRecord("1", "11".repeat(16));
-  const second = cacheRecord("2", "22".repeat(16));
+  const first = cacheRecord("1", "11".repeat(32));
+  const second = cacheRecord("2", "22".repeat(32));
   await cache.putVerifiedBuildings([
     { record: first, building: cacheBuilding(first) },
     { record: second, building: cacheBuilding(second) },
   ]);
 
-  const values = await cache.getBuildings([second, cacheRecord("3", "33".repeat(16)), first]);
+  const values = await cache.getBuildings([second, cacheRecord("3", "33".repeat(32)), first]);
   assert.equal(values[0].foundationId, "2");
   assert.equal(values[1], null);
   assert.equal(values[2].foundationId, "1");
@@ -180,7 +180,7 @@ function cacheBuilding(record) {
     owner: "owner",
     foundationId: record.foundationId,
     revision: record.activeRevision,
-    contentHash: `${record.contentHash}${"44".repeat(16)}`,
+    contentHash: record.contentHash,
     code: "NCM3:AQ",
   };
 }

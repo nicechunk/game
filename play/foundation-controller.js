@@ -173,13 +173,9 @@ export function createFoundationController({
         refreshFoundations({ force: true, quiet: true }),
         refreshLandContracts({ force: true, quiet: true }),
       ]);
-      onStatus(result.guardianIndexed === false
-        ? result.message || text("main.land.guardianIndexPending", "The land is on chain, but Guardian indexing is still pending: {reason}.", {
-          reason: text("main.land.guardianUnavailable", "Guardian unavailable"),
-        })
-        : text("main.land.created", "Land registered on chain and {count} contract(s) consumed.", {
-          count: requiredLandContracts,
-        }));
+      onStatus(result.message || text("main.land.created", "Land registered on chain and {count} contract(s) consumed.", {
+        count: requiredLandContracts,
+      }));
       anchor = null;
       cancelValidation();
       preview = null;

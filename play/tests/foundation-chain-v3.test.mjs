@@ -6,8 +6,12 @@ import bs58 from "bs58";
 import {
   decodeBuildSite,
   decodeFoundationChunk,
+  deriveBuildingManifestPda,
+  deriveBuildSitePda,
+  deriveFoundationChunkPda,
   deriveGlobalConfigPda,
   encodeBeginBuildingInstructionData,
+  loadFoundationsForChunks,
   loadOwnedFoundations,
 } from "../../src/chain/nicechunkChain.js";
 
@@ -134,3 +138,109 @@ test("owned land discovery filters by v3 magic and version before decoding", asy
     memcmp: { offset: 16, bytes: owner.toBase58() },
   });
 });
+
+test("view discovery resolves FoundationChunk indexes through BuildSite and BuildingManifest PDAs", async () => {
+  const owner = PublicKey.unique();
+  const foundationId = 777n;
+  const chunkX = -2;
+  const chunkZ = 3;
+  const contentHash = Buffer.from("71".repeat(32), "hex");
+  const [chunkAddress] = deriveFoundationChunkPda(chunkX, chunkZ);
+  const [siteAddress] = deriveBuildSitePda(foundationId);
+  const [manifestAddress] = deriveBuildingManifestPda(foundationId, 1);
+  const chunkProgram = new PublicKey("GnVKn442KDTDgCyjVG7SEtCQQLjaCiLvrEZDWSU13wbj");
+  const buildingProgram = new PublicKey("39UMTUWXQkuomkFNbDPF5NGZnJmG6pDkJHVSkZyqVwWx");
+  const accounts = new Map([
+    [chunkAddress.toBase58(), { owner: chunkProgram, data: foundationChunkData({ owner, foundationId, chunkX, chunkZ }) }],
+    [siteAddress.toBase58(), { owner: buildingProgram, data: buildSiteData({ owner, foundationId, chunkX, chunkZ, activeRevision: 1 }) }],
+    [manifestAddress.toBase58(), { owner: buildingProgram, data: buildingManifestData({ owner, foundationId, contentHash }) }],
+  ]);
+  const requests = [];
+  const conn = {
+    getMultipleAccountsInfo: async (addresses) => {
+      requests.push(addresses.map((address) => address.toBase58()));
+      return addresses.map((address) => accounts.get(address.toBase58()) ?? null);
+    },
+  };
+
+  const records = await loadFoundationsForChunks([
+    { chunkX, chunkZ },
+    { chunkX, chunkZ },
+  ], conn);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].foundationId, foundationId.toString());
+  assert.equal(records[0].contentHash, contentHash.toString("hex"));
+  assert.deepEqual(requests, [
+    [chunkAddress.toBase58()],
+    [siteAddress.toBase58()],
+    [manifestAddress.toBase58()],
+  ]);
+});
+
+function foundationChunkData({ owner, foundationId, chunkX, chunkZ }) {
+  const headerLength = 56;
+  const recordLength = 58;
+  const data = Buffer.alloc(headerLength + recordLength);
+  data.write("NCKFCI03", 0, "utf8");
+  data.writeUInt8(3, 8);
+  data.writeUInt8(1, 9);
+  data.writeUInt16LE(1, 10);
+  data.writeUInt16LE(1, 12);
+  deriveGlobalConfigPda().toBuffer().copy(data, 16);
+  data.writeInt32LE(chunkX, 48);
+  data.writeInt32LE(chunkZ, 52);
+  owner.toBuffer().copy(data, headerLength);
+  data.writeBigUInt64LE(foundationId, headerLength + 32);
+  data.writeInt32LE(chunkX * 16, headerLength + 40);
+  data.writeInt32LE(chunkZ * 16, headerLength + 44);
+  data.writeInt16LE(100, headerLength + 48);
+  data.writeUInt32LE(16, headerLength + 50);
+  data.writeUInt32LE(16, headerLength + 54);
+  return data;
+}
+
+function buildSiteData({ owner, foundationId, chunkX, chunkZ, activeRevision }) {
+  const data = Buffer.alloc(160);
+  data.write("NCKSITE3", 0, "utf8");
+  data.writeUInt8(3, 8);
+  data.writeUInt8(1, 9);
+  data.writeUInt8(1, 10);
+  data.writeUInt8(1, 11);
+  data.writeUInt32LE(1, 12);
+  owner.toBuffer().copy(data, 16);
+  deriveGlobalConfigPda().toBuffer().copy(data, 48);
+  data.writeBigUInt64LE(foundationId, 80);
+  data.writeInt32LE(chunkX * 16, 88);
+  data.writeInt32LE(chunkZ * 16, 92);
+  data.writeInt16LE(100, 96);
+  data.writeUInt32LE(16, 100);
+  data.writeUInt32LE(16, 104);
+  data.writeBigUInt64LE(1n, 108);
+  data.writeUInt32LE(activeRevision, 116);
+  data.writeBigUInt64LE(2n, 124);
+  data.writeBigUInt64LE(1n, 132);
+  data.writeBigUInt64LE(1n, 140);
+  return data;
+}
+
+function buildingManifestData({ owner, foundationId, contentHash }) {
+  const data = Buffer.alloc(160);
+  data.write("NCKBLD03", 0, "utf8");
+  data.writeUInt8(3, 8);
+  data.writeUInt8(1, 10);
+  data.writeUInt8(0, 11);
+  data.writeUInt8(1, 12);
+  data.writeUInt16LE(1, 14);
+  owner.toBuffer().copy(data, 16);
+  deriveGlobalConfigPda().toBuffer().copy(data, 48);
+  data.writeBigUInt64LE(foundationId, 80);
+  data.writeUInt32LE(1, 88);
+  data.writeUInt32LE(1, 92);
+  contentHash.copy(data, 96);
+  data.writeUInt16LE(1, 128);
+  data.writeUInt16LE(1, 130);
+  data.writeUInt16LE(1, 132);
+  data.writeBigUInt64LE(3n, 136);
+  data.writeBigUInt64LE(4n, 144);
+  return data;
+}

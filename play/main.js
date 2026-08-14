@@ -980,15 +980,6 @@ async function boot() {
       renderGameUi();
       updateActionHitForFrame(performance.now(), { force: true });
     },
-    onBuildingRegionDigest: (digest) => {
-      void foundationSync?.handleRegionDigest?.(digest);
-    },
-    onBuildingManifest: (manifest) => {
-      void foundationSync?.handleRegionManifest?.(manifest);
-    },
-    onGuardianRegionsChanged: () => {
-      void foundationSync?.refresh?.({ force: true, quiet: true });
-    },
   });
   nameChatOverlay = createNameChatOverlay({
     root: document.body,
@@ -1099,17 +1090,10 @@ async function boot() {
   });
   foundationSync = createPlayChainFoundationSync({
     index: foundationIndex,
-    cache: buildingCache,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
     getPlayerPosition: playerWorldFloat,
-    getGuardianRegion: (regionX, regionZ) => guardian?.getBuildingRegion?.(regionX, regionZ) ?? null,
-    ensureGuardianNeighborhood: () => guardian?.ensureBuildingNeighborhood?.() ?? Promise.resolve([]),
-    refreshGuardianRegions: (regions) => guardian?.refreshBuildingRegions?.(regions) ?? Promise.resolve([]),
-    ensureGuardianCoverage: (foundation) => guardian?.ensureBuildingCoverage?.(foundation)
-      ?? Promise.resolve({ ok: false, missing: [] }),
-    requestCurrentGuardianManifest: (revision) => guardian?.requestCurrentBuildingManifest?.(revision) === true,
-    announceGuardianBuilding: (record, options) => guardian?.announceBuilding?.(record, options)
-      ?? Promise.resolve({ ok: false }),
+    viewDistance,
+    preloadMargin: PLAYABLE_PRELOAD_MARGIN,
     chunkSize: chunks.chunkSize || 16,
     onChanged: () => landUi?.render?.({ force: true }),
     onStatus: setStatus,
@@ -1141,8 +1125,6 @@ async function boot() {
     preloadMargin: PLAYABLE_PRELOAD_MARGIN,
     chunkSize: chunks.chunkSize || 16,
     refreshFoundations: (options) => foundationSync?.refresh?.(options) ?? Promise.resolve({ ok: false }),
-    announceGuardianBuilding: (record, options) => guardian?.announceBuilding?.(record, options)
-      ?? Promise.resolve({ ok: false }),
     applyBuildings: (buildings) => buildingController?.applyChainBuildings?.(buildings),
     onChanged: () => landUi?.render?.({ force: true }),
     onStatus: setStatus,

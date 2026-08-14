@@ -1,61 +1,22 @@
 const DB_NAME = "nicechunk-building-cache";
-const DB_VERSION = 2;
-const REGION_STORE = "regions";
+const DB_VERSION = 3;
 const BUILDING_STORE = "buildings";
-// Land-contract v3 uses new BuildSite identities and must never reuse v2 geometry.
-const CACHE_SCHEMA = "guardian-land-v4";
-const memoryRegions = new Map();
+const CACHE_SCHEMA = "chain-land-v5";
 const memoryBuildings = new Map();
 let databasePromise = null;
 
 export function createPlayBuildingCache({
   getScope = () => "default",
-  maxRegions = 27,
   maxBuildings = 512,
 } = {}) {
   let lastPruneAt = 0;
   return {
-    getRegion,
-    putVerifiedRegion,
-    deleteRegion,
     getBuilding,
     getBuildings,
     putVerifiedBuilding,
     putVerifiedBuildings,
     prune,
   };
-
-  async function getRegion(regionX, regionZ) {
-    const key = regionCacheKey(scope(), regionX, regionZ);
-    const value = await readRecord(REGION_STORE, key, memoryRegions);
-    return value?.verified === true && value?.schema === CACHE_SCHEMA ? value : null;
-  }
-
-  async function putVerifiedRegion(manifest, foundations = []) {
-    const regionX = requireI32(manifest?.regionX, "regionX");
-    const regionZ = requireI32(manifest?.regionZ, "regionZ");
-    const records = Array.isArray(manifest?.records) ? manifest.records.map(normalizeRecord) : [];
-    const value = {
-      key: regionCacheKey(scope(), regionX, regionZ),
-      schema: CACHE_SCHEMA,
-      scope: scope(),
-      regionX,
-      regionZ,
-      revision: String(manifest?.revision ?? "0"),
-      hash: normalizeHash(manifest?.hash),
-      records,
-      foundations: Array.isArray(foundations) ? foundations.map(normalizeFoundation) : [],
-      verified: true,
-      verifiedAt: Date.now(),
-    };
-    await writeRecord(REGION_STORE, value, memoryRegions);
-    schedulePrune();
-    return value;
-  }
-
-  async function deleteRegion(regionX, regionZ) {
-    await removeRecord(REGION_STORE, regionCacheKey(scope(), regionX, regionZ), memoryRegions);
-  }
 
   async function getBuilding(record) {
     return (await getBuildings([record]))[0] ?? null;
@@ -103,10 +64,7 @@ export function createPlayBuildingCache({
   }
 
   async function prune() {
-    await Promise.all([
-      pruneStore(REGION_STORE, memoryRegions, maxRegions, scope()),
-      pruneStore(BUILDING_STORE, memoryBuildings, maxBuildings, scope()),
-    ]);
+    await pruneStore(BUILDING_STORE, memoryBuildings, maxBuildings, scope());
   }
 
   function schedulePrune() {
@@ -137,26 +95,8 @@ function normalizeRecord(record = {}) {
     width,
     depth,
     activeRevision: requireU32(record.activeRevision ?? 0, "activeRevision"),
-    contentHash: normalizeHash(record.contentHash),
+    contentHash: normalizeBuildingHash(record.contentHash),
     updatedSlot: requireU64String(record.updatedSlot ?? 0, "updatedSlot", { allowZero: true }),
-  };
-}
-
-function normalizeFoundation(foundation = {}) {
-  const record = normalizeRecord({
-    ...foundation,
-    flags: 1,
-    contentHash: foundation.contentHash || "0".repeat(32),
-  });
-  return {
-    ...record,
-    id: String(foundation.id || `${foundation.owner || "foundation"}:${record.foundationId}`),
-    owner: String(foundation.owner || ""),
-    status: "active",
-    sourcePda: String(foundation.sourcePda || ""),
-    createdSlot: String(foundation.createdSlot || "0"),
-    updatedSlot: String(foundation.updatedSlot || "0"),
-    pendingRevision: requireU32(foundation.pendingRevision ?? 0, "pendingRevision"),
   };
 }
 
@@ -173,21 +113,17 @@ function normalizeBuilding(building = {}, record) {
     code: String(building.code || ""),
     manifestPda: String(building.manifestPda || ""),
     updatedSlot: String(building.updatedSlot || "0"),
-    contentHash: String(building.contentHash || record.contentHash).toLowerCase(),
+    contentHash: normalizeBuildingHash(building.contentHash || record.contentHash),
   };
-}
-
-function regionCacheKey(scope, regionX, regionZ) {
-  return `${scope}:region:${requireI32(regionX, "regionX")},${requireI32(regionZ, "regionZ")}`;
 }
 
 function buildingCacheKey(scope, record) {
   return `${scope}:building:${record.foundationId}:${record.activeRevision}:${record.contentHash}`;
 }
 
-function normalizeHash(value) {
+function normalizeBuildingHash(value) {
   const hash = String(value || "").trim().toLowerCase().replace(/^0x/, "");
-  if (!/^[0-9a-f]{32}$/.test(hash)) throw new Error("Invalid 16-byte building hash.");
+  if (!/^[0-9a-f]{64}$/.test(hash)) throw new Error("Invalid 32-byte building hash.");
   return hash;
 }
 
@@ -223,26 +159,11 @@ function requireInteger(value, min, max, name) {
   return normalized;
 }
 
-async function readRecord(storeName, key, memory) {
-  const database = await openDatabase();
-  if (!database) return memory.get(key) ?? null;
-  return requestResult(database.transaction(storeName, "readonly").objectStore(storeName).get(key));
-}
-
 async function readRecords(storeName, keys, memory) {
   const database = await openDatabase();
   if (!database) return keys.map((key) => key ? memory.get(key) ?? null : null);
   const store = database.transaction(storeName, "readonly").objectStore(storeName);
   return Promise.all(keys.map((key) => key ? requestResult(store.get(key)) : null));
-}
-
-async function writeRecord(storeName, value, memory) {
-  const database = await openDatabase();
-  if (!database) {
-    memory.set(value.key, structuredCloneSafe(value));
-    return;
-  }
-  await transactionComplete(database.transaction(storeName, "readwrite"), (store) => store.put(value));
 }
 
 async function writeRecords(storeName, values, memory) {
@@ -255,15 +176,6 @@ async function writeRecords(storeName, values, memory) {
   await transactionComplete(database.transaction(storeName, "readwrite"), (store) => {
     for (const value of values) store.put(value);
   });
-}
-
-async function removeRecord(storeName, key, memory) {
-  const database = await openDatabase();
-  if (!database) {
-    memory.delete(key);
-    return;
-  }
-  await transactionComplete(database.transaction(storeName, "readwrite"), (store) => store.delete(key));
 }
 
 async function pruneStore(storeName, memory, limitValue, scope) {
@@ -289,10 +201,9 @@ function openDatabase() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const database = request.result;
-      if (!database.objectStoreNames.contains(REGION_STORE)) database.createObjectStore(REGION_STORE, { keyPath: "key" });
       if (!database.objectStoreNames.contains(BUILDING_STORE)) database.createObjectStore(BUILDING_STORE, { keyPath: "key" });
+      if (database.objectStoreNames.contains("regions")) database.deleteObjectStore("regions");
       if (event.oldVersion > 0 && event.oldVersion < DB_VERSION) {
-        request.transaction.objectStore(REGION_STORE).clear();
         request.transaction.objectStore(BUILDING_STORE).clear();
       }
     };

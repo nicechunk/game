@@ -200,8 +200,6 @@ function normalizeFoundation(input = {}, chunkSize) {
     activeRevision: nonNegativeInt(input.activeRevision),
     pendingRevision: nonNegativeInt(input.pendingRevision),
     contentHash: normalizeContentHash(input.contentHash),
-    guardianManifestHash: normalizeContentHash(input.guardianManifestHash),
-    guardianRegion: String(input.guardianRegion || ""),
     sourcePda: String(input.sourcePda || input.address || ""),
     programId: String(input.programId || ""),
     hasActiveGeometry: input.hasActiveGeometry !== false,
@@ -235,8 +233,6 @@ function foundationFingerprint(record) {
     record.activeRevision,
     record.pendingRevision,
     record.contentHash,
-    record.guardianManifestHash,
-    record.guardianRegion,
     record.sourcePda,
     record.programId,
     record.hasActiveGeometry ? 1 : 0,
@@ -247,7 +243,7 @@ function foundationFingerprint(record) {
 
 function normalizeContentHash(value) {
   const hash = String(value || "").trim().toLowerCase().replace(/^0x/, "");
-  return /^[0-9a-f]{32}$/.test(hash) ? hash : "0".repeat(32);
+  return /^[0-9a-f]{64}$/.test(hash) ? hash : "0".repeat(64);
 }
 
 function buildIndexCellKeys(rect, chunkSize) {

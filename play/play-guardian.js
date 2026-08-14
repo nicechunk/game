@@ -1,10 +1,5 @@
 import { createNiceChunkGuardianClient } from "./play-guardian-client.js";
-import {
-  createPlayGuardianRegistryResolver,
-  guardianBuildingAnnouncementPlan,
-  guardianCoverageForRegions,
-  guardianRegionsForFoundation,
-} from "./play-guardian-registry.js";
+import { createPlayGuardianRegistryResolver } from "./play-guardian-registry.js";
 import {
   forgePayloadIdentity,
   validatedNcf1EquipmentPayload,
@@ -24,7 +19,6 @@ const EQUIPMENT_KIND = {
 };
 const EQUIPMENT_FLAG_FORGED = 1 << 0;
 export const guardianEquipmentPayloadIdentity = forgePayloadIdentity;
-export { guardianRegionsForFoundation };
 
 const BLOCK_VARIANT_BY_ID = new Map([
   [1, 1],
@@ -42,8 +36,6 @@ const REMOTE_EXPIRE_MS = 45_000;
 const CHAT_BUBBLE_DURATION_MS = 30_000;
 const GUARDIAN_ERROR_NOTICE_MS = 30_000;
 const GUARDIAN_REGION_SIZE_CHUNKS = 100;
-const GUARDIAN_ANNOUNCE_TIMEOUT_MS = 5_000;
-const GUARDIAN_ANNOUNCE_CONCURRENCY = 4;
 const REMOTE_EQUIPMENT_CACHE_MS = 60_000;
 const REMOTE_EQUIPMENT_REFRESH_DELAY_MS = 700;
 const REMOTE_EQUIPMENT_CACHE_LIMIT = 256;
@@ -59,9 +51,6 @@ export function createPlayGuardian({
   resolveRemoteAvatarMeshId = null,
   appendEvent = () => {},
   onWorldChanged = () => {},
-  onBuildingRegionDigest = () => {},
-  onBuildingManifest = () => {},
-  onGuardianRegionsChanged = () => {},
 } = {}) {
   const state = {
     disabled: guardianDisabled(),
@@ -85,7 +74,6 @@ export function createPlayGuardian({
   const registryResolver = createPlayGuardianRegistryResolver({
     getRpcUrl,
     appendEvent,
-    onRegionsChanged: onGuardianRegionsChanged,
   });
   const remotePlayers = new Map();
   const pendingEquipment = new Map();
@@ -107,13 +95,6 @@ export function createPlayGuardian({
     sendConfirmedMine,
     sendChat,
     sendEquipment: syncEquipment,
-    getBuildingNeighborhood,
-    getBuildingRegion,
-    ensureBuildingNeighborhood,
-    refreshBuildingRegions,
-    ensureBuildingCoverage,
-    requestCurrentBuildingManifest,
-    announceBuilding,
     disconnect,
     connectionState,
     snapshot,
@@ -195,8 +176,6 @@ export function createPlayGuardian({
       onChat: handleRemoteChat,
       onEquipment: handleRemoteEquipment,
       onPlayerIdentity: handleRemoteIdentity,
-      onBuildingRegionDigest,
-      onBuildingManifest,
     });
   }
 
@@ -576,149 +555,6 @@ export function createPlayGuardian({
     return state.client.sendChat(text);
   }
 
-  function getBuildingNeighborhood() {
-    const chunk = currentPlayerChunk();
-    return chunk
-      ? registryResolver.getCachedNeighborhoodForChunk(chunk.x, chunk.z)
-      : [];
-  }
-
-  function getBuildingRegion(regionX, regionZ) {
-    return registryResolver.getCachedRegion(regionX, regionZ);
-  }
-
-  async function ensureBuildingNeighborhood() {
-    const chunk = currentPlayerChunk();
-    if (!chunk) return [];
-    try {
-      return await registryResolver.loadNeighborhoodForChunk(chunk.x, chunk.z);
-    } catch (error) {
-      if (guardianVerboseLogging()) console.warn("Guardian building neighborhood unavailable", error);
-      return getBuildingNeighborhood();
-    }
-  }
-
-  async function refreshBuildingRegions(regions = []) {
-    try {
-      return await registryResolver.refreshRegions(regions);
-    } catch (error) {
-      if (guardianVerboseLogging()) console.warn("Guardian building region refresh unavailable", error);
-      return regions.map((region) => registryResolver.getCachedRegion(region?.x, region?.z)).filter(Boolean);
-    }
-  }
-
-  async function ensureBuildingCoverage(foundation) {
-    const regions = guardianRegionsForFoundation(foundation, chunks?.chunkSize || 16);
-    if (!regions.length) {
-      return { ok: false, regions, entries: [], missing: regions, reason: "guardian-coverage-unavailable" };
-    }
-    let entries = [];
-    try {
-      entries = await registryResolver.ensureRegions(regions);
-    } catch (error) {
-      if (guardianVerboseLogging()) console.warn("Guardian building coverage unavailable", error);
-    }
-    return guardianCoverageForRegions(regions, entries);
-  }
-
-  function requestCurrentBuildingManifest(knownRevision = 0) {
-    return state.client?.requestBuildingManifest?.(knownRevision) === true;
-  }
-
-  async function announceBuilding(record, { previousRecord = null } = {}) {
-    const chunkSize = chunks?.chunkSize || 16;
-    const plan = guardianBuildingAnnouncementPlan(record, { previousRecord, chunkSize });
-    const regions = plan.map((entry) => entry.region);
-    let entries = [];
-    try {
-      entries = await registryResolver.ensureRegions(regions);
-    } catch (error) {
-      if (guardianVerboseLogging()) console.warn("Guardian building announcement coverage unavailable", error);
-    }
-    const coverage = guardianCoverageForRegions(regions, entries);
-    if (!coverage.ok) return { ok: false, coverage, announced: 0, failed: coverage.missing };
-    const recordsByRegion = new Map(plan.map((entry) => [buildingRegionKey(entry.region), entry.record]));
-    const results = await mapWithConcurrency(
-      coverage.entries,
-      GUARDIAN_ANNOUNCE_CONCURRENCY,
-      (entry) => {
-        const regionRecord = recordsByRegion.get(buildingRegionKey(entry?.region));
-        return regionRecord ? announceBuildingToGuardian(entry, regionRecord) : false;
-      },
-    );
-    const failed = coverage.entries.filter((_entry, index) => results[index] !== true);
-    return {
-      ok: failed.length === 0,
-      coverage,
-      announced: results.length - failed.length,
-      failed,
-    };
-  }
-
-  async function announceBuildingToGuardian(entry, record) {
-    if (!entry?.url) return false;
-    if (state.client?.getUrl?.() === entry.url) {
-      const ready = await waitForCurrentGuardian(entry.url);
-      return ready ? state.client?.announceBuilding?.(record) === true : false;
-    }
-    const wallet = String(getWalletAddress?.() || "").trim();
-    if (!wallet) return false;
-    const chunkSize = chunks?.chunkSize || 16;
-    const region = entry.region || { x: 0, z: 0 };
-    const position = {
-      x: (region.x * GUARDIAN_REGION_SIZE_CHUNKS + GUARDIAN_REGION_SIZE_CHUNKS / 2 + 0.5) * chunkSize,
-      y: 0,
-      z: (region.z * GUARDIAN_REGION_SIZE_CHUNKS + GUARDIAN_REGION_SIZE_CHUNKS / 2 + 0.5) * chunkSize,
-    };
-    return new Promise((resolve) => {
-      let settled = false;
-      let client = null;
-      const finish = (ok) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timeout);
-        client?.disconnect?.();
-        resolve(Boolean(ok));
-      };
-      const timeout = globalThis.setTimeout(() => finish(false), GUARDIAN_ANNOUNCE_TIMEOUT_MS);
-      client = createNiceChunkGuardianClient({
-        walletAddress: wallet,
-        url: entry.url,
-        playerName: String(getPlayerName?.() || "Local Miner"),
-        chunkSize,
-        autoReconnect: false,
-        onReady: () => {
-          const sent = client?.announceBuilding?.(record) === true;
-          globalThis.setTimeout(() => finish(sent), 120);
-        },
-        onError: () => finish(false),
-        onProtocolError: () => finish(false),
-        onClose: () => finish(false),
-      });
-      client.connect?.({ position });
-    });
-  }
-
-  async function waitForCurrentGuardian(url) {
-    const startedAt = performance.now();
-    while (performance.now() - startedAt < GUARDIAN_ANNOUNCE_TIMEOUT_MS) {
-      if (state.client?.getUrl?.() !== url) return false;
-      if (state.client?.isReady?.()) return true;
-      await new Promise((resolve) => globalThis.setTimeout(resolve, 50));
-    }
-    return false;
-  }
-
-  function currentPlayerChunk() {
-    const pose = normalizePose(getPlayerPose?.());
-    if (!pose) return null;
-    const chunkSize = chunks?.chunkSize || 16;
-    return {
-      x: Math.floor(pose.x / chunkSize),
-      z: Math.floor(pose.z / chunkSize),
-    };
-  }
-
   function syncIdentity(now = performance.now(), { force = false } = {}) {
     if (!state.client?.isReady?.()) return false;
     const name = String(getPlayerName?.() || "Local Miner").trim();
@@ -845,17 +681,6 @@ export function createPlayGuardian({
   }
 }
 
-function buildingRegionKey(region) {
-  const x = Number(region?.x ?? region?.regionX);
-  const z = Number(region?.z ?? region?.regionZ);
-  return Number.isInteger(x) && Number.isInteger(z) ? `${x},${z}` : "";
-}
-
-function validGuardianBlueprintHash(value) {
-  const hash = String(value || "").trim().toLowerCase();
-  return /^[0-9a-f]{32}$/.test(hash) && !/^0+$/.test(hash);
-}
-
 export function guardianEquipmentFromAvatarEquipment(equipment = {}) {
   const rightHand = String(equipment?.rightHand || "empty");
   if (rightHand === "pickaxe") {
@@ -892,26 +717,6 @@ export function equipmentFromGuardianEvent(event = {}) {
   }
   if (kind === EQUIPMENT_KIND.block) return { rightHand: "block", blockId: Math.trunc(event.rightHandVariant || 0), color: [0.52, 0.72, 0.38, 1] };
   return { rightHand: "empty" };
-}
-
-async function mapWithConcurrency(values, concurrency, task) {
-  const source = Array.isArray(values) ? values : [];
-  const results = new Array(source.length);
-  let cursor = 0;
-  const worker = async () => {
-    while (cursor < source.length) {
-      const index = cursor;
-      cursor += 1;
-      try {
-        results[index] = await task(source[index], index);
-      } catch {
-        results[index] = false;
-      }
-    }
-  };
-  const count = Math.min(source.length, Math.max(1, Math.trunc(Number(concurrency) || 1)));
-  await Promise.all(Array.from({ length: count }, worker));
-  return results;
 }
 
 function normalizeOwnerWallet(source = {}) {

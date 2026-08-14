@@ -3,7 +3,7 @@ import { createPlayBuildingCache } from "./play-building-cache.js";
 
 const BUILDING_REFRESH_MS = 60_000;
 const BUILDING_RETRY_MS = 5_000;
-const ZERO_BUILDING_HASH = "0".repeat(32);
+const ZERO_BUILDING_HASH = "0".repeat(64);
 const DEFAULT_VIEW_DISTANCE_CHUNKS = 7;
 const DEFAULT_PRELOAD_MARGIN_CHUNKS = 2;
 const DEFAULT_CHUNK_SIZE = 16;
@@ -19,7 +19,6 @@ export function createPlayChainBuildingSync({
   preloadMargin = DEFAULT_PRELOAD_MARGIN_CHUNKS,
   chunkSize = DEFAULT_CHUNK_SIZE,
   refreshFoundations = async () => ({ ok: false }),
-  announceGuardianBuilding = async () => ({ ok: false }),
   loadChainModule = loadPlayChainModule,
   applyBuildings = () => {},
   onChanged = () => {},
@@ -49,7 +48,7 @@ export function createPlayChainBuildingSync({
       foundationKey: lastFoundationKey,
       contextKey: lastContextKey,
       buildings: currentBuildings.length,
-      mode: "guardian-verified-view-cache",
+      mode: "on-chain-manifest-view-cache",
     }),
   };
 
@@ -94,7 +93,7 @@ export function createPlayChainBuildingSync({
       for (let index = 0; index < foundations.length; index += 1) {
         const foundation = foundations[index];
         const building = cachedBuildings[index];
-        if (building && buildingMatchesFoundation(building, foundation)) {
+        if (building && await cachedBuildingMatchesFoundation(building, foundation)) {
           cached.set(String(foundation.foundationId), building);
         } else {
           missing.push(foundation);
@@ -112,7 +111,7 @@ export function createPlayChainBuildingSync({
         for (const building of chainBuildings ?? []) {
           const foundation = foundationById.get(String(building?.foundationId));
           if (!foundation || !buildingMatchesFoundation(building, foundation)) {
-            throw new Error(`Building ${building?.foundationId ?? "unknown"} failed Guardian hash verification.`);
+            throw new Error(`Building ${building?.foundationId ?? "unknown"} failed on-chain manifest verification.`);
           }
           verifiedForCache.push({ record: foundation, building });
           loaded.set(String(foundation.foundationId), building);
@@ -213,57 +212,21 @@ export function createPlayChainBuildingSync({
     const revision = Math.max(1, Math.trunc(Number(building.revision) || 0));
     const contentHash = String(building.contentHash || "").trim().toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(contentHash)) {
-      const reason = text("main.land.invalidBuildingHash", "Invalid finalized building hash.");
-      return { ...result, guardianIndexed: false, message: reason };
-    }
-    let authoritativeFoundation = null;
-    if (typeof module.loadBuildSitesByIds === "function") {
-      try {
-        authoritativeFoundation = (await module.loadBuildSitesByIds([foundation.foundationId]))
-          .find((candidate) => String(candidate?.foundationId) === String(foundation.foundationId)
-            && String(candidate?.owner || "") === String(foundation.owner || "")
-            && candidate?.status === "active") ?? null;
-      } catch (error) {
-        console.warn("[NiceChunk Building BuildSite Refresh]", error);
-      }
-    }
-    if (!authoritativeFoundation || Number(authoritativeFoundation.activeRevision) !== revision) {
-      const message = text(
-        "main.land.guardianIndexPending",
-        "The building is on chain, but Guardian indexing is still pending: {reason}.",
-        { reason: text("main.land.foundationSyncPending", "BuildSite refresh pending") },
-      );
       void refreshFoundations({ force: true, quiet: true });
-      return { ...result, building, guardianIndexed: false, message };
-    }
-    const announcement = await announceGuardianBuilding({
-      foundationId: authoritativeFoundation.foundationId,
-      minX: authoritativeFoundation.minX,
-      minZ: authoritativeFoundation.minZ,
-      surfaceY: authoritativeFoundation.surfaceY,
-      width: authoritativeFoundation.width,
-      depth: authoritativeFoundation.depth,
-      flags: 1,
-      activeRevision: revision,
-      contentHash,
-      updatedSlot: authoritativeFoundation.updatedSlot,
-    });
-    if (!announcement?.ok) {
-      const reason = formatFailedRegions(announcement?.failed)
-        || text("main.land.guardianUnavailable", "Guardian unavailable");
-      const message = text(
-        "main.land.guardianIndexPending",
-        "The building is on chain, but Guardian indexing is still pending: {reason}.",
-        { reason },
-      );
-      return { ...result, building, guardianIndexed: false, guardianAnnouncement: announcement, message };
+      return {
+        ...result,
+        building,
+        indexedOnChain: true,
+        refreshPending: true,
+        message: text("main.land.buildingHashPending", "Building confirmed on chain; waiting for its finalized manifest hash."),
+      };
     }
     void refreshFoundations({ force: true, quiet: true });
     globalThis.setTimeout(async () => {
       await refreshFoundations({ force: true, quiet: true });
       await refresh({ force: true, quiet: true });
     }, 500);
-    return { ...result, building, guardianIndexed: true, guardianAnnouncement: announcement };
+    return { ...result, building: { ...building, revision, contentHash }, indexedOnChain: true };
   }
 
   function text(key, fallback, params = {}) {
@@ -276,14 +239,24 @@ export function createPlayChainBuildingSync({
 
 export function buildingMatchesFoundation(building, foundation) {
   const fullHash = String(building?.contentHash || "").trim().toLowerCase();
-  const expectedPrefix = String(foundation?.contentHash || "").trim().toLowerCase();
+  const expectedHash = String(foundation?.contentHash || "").trim().toLowerCase();
   return String(building?.foundationId) === String(foundation?.foundationId)
     && String(building?.owner || "") === String(foundation?.owner || "")
     && Number(building?.revision) === Number(foundation?.activeRevision)
     && /^[0-9a-f]{64}$/.test(fullHash)
-    && /^[0-9a-f]{32}$/.test(expectedPrefix)
-    && expectedPrefix !== ZERO_BUILDING_HASH
-    && fullHash.startsWith(expectedPrefix);
+    && /^[0-9a-f]{64}$/.test(expectedHash)
+    && expectedHash !== ZERO_BUILDING_HASH
+    && fullHash === expectedHash;
+}
+
+export async function cachedBuildingMatchesFoundation(building, foundation) {
+  if (!buildingMatchesFoundation(building, foundation)) return false;
+  try {
+    const payload = decodeNcm3Payload(building.code);
+    return await sha256Hex(payload) === String(foundation.contentHash).toLowerCase();
+  } catch {
+    return false;
+  }
 }
 
 function verifiedBuildingFoundations(foundations = []) {
@@ -291,7 +264,7 @@ function verifiedBuildingFoundations(foundations = []) {
   for (const foundation of foundations ?? []) {
     const revision = Math.max(0, Math.trunc(Number(foundation?.activeRevision) || 0));
     const hash = String(foundation?.contentHash || "").trim().toLowerCase();
-    if (!foundation?.foundationId || !revision || !/^[0-9a-f]{32}$/.test(hash) || hash === ZERO_BUILDING_HASH) continue;
+    if (!foundation?.foundationId || !revision || !/^[0-9a-f]{64}$/.test(hash) || hash === ZERO_BUILDING_HASH) continue;
     unique.set(String(foundation.foundationId), { ...foundation, activeRevision: revision, contentHash: hash });
   }
   return [...unique.values()];
@@ -337,16 +310,6 @@ function foundationIdentity(owner, foundationId) {
   return `${String(owner || "")}:${String(foundationId ?? "0")}`;
 }
 
-function formatFailedRegions(entries = []) {
-  const labels = (entries ?? []).map((entry) => {
-    const region = entry?.region ?? entry;
-    const x = Number(region?.x ?? region?.regionX);
-    const z = Number(region?.z ?? region?.regionZ);
-    return Number.isInteger(x) && Number.isInteger(z) ? `${x},${z}` : "";
-  }).filter(Boolean);
-  return labels.join(" | ");
-}
-
 function foundationIntersectsView(foundation, centerX, centerZ, radius) {
   const minX = finiteNumber(foundation?.minX);
   const minZ = finiteNumber(foundation?.minZ);
@@ -363,4 +326,23 @@ function foundationIntersectsView(foundation, centerX, centerZ, radius) {
 function finiteNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function decodeNcm3Payload(code) {
+  const encoded = String(code || "").trim();
+  if (!encoded.startsWith("NCM3:")) throw new Error("Invalid NCM3 code.");
+  const value = encoded.slice(5).replace(/-/g, "+").replace(/_/g, "/");
+  const padded = value + "=".repeat((4 - value.length % 4) % 4);
+  if (typeof globalThis.atob === "function") {
+    const binary = globalThis.atob(padded);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
+  if (globalThis.Buffer) return Uint8Array.from(globalThis.Buffer.from(padded, "base64"));
+  throw new Error("Base64 decoder is unavailable.");
+}
+
+async function sha256Hex(bytes) {
+  if (!globalThis.crypto?.subtle) throw new Error("SHA-256 is unavailable.");
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

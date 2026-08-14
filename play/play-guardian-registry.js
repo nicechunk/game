@@ -54,7 +54,6 @@ export function createPlayGuardianRegistryResolver({
     return {
       ok: true,
       url: guardianEndpoint(cached.guardian),
-      buildingsUrl: guardianBuildingsEndpoint(cached.guardian),
       guardian: cached.guardian,
       source: "registry-cache",
       region: { x: Math.trunc(regionX), z: Math.trunc(regionZ) },
@@ -210,9 +209,6 @@ export function createPlayGuardianRegistryResolver({
           minChunkY: Math.trunc(Number(guardian.minChunkY) || 0),
           maxChunkX: Math.trunc(Number(guardian.maxChunkX) || 0),
           maxChunkY: Math.trunc(Number(guardian.maxChunkY) || 0),
-          blueprintHash: String(guardian.blueprintHash || ""),
-          blueprintRevision: String(guardian.blueprintRevision || "0"),
-          blueprintRecordCount: Math.trunc(Number(guardian.blueprintRecordCount) || 0),
         } : null,
       };
     });
@@ -317,9 +313,6 @@ function decodeGuardianAccount(item) {
       port: view.getUint16(197, true),
       useTls: bytes[199] === 1,
       updatedSlot: view.getUint32(252, true),
-      blueprintHash: bytesToHex(bytes, 256, 16),
-      blueprintRevision: readU64String(view, 272),
-      blueprintRecordCount: view.getUint32(280, true),
       accountLength: bytes.length,
     };
   } catch {
@@ -344,70 +337,6 @@ export function neighborRegions(regionX, regionZ) {
   return regions;
 }
 
-export function guardianRegionsForFoundation(foundation = {}, chunkSize = 16) {
-  const size = Math.max(1, Math.trunc(Number(chunkSize) || 16));
-  const minX = Math.trunc(Number(foundation.minX));
-  const minZ = Math.trunc(Number(foundation.minZ));
-  const width = Math.trunc(Number(foundation.width));
-  const depth = Math.trunc(Number(foundation.depth));
-  if (![minX, minZ, width, depth].every(Number.isInteger) || width < 1 || depth < 1) return [];
-  const maxX = minX + width - 1;
-  const maxZ = minZ + depth - 1;
-  if (!Number.isSafeInteger(maxX) || !Number.isSafeInteger(maxZ)) return [];
-  const minRegionX = Math.floor(Math.floor(minX / size) / GUARDIAN_REGION_SIZE_CHUNKS);
-  const maxRegionX = Math.floor(Math.floor(maxX / size) / GUARDIAN_REGION_SIZE_CHUNKS);
-  const minRegionZ = Math.floor(Math.floor(minZ / size) / GUARDIAN_REGION_SIZE_CHUNKS);
-  const maxRegionZ = Math.floor(Math.floor(maxZ / size) / GUARDIAN_REGION_SIZE_CHUNKS);
-  const regions = [];
-  for (let z = minRegionZ; z <= maxRegionZ; z += 1) {
-    for (let x = minRegionX; x <= maxRegionX; x += 1) regions.push({ x, z });
-  }
-  return regions;
-}
-
-export function guardianBuildingAnnouncementPlan(record, { previousRecord = null, chunkSize = 16 } = {}) {
-  const plan = new Map();
-  if (previousRecord) {
-    const removal = {
-      ...previousRecord,
-      flags: 0,
-      activeRevision: record?.activeRevision ?? previousRecord.activeRevision ?? 0,
-      contentHash: record?.contentHash ?? previousRecord.contentHash ?? "",
-      updatedSlot: record?.updatedSlot ?? previousRecord.updatedSlot ?? "0",
-    };
-    for (const region of guardianRegionsForFoundation(previousRecord, chunkSize)) {
-      plan.set(regionKey(region.x, region.z), { region, record: removal });
-    }
-  }
-  for (const region of guardianRegionsForFoundation(record, chunkSize)) {
-    plan.set(regionKey(region.x, region.z), { region, record });
-  }
-  return [...plan.values()];
-}
-
-export function guardianCoverageForRegions(regions = [], entries = []) {
-  const normalizedRegions = uniqueRegions(regions);
-  const byRegion = new Map((entries ?? []).map((entry) => [
-    regionKey(entry?.region?.x, entry?.region?.z),
-    entry,
-  ]));
-  const normalizedEntries = normalizedRegions.map((region) => byRegion.get(regionKey(region.x, region.z)) ?? {
-    ok: false,
-    region,
-    status: "unknown",
-  });
-  // `ok` is produced only for an active on-chain GuardianRegion. Blueprint
-  // hashes and Guardian server capabilities are separate discovery concerns.
-  const missing = normalizedEntries.filter((entry) => entry?.ok !== true);
-  return {
-    ok: normalizedRegions.length > 0 && missing.length === 0,
-    regions: normalizedRegions,
-    entries: normalizedEntries,
-    missing,
-    reason: missing.length ? "guardian-coverage-required" : "",
-  };
-}
-
 function regionKey(regionX, regionZ) {
   return `${Math.trunc(regionX)},${Math.trunc(regionZ)}`;
 }
@@ -430,31 +359,10 @@ function guardianEndpoint(guardian) {
   return url.toString();
 }
 
-function guardianBuildingsEndpoint(guardian) {
-  const scheme = guardian.useTls ? "https" : "http";
-  const url = new URL(`${scheme}://${guardian.host}:${guardian.port}`);
-  url.pathname = "/buildings";
-  url.search = "";
-  url.hash = "";
-  return url.toString();
-}
-
 function int32Le(value) {
   const bytes = new Uint8Array(4);
   new DataView(bytes.buffer).setInt32(0, Math.trunc(value), true);
   return bytes;
-}
-
-function readU64String(view, offset) {
-  return ((BigInt(view.getUint32(offset + 4, true)) << 32n) | BigInt(view.getUint32(offset, true))).toString();
-}
-
-function bytesToHex(bytes, offset, length) {
-  let value = "";
-  for (let index = offset; index < offset + length; index += 1) {
-    value += bytes[index].toString(16).padStart(2, "0");
-  }
-  return value;
 }
 
 function base58Encode(bytes) {

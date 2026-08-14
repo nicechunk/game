@@ -306,15 +306,9 @@ export function createBuildingController({
         code: parsed.canonicalCode,
         signature: result.signature || "",
       };
-      if (result.guardianIndexed !== false) {
-        await applyChainBuildings([...chainBuildings.values()].map((entry) => entry.record).concat(record));
-      }
+      await applyChainBuildings([...chainBuildings.values()].map((entry) => entry.record).concat(record));
       clearPreview();
-      onStatus(result.guardianIndexed === false
-        ? result.message || text("main.land.guardianIndexPending", "The building is on chain, but Guardian indexing is still pending: {reason}.", {
-          reason: text("main.land.guardianUnavailable", "Guardian unavailable"),
-        })
-        : text("main.land.buildingCreated", "Building created on this foundation."));
+      onStatus(result.message || text("main.land.buildingCreated", "Building created on this foundation."));
       return result;
     } catch (error) {
       console.error("[NiceChunk Building Submission Failed]", error);

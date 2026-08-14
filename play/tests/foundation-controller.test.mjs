@@ -45,7 +45,7 @@ test("foundation index deduplicates cross-chunk records and protects only the su
     width: 16,
     depth: 2,
     activeRevision: 3,
-    contentHash: "ab".repeat(16),
+    contentHash: "ab".repeat(32),
   };
   index.upsert(foundation);
   const version = index.version();
