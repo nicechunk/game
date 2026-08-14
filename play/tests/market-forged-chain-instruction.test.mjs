@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 
 import {
+  BLANK_LAND_CONTRACT_PRICE_BASE_UNITS,
   compareMarketListingPrices,
+  createBuyTreasuryContractInstruction,
   createJoinMarketInstruction,
   createMarketListingInstruction,
   decodeBackpack,
@@ -120,7 +123,7 @@ test("market membership instruction creates only the owner-funded membership PDA
   ]);
 });
 
-test("market transfer guards identify unique Blueprint records", () => {
+test("market transfer guards reject retired Blueprint records", () => {
   assert.equal(isNonTransferableMarketSourceSlot({
     kindCode: 2,
     category: 3,
@@ -221,7 +224,7 @@ test("MarketListing decoder rejects non-final state and preserves escrow source"
   assert.throws(() => decodeMarketListing(retired), /layout/);
 });
 
-test("Market user decoder enforces the final membership-only account ABI", () => {
+test("Market user decoder exposes available and reserved land-contract balances", () => {
   const owner = Keypair.generate().publicKey;
   const [marketUser, marketUserBump] = deriveMarketUserPda(owner);
   const userData = Buffer.alloc(64);
@@ -231,21 +234,68 @@ test("Market user decoder enforces the final membership-only account ABI", () =>
   userData.writeUInt8(50, 11);
   owner.toBuffer().copy(userData, 12);
   userData.writeBigUInt64LE(1234n, 44);
+  userData.writeUInt32LE(17, 52);
+  userData.writeUInt32LE(3, 56);
 
   const decodedUser = decodeMarketUserState(userData);
   assert.equal(decodedUser.owner, owner.toBase58());
   assert.equal(decodedUser.activeListingCount, 50);
   assert.equal(decodedUser.maxActiveListings, 50);
   assert.equal(decodedUser.updatedSlot, "1234");
+  assert.equal(decodedUser.blankLandContracts, 17);
+  assert.equal(decodedUser.reservedBlankLandContracts, 3);
   assert.equal(deriveMarketUserPda(owner)[0].toBase58(), marketUser.toBase58());
 
   const overLimit = Buffer.from(userData);
   overLimit.writeUInt8(51, 11);
   assert.throws(() => decodeMarketUserState(overLimit), /layout/);
   const nonZeroReserved = Buffer.from(userData);
-  nonZeroReserved[52] = 1;
+  nonZeroReserved[60] = 1;
   assert.throws(() => decodeMarketUserState(nonZeroReserved), /layout/);
   assert.throws(() => decodeMarketUserState(Buffer.alloc(328)), /expected 64/);
+});
+
+test("treasury land-contract purchases use a fixed 1 NCK price and no Listing PDA", () => {
+  const buyer = Keypair.generate().publicKey;
+  const marketUser = Keypair.generate().publicKey;
+  const buyerNckToken = Keypair.generate().publicKey;
+  const treasuryNckToken = Keypair.generate().publicKey;
+  const instruction = createBuyTreasuryContractInstruction({
+    buyer,
+    marketUser,
+    buyerNckToken,
+    treasuryNckToken,
+    quantity: 7,
+  });
+
+  assert.equal(BLANK_LAND_CONTRACT_PRICE_BASE_UNITS, 1_000_000n);
+  assert.equal(instruction.data.length, 7);
+  assert.equal(instruction.data.readUInt8(0), 4, "Game market namespace");
+  assert.equal(instruction.data.readUInt8(1), 4, "Treasury contract purchase tag");
+  assert.equal(instruction.data.readUInt8(2), 1, "Blank land contract type");
+  assert.equal(instruction.data.readUInt32LE(3), 7);
+  assert.equal(instruction.keys.length, 6);
+  assert.deepEqual(instruction.keys.slice(0, 4).map((key) => key.pubkey.toBase58()), [
+    buyer.toBase58(),
+    marketUser.toBase58(),
+    buyerNckToken.toBase58(),
+    treasuryNckToken.toBase58(),
+  ]);
+  assert.equal(instruction.keys[5].pubkey.toBase58(), TOKEN_PROGRAM_ID.toBase58());
+  assert.throws(() => createBuyTreasuryContractInstruction({
+    buyer,
+    marketUser,
+    buyerNckToken,
+    treasuryNckToken,
+    quantity: 0,
+  }), /contract quantity/);
+  assert.throws(() => createBuyTreasuryContractInstruction({
+    buyer,
+    marketUser,
+    buyerNckToken,
+    treasuryNckToken,
+    quantity: 4_097,
+  }), /contract quantity/);
 });
 
 function emptyBackpackAccount() {

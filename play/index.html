@@ -63,86 +63,97 @@
       <span class="minimap-coordinate minimap-coordinate-chunk" id="minimapChunkCoord">C 0, 0</span>
       <span class="guardian-connection-indicator" id="guardianConnectionIndicator" data-state="disconnected" aria-hidden="true"></span>
     </button>
-    <section class="blueprint-guide" id="blueprintGuide" aria-label="Building guide" data-i18n-aria-label="main.blueprint.guideAria" hidden>
+    <button class="land-mode-hud" id="landModeButton" type="button" aria-pressed="false" data-i18n-aria-label="main.land.openAria" aria-label="Open land construction">
+      <span class="land-mode-hud-icon" aria-hidden="true"><i></i><i></i></span>
+      <span data-i18n="main.land.hudButton">Land</span>
+      <kbd>L</kbd>
+    </button>
+    <section class="land-guide" id="landGuide" aria-label="Land construction guide" data-i18n-aria-label="main.land.guideAria" hidden>
       <header>
-        <span class="blueprint-guide-icon" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="blueprint-guide-title">
-          <strong data-i18n="main.blueprint.guideTitle">BUILDING GUIDE</strong>
-          <small id="blueprintIdentity"></small>
+        <span class="land-guide-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="land-guide-title">
+          <strong data-i18n="main.land.guideTitle">LAND CONSTRUCTION</strong>
+          <small data-i18n="main.land.guideSubtitle">1 contract registers 1 whole chunk</small>
         </span>
+        <button class="land-guide-close" id="landClose" type="button" data-i18n-aria-label="main.land.closeAria" aria-label="Close land construction">×</button>
       </header>
-      <div class="blueprint-mode-switch" role="tablist" aria-label="Blueprint mode" data-i18n-aria-label="main.blueprint.modeAria">
-        <button id="blueprintModeFoundation" type="button" role="tab" data-blueprint-mode="foundation" data-i18n="main.blueprint.foundationTab">FOUNDATION</button>
-        <button id="blueprintModeBuilding" type="button" role="tab" data-blueprint-mode="building" data-i18n="main.blueprint.buildingTab">BUILDING</button>
+      <div class="land-mode-switch" role="tablist" aria-label="Land construction mode" data-i18n-aria-label="main.land.modeAria">
+        <button type="button" role="tab" data-land-mode="foundation" data-i18n="main.land.foundationTab">LAND</button>
+        <button type="button" role="tab" data-land-mode="building" data-i18n="main.land.buildingTab">BUILDING</button>
       </div>
-      <div class="blueprint-editor" id="foundationEditor">
+      <div class="land-editor" id="foundationEditor">
         <ol>
-          <li data-blueprint-step="1"><b>1</b><span data-i18n="main.blueprint.stepEquip">Equip Blueprint Tool</span></li>
-          <li data-blueprint-step="2"><b>2</b><span data-i18n="main.blueprint.stepSize">Set Foundation Size</span></li>
-          <li data-blueprint-step="3"><b>3</b><span data-i18n="main.blueprint.stepPlace">Place Foundation</span></li>
-          <li data-blueprint-step="4"><b>4</b><span data-i18n="main.blueprint.stepConfirm">Secure Foundation</span></li>
-          <li data-blueprint-step="5"><b>5</b><span data-i18n="main.blueprint.stepBuild">Build on Foundation</span></li>
+          <li data-land-step="1"><b>1</b><span data-i18n="main.land.stepContracts">Own land contracts</span></li>
+          <li data-land-step="2"><b>2</b><span data-i18n="main.land.stepSize">Choose chunk area</span></li>
+          <li data-land-step="3"><b>3</b><span data-i18n="main.land.stepPlace">Select clear ground</span></li>
+          <li data-land-step="4"><b>4</b><span data-i18n="main.land.stepConfirm">Register land</span></li>
         </ol>
-        <div class="blueprint-dimensions">
-          <label>
-            <span data-i18n="main.blueprint.length">LENGTH</span>
-            <span class="blueprint-stepper">
-              <button type="button" data-blueprint-dimension="width" data-blueprint-delta="-1" aria-label="Decrease length" data-i18n-aria-label="main.blueprint.decreaseLength">−</button>
-              <input id="blueprintWidth" type="number" min="2" step="1" value="12" inputmode="numeric" aria-label="Foundation length" data-i18n-aria-label="main.blueprint.lengthInput" />
-              <button type="button" data-blueprint-dimension="width" data-blueprint-delta="1" aria-label="Increase length" data-i18n-aria-label="main.blueprint.increaseLength">+</button>
+        <div class="land-dimensions">
+          <label for="landChunksX">
+            <span data-i18n="main.land.chunksX">CHUNKS X</span>
+            <span class="land-stepper">
+              <button type="button" data-land-dimension="chunksX" data-land-delta="-1" aria-label="Decrease X chunks" data-i18n-aria-label="main.land.decreaseChunksX">−</button>
+              <input id="landChunksX" type="number" min="1" max="4096" step="1" value="1" inputmode="numeric" aria-label="Chunks along X" data-i18n-aria-label="main.land.chunksXInput" />
+              <button type="button" data-land-dimension="chunksX" data-land-delta="1" aria-label="Increase X chunks" data-i18n-aria-label="main.land.increaseChunksX">+</button>
             </span>
           </label>
-          <span class="blueprint-dimension-cross" aria-hidden="true">×</span>
-          <label>
-            <span data-i18n="main.blueprint.width">WIDTH</span>
-            <span class="blueprint-stepper">
-              <button type="button" data-blueprint-dimension="depth" data-blueprint-delta="-1" aria-label="Decrease width" data-i18n-aria-label="main.blueprint.decreaseWidth">−</button>
-              <input id="blueprintDepth" type="number" min="2" step="1" value="8" inputmode="numeric" aria-label="Foundation width" data-i18n-aria-label="main.blueprint.widthInput" />
-              <button type="button" data-blueprint-dimension="depth" data-blueprint-delta="1" aria-label="Increase width" data-i18n-aria-label="main.blueprint.increaseWidth">+</button>
+          <span class="land-dimension-cross" aria-hidden="true">×</span>
+          <label for="landChunksZ">
+            <span data-i18n="main.land.chunksZ">CHUNKS Z</span>
+            <span class="land-stepper">
+              <button type="button" data-land-dimension="chunksZ" data-land-delta="-1" aria-label="Decrease Z chunks" data-i18n-aria-label="main.land.decreaseChunksZ">−</button>
+              <input id="landChunksZ" type="number" min="1" max="4096" step="1" value="1" inputmode="numeric" aria-label="Chunks along Z" data-i18n-aria-label="main.land.chunksZInput" />
+              <button type="button" data-land-dimension="chunksZ" data-land-delta="1" aria-label="Increase Z chunks" data-i18n-aria-label="main.land.increaseChunksZ">+</button>
             </span>
           </label>
         </div>
-        <p class="blueprint-status" id="blueprintStatus" role="status" data-i18n="main.blueprint.chooseGround">Click a flat area to place the blueprint.</p>
-        <div class="blueprint-actions">
-          <button id="blueprintCancel" type="button" data-i18n="main.blueprint.cancel">Cancel</button>
-          <button id="blueprintConfirm" type="button" disabled><i aria-hidden="true"></i><span data-i18n="main.blueprint.confirm">Create Foundation</span></button>
+        <dl class="land-contract-summary">
+          <div><dt data-i18n="main.land.blockFootprint">BLOCKS</dt><dd id="landFootprint">16×16</dd></div>
+          <div><dt data-i18n="main.land.requiredContracts">REQUIRED</dt><dd id="landRequiredContracts">1</dd></div>
+          <div><dt data-i18n="main.land.availableContracts">OWNED</dt><dd id="landAvailableContracts">...</dd></div>
+        </dl>
+        <button class="land-buy-contracts" id="landBuyContracts" type="button" data-i18n="main.land.buyContracts">Buy blank land contracts</button>
+        <p class="land-status" id="landStatus" role="status" data-i18n="main.land.chooseGround">Select the top of a flat chunk with F.</p>
+        <div class="land-actions">
+          <button id="landCancel" type="button" data-i18n="main.land.cancel">Clear</button>
+          <button id="landConfirm" type="button" disabled><i aria-hidden="true"></i><span data-i18n="main.land.confirm">Register Land</span></button>
         </div>
       </div>
-      <div class="blueprint-editor blueprint-building-editor" id="buildingEditor" hidden>
-        <label class="blueprint-building-field">
-          <span><b>NCM3</b> <small data-i18n="main.blueprint.exactScale">EXACT 1:1 VOXELS</small></span>
-          <textarea id="buildingCode" rows="5" spellcheck="false" autocomplete="off" placeholder="Paste NCM3 code" data-i18n-placeholder="main.blueprint.codePlaceholder" aria-label="NCM3 building code" data-i18n-aria-label="main.blueprint.codeAria"></textarea>
+      <div class="land-editor land-building-editor" id="buildingEditor" hidden>
+        <label class="land-building-field">
+          <span><b>NCM3</b> <small data-i18n="main.land.exactScale">EXACT 1:1 VOXELS</small></span>
+          <textarea id="buildingCode" rows="5" spellcheck="false" autocomplete="off" placeholder="Paste NCM3 code" data-i18n-placeholder="main.land.codePlaceholder" aria-label="NCM3 building code" data-i18n-aria-label="main.land.codeAria"></textarea>
         </label>
-        <div class="blueprint-building-transform">
-          <button id="buildingPreview" type="button" data-i18n="main.blueprint.previewBuilding">Preview</button>
-          <button id="buildingRotateLeft" type="button" aria-label="Rotate left" data-i18n-aria-label="main.blueprint.rotateLeft">↶</button>
-          <span><small data-i18n="main.blueprint.rotation">ROTATION</small><b id="buildingRotation">0°</b></span>
-          <button id="buildingRotateRight" type="button" aria-label="Rotate right" data-i18n-aria-label="main.blueprint.rotateRight">↷</button>
+        <div class="land-building-transform">
+          <button id="buildingPreview" type="button" data-i18n="main.land.previewBuilding">Preview</button>
+          <button id="buildingRotateLeft" type="button" aria-label="Rotate left" data-i18n-aria-label="main.land.rotateLeft">↶</button>
+          <span><small data-i18n="main.land.rotation">ROTATION</small><b id="buildingRotation">0°</b></span>
+          <button id="buildingRotateRight" type="button" aria-label="Rotate right" data-i18n-aria-label="main.land.rotateRight">↷</button>
         </div>
-        <div class="blueprint-building-position">
+        <div class="land-building-position">
           <label>
-            <span data-i18n="main.blueprint.offsetX">X OFFSET</span>
-            <input id="buildingOffsetX" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building X offset" data-i18n-aria-label="main.blueprint.offsetX" />
+            <span data-i18n="main.land.offsetX">X OFFSET</span>
+            <input id="buildingOffsetX" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building X offset" data-i18n-aria-label="main.land.offsetX" />
           </label>
           <label>
-            <span data-i18n="main.blueprint.offsetZ">Z OFFSET</span>
-            <input id="buildingOffsetZ" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building Z offset" data-i18n-aria-label="main.blueprint.offsetZ" />
+            <span data-i18n="main.land.offsetZ">Z OFFSET</span>
+            <input id="buildingOffsetZ" type="number" min="-2147483648" max="2147483647" step="1" value="0" inputmode="numeric" aria-label="Building Z offset" data-i18n-aria-label="main.land.offsetZ" />
           </label>
         </div>
-        <div class="blueprint-building-metrics" id="buildingMetrics" hidden></div>
-        <p class="blueprint-status" id="buildingStatus" role="status" data-i18n="main.blueprint.enterCode">Paste an NCM3 building code first.</p>
-        <div class="blueprint-actions blueprint-building-actions">
-          <button id="buildingConfirm" type="button"><i aria-hidden="true"></i><span data-i18n="main.blueprint.createBuilding">Create Building</span></button>
+        <div class="land-building-metrics" id="buildingMetrics" hidden></div>
+        <p class="land-status" id="buildingStatus" role="status" data-i18n="main.land.enterCode">Paste an NCM3 building code first.</p>
+        <div class="land-actions land-building-actions">
+          <button id="buildingConfirm" type="button"><i aria-hidden="true"></i><span data-i18n="main.land.createBuilding">Create Building</span></button>
         </div>
       </div>
     </section>
-    <div class="blueprint-step-hint" id="blueprintStepHint" hidden>
-      <b id="blueprintStepNumber">2</b>
-      <span><strong data-i18n="main.blueprint.mode">BLUEPRINT MODE</strong><small id="blueprintStepText" data-i18n="main.blueprint.stepSizeDetail">Set the foundation size, then click flat ground.</small></span>
+    <div class="land-step-hint" id="landStepHint" hidden>
+      <b id="landStepNumber">1</b>
+      <span><strong data-i18n="main.land.mode">LAND MODE</strong><small id="landStepText" data-i18n="main.land.stepContractsDetail">Buy one blank land contract for every chunk you want to register.</small></span>
     </div>
     <div class="foundation-measurements" id="foundationMeasurements" aria-hidden="true" hidden>
-      <span id="foundationMeasureWidth">12</span>
-      <span id="foundationMeasureDepth">8</span>
+      <span id="foundationMeasureWidth">16</span>
+      <span id="foundationMeasureDepth">16</span>
     </div>
     <div class="map-overlay" id="mapOverlay" aria-hidden="true">
       <div class="map-modal" role="dialog" aria-label="Map">
@@ -600,6 +611,7 @@
             </div>
             <div class="market-filter-grid" data-i18n-aria-label="main.market.filters" aria-label="Market filters">
               <button class="active" type="button" data-market-category="all" data-i18n="main.market.categoryAll">All</button>
+              <button type="button" data-market-category="contracts" data-i18n="main.market.categoryContracts">Contracts</button>
               <button type="button" data-market-category="raw" data-i18n="main.market.categoryRaw">Raw Materials</button>
               <button type="button" data-market-category="building" data-i18n="main.market.categoryBuilding">Building Materials</button>
               <button type="button" data-market-category="equipment" data-i18n="main.market.categoryEquipment">Equipment</button>

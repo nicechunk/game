@@ -1,48 +1,69 @@
 import { createFoundationController } from "./foundation-controller.js";
-import { createPlayBlueprintUi } from "./play-blueprint-ui.js";
+import { createPlayLandUi } from "./play-land-ui.js";
 
-export function createPlayBlueprintConstruction({
+export function createPlayLandConstruction({
   index,
   elements,
   canvas = null,
   getChunks = () => null,
   getPlayerPosition = () => [0, 0, 0],
   getWalletAddress = () => "",
-  getSelectedBlueprint = () => null,
-  isBlueprintModeActive = () => false,
+  isConstructionModeActive = () => false,
+  setConstructionModeActive = () => {},
+  getLandContractBalance = () => null,
   isBlockingBlock = () => false,
   isFluidBlock = () => false,
   blockAirId = 0,
   submitFoundation = async () => ({ submitted: false, reason: "chain-unavailable" }),
-  submitFoundationResize = async () => ({ submitted: false, reason: "chain-unavailable" }),
   refreshFoundations = async () => ({ ok: false }),
+  refreshLandContracts = async () => null,
   buildingController = null,
   refreshBuildings = async () => ({ ok: false }),
   getCamera = () => null,
+  openContractsMarket = () => {},
   onStatus = () => {},
   translate = (_key, fallback) => fallback,
 } = {}) {
-  let blueprintUi = null;
-  const render = (options) => blueprintUi?.render?.(options);
+  let landUi = null;
+  const render = (options) => landUi?.render?.(options);
   const foundationController = createFoundationController({
     index,
     getChunks,
     getPlayerPosition,
     getWalletAddress,
-    getSelectedBlueprint: () => buildingController?.mode?.() !== "building"
-      ? getSelectedBlueprint()
-      : null,
-    isBlueprintModeActive,
+    isConstructionModeActive: () => isConstructionModeActive()
+      && buildingController?.mode?.() !== "building",
+    getLandContractBalance,
     isBlockingBlock,
     isFluidBlock,
     blockAirId,
     submitFoundation,
-    submitFoundationResize,
     refreshFoundations,
+    refreshLandContracts,
     onChanged: () => render({ force: true }),
     onStatus,
     translate,
   });
+
+  const setActive = (nextActive) => {
+    const next = Boolean(nextActive);
+    if (next === Boolean(isConstructionModeActive())) {
+      render({ force: true });
+      return next;
+    }
+    setConstructionModeActive(next);
+    buildingController?.activate?.(next);
+    if (!next) {
+      foundationController.clearSelection?.();
+      buildingController?.cancel?.();
+    }
+    render({ force: true });
+    onStatus(next
+      ? text("main.land.modeOpened", "Land construction mode opened. Select whole chunks with F.")
+      : text("main.land.modeClosed", "Land construction mode closed."));
+    return next;
+  };
+
   const actions = {
     selectAtHit: (hit) => buildingController?.mode?.() === "building"
       ? buildingController?.selectAtHit?.(hit)
@@ -53,25 +74,41 @@ export function createPlayBlueprintConstruction({
     cancel: () => buildingController?.mode?.() === "building"
       ? buildingController?.cancel?.()
       : foundationController.cancel(),
+    close: () => setActive(false),
+    open: () => setActive(true),
+    toggle: () => setActive(!isConstructionModeActive()),
   };
-  blueprintUi = createPlayBlueprintUi({
+
+  landUi = createPlayLandUi({
     elements,
     getController: () => foundationController,
     getBuildingController: () => buildingController,
+    isConstructionModeActive,
+    setConstructionModeActive: setActive,
     getCamera,
     canvas,
     onBuildingModeOpen: () => refreshBuildings({ force: true, quiet: true }),
+    onBuyContracts: openContractsMarket,
     translate,
   });
-  blueprintUi.bind();
+  landUi.bind();
 
   return Object.freeze({
     actions,
     foundationController,
-    blueprintUi,
+    landUi,
     render,
-    update: () => blueprintUi.update(),
+    update: () => landUi.update(),
     setHoverHit: (hit) => foundationController.setHoverHit(hit),
     overlays: () => foundationController.overlays(),
+    isActive: () => Boolean(isConstructionModeActive()),
+    open: actions.open,
+    close: actions.close,
+    toggle: actions.toggle,
   });
+
+  function text(key, fallback) {
+    const value = translate?.(key, fallback);
+    return typeof value === "string" && value !== key ? value : fallback;
+  }
 }

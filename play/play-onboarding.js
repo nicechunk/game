@@ -732,11 +732,11 @@ function guideDefinition(feature, mobile) {
     foundation: {
       warning: "features.foundation.warning",
       steps: [
-        step("foundation.steps.tool", "controlBlueprint", "blueprint", ["#blueprintGuide header"]),
-        step("foundation.steps.size", "controlDimensions", "dimensions", [".blueprint-dimensions"]),
+        step("foundation.steps.contracts", "controlContracts", "land", ["#landGuide header"]),
+        step("foundation.steps.size", "controlDimensions", "dimensions", [".land-dimensions"]),
         step("foundation.steps.place", "controlPlace", "place", ["#worldCanvas"]),
-        step("foundation.steps.review", "controlReview", "review", ["#blueprintStatus"]),
-        step("foundation.steps.bind", "controlBind", "chain", ["#blueprintConfirm"]),
+        step("foundation.steps.review", "controlReview", "review", ["#landStatus"]),
+        step("foundation.steps.bind", "controlBind", "chain", ["#landConfirm"]),
       ],
     },
     smelting: {

@@ -23,9 +23,9 @@ export const RESOURCE_STACK_LIMIT = 999;
 export const MATERIAL_STACK_LIMIT = 99;
 
 const CHAIN_ITEM_CATEGORY_FORGED = 2;
-const CHAIN_ITEM_CATEGORY_BLUEPRINT = 3;
 const CHAIN_FORGED_ITEM_CODE = 8;
-const CHAIN_BLUEPRINT_ITEM_CODE = 9;
+const RETIRED_BLUEPRINT_ITEM_CATEGORY = 3;
+const RETIRED_BLUEPRINT_ITEM_CODE = 9;
 
 export function createPlayGameState({
   resourceNone = 0,
@@ -140,22 +140,13 @@ export function createPlayGameState({
       for (let index = 0; index < this.hotbarSlots.length; index += 1) {
         const slot = this.hotbarSlots[index];
         const chainForged = slot?.itemId === FORGED_ITEM_ID && isChainBackedForgedSlot(slot);
-        const chainBlueprint = slot?.itemId === "blueprint_tool" && isChainBackedBlueprintSlot(slot);
-        if (!chainForged && !chainBlueprint) continue;
+        if (!chainForged) continue;
         if (isCustodiedEquipmentSlot(slot)) continue;
         const identity = hotbarShortcutIdentity(slot);
         const backpackSlot = clearAll ? null : backpackSlotsByIdentity.get(identity);
-        if (!backpackSlot || (chainForged && backpackSlot.kind !== "forged") || (chainBlueprint && backpackSlot.kind !== "blueprint")) {
+        if (!backpackSlot || backpackSlot.kind !== "forged") {
           this.hotbarSlots[index] = null;
           changed = true;
-          continue;
-        }
-        if (chainBlueprint) {
-          const normalized = blueprintHotbarSlotFromBackpack(backpackSlot, this.ownerAddress);
-          if (!normalized || JSON.stringify(normalized) !== JSON.stringify(slot)) {
-            this.hotbarSlots[index] = normalized;
-            changed = true;
-          }
           continue;
         }
         const designUnchanged = normalizeDesignHashValue(slot.designHash) === normalizeDesignHashValue(backpackSlot.designHash);
@@ -378,18 +369,6 @@ export function createPlayGameState({
     getForgedInteraction(slot) {
       return forgedItemInteraction(slot);
     },
-    getSelectedBlueprintSlot() {
-      const slot = this.hotbarSlots[this.selectedHotbarSlot];
-      return slot?.itemId === "blueprint_tool" && normalizeU64String(slot.blueprintId)
-        ? { slot, index: this.selectedHotbarSlot }
-        : null;
-    },
-    getSelectedBlueprintId() {
-      return this.getSelectedBlueprintSlot()?.slot?.blueprintId ?? "";
-    },
-    isBlueprintSelected() {
-      return Boolean(this.getSelectedBlueprintSlot());
-    },
     getSelectedPlaceableSlot() {
       this.syncHotbarResourceSlots();
       if (!this.isBackpackAvailable()) return null;
@@ -579,7 +558,6 @@ export function createPlayHotbarItems() {
     forged_item: { kind: "forged", itemId: FORGED_ITEM_ID, label: "Forged Tool", maxDurability: DEFAULT_PICKAXE_DURABILITY },
     resource_block: { kind: "resource", itemId: "resource_block", label: "Block", action: "placeBlock" },
     backpack: { kind: "backpack", itemId: "backpack", label: "Backpack" },
-    blueprint_tool: { kind: "blueprint", itemId: "blueprint_tool", label: "Blueprint" },
   });
 }
 
@@ -623,13 +601,11 @@ function legacyGlobalHotbarForOwner(ownerAddress) {
   if (!owner || !Array.isArray(legacy)) return null;
   const hasOwnedShortcut = legacy.some((slot) => (
     slot?.itemId === FORGED_ITEM_ID && normalizeOwnerAddress(slot.owner) === owner
-    || slot?.itemId === "blueprint_tool" && normalizeOwnerAddress(slot.blueprintOwner) === owner
   ));
   if (!hasOwnedShortcut) return null;
   return legacy.map((slot) => {
     if (slot?.itemId === "iron_pickaxe" || slot?.itemId === "backpack") return slot;
     if (slot?.itemId === FORGED_ITEM_ID && normalizeOwnerAddress(slot.owner) === owner) return slot;
-    if (slot?.itemId === "blueprint_tool" && normalizeOwnerAddress(slot.blueprintOwner) === owner) return slot;
     return null;
   });
 }
@@ -662,7 +638,6 @@ export function normalizeHotbarSlots(slots, { ownerAddress = "" } = {}) {
       normalized[pickaxeIndex] = { itemId: "iron_pickaxe", durability: DEFAULT_PICKAXE_DURABILITY, maxDurability: DEFAULT_PICKAXE_DURABILITY };
     }
   }
-  removeLegacyTestBlueprintSlots(normalized);
   return normalized;
 }
 
@@ -684,8 +659,7 @@ function backpackShortcutIdentity(slot) {
     const sourceId = String(slot.id || "").trim();
     return sourceId ? `resource:${sourceId}` : "";
   }
-  if (slot?.kind === "forged") return forgedShortcutIdentity(slot, slot.id);
-  return slot?.kind === "blueprint" ? blueprintShortcutIdentity(slot) : "";
+  return slot?.kind === "forged" ? forgedShortcutIdentity(slot, slot.id) : "";
 }
 
 function resolveBackpackSlot(slots, slotOrId) {
@@ -699,13 +673,7 @@ function hotbarShortcutIdentity(slot) {
     const sourceId = String(slot.backpackSlotId || "").trim();
     return sourceId ? `resource:${sourceId}` : "";
   }
-  if (slot?.itemId === FORGED_ITEM_ID) return forgedShortcutIdentity(slot, slot.sourceItemId);
-  return slot?.itemId === "blueprint_tool" ? blueprintShortcutIdentity(slot) : "";
-}
-
-function blueprintShortcutIdentity(slot) {
-  const blueprintId = normalizeU64String(slot?.blueprintId || slot?.chainItemId);
-  return blueprintId ? `blueprint:${blueprintId}` : "";
+  return slot?.itemId === FORGED_ITEM_ID ? forgedShortcutIdentity(slot, slot.sourceItemId) : "";
 }
 
 function forgedShortcutIdentity(slot, fallbackSourceId = "") {
@@ -771,31 +739,6 @@ function isChainBackedForgedSlot(slot) {
   ));
 }
 
-function isChainBackedBlueprintSlot(slot) {
-  return Boolean(slot?.itemId === "blueprint_tool" && (
-    slot.source === "chain"
-    || slot.chainBackpack
-    || slot.itemPda
-    || Number.isInteger(slot.chainIndex)
-  ));
-}
-
-function removeLegacyTestBlueprintSlots(slots) {
-  const seen = new Set();
-  for (let index = 0; index < slots.length; index += 1) {
-    const slot = slots[index];
-    if (slot?.itemId !== "blueprint_tool") continue;
-    const blueprintId = normalizeU64String(slot.blueprintId);
-    const legacyTestBlueprint = slot.source.trim().toLowerCase() === "test"
-      || slot.blueprintInstanceId.startsWith("test-blueprint:");
-    if (!blueprintId || legacyTestBlueprint || seen.has(blueprintId)) {
-      slots[index] = null;
-      continue;
-    }
-    seen.add(blueprintId);
-  }
-}
-
 function firstSelectableHotbarIndex(slots) {
   const index = slots.findIndex((slot) => slot?.itemId !== "backpack");
   return index >= 0 ? index : 0;
@@ -808,6 +751,7 @@ function preferredHotbarIndex(slots) {
 
 function normalizeHotbarSlot(slot, { ownerAddress = "" } = {}) {
   if (!slot || typeof slot !== "object") return null;
+  if (slot.itemId === "blueprint_tool" || slot.kind === "blueprint") return null;
   if (slot.itemId === "iron_pickaxe") {
     const maxDurability = clampInt(slot.maxDurability ?? DEFAULT_PICKAXE_DURABILITY, 1, 9999);
     return {
@@ -843,31 +787,6 @@ function normalizeHotbarSlot(slot, { ownerAddress = "" } = {}) {
     };
   }
   if (slot.itemId === "backpack") return { itemId: "backpack", locked: true };
-  if (slot.itemId === "blueprint_tool") {
-    const blueprintId = normalizeU64String(slot.blueprintId);
-    const blueprintOwner = normalizeOwnerAddress(slot.blueprintOwner);
-    if (ownerAddress && blueprintOwner && blueprintOwner !== ownerAddress) return null;
-    const chainBacked = Boolean(slot.chainBackpack || slot.itemPda || Number.isInteger(slot.chainIndex));
-    return {
-      itemId: "blueprint_tool",
-      kind: "blueprint",
-      blueprintId,
-      blueprintInstanceId: String(slot.blueprintInstanceId || (blueprintId ? `blueprint:${blueprintId}` : "")),
-      blueprintOrdinal: clampInt(slot.blueprintOrdinal, 0, 0xffff),
-      blueprintOwner,
-      source: String(slot.source || ""),
-      locked: slot.source === "test" || slot.locked === true,
-      ...(chainBacked ? {
-        sourceItemId: String(slot.sourceItemId || slot.id || ""),
-        chainBackpack: String(slot.chainBackpack || ""),
-        chainIndex: Number.isFinite(slot.chainIndex) ? Math.trunc(slot.chainIndex) : null,
-        chainItemId: normalizeU64String(slot.chainItemId || blueprintId),
-        itemCode: clampInt(slot.itemCode, 0, 65535),
-        itemPda: String(slot.itemPda || ""),
-      } : {}),
-      ...equipmentSourceFields(slot),
-    };
-  }
   return null;
 }
 
@@ -890,9 +809,9 @@ function clearLegacyBackpackCache() {
 
 function normalizeBackpackSlot(slot) {
   if (!slot || typeof slot !== "object") return null;
+  if (slot.kind === "blueprint" || slot.itemId === "blueprint_tool") return null;
   if (slot.kind === "smelted_material") return normalizeSmeltedSlot(slot);
   if (slot.kind === "forged") return normalizeForgedBackpackSlot(slot);
-  if (slot.kind === "blueprint") return normalizeBlueprintBackpackSlot(slot);
   const resourceId = clampInt(slot.resourceId, 0, 999);
   const count = pdaAwareSlotCount(slot, RESOURCE_STACK_LIMIT);
   return {
@@ -963,43 +882,8 @@ function normalizeForgedBackpackSlot(slot) {
   };
 }
 
-function normalizeBlueprintBackpackSlot(slot) {
-  const blueprintId = normalizeU64String(slot.blueprintId || slot.chainItemId);
-  if (!blueprintId) return null;
-  return {
-    id: String(slot.id || `chain-blueprint-${slot.chainIndex ?? 0}-${blueprintId}`),
-    kind: "blueprint",
-    itemId: "blueprint_tool",
-    label: String(slot.label || `Blueprint #${blueprintId}`),
-    className: String(slot.className || "Blueprint"),
-    count: 1,
-    blueprintId,
-    blueprintInstanceId: String(slot.blueprintInstanceId || (slot.itemPda ? `blueprint-pda:${slot.itemPda}` : `blueprint:${blueprintId}`)),
-    blueprintOrdinal: clampInt(slot.blueprintOrdinal, 0, 0xffff),
-    blueprintOwner: normalizeOwnerAddress(slot.blueprintOwner),
-    locked: false,
-    pendingTxId: null,
-    pending: false,
-    ...normalizePdaItemFields(slot),
-  };
-}
-
-function blueprintHotbarSlotFromBackpack(slot, ownerAddress) {
-  return normalizeHotbarSlot({
-    ...slot,
-    itemId: "blueprint_tool",
-    kind: "blueprint",
-    sourceItemId: slot.id,
-    blueprintOwner: slot.blueprintOwner || ownerAddress,
-    locked: false,
-    custodySource: slot.custodySource || "backpack",
-    sourceBackpackIndex: Number.isInteger(slot.sourceBackpackIndex) ? slot.sourceBackpackIndex : slot.chainIndex,
-  }, { ownerAddress });
-}
-
 function hotbarSlotFromBackpack(slot, ownerAddress, modelBytes = null) {
   if (!slot) return null;
-  if (slot.kind === "blueprint") return blueprintHotbarSlotFromBackpack(slot, ownerAddress);
   if (slot.kind === "forged") {
     const bytes = Array.isArray(modelBytes) || modelBytes instanceof Uint8Array
       ? Array.from(modelBytes)
@@ -1104,16 +988,10 @@ function hotbarSlotFromEquipmentRecord(record, ownerAddress, equipmentSlot) {
       qualityBps: Math.max(0, Math.trunc(Number(raw.qualityBps) || 0)),
       metadata: Math.trunc(Number(raw.metadata) || 0) >>> 0,
     };
-    if (category === CHAIN_ITEM_CATEGORY_BLUEPRINT && itemCode === CHAIN_BLUEPRINT_ITEM_CODE) {
-      backpackSlot = normalizeBackpackSlot({
-        ...common,
-        kind: "blueprint",
-        itemId: "blueprint_tool",
-        blueprintId: chainItemId,
-        blueprintOwner: ownerAddress,
-        blueprintOrdinal: equipmentSlot + 1,
-      });
-    } else if (category === CHAIN_ITEM_CATEGORY_FORGED || itemCode === CHAIN_FORGED_ITEM_CODE) {
+    if (category === RETIRED_BLUEPRINT_ITEM_CATEGORY && itemCode === RETIRED_BLUEPRINT_ITEM_CODE) {
+      return null;
+    }
+    if (category === CHAIN_ITEM_CATEGORY_FORGED || itemCode === CHAIN_FORGED_ITEM_CODE) {
       backpackSlot = normalizeBackpackSlot({
         ...common,
         kind: "forged",
@@ -1263,7 +1141,6 @@ function isPlaceableBackpackSlot(slot) {
   return Boolean(slot && !slot.pending && slot.count > 0 && (
     slot.kind === "forged" && normalizeDesignHashValue(slot.designHash) !== 0
     || slot.kind === "resource" && Number.isFinite(slot.blockId) && slot.blockId > 0
-    || slot.kind === "blueprint" && Boolean(normalizeU64String(slot.blueprintId))
   ));
 }
 
@@ -1374,9 +1251,6 @@ function backpackSlotsSignature(slots) {
     slot?.itemLevel ?? "",
     slot?.qualityBps ?? "",
     slot?.metadata ?? "",
-    slot?.blueprintId ?? "",
-    slot?.blueprintInstanceId ?? "",
-    slot?.blueprintOwner ?? "",
     slot?.decorationId ?? "",
     slot?.decorationRuleId ?? "",
     slot?.decorationSurfaceBlockId ?? "",

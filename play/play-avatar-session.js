@@ -219,12 +219,6 @@ export function createPlayAvatarSession({
 
   function selectedEquipment() {
     const slot = gameState?.hotbarSlots?.[gameState?.selectedHotbarSlot];
-    if (slot?.itemId === "blueprint_tool") {
-      return cachedEquipment("tool:blueprint", () => ({
-        rightHand: "blueprint",
-        equipmentId: "blueprint_tool",
-      }));
-    }
     if (slot?.itemId === "forged_item") {
       const request = selectedForgeRuntimeRequest();
       const interaction = forgedItemInteraction(slot);

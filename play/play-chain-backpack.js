@@ -12,9 +12,9 @@ const MUTATION_REFRESH_DELAYS_MS = Object.freeze([0, 180, 500, 1_200]);
 const CHAIN_BACKPACK_SOURCE = "chain";
 const CHAIN_ITEM_CATEGORY_MATERIAL = 1;
 const CHAIN_ITEM_CATEGORY_FORGED = 2;
-const CHAIN_ITEM_CATEGORY_BLUEPRINT = 3;
+const RETIRED_BLUEPRINT_ITEM_CATEGORY = 3;
 const CHAIN_FORGED_ITEM_CODE = 8;
-const CHAIN_BLUEPRINT_ITEM_CODE = 9;
+const RETIRED_BLUEPRINT_ITEM_CODE = 9;
 
 export function createPlayChainBackpackSync({
   gameState,
@@ -312,14 +312,14 @@ export function chainSlotsFromBackpack(backpack, {
   resolveSurfaceDecoration = null,
 } = {}) {
   const address = String(backpack?.publicKey || "");
-  const owner = String(backpack?.owner || "");
   const rawSlots = Array.isArray(backpack?.slots) ? backpack.slots : [];
   const slots = [];
   for (let index = 0; index < rawSlots.length; index += 1) {
     const slot = rawSlots[index];
     if (!slot) continue;
     if (slot.kind === "item") {
-      slots.push(chainItemSlot(slot, index, address, owner));
+      const item = chainItemSlot(slot, index, address);
+      if (item) slots.push(item);
       continue;
     }
     const resource = slot.resource || slot;
@@ -393,39 +393,11 @@ function normalizeSurfaceDecoration(decoration = {}) {
   };
 }
 
-function chainItemSlot(slot, index, address, owner) {
+function chainItemSlot(slot, index, address) {
   const category = Math.max(0, Math.trunc(Number(slot.category) || 0));
   const itemCode = Math.max(0, Math.trunc(Number(slot.itemCode) || 0));
   const chainItemId = String(slot.itemId || "0");
-  const blueprint = category === CHAIN_ITEM_CATEGORY_BLUEPRINT && itemCode === CHAIN_BLUEPRINT_ITEM_CODE;
-  if (blueprint) {
-    const itemPda = String(slot.itemPda || "");
-    return {
-      id: `chain-${address || "backpack"}-${index}-blueprint-${chainItemId}`,
-      kind: "blueprint",
-      itemId: "blueprint_tool",
-      label: `Blueprint #${chainItemId}`,
-      className: "Blueprint",
-      count: 1,
-      pending: false,
-      pendingTxId: null,
-      source: CHAIN_BACKPACK_SOURCE,
-      chainBackpack: address,
-      chainIndex: index,
-      chainItemId,
-      itemCode,
-      itemPda,
-      blueprintId: chainItemId,
-      blueprintInstanceId: itemPda ? `blueprint-pda:${itemPda}` : `blueprint:${chainItemId}`,
-      blueprintOrdinal: index + 1,
-      blueprintOwner: owner,
-      locked: false,
-      volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
-      massGrams: normalizeSlotMassGrams(slot.massGrams),
-      metadata: Math.max(0, Math.trunc(Number(slot.metadata) || 0)),
-      proofHash: itemPda,
-    };
-  }
+  if (category === RETIRED_BLUEPRINT_ITEM_CATEGORY && itemCode === RETIRED_BLUEPRINT_ITEM_CODE) return null;
   const forged = category === CHAIN_ITEM_CATEGORY_FORGED || itemCode === CHAIN_FORGED_ITEM_CODE;
   const qualityBps = Math.max(0, Math.trunc(Number(slot.qualityBps) || 0));
   const materialId = forged ? "" : smeltingMaterialIdForItemCode(itemCode) || `material-${itemCode}`;

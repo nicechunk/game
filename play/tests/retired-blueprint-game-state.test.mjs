@@ -8,7 +8,7 @@ import {
   normalizeHotbarSlots,
 } from "../game-state.js";
 
-function blueprint(overrides = {}) {
+function retiredBlueprint(overrides = {}) {
   return {
     itemId: "blueprint_tool",
     kind: "blueprint",
@@ -33,8 +33,8 @@ test("the default hotbar does not grant blueprints", () => {
 
 test("normalization removes all legacy automatically granted blueprints", () => {
   const legacy = createDefaultHotbarSlots();
-  legacy[1] = blueprint({ source: "test", blueprintInstanceId: "blueprint:42" });
-  legacy[2] = blueprint({ blueprintId: "43", source: "", blueprintInstanceId: "test-blueprint:43" });
+  legacy[1] = retiredBlueprint({ source: "test", blueprintInstanceId: "blueprint:42" });
+  legacy[2] = retiredBlueprint({ blueprintId: "43", source: "", blueprintInstanceId: "test-blueprint:43" });
   legacy[3] = { itemId: "blueprint_tool", kind: "blueprint", locked: true };
 
   const normalized = normalizeHotbarSlots(JSON.parse(JSON.stringify(legacy)));
@@ -42,24 +42,25 @@ test("normalization removes all legacy automatically granted blueprints", () => 
   assert.equal(normalized.filter((slot) => slot?.itemId === "blueprint_tool").length, 0);
 });
 
-test("a legitimately issued blueprint survives serialization and normalization", () => {
+test("previously issued blueprint shortcuts are retired during normalization", () => {
   const slots = createDefaultHotbarSlots();
-  slots[2] = blueprint();
+  slots[2] = retiredBlueprint();
 
   const normalized = normalizeHotbarSlots(JSON.parse(JSON.stringify(slots)));
 
-  assert.deepEqual(normalized[2], blueprint());
+  assert.equal(normalized[2], null);
 });
 
-test("duplicate issued blueprint identities are discarded", () => {
+test("every duplicate legacy blueprint identity is discarded", () => {
   const slots = createDefaultHotbarSlots();
-  slots[1] = blueprint();
-  slots[2] = blueprint({ blueprintInstanceId: "duplicate:42" });
+  slots[1] = retiredBlueprint();
+  slots[2] = retiredBlueprint({ blueprintInstanceId: "duplicate:42" });
 
   const normalized = normalizeHotbarSlots(slots);
 
-  assert.equal(normalized.filter((slot) => slot?.itemId === "blueprint_tool").length, 1);
-  assert.deepEqual(normalized[1], blueprint());
+  assert.equal(normalized.filter((slot) => slot?.itemId === "blueprint_tool").length, 0);
+  assert.equal(normalized[1], null);
+  assert.equal(normalized[2], null);
 });
 
 test("a full hotbar is not changed to inject blueprints", () => {
@@ -79,7 +80,7 @@ test("a full hotbar is not changed to inject blueprints", () => {
   assert.equal(normalized[BACKPACK_HOTBAR_INDEX]?.itemId, "backpack");
 });
 
-test("a chain Blueprint in an expanded backpack can be equipped and remains wallet-scoped", () => {
+test("retired chain Blueprint records never enter the backpack or hotbar", () => {
   const state = createPlayGameState({ ownerAddress: "wallet-a" });
   state.setBackpackAvailability(true, { known: true });
   const result = state.mergeChainBackpackSlots([{
@@ -102,12 +103,9 @@ test("a chain Blueprint in an expanded backpack can be equipped and remains wall
 
   assert.equal(result.changed, true);
   assert.equal(state.backpackCapacity, 51);
-  assert.equal(state.backpackSlots[0]?.blueprintId, "9001");
+  assert.equal(state.backpackSlots.length, 0);
 
-  const equipped = state.equipBackpackSlotToHotbar(state.backpackSlots[0].id);
-  assert.equal(equipped.ok, true);
-  assert.equal(equipped.slot.itemId, "blueprint_tool");
-  assert.equal(equipped.slot.blueprintId, "9001");
-  assert.equal(equipped.slot.blueprintOwner, "wallet-a");
-  assert.equal(equipped.slot.chainIndex, 50);
+  const equipped = state.equipBackpackSlotToHotbar("chain-backpack-50-blueprint-9001");
+  assert.equal(equipped.ok, false);
+  assert.equal(state.hotbarSlots.some((slot) => slot?.itemId === "blueprint_tool"), false);
 });

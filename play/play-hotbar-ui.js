@@ -38,21 +38,17 @@ export function createPlayHotbarUi({
     const visibleSlot = isBackpackSlot && !backpackAvailable ? null : slot;
     const item = visibleSlot ? gameState.hotbarItems[visibleSlot.itemId] : null;
     const renderedItem = visibleSlot ? { ...item, ...visibleSlot } : null;
-    const isBlueprint = visibleSlot?.itemId === "blueprint_tool";
     const opensBackpack = isBackpackSlot && backpackAvailable;
-    const label = visibleSlot
-      ? `${voxelItemLabel(renderedItem)}${isBlueprint ? ` #${visibleSlot.blueprintOrdinal || "-"}` : ""}`
-      : "Empty";
+    const label = visibleSlot ? voxelItemLabel(renderedItem) : "Empty";
     return {
       slot,
       visibleSlot,
       renderedItem,
       isBackpackSlot,
-      isBlueprint,
       opensBackpack,
       label,
       amount: hotbarSlotAmount(visibleSlot),
-      renderKey: hotbarRenderKey({ renderedItem, isBackpackSlot, isBlueprint, opensBackpack, label }),
+      renderKey: hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, label }),
       selected: !isBackpackSlot && index === gameState.selectedHotbarSlot,
     };
   }
@@ -100,10 +96,9 @@ export function createPlayHotbarUi({
     button.classList.toggle("hotbar-action", view.opensBackpack);
     button.classList.toggle("backpack-unavailable", view.isBackpackSlot && !view.opensBackpack);
     button.dataset.slot = String(index);
-    syncOptionalDataset(button, "blueprintId", view.isBlueprint ? String(view.visibleSlot.blueprintId || "") : "");
     syncOptionalDataset(button, "backpackTarget", view.isBackpackSlot ? "true" : "");
     syncOptionalDataset(button, "action", view.opensBackpack ? "open-backpack" : "");
-    button.title = view.isBlueprint ? String(view.visibleSlot.blueprintId || "") : "";
+    button.title = "";
     if (view.opensBackpack) {
       button.setAttribute("aria-label", "Open backpack");
       button.removeAttribute("aria-disabled");
@@ -133,17 +128,15 @@ export function createPlayHotbarUi({
 
   function hotbarSlotAmount(slot) {
     if (!slot) return "";
-    if (slot.itemId === "blueprint_tool") return `#${slot.blueprintOrdinal || "-"}`;
     if (Number.isFinite(slot.durability)) return String(Math.max(0, Math.trunc(slot.durability || 0)));
     if (slot.itemId === "backpack") return `${gameState.totalBackpackItems()}`;
     return Number.isFinite(slot.count) ? String(slot.count) : "";
   }
 }
 
-function hotbarRenderKey({ renderedItem, isBackpackSlot, isBlueprint, opensBackpack, label }) {
+function hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, label }) {
   return JSON.stringify([
     isBackpackSlot,
-    isBlueprint,
     opensBackpack,
     label,
     renderedItem ? hotbarVisualFields(renderedItem) : null,

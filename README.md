@@ -49,9 +49,10 @@ accepted, and a Guardian message does not replace confirmed chain state. See
   the underlying independent chain records.
 - Physical material quantities with volume, density, mass, and burden limits.
 - Smelting recipes, skill-based output bonuses, forging, equipment, and tools.
-- NCM building previews, foundations, construction, and spatial collision.
-- Marketplace listings, categories, item presentation, purchase, and cancel
-  flows.
+- Chunk-aligned land registration backed by blank land contracts, plus NCM3
+  building previews, construction, and spatial collision.
+- Marketplace listings, treasury-issued contracts, categories, item
+  presentation, purchase, and cancel flows.
 - Skill progression for extraction, burden, smelting, forging, exploration,
   movement, and related game systems.
 - Guardian-backed multiplayer presence, names, appearance, equipment, and

@@ -10,7 +10,8 @@ the client or associated Solana programs have completed an independent audit.
 - Local game wallet secret material and its backup.
 - Temporary session signing keys and expiry state.
 - Helius API keys and custom RPC endpoints.
-- Player identity, inventory, skills, buildings, and market records.
+- Player identity, inventory, skills, land-contract balances, buildings, and
+  market records.
 - Canonical item, recipe, block, and program identifiers.
 - Integrity of public rules and runtime configuration.
 
@@ -66,6 +67,14 @@ proof that the expected account state was committed.
 - Network checks require the configured Solana cluster before supported flows.
 - Chain-facing actions distinguish pending, confirmed, and failed states.
 - Transaction builders use canonical IDs rather than translated labels.
+- Treasury contract purchases pin the NCK mint and treasury owner, while land
+  reservation CPIs pin the canonical Core configuration and Building authority
+  PDA.
+- Multi-transaction land registration reserves contracts before indexing,
+  consumes them only with final activation, and supports reverse-order rollback
+  with full reservation restoration.
+- Building, SDK, and client validation cap one parcel at `4,096` contracts to
+  bound terrain validation and chunk-index transaction work.
 - Repository policy rejects common credential paths and secret signatures.
 - Runtime loaders are size-limited and dependency-minimized.
 - Wallet- and schema-sensitive caches are scoped or invalidated.

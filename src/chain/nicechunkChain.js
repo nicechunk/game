@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import bs58 from "bs58";
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
@@ -68,17 +69,17 @@ const chunkPlacedSeed = "chunk-placed";
 const resourceDropTableSeed = "resource-drops-v2";
 const surfaceDecorationTableSeed = "surface-decor-v1";
 const foundationSeed = "foundation";
-const foundationChunkSeed = "foundation-chunk-v2";
-const buildSiteSeed = "build-site-v2";
-const buildingChunkAuthoritySeed = "chunk-authority-v1";
-const buildingManifestSeed = "building-v2";
-const buildingShardSeed = "building-data-v1";
+const foundationChunkSeed = "foundation-chunk-v3";
+const buildSiteSeed = "build-site-v3";
+const buildingChunkAuthoritySeed = "chunk-authority-v2";
+const landContractAuthoritySeed = "land-contract-authority-v1";
+const buildingManifestSeed = "building-v3";
+const buildingShardSeed = "building-data-v2";
 const playerProgressSeed = "player-progress";
 const playerSkillsSeed = "player-skills-v2";
 const skillRuleTableSeed = "skill-rules-v2";
 const backpackSeed = "backpack";
 const materialPhysicsSeed = "material-physics-v2";
-const blueprintItemSeed = "blueprint-item";
 const forgedItemSeed = "forged-item-v1";
 const marketListingSeed = "listing";
 const marketAuthoritySeed = "market-authority";
@@ -162,27 +163,28 @@ const surfaceDecorationTableHeaderLength = 16;
 const surfaceDecorationRuleLength = 20;
 const surfaceDecorationRuleMaxCount = 128;
 const surfaceDecorationTableLength = surfaceDecorationTableHeaderLength + surfaceDecorationRuleMaxCount * surfaceDecorationRuleLength;
-const foundationChunkMagic = "NCKFCI02";
-const foundationChunkVersion = 2;
+const foundationChunkMagic = "NCKFCI03";
+const foundationChunkVersion = 3;
 const foundationChunkHeaderLength = 56;
 const foundationChunkRecordLength = 58;
 const foundationChunkMaxCapacity = 64;
-const foundationMinSize = 2;
-const buildSiteMagic = "NCKSITE2";
-const buildSiteVersion = 2;
+const foundationMinSize = 16;
+const maxLandContractsPerSite = 4_096;
+const buildSiteMagic = "NCKSITE3";
+const buildSiteVersion = 3;
 const buildSiteLength = 160;
 const buildSiteOwnerOffset = 16;
 const buildSiteStatusNames = new Map([
   [0, "indexing"],
   [1, "active"],
-  [2, "edit-indexing"],
-  [3, "edit-cleaning"],
+  [2, "canceling"],
 ]);
-const buildingManifestMagic = "NCKBLD02";
-const buildingManifestVersion = 2;
+const landContractTypeBlank = 1;
+const buildingManifestMagic = "NCKBLD03";
+const buildingManifestVersion = 3;
 const buildingManifestLength = 160;
-const buildingShardMagic = "NCKBDT01";
-const buildingShardVersion = 1;
+const buildingShardMagic = "NCKBDT02";
+const buildingShardVersion = 2;
 const buildingShardHeaderLength = 64;
 const buildingShardPayloadLength = 8192;
 const buildingMaxPayloadLength = 65535;
@@ -243,7 +245,11 @@ const marketUserLength = 64;
 const marketUserActiveCountOffset = 11;
 const marketUserOwnerOffset = 12;
 const marketUserUpdatedSlotOffset = 44;
+const marketUserBlankLandContractsOffset = 52;
+const marketUserReservedBlankLandContractsOffset = 56;
 const marketMaxActiveListings = 50;
+export const BLANK_LAND_CONTRACT_PRICE_BASE_UNITS = 1_000_000n;
+export const MAX_LAND_CONTRACT_PURCHASE_QUANTITY = 4_096;
 const marketStateNames = new Map([
   [1, "active"],
   [2, "canceled"],
@@ -705,13 +711,6 @@ function deriveBuildSitePdaForProgram(foundationId, programId = buildingProgramI
   );
 }
 
-function deriveBlueprintItemPdaForProgram(foundationId, programId = gameProgramId) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from(blueprintItemSeed), foundationIdBuffer(foundationId)],
-    programId,
-  );
-}
-
 function deriveBuildingManifestPdaForProgram(foundationId, revision, programId = buildingProgramId) {
   return PublicKey.findProgramAddressSync(
     [
@@ -963,6 +962,13 @@ export function deriveMarketUserPda(owner) {
   return deriveMarketUserPdaForProgram(owner, gameProgramId);
 }
 
+export function deriveLandContractAuthorityPda() {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(landContractAuthoritySeed), deriveGlobalConfigPda().toBuffer()],
+    buildingProgramId,
+  );
+}
+
 function deriveSmeltingRecipeTablePdaForProgram(tableId = smeltingDefaultRecipeTableId, programId = gameProgramId) {
   const tableIdBytes = Buffer.alloc(8);
   tableIdBytes.writeBigUInt64LE(BigInt(tableId), 0);
@@ -1028,6 +1034,13 @@ function deriveFoundationChunkPdaForContext(chunkX, chunkZ, context = gameContex
 
 function deriveBuildSitePdaForContext(foundationId, context = gameContext) {
   return deriveBuildSitePdaForProgram(foundationId, context.buildingProgramId);
+}
+
+function deriveLandContractAuthorityPdaForContext(context = gameContext) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(landContractAuthoritySeed), deriveGlobalConfigPda().toBuffer()],
+    context.buildingProgramId,
+  );
 }
 
 function deriveBuildingManifestPdaForContext(foundationId, revision, context = gameContext) {
@@ -1453,6 +1466,69 @@ export async function joinMarketOnChain() {
   };
 }
 
+export async function buyLandContractsOnChain({ quantity = 1 } = {}) {
+  const normalizedQuantity = normalizeLandContractQuantity(quantity);
+  const provider = await connectedWalletProvider({ prompt: true });
+  if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+  const context = gameContext;
+  const conn = getNicechunkConnection();
+  const marketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
+  if (!marketUserState) return { submitted: false, reason: "market-membership-required" };
+
+  const buyerNckToken = getAssociatedTokenAddressSync(
+    nckMint,
+    provider.publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const treasuryNckToken = getAssociatedTokenAddressSync(
+    nckMint,
+    marketTreasury,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const [buyerNckAccount, treasuryNckAccount] = await Promise.all([
+    conn.getAccountInfo(buyerNckToken, "confirmed"),
+    conn.getAccountInfo(treasuryNckToken, "confirmed"),
+  ]);
+  if (!buyerNckAccount?.data?.length) return { submitted: false, reason: "nck-token-missing" };
+
+  const tx = new Transaction();
+  if (!treasuryNckAccount?.data?.length) {
+    tx.add(createAssociatedTokenAccountInstruction(
+      provider.publicKey,
+      treasuryNckToken,
+      marketTreasury,
+      nckMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    ));
+  }
+  tx.add(createBuyTreasuryContractInstruction({
+    buyer: provider.publicKey,
+    marketUser: marketUserState.marketUser,
+    buyerNckToken,
+    treasuryNckToken,
+    quantity: normalizedQuantity,
+    context,
+  }));
+  const signature = await signAndSendWalletTransaction(provider, tx, conn);
+  const updatedMarketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
+  return {
+    submitted: true,
+    signature,
+    quantity: normalizedQuantity,
+    unitPriceBaseUnits: BLANK_LAND_CONTRACT_PRICE_BASE_UNITS.toString(),
+    totalPriceBaseUnits: (BLANK_LAND_CONTRACT_PRICE_BASE_UNITS * BigInt(normalizedQuantity)).toString(),
+    marketUserState: updatedMarketUserState,
+    treasury: marketTreasury.toBase58(),
+    treasuryNckToken: treasuryNckToken.toBase58(),
+    programId: context.marketProgramId.toBase58(),
+  };
+}
+
 async function estimateMarketTransactionFeeLamports(conn, payer, instruction) {
   try {
     const { blockhash } = await conn.getLatestBlockhash("confirmed");
@@ -1763,14 +1839,19 @@ export async function loadChunkBlockDeltasBatch(chunks, { batchSize = 50 } = {})
   return results;
 }
 
-export async function loadOwnedFoundations(wallet) {
+export async function loadOwnedFoundations(wallet, conn = getNicechunkConnection()) {
   if (!isNicechunkChainSyncEnabled()) return [];
   const owner = new PublicKey(wallet);
-  const conn = getNicechunkConnection();
   const records = await conn.getProgramAccounts(gameContext.buildingProgramId, {
     commitment: "confirmed",
     filters: [
       { dataSize: buildSiteLength },
+      {
+        memcmp: {
+          offset: 0,
+          bytes: bs58.encode(Buffer.concat([Buffer.from(buildSiteMagic), Buffer.from([buildSiteVersion])])),
+        },
+      },
       { memcmp: { offset: buildSiteOwnerOffset, bytes: owner.toBase58() } },
     ],
   });
@@ -1947,6 +2028,11 @@ export function decodeFoundationChunk(input, { chunkX = null, chunkZ = null, add
     if (foundationId === "0"
       || width < foundationMinSize
       || depth < foundationMinSize
+      || minX % chunkSize !== 0
+      || minZ % chunkSize !== 0
+      || width % chunkSize !== 0
+      || depth % chunkSize !== 0
+      || BigInt(width / chunkSize) * BigInt(depth / chunkSize) > BigInt(maxLandContractsPerSite)
       || maxX < -0x80000000n
       || maxX > 0x7fffffffn
       || maxZ < -0x80000000n
@@ -1982,6 +2068,12 @@ export function decodeBuildSite(input, address = "") {
     throw new Error("Invalid BuildSite account data.");
   }
   const owner = new PublicKey(data.subarray(16, 48)).toBase58();
+  const globalConfig = new PublicKey(data.subarray(48, 80));
+  if (!globalConfig.equals(deriveGlobalConfigPda())) {
+    throw new Error("Invalid BuildSite GlobalConfig.");
+  }
+  const contractType = data.readUInt8(11);
+  const landContractCount = data.readUInt32LE(12);
   const foundationId = data.readBigUInt64LE(80).toString();
   const minX = data.readInt32LE(88);
   const minZ = data.readInt32LE(92);
@@ -1993,8 +2085,6 @@ export function decodeBuildSite(input, address = "") {
   const pendingRevision = data.readUInt32LE(120);
   const registeredChunks = data.readBigUInt64LE(132);
   const totalChunks = data.readBigUInt64LE(140);
-  const stagedWidth = data.readUInt32LE(148);
-  const stagedDepth = data.readUInt32LE(152);
   if (foundationId === "0" || width < foundationMinSize || depth < foundationMinSize
     || maxX > 0x7fffffff || maxX < -0x80000000
     || maxZ > 0x7fffffff || maxZ < -0x80000000
@@ -2004,39 +2094,32 @@ export function decodeBuildSite(input, address = "") {
   }
   const active = { minX, minZ, surfaceY: data.readInt16LE(96), width, depth };
   const activeChunks = foundationChunkCount(active);
-  const staged = stagedWidth >= foundationMinSize && stagedDepth >= foundationMinSize
-    ? normalizeFoundationInput({ ...active, width: stagedWidth, depth: stagedDepth })
-    : null;
   let invalidStatus = false;
   if (statusCode === 0) {
     invalidStatus = activeRevision !== 0
       || pendingRevision !== 0
-      || stagedWidth !== 0
-      || stagedDepth !== 0
       || totalChunks !== activeChunks
       || registeredChunks === totalChunks;
   } else if (statusCode === 1) {
-    invalidStatus = stagedWidth !== 0
-      || stagedDepth !== 0
-      || totalChunks !== activeChunks
+    invalidStatus = totalChunks !== activeChunks
       || registeredChunks !== totalChunks;
   } else if (statusCode === 2) {
-    invalidStatus = pendingRevision !== 0
-      || !staged
-      || totalChunks !== (staged ? foundationChunkCount(staged) : 0n)
-      || registeredChunks === totalChunks;
-  } else if (statusCode === 3) {
-    invalidStatus = pendingRevision !== 0
-      || !staged
-      || totalChunks !== (staged ? foundationChunkDifferenceCount(staged, active) : 0n)
-      || totalChunks === 0n
-      || registeredChunks === totalChunks;
+    invalidStatus = activeRevision !== 0
+      || pendingRevision !== 0
+      || totalChunks !== activeChunks;
   }
-  if (invalidStatus) throw new Error("Invalid BuildSite indexing state.");
+  if (contractType !== landContractTypeBlank
+    || BigInt(landContractCount) !== activeChunks
+    || data.subarray(98, 100).some((byte) => byte !== 0)
+    || data.subarray(148, 160).some((byte) => byte !== 0)
+    || invalidStatus) {
+    throw new Error("Invalid BuildSite indexing state.");
+  }
   const status = buildSiteStatusNames.get(statusCode);
   return {
     id: `${owner}:${foundationId}`,
     owner,
+    globalConfig: globalConfig.toBase58(),
     foundationId,
     minX,
     minZ,
@@ -2047,14 +2130,14 @@ export function decodeBuildSite(input, address = "") {
     depth,
     status,
     statusCode,
-    hasActiveGeometry: statusCode !== 0,
+    contractType,
+    landContractCount,
+    hasActiveGeometry: statusCode === 1,
     accountVersion: version,
     activeRevision,
     pendingRevision,
     registeredChunks: registeredChunks.toString(),
     totalChunks: totalChunks.toString(),
-    stagedWidth,
-    stagedDepth,
     createdSlot: data.readBigUInt64LE(108).toString(),
     updatedSlot: data.readBigUInt64LE(124).toString(),
     sourcePda: address,
@@ -2071,6 +2154,10 @@ export function decodeBuildingManifest(input, address = "") {
     throw new Error("Invalid BuildingManifest account data.");
   }
   const payloadLen = data.readUInt32LE(92);
+  const globalConfig = new PublicKey(data.subarray(48, 80));
+  if (!globalConfig.equals(deriveGlobalConfigPda())) {
+    throw new Error("Invalid BuildingManifest GlobalConfig.");
+  }
   const shardCount = buildingShardCount(payloadLen);
   const status = data.readUInt8(10);
   const uploadedBitmap = data.readUInt16LE(14);
@@ -2096,7 +2183,7 @@ export function decodeBuildingManifest(input, address = "") {
     shardCount,
     uploadedBitmap,
     owner: new PublicKey(data.subarray(16, 48)).toBase58(),
-    globalConfig: new PublicKey(data.subarray(48, 80)).toBase58(),
+    globalConfig: globalConfig.toBase58(),
     foundationId,
     revision,
     payloadLen,
@@ -2120,18 +2207,22 @@ export function decodeBuildingShard(input, address = "", { allowIncomplete = fal
   }
   const payloadLen = data.readUInt16LE(12);
   const uploadedLen = data.readUInt16LE(14);
+  const globalConfig = new PublicKey(data.subarray(16, 48));
   if (!payloadLen || payloadLen > buildingShardPayloadLength
     || uploadedLen > payloadLen
     || !allowIncomplete && uploadedLen !== payloadLen
     || data.length !== buildingShardHeaderLength + payloadLen) {
     throw new Error("Incomplete BuildingShard account data.");
   }
+  if (!globalConfig.equals(deriveGlobalConfigPda())) {
+    throw new Error("Invalid BuildingShard GlobalConfig.");
+  }
   return {
     address,
     shardIndex: data.readUInt8(10),
     payloadLen,
     uploadedLen,
-    globalConfig: new PublicKey(data.subarray(16, 48)).toBase58(),
+    globalConfig: globalConfig.toBase58(),
     foundationId: data.readBigUInt64LE(48).toString(),
     revision: data.readUInt32LE(56),
     payload: data.subarray(buildingShardHeaderLength, buildingShardHeaderLength + uploadedLen),
@@ -2205,53 +2296,114 @@ export async function createFoundationOnChain(input = {}) {
     const provider = await connectedWalletProvider();
     if (!provider) return { submitted: false, reason: "wallet-unavailable" };
     const foundation = normalizeFoundationInput(input);
-    const foundationId = requireBlueprintFoundationId(input?.blueprintId ?? input?.foundationId);
+    const requiredLandContracts = Number(foundationChunkCount(foundation));
     const context = gameContext;
     const conn = getNicechunkConnection();
-    const session = await getOrCreateGameplaySession(provider);
-    const signatures = [];
-    let current = (await loadBuildSitesByIds([foundationId], conn))[0] ?? null;
-    const alreadyExists = Boolean(current);
-    if (current && current.owner !== provider.publicKey.toBase58()) {
-      return {
-        submitted: false,
-        reason: "blueprint-foundation-owner-mismatch",
-        foundation: current,
-      };
-    }
-    if (current && !foundationGeometryMatches(current, foundation)) {
-      return {
-        submitted: false,
-        reason: "foundation-already-bound",
-        foundation: current,
-      };
-    }
-    if (!current) {
-      const transaction = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 800_000 }),
-        createBuildSiteInstruction({
-          authority: session.keypair.publicKey,
-          owner: provider.publicKey,
-          foundationId,
-          foundation,
+    let marketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
+    if (!marketUserState) return { submitted: false, reason: "market-membership-required" };
+    let session = null;
+    const recoverySignatures = [];
+    const incompleteSites = (await loadOwnedFoundations(provider.publicKey.toBase58()))
+      .filter((site) => site.status === "indexing" || site.status === "canceling");
+    if (incompleteSites.length) {
+      session = await getOrCreateGameplaySession(provider);
+      for (const site of incompleteSites) {
+        await cancelBuildSiteIndexing({
+          conn,
           context,
-        }),
-      );
-      try {
-        signatures.push(await signAndSendKeypairTransaction(session.keypair, transaction, conn));
-      } catch (submissionError) {
-        current = (await loadBuildSitesByIds([foundationId], conn).catch(() => []))[0] ?? null;
-        if (!current) throw submissionError;
+          provider,
+          session,
+          foundation: site,
+          signatures: recoverySignatures,
+        });
       }
-      current = current ?? await loadCurrentBuildSite(conn, foundationId, context);
+      marketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
+      if (!marketUserState) return { submitted: false, reason: "market-membership-required" };
     }
-    current = await continueBuildSiteIndexing({ conn, context, provider, session, foundation: current, signatures });
+    if (marketUserState.blankLandContracts < requiredLandContracts) {
+      return {
+        submitted: false,
+        reason: "insufficient-land-contracts",
+        requiredLandContracts,
+        availableLandContracts: marketUserState.blankLandContracts,
+      };
+    }
+    session = session ?? await getOrCreateGameplaySession(provider);
+    const signatures = [...recoverySignatures];
+    let foundationId = 0n;
+    let current = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      foundationId = createFoundationId();
+      current = (await loadBuildSitesByIds([foundationId], conn))[0] ?? null;
+      if (!current) break;
+    }
+    if (current) return { submitted: false, reason: "foundation-id-collision" };
+    const transaction = new Transaction().add(
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 800_000 }),
+      createBuildSiteInstruction({
+        authority: session.keypair.publicKey,
+        owner: provider.publicKey,
+        foundationId,
+        foundation,
+        context,
+      }),
+    );
+    try {
+      signatures.push(await signAndSendKeypairTransaction(session.keypair, transaction, conn));
+    } catch (submissionError) {
+      current = (await loadBuildSitesByIds([foundationId], conn).catch(() => []))[0] ?? null;
+      if (!current) throw submissionError;
+    }
+    current = current ?? await loadCurrentBuildSite(conn, foundationId, context);
+    try {
+      current = await continueBuildSiteIndexing({ conn, context, provider, session, foundation: current, signatures });
+    } catch (indexingError) {
+      let authoritative;
+      try {
+        authoritative = await loadCurrentBuildSiteOrNull(conn, foundationId, context);
+      } catch (reconcileError) {
+        throw landRegistrationRecoveryError(indexingError, reconcileError, foundationId);
+      }
+      if (authoritative?.status === "active") {
+        current = authoritative;
+      } else if (authoritative) {
+        try {
+          await cancelBuildSiteIndexing({
+            conn,
+            context,
+            provider,
+            session,
+            foundation: authoritative,
+            signatures,
+          });
+        } catch (rollbackError) {
+          throw landRegistrationRecoveryError(indexingError, rollbackError, foundationId);
+        }
+        const rolledBack = new Error(
+          `Land registration failed and ${requiredLandContracts} reserved contract(s) were restored. ${String(indexingError?.message || indexingError)}`,
+          { cause: indexingError },
+        );
+        rolledBack.code = "LAND_REGISTRATION_ROLLED_BACK";
+        rolledBack.foundationId = foundationId.toString();
+        rolledBack.landContractsRestored = requiredLandContracts;
+        throw rolledBack;
+      } else {
+        throw indexingError;
+      }
+    }
+    const updatedMarketUserState = await fetchMarketUserStateOnChain(provider.publicKey);
     return {
       submitted: true,
       signature: signatures.at(-1) || "",
       signatures,
-      alreadyExists,
-      recovered: alreadyExists,
+      alreadyExists: false,
+      recovered: recoverySignatures.length > 0,
+      recoveredRegistrations: incompleteSites.length,
+      requiredLandContracts,
+      availableLandContracts: updatedMarketUserState?.blankLandContracts ?? Math.max(
+        0,
+        marketUserState.blankLandContracts - requiredLandContracts,
+      ),
       programId: context.buildingProgramId.toBase58(),
       foundation: current,
     };
@@ -2261,66 +2413,15 @@ export async function createFoundationOnChain(input = {}) {
   }
 }
 
-export async function resizeFoundationOnChain(input = {}) {
-  if (!isNicechunkChainSyncEnabled()) return { submitted: false, reason: "chain-sync-disabled" };
-  try {
-    const provider = await connectedWalletProvider();
-    if (!provider) return { submitted: false, reason: "wallet-unavailable" };
-    const foundationId = requireBlueprintFoundationId(input?.blueprintId ?? input?.foundationId);
-    const context = gameContext;
-    const conn = getNicechunkConnection();
-    const session = await getOrCreateGameplaySession(provider);
-    const signatures = [];
-    let current = (await loadBuildSitesByIds([foundationId], conn))[0] ?? null;
-    if (!current) return { submitted: false, reason: "foundation-not-found" };
-    if (current.owner !== provider.publicKey.toBase58()) {
-      return { submitted: false, reason: "blueprint-foundation-owner-mismatch", foundation: current };
-    }
-    if (current.status === "indexing") {
-      current = await continueBuildSiteIndexing({ conn, context, provider, session, foundation: current, signatures });
-    }
-    const desired = normalizeFoundationInput({
-      ...current,
-      width: input.width,
-      depth: input.depth,
-    });
-    const resizingToDesired = current.status === "edit-indexing"
-      && current.stagedWidth === desired.width
-      && current.stagedDepth === desired.depth;
-    const cleaningDesired = current.status === "edit-cleaning"
-      && current.width === desired.width
-      && current.depth === desired.depth;
-    if (current.status !== "active" && !resizingToDesired && !cleaningDesired) {
-      return { submitted: false, reason: "foundation-edit-in-progress", foundation: current };
-    }
-    if (current.status === "active" && (current.width !== desired.width || current.depth !== desired.depth)) {
-      const transaction = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 500_000 }),
-        createResizeBuildSiteInstruction({
-          authority: session.keypair.publicKey,
-          owner: provider.publicKey,
-          foundation: current,
-          width: desired.width,
-          depth: desired.depth,
-          context,
-        }),
-      );
-      signatures.push(await signAndSendKeypairTransaction(session.keypair, transaction, conn));
-      current = await loadCurrentBuildSite(conn, foundationId, context);
-    }
-    current = await continueBuildSiteIndexing({ conn, context, provider, session, foundation: current, signatures });
-    return {
-      submitted: true,
-      resized: true,
-      signature: signatures.at(-1) || "",
-      signatures,
-      programId: context.buildingProgramId.toBase58(),
-      foundation: current,
-    };
-  } catch (error) {
-    reportRpcError(error, "resize-foundation");
-    throw error;
-  }
+function landRegistrationRecoveryError(indexingError, rollbackError, foundationId) {
+  const error = new Error(
+    `Land registration was interrupted. Its contracts remain reserved and recoverable; retry land registration to restore them. ${String(indexingError?.message || indexingError)}`,
+    { cause: indexingError },
+  );
+  error.code = "LAND_REGISTRATION_RECOVERY_REQUIRED";
+  error.foundationId = BigInt(foundationId).toString();
+  error.rollbackError = rollbackError;
+  return error;
 }
 
 async function loadCurrentBuildSite(conn, foundationId, context = gameContext) {
@@ -2335,6 +2436,23 @@ async function loadCurrentBuildSite(conn, foundationId, context = gameContext) {
     programId: context.buildingProgramId.toBase58(),
   };
   if (foundation.foundationId !== foundationId.toString()) {
+    throw new Error("BuildSite PDA identifier mismatch.");
+  }
+  return foundation;
+}
+
+async function loadCurrentBuildSiteOrNull(conn, foundationId, context = gameContext) {
+  const [address] = deriveBuildSitePdaForContext(foundationId, context);
+  const account = await conn.getAccountInfo(address, "confirmed");
+  if (!account?.data?.length) return null;
+  if (!account.owner?.equals?.(context.buildingProgramId)) {
+    throw new Error("BuildSite PDA has an invalid program owner.");
+  }
+  const foundation = {
+    ...decodeBuildSite(account.data, address.toBase58()),
+    programId: context.buildingProgramId.toBase58(),
+  };
+  if (foundation.foundationId !== BigInt(foundationId).toString()) {
     throw new Error("BuildSite PDA identifier mismatch.");
   }
   return foundation;
@@ -2363,12 +2481,37 @@ async function continueBuildSiteIndexing({ conn, context, provider, session, fou
   return current;
 }
 
-function foundationGeometryMatches(left, right) {
-  return left.minX === right.minX
-    && left.minZ === right.minZ
-    && left.surfaceY === right.surfaceY
-    && left.width === right.width
-    && left.depth === right.depth;
+async function cancelBuildSiteIndexing({ conn, context, provider, session, foundation, signatures = [] }) {
+  let current = foundation;
+  while (current) {
+    if (current.status === "active") throw new Error("Active land cannot be rolled back.");
+    const previousProgress = `${current.status}:${current.registeredChunks}:${current.totalChunks}`;
+    const transaction = new Transaction().add(
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+      createCancelBuildSiteIndexingInstruction({
+        authority: session.keypair.publicKey,
+        owner: provider.publicKey,
+        foundation: current,
+        context,
+      }),
+    );
+    try {
+      signatures.push(await signAndSendKeypairTransaction(session.keypair, transaction, conn));
+    } catch (submissionError) {
+      const reconciled = await loadCurrentBuildSiteOrNull(conn, current.foundationId, context);
+      if (!reconciled) return { restored: true, signatures };
+      const reconciledProgress = `${reconciled.status}:${reconciled.registeredChunks}:${reconciled.totalChunks}`;
+      if (reconciledProgress === previousProgress) throw submissionError;
+      current = reconciled;
+      continue;
+    }
+    const next = await loadCurrentBuildSiteOrNull(conn, current.foundationId, context);
+    if (!next) return { restored: true, signatures };
+    const nextProgress = `${next.status}:${next.registeredChunks}:${next.totalChunks}`;
+    if (nextProgress === previousProgress) throw new Error("BuildSite rollback progress did not advance.");
+    current = next;
+  }
+  return { restored: true, signatures };
 }
 
 function normalizeFoundationInput(input) {
@@ -2380,23 +2523,29 @@ function normalizeFoundationInput(input) {
   if (![minX, minZ, surfaceY, width, depth].every(Number.isInteger)
     || width < foundationMinSize || width > 0xffffffff
     || depth < foundationMinSize || depth > 0xffffffff
+    || minX % chunkSize !== 0 || minZ % chunkSize !== 0
+    || width % chunkSize !== 0 || depth % chunkSize !== 0
     || surfaceY <= canonicalChunkWorldConfig.minBuildY || surfaceY > canonicalChunkWorldConfig.maxBuildY
     || minX + width - 1 > 0x7fffffff || minX + width - 1 < -0x80000000
     || minZ + depth - 1 > 0x7fffffff || minZ + depth - 1 < -0x80000000) {
-    throw new Error("Invalid foundation rectangle.");
+    throw new Error("Land foundations must use complete 16 x 16 chunks.");
+  }
+  const contractCount = BigInt(width / chunkSize) * BigInt(depth / chunkSize);
+  if (contractCount > BigInt(maxLandContractsPerSite)) {
+    throw new Error(`A land parcel may use at most ${maxLandContractsPerSite} contracts.`);
   }
   return { minX, minZ, surfaceY, width, depth };
 }
 
-function requireBlueprintFoundationId(value) {
+function requireFoundationId(value) {
   let foundationId;
   try {
     foundationId = BigInt(value ?? 0);
   } catch {
-    throw new Error("A valid blueprint ID is required to create a foundation.");
+    throw new Error("A valid foundation ID is required.");
   }
   if (foundationId <= 0n || foundationId > 0xffffffffffffffffn) {
-    throw new Error("A valid blueprint ID is required to create a foundation.");
+    throw new Error("A valid foundation ID is required.");
   }
   return foundationId;
 }
@@ -5272,7 +5421,7 @@ function supportCollapseFailureRecord(entry) {
 }
 
 export function isNicechunkChainSyncEnabled() {
-  return localStorage.getItem(chainSyncStorageKey) !== "0";
+  return !hasLocalStorage() || localStorage.getItem(chainSyncStorageKey) !== "0";
 }
 
 function decodeChunkBrokenDeltas(data, chunkX, chunkZ) {
@@ -5615,7 +5764,7 @@ export function decodeMarketUserState(data) {
     data.subarray(0, 8).toString("utf8") !== marketUserMagic
     || data.readUInt16LE(8) !== marketUserVersion
     || activeListingCount > marketMaxActiveListings
-    || data.subarray(52, marketUserLength).some((byte) => byte !== 0)
+    || data.subarray(60, 64).some((byte) => byte !== 0)
   ) {
     throw new Error("Invalid MarketUserState layout.");
   }
@@ -5627,6 +5776,8 @@ export function decodeMarketUserState(data) {
     maxActiveListings: marketMaxActiveListings,
     owner: new PublicKey(data.subarray(marketUserOwnerOffset, marketUserOwnerOffset + 32)).toBase58(),
     updatedSlot: data.readBigUInt64LE(marketUserUpdatedSlotOffset).toString(),
+    blankLandContracts: data.readUInt32LE(marketUserBlankLandContractsOffset),
+    reservedBlankLandContracts: data.readUInt32LE(marketUserReservedBlankLandContractsOffset),
   };
 }
 
@@ -6718,44 +6869,19 @@ export function createBuildSiteInstruction({ authority, owner, foundationId, fou
       { pubkey: buildSite, isSigner: false, isWritable: true },
       { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      { pubkey: deriveBlueprintItemPdaForProgram(foundationId)[0], isSigner: false, isWritable: false },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: deriveMarketUserPdaForContext(owner, context)[0], isSigner: false, isWritable: true },
+      { pubkey: deriveLandContractAuthorityPdaForContext(context)[0], isSigner: false, isWritable: false },
+      { pubkey: context.marketProgramId, isSigner: false, isWritable: false },
     ],
     data,
   });
 }
 
-function createResizeBuildSiteInstruction({ authority, owner, foundation, width, depth, context = gameContext }) {
-  const foundationId = requireBlueprintFoundationId(foundation?.foundationId);
-  const [playerProfile] = derivePlayerProfilePda(owner);
-  const [playerSession] = derivePlayerSessionPda(owner, authority);
-  const [buildSite] = deriveBuildSitePdaForContext(foundationId, context);
-  const data = Buffer.alloc(17);
-  data.writeUInt8(7, 0);
-  data.writeBigUInt64LE(foundationId, 1);
-  data.writeUInt32LE(width, 9);
-  data.writeUInt32LE(depth, 13);
-  const keys = [
-    { pubkey: authority, isSigner: true, isWritable: true },
-    { pubkey: playerProfile, isSigner: false, isWritable: false },
-    { pubkey: playerSession, isSigner: false, isWritable: false },
-    { pubkey: buildSite, isSigner: false, isWritable: true },
-    { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
-    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-  ];
-  if (foundation.activeRevision > 0) {
-    keys.push({
-      pubkey: deriveBuildingManifestPdaForContext(foundationId, foundation.activeRevision, context)[0],
-      isSigner: false,
-      isWritable: false,
-    });
-  }
-  return new TransactionInstruction({ programId: context.buildingProgramId, keys, data });
-}
-
-function createRegisterBuildSiteChunksInstruction({ authority, owner, foundation, context = gameContext }) {
+export function createRegisterBuildSiteChunksInstruction({ authority, owner, foundation, context = gameContext }) {
   const batch = foundationIndexBatch(foundation, 4);
   if (!batch.length) throw new Error("BuildSite has no remaining Chunk index work.");
-  const foundationId = requireBlueprintFoundationId(foundation.foundationId);
+  const foundationId = requireFoundationId(foundation.foundationId);
   const [playerProfile] = derivePlayerProfilePda(owner);
   const [playerSession] = derivePlayerSessionPda(owner, authority);
   const [buildSite] = deriveBuildSitePdaForContext(foundationId, context);
@@ -6777,6 +6903,49 @@ function createRegisterBuildSiteChunksInstruction({ authority, owner, foundation
       { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
       { pubkey: context.chunkProgramId, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: deriveMarketUserPdaForContext(owner, context)[0], isSigner: false, isWritable: true },
+      { pubkey: deriveLandContractAuthorityPdaForContext(context)[0], isSigner: false, isWritable: false },
+      { pubkey: context.marketProgramId, isSigner: false, isWritable: false },
+      ...batch.map(({ chunkX, chunkZ }) => ({
+        pubkey: deriveFoundationChunkPdaForContext(chunkX, chunkZ, context)[0],
+        isSigner: false,
+        isWritable: true,
+      })),
+    ],
+    data,
+  });
+}
+
+export function createCancelBuildSiteIndexingInstruction({ authority, owner, foundation, context = gameContext }) {
+  if (foundation?.status === "active") throw new Error("Active land cannot be canceled.");
+  const batch = foundationRollbackBatch(foundation, 4);
+  const foundationId = requireFoundationId(foundation.foundationId);
+  const [playerProfile] = derivePlayerProfilePda(owner);
+  const [playerSession] = derivePlayerSessionPda(owner, authority);
+  const [buildSite] = deriveBuildSitePdaForContext(foundationId, context);
+  const [chunkAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from(buildingChunkAuthoritySeed), deriveGlobalConfigPda().toBuffer()],
+    context.buildingProgramId,
+  );
+  const data = Buffer.alloc(9);
+  data.writeUInt8(6, 0);
+  data.writeBigUInt64LE(foundationId, 1);
+  return new TransactionInstruction({
+    programId: context.buildingProgramId,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: playerProfile, isSigner: false, isWritable: false },
+      { pubkey: playerSession, isSigner: false, isWritable: false },
+      { pubkey: buildSite, isSigner: false, isWritable: true },
+      { pubkey: chunkAuthority, isSigner: false, isWritable: false },
+      { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
+      { pubkey: context.chunkProgramId, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: deriveMarketUserPdaForContext(owner, context)[0], isSigner: false, isWritable: true },
+      { pubkey: deriveLandContractAuthorityPdaForContext(context)[0], isSigner: false, isWritable: false },
+      { pubkey: context.marketProgramId, isSigner: false, isWritable: false },
       ...batch.map(({ chunkX, chunkZ }) => ({
         pubkey: deriveFoundationChunkPdaForContext(chunkX, chunkZ, context)[0],
         isSigner: false,
@@ -6846,7 +7015,7 @@ export function encodeBeginBuildingInstructionData({
   if (hash.length !== 32) throw new Error("Invalid building content hash.");
   const data = Buffer.alloc(58);
   data.writeUInt8(2, 0);
-  data.writeBigUInt64LE(requireBlueprintFoundationId(foundationId), 1);
+  data.writeBigUInt64LE(requireFoundationId(foundationId), 1);
   data.writeUInt32LE(normalizeBuildingRevision(revision), 9);
   data.writeUInt8(turns, 13);
   data.writeUInt32LE(length, 14);
@@ -6975,32 +7144,34 @@ function createCancelBuildingUploadInstruction({
 function foundationIndexBatch(foundation, limit = 4) {
   const status = String(foundation?.status || "");
   if (status === "active") return [];
+  if (status !== "indexing") {
+    throw new Error(`Unsupported BuildSite indexing status: ${status || "unknown"}.`);
+  }
   const registered = BigInt(foundation?.registeredChunks ?? 0);
   const total = BigInt(foundation?.totalChunks ?? 0);
   if (registered < 0n || total <= registered) return [];
   const count = Number((total - registered) < BigInt(limit) ? total - registered : BigInt(limit));
   const active = normalizeFoundationInput(foundation);
-  let at;
-  if (status === "indexing") {
-    at = (index) => foundationChunkAt(active, index);
-  } else if (status === "edit-indexing") {
-    const staged = normalizeFoundationInput({
-      ...active,
-      width: foundation.stagedWidth,
-      depth: foundation.stagedDepth,
-    });
-    at = (index) => foundationChunkAt(staged, index);
-  } else if (status === "edit-cleaning") {
-    const previous = normalizeFoundationInput({
-      ...active,
-      width: foundation.stagedWidth,
-      depth: foundation.stagedDepth,
-    });
-    at = (index) => foundationChunkDifferenceAt(previous, active, index);
-  } else {
-    throw new Error(`Unsupported BuildSite indexing status: ${status || "unknown"}.`);
+  return Array.from(
+    { length: count },
+    (_unused, offset) => foundationChunkAt(active, registered + BigInt(offset)),
+  );
+}
+
+function foundationRollbackBatch(foundation, limit = 4) {
+  const status = String(foundation?.status || "");
+  if (status === "active") throw new Error("Active land cannot be canceled.");
+  if (status !== "indexing" && status !== "canceling") {
+    throw new Error(`Unsupported BuildSite cancellation status: ${status || "unknown"}.`);
   }
-  return Array.from({ length: count }, (_unused, offset) => at(registered + BigInt(offset)));
+  const registered = BigInt(foundation?.registeredChunks ?? 0);
+  if (registered <= 0n) return [];
+  const count = Number(registered < BigInt(limit) ? registered : BigInt(limit));
+  const active = normalizeFoundationInput(foundation);
+  return Array.from(
+    { length: count },
+    (_unused, offset) => foundationChunkAt(active, registered - BigInt(offset) - 1n),
+  );
 }
 
 function foundationChunkAt(foundation, index) {
@@ -7011,38 +7182,6 @@ function foundationChunkAt(foundation, index) {
   return {
     chunkX: span.minChunkX + Number(offset % BigInt(span.spanX)),
     chunkZ: span.minChunkZ + Number(offset / BigInt(span.spanX)),
-  };
-}
-
-function foundationChunkDifferenceAt(previous, next, index) {
-  const oldSpan = foundationChunkSpan(previous);
-  const newSpan = foundationChunkSpan(next);
-  if (oldSpan.minChunkX !== newSpan.minChunkX || oldSpan.minChunkZ !== newSpan.minChunkZ) {
-    throw new Error("BuildSite resize cannot move its anchor.");
-  }
-  const oldX = BigInt(oldSpan.spanX);
-  const oldZ = BigInt(oldSpan.spanZ);
-  const newX = BigInt(newSpan.spanX);
-  const newZ = BigInt(newSpan.spanZ);
-  const commonRows = oldZ < newZ ? oldZ : newZ;
-  const rightWidth = oldX > newX ? oldX - newX : 0n;
-  const rightCount = commonRows * rightWidth;
-  const total = foundationChunkDifferenceCount(previous, next);
-  const offset = BigInt(index);
-  if (offset < 0n || offset >= total) throw new Error("Invalid BuildSite cleanup index.");
-  let xOffset;
-  let zOffset;
-  if (offset < rightCount) {
-    xOffset = newX + offset % rightWidth;
-    zOffset = offset / rightWidth;
-  } else {
-    const remaining = offset - rightCount;
-    xOffset = remaining % oldX;
-    zOffset = newZ + remaining / oldX;
-  }
-  return {
-    chunkX: oldSpan.minChunkX + Number(xOffset),
-    chunkZ: oldSpan.minChunkZ + Number(zOffset),
   };
 }
 
@@ -7063,13 +7202,6 @@ function foundationChunkSpan(foundation) {
 function foundationChunkCount(foundation) {
   const span = foundationChunkSpan(foundation);
   return BigInt(span.spanX) * BigInt(span.spanZ);
-}
-
-function foundationChunkDifferenceCount(previous, next) {
-  const oldSpan = foundationChunkSpan(previous);
-  const newSpan = foundationChunkSpan(next);
-  return BigInt(oldSpan.spanX) * BigInt(oldSpan.spanZ)
-    - BigInt(Math.min(oldSpan.spanX, newSpan.spanX)) * BigInt(Math.min(oldSpan.spanZ, newSpan.spanZ));
 }
 
 function normalizeBuildingRevision(value, { allowZero = false } = {}) {
@@ -7440,6 +7572,33 @@ export function createJoinMarketInstruction({ owner, context = gameContext }) {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: contextInstructionData(context, gameNamespaceMarket, Buffer.from([3])),
+  });
+}
+
+export function createBuyTreasuryContractInstruction({
+  buyer,
+  marketUser,
+  buyerNckToken,
+  treasuryNckToken,
+  quantity,
+  context = gameContext,
+}) {
+  const normalizedQuantity = normalizeLandContractQuantity(quantity);
+  const data = Buffer.alloc(6);
+  data.writeUInt8(4, 0);
+  data.writeUInt8(landContractTypeBlank, 1);
+  data.writeUInt32LE(normalizedQuantity, 2);
+  return new TransactionInstruction({
+    programId: context.marketProgramId,
+    keys: [
+      { pubkey: buyer instanceof PublicKey ? buyer : new PublicKey(buyer), isSigner: true, isWritable: true },
+      { pubkey: marketUser instanceof PublicKey ? marketUser : new PublicKey(marketUser), isSigner: false, isWritable: true },
+      { pubkey: buyerNckToken instanceof PublicKey ? buyerNckToken : new PublicKey(buyerNckToken), isSigner: false, isWritable: true },
+      { pubkey: treasuryNckToken instanceof PublicKey ? treasuryNckToken : new PublicKey(treasuryNckToken), isSigner: false, isWritable: true },
+      { pubkey: nckMint, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    data: contextInstructionData(context, gameNamespaceMarket, data),
   });
 }
 
@@ -7914,6 +8073,17 @@ function createMiningActionId() {
   return ((time << 22n) | random) || 1n;
 }
 
+function createFoundationId() {
+  if (globalThis.crypto?.getRandomValues) {
+    const words = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(words);
+    return ((BigInt(words[0]) << 32n) | BigInt(words[1])) || 1n;
+  }
+  const time = BigInt(Date.now()) & ((1n << 42n) - 1n);
+  const random = BigInt(Math.floor(Math.random() * 2 ** 22));
+  return ((time << 22n) | random) || 1n;
+}
+
 function normalizeMiningActionId(value) {
   let actionId;
   try {
@@ -7931,6 +8101,14 @@ function createMarketListingId() {
   const time = BigInt(Date.now()) & ((1n << 42n) - 1n);
   const random = BigInt(Math.floor(Math.random() * 2 ** 22));
   return (time << 22n) | random;
+}
+
+function normalizeLandContractQuantity(value) {
+  const quantity = Number(value);
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > MAX_LAND_CONTRACT_PURCHASE_QUANTITY) {
+    throw new Error(`Land contract quantity must be between 1 and ${MAX_LAND_CONTRACT_PURCHASE_QUANTITY}.`);
+  }
+  return quantity;
 }
 
 export function parseMarketPriceBaseUnits(value, currency) {

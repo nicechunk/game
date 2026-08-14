@@ -7,8 +7,9 @@ export function createPlayInputActions({
   getMining = () => null,
   getPlacement = () => null,
   getForgedPlacement = () => null,
-  getBlueprint = () => null,
-  getBlueprintHit = () => null,
+  getConstruction = () => null,
+  getConstructionHit = () => null,
+  isConstructionModeActive = () => false,
   getBulkMining = () => null,
   getBulkMiningHit = () => null,
   getControls = () => null,
@@ -86,9 +87,18 @@ export function createPlayInputActions({
         return;
       }
       closePanels();
-      getBlueprint()?.cancel?.();
+      if (isConstructionModeActive()) {
+        event.preventDefault();
+        getConstruction()?.close?.();
+        return;
+      }
     }
     if (isTextInputActive()) return;
+    if (event.code === "KeyL" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      getConstruction()?.toggle?.();
+      return;
+    }
     if (event.code === "KeyE" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleFirstPersonCamera();
@@ -119,7 +129,7 @@ export function createPlayInputActions({
   function useSelectedHotbarAction() {
     const bulkMining = getBulkMining();
     if (bulkMining?.isEnabled?.()) return bulkMining.selectAtHit?.(getBulkMiningHit());
-    if (gameState?.isBlueprintSelected?.()) return getBlueprint()?.selectAtHit?.(getBlueprintHit());
+    if (isConstructionModeActive()) return getConstruction()?.selectAtHit?.(getConstructionHit());
     const forged = gameState?.getSelectedForgedSlot?.();
     if (forged) {
       const interaction = gameState?.getForgedInteraction?.(forged.slot);
@@ -132,7 +142,7 @@ export function createPlayInputActions({
   function confirmLastWorldDelta() {
     const bulkMining = getBulkMining();
     if (bulkMining?.isEnabled?.()) return bulkMining.confirm?.();
-    if (gameState?.isBlueprintSelected?.()) return getBlueprint()?.confirm?.();
+    if (isConstructionModeActive()) return getConstruction()?.confirm?.();
     const placement = getPlacement();
     const mining = getMining();
     const lastWorldDeltaKind = getLastWorldDeltaKind();
@@ -146,7 +156,7 @@ export function createPlayInputActions({
   function rollbackLastWorldDelta() {
     const bulkMining = getBulkMining();
     if (bulkMining?.isEnabled?.()) return bulkMining.cancel?.();
-    if (gameState?.isBlueprintSelected?.()) return getBlueprint()?.cancel?.();
+    if (isConstructionModeActive()) return getConstruction()?.cancel?.();
     const placement = getPlacement();
     const mining = getMining();
     const lastWorldDeltaKind = getLastWorldDeltaKind();

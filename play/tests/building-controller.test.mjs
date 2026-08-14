@@ -10,66 +10,45 @@ const FOUNDATIONS = Object.freeze([
   foundation("999", 40),
 ]);
 
-test("building editor exposes only the foundation bound to the selected blueprint", () => {
-  let selected = blueprint("101", 1);
-  const controller = controllerFor({ getSelected: () => selected });
+test("building editor exposes every owned land foundation without a Blueprint", () => {
+  const controller = controllerFor();
 
   controller.activate();
   assert.equal(controller.snapshot().mode, "building");
-  assert.deepEqual(controller.snapshot().foundations.map((entry) => entry.foundationId), ["101"]);
+  assert.deepEqual(controller.snapshot().foundations.map((entry) => entry.foundationId), ["101", "202", "999"]);
+  assert.equal(controller.selectFoundation(`${OWNER}:202`).ok, true);
+  assert.equal(controller.snapshot().selectedFoundation.foundationId, "202");
   controller.setMode("foundation");
   assert.equal(controller.snapshot().mode, "foundation");
   controller.setMode("building");
   assert.equal(controller.snapshot().mode, "building");
-
-  selected = blueprint("202", 2);
-  controller.activate();
-  assert.deepEqual(controller.snapshot().foundations.map((entry) => entry.foundationId), ["202"]);
-
-  selected = blueprint("303", 3);
-  controller.activate();
-  assert.equal(controller.snapshot().mode, "foundation");
-  assert.equal(controller.snapshot().selectedFoundation, null);
-  controller.setMode("building");
-  assert.equal(controller.snapshot().mode, "foundation");
 });
 
-test("NCM3 editor state is isolated per blueprint instance", () => {
-  let selected = blueprint("101", 1);
-  const controller = controllerFor({ getSelected: () => selected });
+test("NCM3 editor state remains stable while selecting another owned foundation", () => {
+  const controller = controllerFor();
   controller.activate();
   controller.setCode("NCM3:FIRST");
   controller.setQuarterTurns(1);
   controller.setOffsets(3, -2);
 
-  selected = blueprint("202", 2);
-  controller.activate();
-  assert.equal(controller.snapshot().code, "");
-  assert.equal(controller.snapshot().quarterTurns, 0);
-  assert.equal(controller.snapshot().offsetX, 0);
-  assert.equal(controller.snapshot().offsetZ, 0);
-  controller.setCode("NCM3:SECOND");
-  controller.setQuarterTurns(3);
-  controller.setOffsets(-4, 5);
-
-  selected = blueprint("101", 1);
-  controller.activate();
+  assert.equal(controller.selectFoundation(`${OWNER}:202`).ok, true);
+  assert.equal(controller.snapshot().selectedFoundation.foundationId, "202");
   assert.equal(controller.snapshot().code, "NCM3:FIRST");
   assert.equal(controller.snapshot().quarterTurns, 1);
   assert.equal(controller.snapshot().offsetX, 3);
   assert.equal(controller.snapshot().offsetZ, -2);
 });
 
-test("building submission always uses the selected blueprint foundation ID", async () => {
+test("building submission uses the explicitly selected land foundation ID", async () => {
   const submissions = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("202", 2),
     submitBuilding: async (payload) => {
       submissions.push(payload);
       return { submitted: true, guardianIndexed: false, signature: "test-signature" };
     },
   });
   controller.activate();
+  assert.equal(controller.selectFoundation(`${OWNER}:202`).ok, true);
   controller.setCode("NCM3:TEST");
   controller.setOffsets(-2, 3);
 
@@ -88,7 +67,6 @@ test("building submission always uses the selected blueprint foundation ID", asy
 test("an oversized building remains previewable but cannot be submitted", async () => {
   const submissions = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     submitBuilding: async (payload) => {
       submissions.push(payload);
       return { submitted: true };
@@ -137,7 +115,6 @@ test("an oversized building remains previewable but cannot be submitted", async 
 test("unchanged chain buildings reuse uploaded meshes and only changed revisions rebuild", async () => {
   const meshCalls = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     createMeshClient: () => ({
       async build(input) {
         const token = meshCalls.length + 1;
@@ -200,7 +177,6 @@ test("unchanged chain buildings reuse uploaded meshes and only changed revisions
 test("changing a chain building offset invalidates its cached mesh", async () => {
   const meshCalls = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     createMeshClient: () => ({
       async build(input) {
         meshCalls.push(input);
@@ -221,7 +197,6 @@ test("changing a chain building offset invalidates its cached mesh", async () =>
 test("chain building meshing is submitted nearest-first", async () => {
   const meshCalls = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     getPlayerPosition: () => [41, 0, 0],
     createMeshClient: () => ({
       async build(input, options) {
@@ -245,7 +220,6 @@ test("chain building meshing is submitted nearest-first", async () => {
 test("a nearby building becomes renderable before distant mesh work completes", async () => {
   const meshCalls = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     getPlayerPosition: () => [0, 0, 0],
     createMeshClient: () => ({
       build(input) {
@@ -274,7 +248,6 @@ test("a failed replacement removes its stale previously verified mesh", async ()
   console.warn = () => {};
   try {
     const controller = controllerFor({
-      getSelected: () => blueprint("101", 1),
       createMeshClient: () => ({
         async build(input) {
           if (fail) throw new Error("invalid replacement");
@@ -297,7 +270,6 @@ test("a failed replacement removes its stale previously verified mesh", async ()
 test("a newer chain snapshot cancels stale building mesh work", async () => {
   const meshCalls = [];
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     createMeshClient: () => ({
       build(input, options) {
         return new Promise((resolve, reject) => {
@@ -327,7 +299,6 @@ test("only finalized chain buildings collide and cached removal updates immediat
   let meshCalls = 0;
   let collisionChanges = 0;
   const controller = controllerFor({
-    getSelected: () => blueprint("101", 1),
     createMeshClient: () => ({
       async build(input) {
         meshCalls += 1;
@@ -364,15 +335,15 @@ test("only finalized chain buildings collide and cached removal updates immediat
   assert.equal(meshCalls, 2, "the restored chain building should reuse its cached mesh after one preview and one chain build");
 });
 
-function controllerFor({ getSelected, getPlayerPosition, submitBuilding, createMeshClient, onCollisionGeometryChanged } = {}) {
+function controllerFor({ getPlayerPosition, submitBuilding, createMeshClient, onCollisionGeometryChanged } = {}) {
   return createBuildingController({
     index: {
       list: () => FOUNDATIONS.map((entry) => ({ ...entry })),
       foundationsAt: () => FOUNDATIONS.map((entry) => ({ ...entry })),
     },
     getWalletAddress: () => OWNER,
+    isConstructionModeActive: () => true,
     getPlayerPosition,
-    getSelectedBlueprint: getSelected,
     submitBuilding,
     onCollisionGeometryChanged,
     createMeshClient: createMeshClient ?? (() => ({
@@ -438,13 +409,6 @@ function buildingRecord(foundationId, revision, contentHash) {
     quarterTurns: 0,
     contentHash,
     code: `NCM3:${foundationId}:${revision}`,
-  };
-}
-
-function blueprint(blueprintId, blueprintOrdinal) {
-  return {
-    slot: { itemId: "blueprint_tool", kind: "blueprint", blueprintId, blueprintOrdinal },
-    index: blueprintOrdinal,
   };
 }
 

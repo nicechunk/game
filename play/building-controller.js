@@ -11,7 +11,7 @@ export function createBuildingController({
   index,
   getWalletAddress = () => "",
   getPlayerPosition = () => [0, 0, 0],
-  getSelectedBlueprint = () => null,
+  isConstructionModeActive = () => false,
   submitBuilding = async () => ({ submitted: false, reason: "chain-unavailable" }),
   onChanged = () => {},
   onCollisionGeometryChanged = () => {},
@@ -42,10 +42,8 @@ export function createBuildingController({
   let chainAbortController = null;
   let meshingPreview = false;
   let meshingChain = false;
-  let activeBlueprintId = "";
-  let activeBlueprint = null;
   let modeExplicit = false;
-  const blueprintStates = new Map();
+  let activationRevision = 0;
   const meshClient = createMeshClient();
   const chainMeshCache = new Map();
   const maxChainMeshCacheEntries = Math.max(0, Math.trunc(Number(chainMeshCacheEntries) || 0));
@@ -61,8 +59,7 @@ export function createBuildingController({
   return {
     activate,
     mode: () => {
-      syncSelectedBlueprint();
-      enforceBlueprintStage();
+      enforceConstructionStage();
       return mode;
     },
     setMode,
@@ -86,24 +83,23 @@ export function createBuildingController({
     snapshot,
   };
 
-  function activate(nextActive = Boolean(selectedBlueprintFromGameState())) {
-    const changedBlueprint = syncSelectedBlueprint();
-    const next = Boolean(nextActive && activeBlueprintId);
+  function activate(nextActive = Boolean(isConstructionModeActive())) {
+    const next = Boolean(nextActive && isConstructionModeActive());
     const previousMode = mode;
     const previousActive = active;
     active = next;
-    if (active) enforceBlueprintStage();
+    if (previousActive !== active) activationRevision += 1;
+    if (active) enforceConstructionStage();
     else if (previousActive) clearPreview();
-    if (changedBlueprint || previousActive !== active || previousMode !== mode) onChanged(snapshot());
+    if (previousActive !== active || previousMode !== mode) onChanged(snapshot());
     return snapshot();
   }
 
   function setMode(nextMode) {
-    syncSelectedBlueprint();
     const normalized = nextMode === "building" ? "building" : "foundation";
     const hasFoundation = Boolean(currentFoundation());
     if (normalized === "building" && !hasFoundation) {
-      lastError = text("main.blueprint.noFoundation", "Create a foundation before importing a building.");
+      lastError = text("main.land.noFoundation", "Create a foundation before importing a building.");
       onStatus(lastError);
       onChanged(snapshot());
       return snapshot();
@@ -114,35 +110,25 @@ export function createBuildingController({
     if (mode === "building") ensureFoundationSelection();
     else clearPreview();
     lastError = "";
-    saveBlueprintState();
     onChanged(snapshot());
     return snapshot();
   }
 
   function ownedFoundations() {
-    syncSelectedBlueprint();
-    return foundationsForBlueprint(activeBlueprintId);
-  }
-
-  function foundationsForBlueprint(blueprintId) {
-    if (!blueprintId) return [];
     const wallet = String(getWalletAddress() || "");
     if (!wallet) return [];
     return (index?.list?.() ?? [])
       .filter((foundation) => foundation.owner === wallet
-        && foundation.status !== "removed"
-        && String(foundation.foundationId) === blueprintId)
-      .slice(0, 1);
+        && foundation.status !== "removed");
   }
 
   function currentFoundation() {
-    syncSelectedBlueprint();
     ensureFoundationSelection();
-    return foundationsForBlueprint(activeBlueprintId).find((foundation) => foundation.id === selectedFoundationId) ?? null;
+    return ownedFoundations().find((foundation) => foundation.id === selectedFoundationId) ?? null;
   }
 
   function ensureFoundationSelection() {
-    const foundations = foundationsForBlueprint(activeBlueprintId);
+    const foundations = ownedFoundations();
     if (!foundations.some((foundation) => foundation.id === selectedFoundationId)) {
       selectedFoundationId = foundations[0]?.id ?? "";
       clearPreview();
@@ -151,11 +137,10 @@ export function createBuildingController({
   }
 
   function selectFoundation(id) {
-    syncSelectedBlueprint();
     const value = String(id || "");
-    const foundation = foundationsForBlueprint(activeBlueprintId).find((candidate) => candidate.id === value);
+    const foundation = ownedFoundations().find((candidate) => candidate.id === value);
     if (!foundation) {
-      lastError = text("main.blueprint.noFoundation", "Create a foundation before importing a building.");
+      lastError = text("main.land.noFoundation", "Create a foundation before importing a building.");
       onStatus(lastError);
       onChanged(snapshot());
       return { ok: false, reason: "foundation-not-found" };
@@ -165,64 +150,55 @@ export function createBuildingController({
       clearPreview();
     }
     lastError = "";
-    saveBlueprintState();
     onChanged(snapshot());
     return { ok: true, foundation };
   }
 
   function selectAtHit(hit) {
-    syncSelectedBlueprint();
-    if (mode !== "building" || !hit?.hit) return { ok: false, reason: "building-mode-inactive" };
+    if (!active || mode !== "building" || !hit?.hit) return { ok: false, reason: "building-mode-inactive" };
     const wallet = String(getWalletAddress() || "");
     const foundation = (index?.foundationsAt?.(hit.worldX, hit.worldZ) ?? [])
       .find((candidate) => candidate.owner === wallet
-        && candidate.status !== "removed"
-        && String(candidate.foundationId) === activeBlueprintId);
+        && candidate.status !== "removed");
     if (!foundation) return { ok: false, reason: "foundation-not-hit" };
     return selectFoundation(foundation.id);
   }
 
   function setCode(value) {
-    syncSelectedBlueprint();
     const next = String(value ?? "").trim();
     if (next === code) return snapshot();
     code = next;
     parsed = null;
     clearPreview();
     lastError = "";
-    saveBlueprintState();
     onChanged(snapshot());
     return snapshot();
   }
 
   function setQuarterTurns(value) {
-    syncSelectedBlueprint();
     quarterTurns = ((Math.trunc(Number(value) || 0) % 4) + 4) % 4;
-    saveBlueprintState();
     if (previewPlacement || parsed) void buildPreview();
     else onChanged(snapshot());
     return snapshot();
   }
 
   function setOffsets(xValue, zValue) {
-    syncSelectedBlueprint();
     const nextX = normalizeBuildingOffset(xValue);
     const nextZ = normalizeBuildingOffset(zValue);
     if (nextX === offsetX && nextZ === offsetZ) return snapshot();
     offsetX = nextX;
     offsetZ = nextZ;
-    saveBlueprintState();
     if (previewPlacement || parsed) void buildPreview();
     else onChanged(snapshot());
     return snapshot();
   }
 
   async function buildPreview() {
-    syncSelectedBlueprint();
-    const blueprintId = activeBlueprintId;
+    if (!active) return fail("construction-mode-inactive", text("main.land.modeClosed", "Land construction mode is closed."));
+    const activation = activationRevision;
     const foundation = currentFoundation();
-    if (!foundation) return fail("foundation-not-found", text("main.blueprint.noFoundation", "Create a foundation before importing a building."));
-    if (!code) return fail("missing-code", text("main.blueprint.enterCode", "Paste an NCM3 building code first."));
+    if (!foundation) return fail("foundation-not-found", text("main.land.noFoundation", "Create a foundation before importing a building."));
+    if (!code) return fail("missing-code", text("main.land.enterCode", "Paste an NCM3 building code first."));
     cancelPreviewMeshing();
     const abortController = new AbortController();
     previewAbortController = abortController;
@@ -249,7 +225,7 @@ export function createBuildingController({
         priority: Number.MAX_SAFE_INTEGER,
         scope: "preview",
       });
-      if (request !== previewRequest || blueprintId !== activeBlueprintId) return { ok: false, reason: "stale-preview" };
+      if (request !== previewRequest || activation !== activationRevision) return { ok: false, reason: "stale-preview" };
       parsed = result.building;
       previewPlacement = {
         ...result.placement,
@@ -263,9 +239,8 @@ export function createBuildingController({
       rebuildRenderChunkCache();
       lastError = previewPlacement.fitsFoundation
         ? ""
-        : text("main.blueprint.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled.");
-      saveBlueprintState();
-      onStatus(lastError || text("main.blueprint.buildingReady", "NCM3 building fits this foundation at exact 1:1 scale."));
+        : text("main.land.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled.");
+      onStatus(lastError || text("main.land.buildingReady", "NCM3 building fits this foundation at exact 1:1 scale."));
       onChanged(snapshot());
       return {
         ok: true,
@@ -276,32 +251,30 @@ export function createBuildingController({
       };
     } catch (error) {
       if (error?.code === "building-mesh-aborted") return { ok: false, reason: "stale-preview" };
-      if (request !== previewRequest || blueprintId !== activeBlueprintId) return { ok: false, reason: "stale-preview" };
+      if (request !== previewRequest || activation !== activationRevision) return { ok: false, reason: "stale-preview" };
       clearPreview();
       const message = error?.code === "building-does-not-fit"
-        ? text("main.blueprint.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled.")
-        : text("main.blueprint.invalidCode", "The NCM3 building code is invalid: {reason}", { reason: String(error?.message || error) });
+        ? text("main.land.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled.")
+        : text("main.land.invalidCode", "The NCM3 building code is invalid: {reason}", { reason: String(error?.message || error) });
       return fail(error?.code || "invalid-code", message, error);
     } finally {
       if (previewAbortController === abortController) previewAbortController = null;
-      if (request === previewRequest && blueprintId === activeBlueprintId) {
+      if (request === previewRequest && activation === activationRevision) {
         meshingPreview = false;
-        saveBlueprintState();
         onChanged(snapshot());
       }
     }
   }
 
   async function confirm() {
-    syncSelectedBlueprint();
-    if (mode !== "building") return { submitted: false, reason: "building-mode-inactive" };
+    if (!active || mode !== "building") return { submitted: false, reason: "building-mode-inactive" };
     if (submitting) return { submitted: false, reason: "already-submitting" };
     const previewResult = previewPlacement ? { ok: true } : await buildPreview();
     if (!previewResult?.ok || !previewPlacement || !parsed) return { submitted: false, reason: previewResult?.reason || "invalid-building" };
     if (previewPlacement.fitsFoundation === false) {
       return fail(
         "building-does-not-fit",
-        text("main.blueprint.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled."),
+        text("main.land.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled."),
       );
     }
     submitting = true;
@@ -320,7 +293,7 @@ export function createBuildingController({
       });
       if (!result?.submitted) return fail(
         result?.reason || "building-not-submitted",
-        result?.message || text("main.blueprint.buildingSubmitFailed", "Building submission failed: {reason}", { reason: result?.reason || "unknown" }),
+        result?.message || text("main.land.buildingSubmitFailed", "Building submission failed: {reason}", { reason: result?.reason || "unknown" }),
         result,
       );
       const record = result.building ?? {
@@ -337,16 +310,15 @@ export function createBuildingController({
         await applyChainBuildings([...chainBuildings.values()].map((entry) => entry.record).concat(record));
       }
       clearPreview();
-      saveBlueprintState();
       onStatus(result.guardianIndexed === false
-        ? result.message || text("main.blueprint.guardianIndexPending", "The building is on chain, but Guardian indexing is still pending: {reason}.", {
-          reason: text("main.blueprint.guardianUnavailable", "Guardian unavailable"),
+        ? result.message || text("main.land.guardianIndexPending", "The building is on chain, but Guardian indexing is still pending: {reason}.", {
+          reason: text("main.land.guardianUnavailable", "Guardian unavailable"),
         })
-        : text("main.blueprint.buildingCreated", "Building created on this foundation."));
+        : text("main.land.buildingCreated", "Building created on this foundation."));
       return result;
     } catch (error) {
       console.error("[NiceChunk Building Submission Failed]", error);
-      return fail("building-submit-exception", text("main.blueprint.buildingSubmitFailed", "Building submission failed: {reason}", { reason: String(error?.message || error) }), error);
+      return fail("building-submit-exception", text("main.land.buildingSubmitFailed", "Building submission failed: {reason}", { reason: String(error?.message || error) }), error);
     } finally {
       submitting = false;
       onChanged(snapshot());
@@ -354,10 +326,8 @@ export function createBuildingController({
   }
 
   function cancel() {
-    syncSelectedBlueprint();
     clearPreview();
     lastError = "";
-    saveBlueprintState();
     onChanged(snapshot());
   }
 
@@ -654,15 +624,11 @@ export function createBuildingController({
   }
 
   function snapshot() {
-    syncSelectedBlueprint();
-    enforceBlueprintStage();
-    const foundations = foundationsForBlueprint(activeBlueprintId);
+    enforceConstructionStage();
+    const foundations = ownedFoundations();
     const foundation = foundations.find((candidate) => candidate.id === selectedFoundationId) ?? foundations[0] ?? null;
     return {
-      active: Boolean(active && activeBlueprintId),
-      blueprint: activeBlueprint,
-      blueprintId: activeBlueprintId,
-      blueprintOrdinal: activeBlueprint?.blueprintOrdinal ?? 0,
+      active,
       foundationBound: Boolean(foundation),
       mode,
       foundations,
@@ -688,7 +654,6 @@ export function createBuildingController({
 
   function fail(reason, message, error = null) {
     lastError = String(message || reason);
-    saveBlueprintState();
     onStatus(lastError);
     onChanged(snapshot());
     return { ok: false, submitted: false, reason, message: lastError, error };
@@ -701,82 +666,21 @@ export function createBuildingController({
       : fallback.replace(/\{(\w+)\}/g, (_match, name) => String(params[name] ?? ""));
   }
 
-  function syncSelectedBlueprint() {
-    const selected = selectedBlueprintFromGameState();
-    const nextId = selected?.blueprintId ?? "";
-    if (nextId === activeBlueprintId) {
-      activeBlueprint = selected;
-      return false;
-    }
-    saveBlueprintState();
-    cancelPreviewMeshing();
-    previewRequest += 1;
-    activeBlueprintId = nextId;
-    activeBlueprint = selected;
-    selectedFoundationId = "";
-    const stored = blueprintStates.get(nextId);
-    mode = stored?.mode === "building" || stored?.mode === "foundation" ? stored.mode : "foundation";
-    modeExplicit = Boolean(stored?.mode);
-    code = stored?.code ?? "";
-    quarterTurns = stored?.quarterTurns ?? 0;
-    offsetX = normalizeBuildingOffset(stored?.offsetX);
-    offsetZ = normalizeBuildingOffset(stored?.offsetZ);
-    parsed = stored?.parsed ?? null;
-    previewPlacement = stored?.previewPlacement ?? null;
-    previewChunks = stored?.previewChunks ?? [];
-    rebuildRenderChunkCache();
-    lastError = stored?.lastError ?? "";
-    meshingPreview = false;
-    enforceBlueprintStage();
-    return true;
-  }
-
-  function selectedBlueprintFromGameState() {
-    const selected = getSelectedBlueprint?.();
-    const slot = selected?.slot ?? selected;
-    const blueprintId = normalizeBlueprintId(slot?.blueprintId);
-    return blueprintId ? { ...slot, blueprintId } : null;
-  }
-
-  function saveBlueprintState() {
-    if (!activeBlueprintId) return;
-    blueprintStates.set(activeBlueprintId, {
-      mode,
-      code,
-      quarterTurns,
-      offsetX,
-      offsetZ,
-      parsed,
-      previewPlacement,
-      previewChunks,
-      lastError,
-    });
-  }
-
-  function enforceBlueprintStage() {
-    if (!activeBlueprintId) {
+  function enforceConstructionStage() {
+    if (!active) {
       mode = "foundation";
       modeExplicit = false;
       selectedFoundationId = "";
       return;
     }
-    const foundation = foundationsForBlueprint(activeBlueprintId)[0] ?? null;
+    const foundations = ownedFoundations();
+    const foundation = foundations.find((entry) => entry.id === selectedFoundationId) ?? foundations[0] ?? null;
     selectedFoundationId = foundation?.id ?? "";
     const requiredMode = foundation && !modeExplicit ? "building" : foundation ? mode : "foundation";
     if (mode === requiredMode) return;
     mode = requiredMode;
     clearPreview();
     lastError = "";
-    saveBlueprintState();
-  }
-}
-
-function normalizeBlueprintId(value) {
-  try {
-    const normalized = BigInt(value ?? 0);
-    return normalized > 0n && normalized <= 0xffffffffffffffffn ? normalized.toString() : "";
-  } catch {
-    return "";
   }
 }
 

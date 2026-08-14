@@ -457,7 +457,7 @@ export function createInventoryController({
     const equipped = Boolean(equipment);
     equip.disabled = equipped || !isPlaceableBackpackSlot(slot);
     equip.textContent = equipped ? ui("main.backpack.equipped", "Equipped") : "Equip to hotbar";
-    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || indexes.some((entry) => discardingBackpackIndexes.has(entry)));
+    discard.disabled = Boolean(equipped || slot.pending || indexes.some((entry) => discardingBackpackIndexes.has(entry)));
     select.disabled = equipped;
     const stackSelected = indexes.length > 0 && indexes.every((entry) => selectedBackpackIndexes.has(entry));
     select.textContent = stackSelected
@@ -730,7 +730,7 @@ export function createInventoryController({
     tags.className = "backpack-detail-tags";
     tags.append(detailTag(slot.kind === "resource"
       ? (Number(slot.decorationId) > 0 ? "Decoration" : "Block")
-      : slot.kind === "forged" ? "Forged" : slot.kind === "blueprint" ? "Blueprint" : "Material"));
+      : slot.kind === "forged" ? "Forged" : "Material"));
     tags.append(detailTag(slot.source === "chain" ? "On-chain" : "Local"));
     if (equipped) tags.append(detailTag(ui("main.backpack.equipped", "Equipped"), "equipped"));
     const description = document.createElement("p");
@@ -773,10 +773,6 @@ export function createInventoryController({
       rows.push(["Grade", String(slot.grade ?? "-")]);
       rows.push(["Item Level", String(slot.itemLevel ?? "-")]);
       rows.push(["Quality", Number.isFinite(slot.qualityBps) ? `${Math.round(slot.qualityBps / 100)}%` : "-"]);
-    } else if (slot.kind === "blueprint") {
-      rows.push(["Blueprint ID", slot.blueprintId || slot.chainItemId || "-"]);
-      rows.push(["Blueprint PDA", proofDetailValue(slot.itemPda)]);
-      rows.push(["Owner", shortAddress(slot.blueprintOwner)]);
     }
     const rowWrap = document.createElement("div");
     rowWrap.className = "backpack-detail-rows";
@@ -822,7 +818,7 @@ export function createInventoryController({
         onStatus(result.ok ? `Discarded ${backpackSlotLabel(slot)}.` : result.reason);
       });
     });
-    discard.disabled = Boolean(equipped || slot.pending || slot.kind === "blueprint" || stackIndexes.some((entry) => discardingBackpackIndexes.has(entry)));
+    discard.disabled = Boolean(equipped || slot.pending || stackIndexes.some((entry) => discardingBackpackIndexes.has(entry)));
     actions.append(equip, select, discard);
     detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, actions);
   }
@@ -1023,7 +1019,6 @@ export function createInventoryController({
   function backpackDescription(slot) {
     if (slot.pending) return "This mined stack is waiting for confirmation before it can be equipped or discarded.";
     if (slot.kind === "forged") return "A forged item read directly from the equipped on-chain backpack PDA.";
-    if (slot.kind === "blueprint") return "A unique Blueprint item verified by its on-chain item PDA.";
     if (slot.kind === "smelted_material") return "A refined material stack prepared for crafting and advanced production.";
     if (slot.source === "chain" && Number(slot.decorationId) > 0) return "A verified surface decoration stored with its PDA rule identity in the on-chain backpack.";
     if (slot.source === "chain") return "A verified voxel resource stored in the connected on-chain backpack account.";
@@ -1254,7 +1249,6 @@ function isPlaceableBackpackSlot(slot) {
   return Boolean(slot && !slot.pending && slot.count > 0 && (
     slot.kind === "forged" && Number.isFinite(Number(slot.designHash)) && (Math.trunc(Number(slot.designHash)) >>> 0) !== 0
     || slot.kind === "resource" && Number.isFinite(slot.blockId) && slot.blockId > 0
-    || slot.kind === "blueprint" && /^\d+$/.test(String(slot.blueprintId || "")) && BigInt(slot.blueprintId) > 0n
   ));
 }
 

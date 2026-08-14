@@ -14,7 +14,6 @@ export function createPlayChainFoundationSync({
   index,
   cache = createPlayBuildingCache(),
   getWalletAddress = () => "",
-  getBlueprintIds = () => [],
   getPlayerPosition = () => [0, 0, 0],
   getGuardianRegion = () => null,
   ensureGuardianNeighborhood = async () => [],
@@ -43,7 +42,6 @@ export function createPlayChainFoundationSync({
   return {
     refresh,
     create,
-    resize,
     updateForFrame,
     handleRegionDigest,
     handleRegionManifest,
@@ -93,7 +91,7 @@ export function createPlayChainFoundationSync({
           failures: ownedResult.ok ? 0 : 1,
         });
         if (!ownedResult.ok && !quiet) {
-          onStatus(text("main.blueprint.syncFailed", "Foundation PDA sync failed: {reason}", {
+          onStatus(text("main.land.syncFailed", "Foundation PDA sync failed: {reason}", {
             reason: ownedResult.reason,
           }));
         }
@@ -137,7 +135,7 @@ export function createPlayChainFoundationSync({
         const reason = !ownedResult.ok
           ? ownedResult.reason
           : String(failures[0].reason?.message || failures[0].reason || "guardian-manifest-unavailable");
-        onStatus(text("main.blueprint.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
+        onStatus(text("main.land.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
       }
       const guardianOk = failures.length < jobs.length || jobs.length === 0;
       return {
@@ -150,7 +148,7 @@ export function createPlayChainFoundationSync({
       };
     } catch (error) {
       const reason = String(error?.message || error || "foundation-sync-failed");
-      if (!quiet) onStatus(text("main.blueprint.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
+      if (!quiet) onStatus(text("main.land.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
       console.warn("[NiceChunk Foundation Sync]", error);
       lastCenterKey = guardianCenterKey(center.chunkX, center.chunkZ);
       lastRefreshAt = performance.now();
@@ -179,26 +177,21 @@ export function createPlayChainFoundationSync({
       ownedFoundations.clear();
       ownedWalletAddress = wallet;
     }
-    const rawIds = getBlueprintIds?.();
-    const ids = [...new Set((Array.isArray(rawIds) ? rawIds : [])
-      .map(normalizeBlueprintId)
-      .filter(Boolean))];
-    if (!wallet || !ids.length) {
+    if (!wallet) {
       ownedFoundations.clear();
       return { ok: true, skipped: true, count: 0 };
     }
     const module = await loadChainModule();
-    if (typeof module.loadBuildSitesByIds !== "function") {
-      throw new Error("BuildSite batch loader is unavailable.");
+    if (typeof module.loadOwnedFoundations !== "function") {
+      throw new Error("Owned BuildSite loader is unavailable.");
     }
-    const loaded = await module.loadBuildSitesByIds(ids);
-    const allowedIds = new Set(ids);
+    const loaded = await module.loadOwnedFoundations(wallet);
     const next = new Map();
     for (const foundation of loaded ?? []) {
-      const id = normalizeBlueprintId(foundation?.foundationId);
+      const id = normalizeFoundationId(foundation?.foundationId);
       if (!id
-        || !allowedIds.has(id)
         || foundation?.owner !== wallet
+        || foundation?.accountVersion !== 3
         || foundation?.status === "removed"
         || foundation?.hasActiveGeometry === false) continue;
       const previous = ownedFoundations.get(id);
@@ -213,7 +206,7 @@ export function createPlayChainFoundationSync({
     }
     ownedFoundations.clear();
     for (const [id, foundation] of next) ownedFoundations.set(id, foundation);
-    return { ok: true, count: ownedFoundations.size, requested: ids.length };
+    return { ok: true, count: ownedFoundations.size };
   }
 
   async function syncRegionFromHttp(entry) {
@@ -359,6 +352,7 @@ export function createPlayChainFoundationSync({
       const previousRecord = previousRecords.get(record.foundationId);
       const previousFoundation = previousFoundations.get(record.foundationId);
       if (previousRecord && previousFoundation
+        && previousFoundation.accountVersion === 3
         && guardianRecordsMatch(previousRecord, record)
         && guardianRecordMatchesFoundation(record, previousFoundation)) {
         foundationsById.set(record.foundationId, verifiedFoundationForManifest(previousFoundation, record, manifest));
@@ -375,14 +369,12 @@ export function createPlayChainFoundationSync({
       const byId = new Map((loaded ?? []).map((foundation) => [String(foundation.foundationId), foundation]));
       for (const record of changedRecords) {
         const foundation = byId.get(record.foundationId);
-        if (!foundation || !guardianRecordMatchesFoundation(record, foundation)) {
-          throw new Error(`Guardian foundation ${record.foundationId} failed BuildSite verification.`);
-        }
+        if (!foundation || foundation.accountVersion !== 3 || !guardianRecordMatchesFoundation(record, foundation)) continue;
         foundationsById.set(record.foundationId, verifiedFoundationForManifest(foundation, record, manifest));
       }
     }
     requireManifestStillCurrent(manifest, entry);
-    const foundations = records.map((record) => foundationsById.get(record.foundationId));
+    const foundations = records.map((record) => foundationsById.get(record.foundationId)).filter(Boolean);
     const verified = await cache?.putVerifiedRegion?.({ ...manifest, records }, foundations) ?? {
       ...manifest,
       foundations,
@@ -412,28 +404,13 @@ export function createPlayChainFoundationSync({
   async function create(payload) {
     const wallet = String(getWalletAddress() || "");
     if (!wallet) return { submitted: false, reason: "wallet-unavailable" };
-    const blueprintId = normalizeBlueprintId(payload?.blueprintId ?? payload?.foundationId);
-    if (!blueprintId) return { submitted: false, reason: "blueprint-id-required" };
-    const existing = (index?.list?.() ?? []).find((foundation) => (
-      foundation.owner === wallet
-      && String(foundation.foundationId) === blueprintId
-      && foundation.status !== "removed"
-    ));
-    if (existing) {
-      return {
-        submitted: false,
-        reason: "foundation-already-bound",
-        foundation: existing,
-        message: text("main.blueprint.foundationLocked", "This blueprint is permanently bound to its foundation."),
-      };
-    }
-    const request = { ...payload, blueprintId };
+    const request = { ...payload };
     const coverage = await ensureGuardianCoverage(request);
     if (!coverage?.ok) {
       const regions = formatMissingRegions(coverage?.missing)
-        || text("main.blueprint.guardianUnavailable", "Guardian unavailable");
+        || text("main.land.guardianUnavailable", "Guardian unavailable");
       const message = text(
-        "main.blueprint.guardianCoverageRequired",
+        "main.land.guardianCoverageRequired",
         "Every Guardian region covered by this foundation must be active. Missing: {regions}.",
         { regions },
       );
@@ -466,9 +443,9 @@ export function createPlayChainFoundationSync({
     const announcement = await announceGuardianBuilding(guardianRecordForFoundation(foundation));
     if (!announcement?.ok) {
       const reason = formatMissingRegions(announcement?.failed)
-        || text("main.blueprint.guardianUnavailable", "Guardian unavailable");
+        || text("main.land.guardianUnavailable", "Guardian unavailable");
       const message = text(
-        "main.blueprint.guardianIndexPending",
+        "main.land.guardianIndexPending",
         "The foundation is on chain, but Guardian indexing is still pending: {reason}.",
         { reason },
       );
@@ -477,70 +454,6 @@ export function createPlayChainFoundationSync({
     void refresh({ force: true, quiet: true });
     globalThis.setTimeout(() => void refresh({ force: true, quiet: true }), 500);
     return { ...result, foundation, guardianIndexed: true, guardianAnnouncement: announcement };
-  }
-
-  async function resize(payload) {
-    const wallet = String(getWalletAddress() || "");
-    if (!wallet) return { submitted: false, reason: "wallet-unavailable" };
-    const blueprintId = normalizeBlueprintId(payload?.blueprintId ?? payload?.foundationId);
-    if (!blueprintId) return { submitted: false, reason: "blueprint-id-required" };
-    const existing = (index?.list?.() ?? []).find((foundation) => (
-      foundation.owner === wallet
-      && String(foundation.foundationId) === blueprintId
-      && foundation.status !== "removed"
-    ));
-    if (!existing) return { submitted: false, reason: "foundation-not-found" };
-    const request = {
-      ...existing,
-      ...payload,
-      blueprintId,
-      foundationId: blueprintId,
-      minX: existing.minX,
-      minZ: existing.minZ,
-      surfaceY: existing.surfaceY,
-    };
-    const coverage = await ensureGuardianCoverage(request);
-    if (!coverage?.ok) {
-      const regions = formatMissingRegions(coverage?.missing)
-        || text("main.blueprint.guardianUnavailable", "Guardian unavailable");
-      const message = text(
-        "main.blueprint.guardianCoverageRequired",
-        "Every Guardian region covered by this foundation must be active. Missing: {regions}.",
-        { regions },
-      );
-      return { submitted: false, reason: "guardian-coverage-required", message, coverage };
-    }
-    const module = await loadChainModule();
-    if (typeof module.resizeFoundationOnChain !== "function") {
-      return { submitted: false, reason: "foundation-resize-api-unavailable" };
-    }
-    const result = await module.resizeFoundationOnChain(request);
-    if (!result?.submitted) return result ?? { submitted: false, reason: "foundation-not-resized" };
-    const foundation = {
-      ...existing,
-      ...result.foundation,
-      status: "active",
-      contentHash: String(result.foundation?.contentHash || existing.contentHash || ZERO_BUILDING_HASH),
-    };
-    ownedFoundations.set(blueprintId, foundation);
-    pendingFoundations.set(blueprintId, {
-      foundation,
-      expiresAt: Date.now() + PENDING_FOUNDATION_MS,
-    });
-    rebuildIndex();
-    onChanged({ resized: foundation, count: index?.size?.() ?? 0 });
-    const announcement = await announceGuardianBuilding(
-      guardianRecordForFoundation(foundation),
-      { previousRecord: guardianRecordForFoundation(existing) },
-    );
-    void refresh({ force: true, quiet: true });
-    globalThis.setTimeout(() => void refresh({ force: true, quiet: true }), 500);
-    return {
-      ...result,
-      foundation,
-      guardianIndexed: Boolean(announcement?.ok),
-      guardianAnnouncement: announcement,
-    };
   }
 
   function applyCachedRegion(cached) {
@@ -887,9 +800,9 @@ function requireHash(value) {
   return hash;
 }
 
-function normalizeBlueprintId(value) {
+function normalizeFoundationId(value) {
   try {
-    return requireU64String(value, "blueprintId");
+    return requireU64String(value, "foundationId");
   } catch {
     return "";
   }

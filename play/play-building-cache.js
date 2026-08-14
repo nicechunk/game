@@ -2,9 +2,8 @@ const DB_NAME = "nicechunk-building-cache";
 const DB_VERSION = 2;
 const REGION_STORE = "regions";
 const BUILDING_STORE = "buildings";
-// Blueprint-v2 invalidates the pre-identity foundation cache. Only Guardian
-// manifests verified under the one-blueprint/one-foundation model are reused.
-const CACHE_SCHEMA = "guardian-blueprint-v3";
+// Land-contract v3 uses new BuildSite identities and must never reuse v2 geometry.
+const CACHE_SCHEMA = "guardian-land-v4";
 const memoryRegions = new Map();
 const memoryBuildings = new Map();
 let databasePromise = null;

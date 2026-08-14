@@ -26,10 +26,10 @@ import {
 
 test("foundation coverage enumerates every intersected Guardian region across negative boundaries", () => {
   assert.deepEqual(guardianRegionsForFoundation({
-    minX: 1599,
-    minZ: -1601,
-    width: 2,
-    depth: 2,
+    minX: 1584,
+    minZ: -1616,
+    width: 32,
+    depth: 32,
   }, 16), [
     { x: 0, z: -2 },
     { x: 1, z: -2 },
@@ -61,27 +61,27 @@ test("foundation coverage depends on active chain regions, not Guardian server o
   assert.deepEqual(missing.missing.map((entry) => entry.region), [region]);
 });
 
-test("foundation resize announces new geometry and removes regions left by a shrink", () => {
+test("Guardian correction announcements remove stale regional geometry", () => {
   const previousRecord = {
     foundationId: "9",
-    minX: 1590,
+    minX: 1584,
     minZ: 0,
     surfaceY: 10,
-    width: 20,
-    depth: 2,
+    width: 32,
+    depth: 16,
     flags: 1,
     activeRevision: 0,
     contentHash: "0".repeat(32),
     updatedSlot: "10",
   };
-  const record = { ...previousRecord, width: 5, updatedSlot: "22" };
+  const record = { ...previousRecord, width: 16, updatedSlot: "22" };
   const plan = guardianBuildingAnnouncementPlan(record, { previousRecord, chunkSize: 16 });
 
   assert.deepEqual(plan.map((entry) => entry.region), [{ x: 0, z: 0 }, { x: 1, z: 0 }]);
   assert.equal(plan[0].record.flags, 1);
-  assert.equal(plan[0].record.width, 5);
+  assert.equal(plan[0].record.width, 16);
   assert.equal(plan[1].record.flags, 0);
-  assert.equal(plan[1].record.width, 20);
+  assert.equal(plan[1].record.width, 32);
   assert.equal(plan[1].record.updatedSlot, "22");
 });
 
@@ -148,24 +148,26 @@ test("Guardian records must exactly match authoritative BuildSite geometry and r
   const foundation = {
     owner: "owner",
     foundationId: "91",
-    minX: 1599,
-    minZ: 8,
+    minX: 1584,
+    minZ: 0,
     surfaceY: 22,
-    width: 4,
-    depth: 7,
+    width: 32,
+    depth: 16,
     activeRevision: 3,
     updatedSlot: "88",
     status: "active",
+    accountVersion: 3,
+    hasActiveGeometry: true,
   };
   const record = {
     foundationId: "91",
-    minX: 1599,
-    minZ: 8,
-    maxX: 1602,
-    maxZ: 14,
+    minX: 1584,
+    minZ: 0,
+    maxX: 1615,
+    maxZ: 15,
     surfaceY: 22,
-    width: 4,
-    depth: 7,
+    width: 32,
+    depth: 16,
     activeRevision: 3,
     updatedSlot: "88",
   };
@@ -194,16 +196,17 @@ test("foundation creation stops before loading the chain module when Guardian co
     translate: (_key, fallback, params) => fallback.replace("{regions}", params.regions),
   });
 
-  const result = await sync.create({ blueprintId: "42", minX: 0, minZ: 0, surfaceY: 10, width: 2, depth: 2 });
+  const result = await sync.create({ minX: 0, minZ: 0, surfaceY: 10, width: 16, depth: 16 });
   assert.equal(result.submitted, false);
   assert.equal(result.reason, "guardian-coverage-required");
   assert.match(result.message, /2,-1/);
   assert.equal(chainLoads, 0);
 });
 
-test("foundation sync forwards the blueprint ID and locks it after chain success", async () => {
+test("foundation sync creates multiple independent chunk parcels without Blueprint identities", async () => {
   let records = [];
   const submitted = [];
+  let nextFoundationId = 41;
   const sync = createPlayChainFoundationSync({
     index: {
       list: () => records,
@@ -217,106 +220,48 @@ test("foundation sync forwards the blueprint ID and locks it after chain success
     loadChainModule: async () => ({
       createFoundationOnChain: async (payload) => {
         submitted.push(payload);
+        nextFoundationId += 1;
         return {
           submitted: true,
           signature: "signature",
           foundation: {
-            id: `wallet:${payload.blueprintId}`,
+            id: `wallet:${nextFoundationId}`,
             owner: "wallet",
-            foundationId: payload.blueprintId,
+            foundationId: String(nextFoundationId),
             minX: payload.minX,
             minZ: payload.minZ,
             surfaceY: payload.surfaceY,
             width: payload.width,
             depth: payload.depth,
             status: "active",
+            accountVersion: 3,
+            hasActiveGeometry: true,
           },
         };
       },
     }),
   });
-  const payload = { blueprintId: "42", minX: 0, minZ: 0, surfaceY: 10, width: 2, depth: 2 };
+  const payload = { minX: 0, minZ: 0, surfaceY: 10, width: 16, depth: 16 };
 
   const first = await sync.create(payload);
-  const duplicate = await sync.create({ ...payload, minX: 20 });
+  const second = await sync.create({ ...payload, minX: 32 });
 
   assert.equal(first.submitted, true);
   assert.equal(first.guardianIndexed, false);
-  assert.equal(submitted[0].blueprintId, "42");
+  assert.equal(second.submitted, true);
+  assert.equal(Object.hasOwn(submitted[0], "blueprintId"), false);
+  assert.equal(submitted[0].width, 16);
   assert.equal(records[0].foundationId, "42");
-  assert.equal(duplicate.reason, "foundation-already-bound");
-  assert.equal(submitted.length, 1);
+  assert.equal(records[1].foundationId, "43");
+  assert.equal(submitted.length, 2);
 });
 
-test("foundation resize keeps its fixed anchor and replaces stale Guardian geometry", async () => {
-  const hash = "19".repeat(16);
-  const oldFoundation = {
-    id: "wallet:42",
-    owner: "wallet",
-    foundationId: "42",
-    minX: 4,
-    minZ: 8,
-    surfaceY: 12,
-    width: 2,
-    depth: 2,
-    status: "active",
-    activeRevision: 0,
-    updatedSlot: "10",
-  };
-  const newFoundation = { ...oldFoundation, width: 6, depth: 5, updatedSlot: "22" };
-  let records = [oldFoundation];
-  const resizeCalls = [];
-  const announcements = [];
-  let resizedOnChain = false;
+test("foundation synchronization exposes no land resize operation", () => {
   const sync = createPlayChainFoundationSync({
-    index: {
-      list: () => records,
-      size: () => records.length,
-      replace: (next) => { records = [...next]; },
-    },
-    cache: {
-      getRegion: async () => ({
-        regionX: 0,
-        regionZ: 0,
-        revision: "1",
-        hash,
-        records: [],
-        foundations: [oldFoundation],
-        verified: true,
-      }),
-    },
-    getWalletAddress: () => "wallet",
-    getBlueprintIds: () => ["42"],
-    ensureGuardianNeighborhood: async () => [guardianEntry({ hash, revision: "1", recordCount: 0 })],
-    ensureGuardianCoverage: async () => ({ ok: true, missing: [] }),
-    announceGuardianBuilding: async (...args) => {
-      announcements.push(args);
-      return { ok: true };
-    },
-    loadChainModule: async () => ({
-      loadBuildSitesByIds: async () => [resizedOnChain ? newFoundation : oldFoundation],
-      resizeFoundationOnChain: async (payload) => {
-        resizeCalls.push(payload);
-        resizedOnChain = true;
-        return { submitted: true, signature: "resize-signature", foundation: newFoundation };
-      },
-    }),
+    index: { size: () => 0, replace: () => {} },
   });
-
-  await sync.refresh({ force: true });
-  const result = await sync.resize({ blueprintId: "42", minX: 999, minZ: 999, surfaceY: 99, width: 6, depth: 5 });
-
-  assert.equal(result.submitted, true);
-  assert.equal(resizeCalls.length, 1);
-  assert.equal(resizeCalls[0].minX, 4);
-  assert.equal(resizeCalls[0].minZ, 8);
-  assert.equal(resizeCalls[0].surfaceY, 12);
-  assert.equal(records.length, 1);
-  assert.equal(records[0].width, 6);
-  assert.equal(records[0].depth, 5);
-  assert.equal(announcements.length, 1);
-  assert.equal(announcements[0][0].updatedSlot, "22");
-  assert.equal(announcements[0][1].previousRecord.updatedSlot, "10");
+  assert.equal(Object.hasOwn(sync, "resize"), false);
+  assert.equal(typeof sync.resize, "undefined");
 });
 
 test("Guardian V3 binary manifests verify SHA-256 and preserve BuildSite updated slots", async () => {
@@ -738,10 +683,9 @@ test("owned BuildSite refresh preserves a verified building hash for the same re
       }),
     },
     getWalletAddress: () => "owner",
-    getBlueprintIds: () => ["1"],
     ensureGuardianNeighborhood: async () => [guardianEntry({ hash, revision: "1", recordCount: 1 })],
     loadChainModule: async () => ({
-      loadBuildSitesByIds: async () => [{ ...verifiedFoundation, contentHash: undefined }],
+      loadOwnedFoundations: async () => [{ ...verifiedFoundation, contentHash: undefined }],
     }),
   });
 
@@ -758,13 +702,15 @@ test("owned BuildSite PDAs restore in one batch when the Guardian neighborhood i
     id: "wallet:42",
     owner: "wallet",
     foundationId: "42",
-    minX: 748,
-    minZ: 781,
+    minX: 736,
+    minZ: 768,
     surfaceY: 136,
-    width: 12,
-    depth: 8,
+    width: 16,
+    depth: 16,
     status: "active",
     activeRevision: 0,
+    accountVersion: 3,
+    hasActiveGeometry: true,
   };
   const sync = createPlayChainFoundationSync({
     index: {
@@ -773,11 +719,10 @@ test("owned BuildSite PDAs restore in one batch when the Guardian neighborhood i
       replace: (foundations) => replacements.push(foundations),
     },
     getWalletAddress: () => "wallet",
-    getBlueprintIds: () => ["42", "42", "not-a-blueprint"],
     ensureGuardianNeighborhood: async () => [],
     loadChainModule: async () => ({
-      loadBuildSitesByIds: async (ids) => {
-        loads.push(ids);
+      loadOwnedFoundations: async (wallet) => {
+        loads.push(wallet);
         return [foundation, { ...foundation, owner: "another-wallet", foundationId: "43" }];
       },
     }),
@@ -786,7 +731,7 @@ test("owned BuildSite PDAs restore in one batch when the Guardian neighborhood i
   const result = await sync.refresh({ force: true });
   assert.equal(result.ok, true);
   assert.equal(result.partial, true);
-  assert.deepEqual(loads, [["42"]]);
+  assert.deepEqual(loads, ["wallet"]);
   assert.deepEqual(replacements.at(-1), [foundation]);
   assert.equal(sync.snapshot().owned, 1);
 });
@@ -795,8 +740,8 @@ test("changed regional manifest batch-loads only new or changed BuildSite PDAs o
   const previousHash = "22".repeat(16);
   const nextHash = "33".repeat(16);
   const unchanged = guardianRecord({ foundationId: "1", contentHash: "44".repeat(16) });
-  const changed = guardianRecord({ foundationId: "2", minX: 4, activeRevision: 2, contentHash: "55".repeat(16) });
-  const added = guardianRecord({ foundationId: "3", minX: 8, contentHash: "66".repeat(16) });
+  const changed = guardianRecord({ foundationId: "2", minX: 16, activeRevision: 2, contentHash: "55".repeat(16) });
+  const added = guardianRecord({ foundationId: "3", minX: 32, contentHash: "66".repeat(16) });
   const previousChanged = { ...changed, activeRevision: 1, contentHash: "77".repeat(16) };
   const cached = {
     regionX: 0,
@@ -918,12 +863,12 @@ function guardianRecord({
     foundationId,
     minX,
     minZ,
-    maxX: minX + 1,
-    maxZ: minZ + 1,
+    maxX: minX + 15,
+    maxZ: minZ + 15,
     surfaceY: 10,
     flags: 1,
-    width: 2,
-    depth: 2,
+    width: 16,
+    depth: 16,
     activeRevision,
     contentHash,
     updatedSlot,
@@ -946,5 +891,7 @@ function foundationForRecord(record) {
     pendingRevision: 0,
     updatedSlot: record.updatedSlot,
     status: "active",
+    accountVersion: 3,
+    hasActiveGeometry: true,
   };
 }

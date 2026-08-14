@@ -150,7 +150,7 @@ export function createPlayChainBuildingSync({
       const reason = String(error?.message || error || "building-sync-failed");
       retryAfterAt = Math.max(retryAfterAt, attemptAt + BUILDING_RETRY_MS);
       refreshFailed = true;
-      if (!quiet) onStatus(text("main.blueprint.buildingSyncFailed", "Building PDA sync failed: {reason}", { reason }));
+      if (!quiet) onStatus(text("main.land.buildingSyncFailed", "Building PDA sync failed: {reason}", { reason }));
       console.warn("[NiceChunk Building Sync]", error);
       return { ok: false, reason, error, retryAt: retryAfterAt, buildings: currentBuildings };
     }
@@ -213,7 +213,7 @@ export function createPlayChainBuildingSync({
     const revision = Math.max(1, Math.trunc(Number(building.revision) || 0));
     const contentHash = String(building.contentHash || "").trim().toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(contentHash)) {
-      const reason = text("main.blueprint.invalidBuildingHash", "Invalid finalized building hash.");
+      const reason = text("main.land.invalidBuildingHash", "Invalid finalized building hash.");
       return { ...result, guardianIndexed: false, message: reason };
     }
     let authoritativeFoundation = null;
@@ -229,9 +229,9 @@ export function createPlayChainBuildingSync({
     }
     if (!authoritativeFoundation || Number(authoritativeFoundation.activeRevision) !== revision) {
       const message = text(
-        "main.blueprint.guardianIndexPending",
+        "main.land.guardianIndexPending",
         "The building is on chain, but Guardian indexing is still pending: {reason}.",
-        { reason: text("main.blueprint.foundationSyncPending", "BuildSite refresh pending") },
+        { reason: text("main.land.foundationSyncPending", "BuildSite refresh pending") },
       );
       void refreshFoundations({ force: true, quiet: true });
       return { ...result, building, guardianIndexed: false, message };
@@ -250,9 +250,9 @@ export function createPlayChainBuildingSync({
     });
     if (!announcement?.ok) {
       const reason = formatFailedRegions(announcement?.failed)
-        || text("main.blueprint.guardianUnavailable", "Guardian unavailable");
+        || text("main.land.guardianUnavailable", "Guardian unavailable");
       const message = text(
-        "main.blueprint.guardianIndexPending",
+        "main.land.guardianIndexPending",
         "The building is on chain, but Guardian indexing is still pending: {reason}.",
         { reason },
       );

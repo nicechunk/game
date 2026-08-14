@@ -5,9 +5,10 @@ import {
 
 export function resolveGuardianEquipmentFromChain(equipment = {}, snapshot = null) {
   const live = equipment && typeof equipment === "object" ? equipment : { rightHand: "empty" };
+  if (live.rightHand === "blueprint") return { rightHand: "empty" };
   if (!snapshot?.initialized || !Array.isArray(snapshot.slots)) return live;
   const equippedSlots = snapshot.slots.filter((slot) => slot?.equipped && slot.custodied && slot.backpackSlot);
-  if (live.rightHand === "empty" || live.rightHand === "blueprint") return live;
+  if (live.rightHand === "empty") return live;
   if (live.rightHand === "pickaxe" && !live.forged) return live;
   if (live.rightHand === "block") {
     const blockId = Math.trunc(Number(live.blockId) || 0);

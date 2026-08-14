@@ -5,9 +5,6 @@ export function createPlayItemName({
   translate,
 } = {}) {
   return (item = {}) => {
-    if (item.kind === "blueprint" || item.itemId === "blueprint_tool") {
-      return safeTranslation(translate, "main.blueprint.toolName") || safeVoxelLabel(voxelItemLabel, item) || "Blueprint";
-    }
     if (item.kind === "smelted_material" && item.materialId) {
       const translationKey = `resourceAtlas.material.item.${item.materialId}.name`;
       const translated = safeTranslation(translate, translationKey);

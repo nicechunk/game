@@ -93,31 +93,23 @@ test("unequipping a forged tool clears only its hotbar shortcut", () => {
   });
 });
 
-test("resource and blueprint shortcuts lock only their source backpack slots until unequipped", () => {
+test("resource shortcuts lock only their source backpack slots until unequipped", () => {
   withLocalStorage(() => {
     const state = createPlayGameState({ ownerAddress: "Owner111" });
     state.mergeChainBackpackSlots([
       chainResource({ id: "resource-a", chainIndex: 7 }),
       chainResource({ id: "resource-b", chainIndex: 8 }),
-      chainBlueprint({ id: "blueprint-a", chainIndex: 9, blueprintId: "901" }),
     ]);
 
     const resource = state.equipBackpackSlotToHotbar("resource-a", 1);
-    const blueprint = state.equipBackpackSlotToHotbar("blueprint-a", 2);
 
     assert.equal(resource.ok, true);
-    assert.equal(blueprint.ok, true);
     assert.equal(state.isBackpackSlotEquipped("resource-a"), true);
     assert.equal(state.isBackpackSlotEquipped("resource-b"), false);
-    assert.equal(state.isBackpackSlotEquipped("blueprint-a"), true);
     assert.equal(state.canUnequipHotbarSlot(resource.index), true);
-    assert.equal(state.canUnequipHotbarSlot(blueprint.index), true);
 
     assert.equal(state.unequipHotbarSlot(resource.index).ok, true);
     assert.equal(state.isBackpackSlotEquipped("resource-a"), false);
-    assert.equal(state.isBackpackSlotEquipped("blueprint-a"), true);
-    assert.equal(state.unequipHotbarSlot(blueprint.index).ok, true);
-    assert.equal(state.isBackpackSlotEquipped("blueprint-a"), false);
   });
 });
 
@@ -176,23 +168,6 @@ function chainResource(overrides = {}) {
     source: "chain",
     chainBackpack: "Backpack1111111111111111111111111111111",
     chainIndex: 7,
-    ...overrides,
-  };
-}
-
-function chainBlueprint(overrides = {}) {
-  return {
-    id: "blueprint-a",
-    kind: "blueprint",
-    itemId: "blueprint_tool",
-    blueprintId: "901",
-    count: 1,
-    source: "chain",
-    chainBackpack: "Backpack1111111111111111111111111111111",
-    chainIndex: 9,
-    chainItemId: "901",
-    itemPda: "BlueprintPda901",
-    blueprintOwner: "Owner111",
     ...overrides,
   };
 }

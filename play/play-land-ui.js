@@ -1,46 +1,48 @@
 import { cameraOrigin, cameraViewProjection } from "/chunk.js/renderer/camera.js";
 import { projectWorldToScreen } from "./play-name-chat-overlay.js";
 
-export function createPlayBlueprintUi({
+export function createPlayLandUi({
   elements,
   getController = () => null,
   getBuildingController = () => null,
+  isConstructionModeActive = () => false,
+  setConstructionModeActive = () => {},
   getCamera = () => null,
   canvas = null,
   onBuildingModeOpen = () => {},
+  onBuyContracts = () => {},
   translate = (_key, fallback) => fallback,
 } = {}) {
   let bound = false;
   let lastSignature = "";
 
-  return {
-    bind,
-    render,
-    update,
-  };
+  return { bind, render, update };
 
   function bind() {
     if (bound) return;
     bound = true;
-    elements?.blueprintWidth?.addEventListener("change", applyDimensions);
-    elements?.blueprintDepth?.addEventListener("change", applyDimensions);
-    elements?.blueprintWidth?.addEventListener("input", applyDimensions);
-    elements?.blueprintDepth?.addEventListener("input", applyDimensions);
-    for (const button of elements?.blueprintDimensionButtons ?? []) {
+    elements?.landModeButton?.addEventListener("click", () => {
+      setConstructionModeActive(!isConstructionModeActive());
+    });
+    elements?.landClose?.addEventListener("click", () => setConstructionModeActive(false));
+    elements?.landChunksX?.addEventListener("change", applyDimensions);
+    elements?.landChunksZ?.addEventListener("change", applyDimensions);
+    elements?.landChunksX?.addEventListener("input", applyDimensions);
+    elements?.landChunksZ?.addEventListener("input", applyDimensions);
+    for (const button of elements?.landDimensionButtons ?? []) {
       button.addEventListener("click", () => {
-        const field = button.dataset.blueprintDimension;
-        const delta = Number(button.dataset.blueprintDelta) || 0;
-        const controller = getController();
-        const dimensions = controller?.dimensions?.() ?? { width: 12, depth: 8 };
-        const width = field === "width" ? dimensions.width + delta : dimensions.width;
-        const depth = field === "depth" ? dimensions.depth + delta : dimensions.depth;
-        controller?.setDimensions?.(width, depth);
+        const field = button.dataset.landDimension;
+        const delta = Number(button.dataset.landDelta) || 0;
+        const dimensions = getController()?.dimensions?.() ?? { chunksX: 1, chunksZ: 1 };
+        const chunksX = field === "chunksX" ? dimensions.chunksX + delta : dimensions.chunksX;
+        const chunksZ = field === "chunksZ" ? dimensions.chunksZ + delta : dimensions.chunksZ;
+        getController()?.setDimensions?.(chunksX, chunksZ);
         render({ force: true });
       });
     }
-    for (const button of elements?.blueprintModeButtons ?? []) {
+    for (const button of elements?.landModeButtons ?? []) {
       button.addEventListener("click", () => {
-        const mode = button.dataset.blueprintMode === "building" ? "building" : "foundation";
+        const mode = button.dataset.landMode === "building" ? "building" : "foundation";
         getBuildingController()?.setMode?.(mode);
         if (mode === "building") {
           getController()?.cancel?.();
@@ -49,8 +51,9 @@ export function createPlayBlueprintUi({
         render({ force: true });
       });
     }
-    elements?.blueprintConfirm?.addEventListener("click", () => getController()?.confirm?.());
-    elements?.blueprintCancel?.addEventListener("click", () => getController()?.cancel?.());
+    elements?.landConfirm?.addEventListener("click", () => getController()?.confirm?.());
+    elements?.landCancel?.addEventListener("click", () => getController()?.cancel?.());
+    elements?.landBuyContracts?.addEventListener("click", onBuyContracts);
     elements?.buildingCode?.addEventListener("input", () => {
       getBuildingController()?.setCode?.(elements.buildingCode.value);
     });
@@ -64,8 +67,8 @@ export function createPlayBlueprintUi({
 
   function applyDimensions() {
     getController()?.setDimensions?.(
-      Number(elements?.blueprintWidth?.value),
-      Number(elements?.blueprintDepth?.value),
+      Number(elements?.landChunksX?.value),
+      Number(elements?.landChunksZ?.value),
     );
     render({ force: true });
   }
@@ -79,29 +82,27 @@ export function createPlayBlueprintUi({
   }
 
   function render({ force = false } = {}) {
+    const active = Boolean(isConstructionModeActive());
     const buildingController = getBuildingController();
-    buildingController?.activate?.();
+    buildingController?.activate?.(active);
     const foundation = getController()?.snapshot?.() ?? { active: false };
-    const building = buildingController?.snapshot?.() ?? { active: foundation.active, mode: "foundation", foundations: [] };
-    const active = Boolean(building.active || foundation.active);
+    const building = buildingController?.snapshot?.() ?? { active, mode: "foundation", foundations: [] };
     const mode = building.mode === "building" ? "building" : "foundation";
     const foundationBound = Boolean(foundation.foundationBound || building.foundationBound);
     const signature = JSON.stringify([
       active,
       mode,
-      foundation.blueprintId,
-      foundation.blueprintOrdinal,
       foundationBound,
-      foundation.width,
-      foundation.depth,
+      foundation.chunksX,
+      foundation.chunksZ,
+      foundation.requiredContracts,
+      foundation.availableLandContracts,
       foundation.anchored,
       foundation.submitting,
       foundation.preview?.valid,
       foundation.preview?.reason,
       foundation.preview?.message,
       foundation.step,
-      foundation.editing,
-      foundation.dimensionsDirty,
       building.selectedFoundationId,
       building.code?.length,
       building.parsed?.codeId,
@@ -117,19 +118,23 @@ export function createPlayBlueprintUi({
     if (!force && signature === lastSignature) return;
     lastSignature = signature;
 
-    if (elements?.blueprintGuide) {
-      elements.blueprintGuide.hidden = !active;
-      elements.blueprintGuide.classList.toggle("is-building", mode === "building");
-      elements.blueprintGuide.dataset.blueprintId = foundation.blueprintId || building.blueprintId || "";
+    if (elements?.landModeButton) {
+      elements.landModeButton.classList.toggle("active", active);
+      elements.landModeButton.setAttribute("aria-pressed", active ? "true" : "false");
     }
-    renderBlueprintIdentity(foundation.blueprint || building.blueprint);
+    if (elements?.landGuide) {
+      elements.landGuide.hidden = !active;
+      elements.landGuide.classList.toggle("is-building", mode === "building");
+    }
     if (elements?.foundationEditor) elements.foundationEditor.hidden = mode !== "foundation";
     if (elements?.buildingEditor) elements.buildingEditor.hidden = mode !== "building";
-    if (elements?.blueprintStepHint) elements.blueprintStepHint.hidden = !active;
-    if (elements?.foundationMeasurements) elements.foundationMeasurements.hidden = !active || mode !== "foundation" || !foundation.preview;
-    for (const button of elements?.blueprintModeButtons ?? []) {
-      const selected = button.dataset.blueprintMode === mode;
-      const buildingTab = button.dataset.blueprintMode === "building";
+    if (elements?.landStepHint) elements.landStepHint.hidden = !active;
+    if (elements?.foundationMeasurements) {
+      elements.foundationMeasurements.hidden = !active || mode !== "foundation" || !foundation.preview;
+    }
+    for (const button of elements?.landModeButtons ?? []) {
+      const selected = button.dataset.landMode === mode;
+      const buildingTab = button.dataset.landMode === "building";
       button.disabled = buildingTab && !foundationBound;
       button.classList.toggle("active", selected);
       button.setAttribute("aria-selected", selected ? "true" : "false");
@@ -142,38 +147,53 @@ export function createPlayBlueprintUi({
   }
 
   function renderFoundation(snapshot) {
-    if (elements?.blueprintWidth && document.activeElement !== elements.blueprintWidth) {
-      elements.blueprintWidth.value = String(snapshot.width);
+    if (elements?.landChunksX && document.activeElement !== elements.landChunksX) {
+      elements.landChunksX.value = String(snapshot.chunksX || 1);
     }
-    if (elements?.blueprintDepth && document.activeElement !== elements.blueprintDepth) {
-      elements.blueprintDepth.value = String(snapshot.depth);
+    if (elements?.landChunksZ && document.activeElement !== elements.landChunksZ) {
+      elements.landChunksZ.value = String(snapshot.chunksZ || 1);
     }
-    if (elements?.blueprintConfirm) {
-      elements.blueprintConfirm.disabled = snapshot.submitting
-        || !snapshot.preview?.valid
-        || (snapshot.editing && !snapshot.dimensionsDirty);
-      elements.blueprintConfirm.classList.toggle("is-loading", snapshot.submitting);
-      const label = elements.blueprintConfirm.querySelector("span");
+    const required = Math.max(1, Math.trunc(Number(snapshot.requiredContracts) || 1));
+    const available = normalizedBalance(snapshot.availableLandContracts);
+    const insufficient = available !== null && available < required;
+    if (elements?.landFootprint) elements.landFootprint.textContent = `${snapshot.width || 16}×${snapshot.depth || 16}`;
+    if (elements?.landRequiredContracts) elements.landRequiredContracts.textContent = String(required);
+    if (elements?.landAvailableContracts) {
+      elements.landAvailableContracts.textContent = available === null
+        ? text("main.land.balanceLoading", "Loading...")
+        : String(available);
+      elements.landAvailableContracts.dataset.state = insufficient ? "insufficient" : "ready";
+    }
+    if (elements?.landConfirm) {
+      elements.landConfirm.disabled = snapshot.submitting || !snapshot.preview?.valid || insufficient;
+      elements.landConfirm.classList.toggle("is-loading", snapshot.submitting);
+      elements.landConfirm.setAttribute("aria-busy", snapshot.submitting ? "true" : "false");
+      const label = elements.landConfirm.querySelector("span");
       if (label) label.textContent = snapshot.submitting
-        ? snapshot.editing
-          ? text("main.blueprint.resizing", "Updating...")
-          : text("main.blueprint.submitting", "Securing...")
-        : snapshot.editing
-          ? text("main.blueprint.saveSize", "Save Foundation Size")
-          : text("main.blueprint.confirm", "Create Foundation");
+        ? text("main.land.submitting", "Registering...")
+        : text("main.land.confirm", "Register Land");
     }
-    if (elements?.blueprintWidth) elements.blueprintWidth.disabled = snapshot.submitting;
-    if (elements?.blueprintDepth) elements.blueprintDepth.disabled = snapshot.submitting;
-    for (const button of elements?.blueprintDimensionButtons ?? []) button.disabled = snapshot.submitting;
-    if (elements?.blueprintStatus) {
-      elements.blueprintStatus.dataset.state = snapshot.preview?.valid ? "valid" : snapshot.preview ? "invalid" : "idle";
-      elements.blueprintStatus.textContent = snapshot.lastError
-        || snapshot.preview?.message
-        || text("main.blueprint.chooseGround", "Click a flat area to place the blueprint.");
+    if (elements?.landChunksX) elements.landChunksX.disabled = snapshot.submitting;
+    if (elements?.landChunksZ) elements.landChunksZ.disabled = snapshot.submitting;
+    for (const button of elements?.landDimensionButtons ?? []) button.disabled = snapshot.submitting;
+    if (elements?.landBuyContracts) elements.landBuyContracts.disabled = snapshot.submitting;
+    if (elements?.landStatus) {
+      elements.landStatus.dataset.state = insufficient
+        ? "invalid"
+        : snapshot.preview?.valid
+          ? "valid"
+          : snapshot.preview
+            ? "invalid"
+            : "idle";
+      elements.landStatus.textContent = insufficient
+        ? text("main.land.insufficientContracts", "You need {required} contracts but own {available}.", { required, available })
+        : snapshot.lastError
+          || snapshot.preview?.message
+          || text("main.land.chooseGround", "Select the top of a flat chunk with F.");
     }
-    const activeStep = Math.max(1, Math.min(5, Number(snapshot.step) || 1));
-    for (const item of elements?.blueprintSteps ?? []) {
-      const step = Number(item.dataset.blueprintStep) || 1;
+    const activeStep = Math.max(1, Math.min(4, Number(snapshot.step) || 1));
+    for (const item of elements?.landSteps ?? []) {
+      const step = Number(item.dataset.landStep) || 1;
       item.classList.toggle("active", step === activeStep);
       item.classList.toggle("done", step < activeStep);
     }
@@ -196,9 +216,9 @@ export function createPlayBlueprintUi({
       elements.buildingMetrics.hidden = !parsed;
       elements.buildingMetrics.replaceChildren();
       if (parsed) {
-        appendMetric(elements.buildingMetrics, text("main.blueprint.sizeMetric", "SIZE"), `${footprint?.width ?? parsed.size.x}×${parsed.size.y}×${footprint?.depth ?? parsed.size.z}`);
-        appendMetric(elements.buildingMetrics, text("main.blueprint.voxelsMetric", "VOXELS"), formatInteger(parsed.voxelCount));
-        appendMetric(elements.buildingMetrics, text("main.blueprint.bytesMetric", "BYTES"), formatInteger(parsed.payloadBytes));
+        appendMetric(elements.buildingMetrics, text("main.land.sizeMetric", "SIZE"), `${footprint?.width ?? parsed.size.x}×${parsed.size.y}×${footprint?.depth ?? parsed.size.z}`);
+        appendMetric(elements.buildingMetrics, text("main.land.voxelsMetric", "VOXELS"), formatInteger(parsed.voxelCount));
+        appendMetric(elements.buildingMetrics, text("main.land.bytesMetric", "BYTES"), formatInteger(parsed.payloadBytes));
       }
     }
     if (elements?.buildingStatus) {
@@ -209,12 +229,12 @@ export function createPlayBlueprintUi({
         : snapshot.lastError ? "invalid" : "idle";
       elements.buildingStatus.textContent = snapshot.lastError
         || (snapshot.meshing
-          ? text("main.blueprint.processingBuilding", "Processing the NCM3 building off the render thread...")
+          ? text("main.land.processingBuilding", "Processing the NCM3 building off the render thread...")
           : snapshot.preview
-          ? text("main.blueprint.buildingReady", "NCM3 building fits this foundation at exact 1:1 scale.")
-          : hasFoundation
-            ? text("main.blueprint.enterCode", "Paste an NCM3 building code first.")
-            : text("main.blueprint.noFoundation", "Create a foundation before importing a building."));
+            ? text("main.land.buildingReady", "NCM3 building fits this land at exact 1:1 scale.")
+            : hasFoundation
+              ? text("main.land.enterCode", "Paste an NCM3 building code first.")
+              : text("main.land.noFoundation", "Register land before importing a building."));
     }
     if (elements?.buildingPreview) elements.buildingPreview.disabled = !snapshot.selectedFoundation || !snapshot.code || snapshot.submitting || snapshot.meshing;
     if (elements?.buildingOffsetX) elements.buildingOffsetX.disabled = snapshot.submitting || snapshot.meshing;
@@ -226,45 +246,28 @@ export function createPlayBlueprintUi({
         || snapshot.submitting
         || snapshot.meshing;
       elements.buildingConfirm.classList.toggle("is-loading", snapshot.submitting || snapshot.meshing);
+      elements.buildingConfirm.setAttribute("aria-busy", snapshot.submitting || snapshot.meshing ? "true" : "false");
       const label = elements.buildingConfirm.querySelector("span");
       if (label) label.textContent = snapshot.meshing
-        ? text("main.blueprint.processing", "Processing...")
+        ? text("main.land.processing", "Processing...")
         : snapshot.submitting
-          ? text("main.blueprint.submittingBuilding", "Creating...")
-          : text("main.blueprint.createBuilding", "Create Building");
+          ? text("main.land.submittingBuilding", "Creating...")
+          : text("main.land.createBuilding", "Create Building");
     }
-    for (const item of elements?.blueprintSteps ?? []) {
-      item.classList.toggle("active", Number(item.dataset.blueprintStep) === 5);
-      item.classList.toggle("done", Number(item.dataset.blueprintStep) < 5);
+    for (const item of elements?.landSteps ?? []) {
+      item.classList.toggle("active", Number(item.dataset.landStep) === 4);
+      item.classList.toggle("done", Number(item.dataset.landStep) < 4);
     }
   }
 
   function renderStepHint(mode, foundation, building) {
-    const step = mode === "building" ? 5 : Math.max(1, Math.min(5, Number(foundation.step) || 1));
-    if (elements?.blueprintStepNumber) elements.blueprintStepNumber.textContent = String(step);
-    if (elements?.blueprintStepText) elements.blueprintStepText.textContent = mode === "building"
+    const step = mode === "building" ? 4 : Math.max(1, Math.min(4, Number(foundation.step) || 1));
+    if (elements?.landStepNumber) elements.landStepNumber.textContent = String(step);
+    if (elements?.landStepText) elements.landStepText.textContent = mode === "building"
       ? building.selectedFoundation
-        ? text("main.blueprint.stepBuildCodeDetail", "Paste NCM3 code for this blueprint, then preview the exact 1:1 building.")
-        : text("main.blueprint.noFoundation", "Create a foundation before importing a building.")
-      : foundation.editing
-        ? text("main.blueprint.stepEditDetail", "Adjust the selected foundation size, then save its protected area.")
-        : stepLabel(step, foundation);
-  }
-
-  function renderBlueprintIdentity(blueprint) {
-    if (!elements?.blueprintIdentity) return;
-    if (!blueprint?.blueprintId) {
-      elements.blueprintIdentity.textContent = "";
-      return;
-    }
-    const id = String(blueprint.blueprintId);
-    const shortId = id.length > 12 ? `${id.slice(0, 6)}...${id.slice(-4)}` : id;
-    elements.blueprintIdentity.textContent = text(
-      "main.blueprint.instanceLabel",
-      "BLUEPRINT #{number} · ID {id}",
-      { number: blueprint.blueprintOrdinal || "-", id: shortId },
-    );
-    elements.blueprintIdentity.title = id;
+        ? text("main.land.stepBuildCodeDetail", "Paste NCM3 code, preview it at 1:1 scale, then create the building.")
+        : text("main.land.noFoundation", "Register land before importing a building.")
+      : stepLabel(step, foundation);
   }
 
   function update() {
@@ -319,11 +322,10 @@ export function createPlayBlueprintUi({
   }
 
   function stepLabel(step, snapshot) {
-    if (step === 1) return text("main.blueprint.stepEquipDetail", "Select the blueprint tool from the toolbar.");
-    if (step === 2) return text("main.blueprint.stepSizeDetail", "Set the foundation size, then click flat ground.");
-    if (step === 3) return snapshot.preview?.message || text("main.blueprint.stepPlaceDetail", "Place the hologram on a clear, level area.");
-    if (step === 4) return text("main.blueprint.stepConfirmDetail", "Review the outline and create the protected foundation.");
-    return text("main.blueprint.stepBuildDetail", "The foundation is ready for construction.");
+    if (step === 1) return text("main.land.stepContractsDetail", "Buy one blank land contract for every chunk you want to register.");
+    if (step === 2) return text("main.land.stepSizeDetail", "Set the chunk footprint, then select flat ground with F.");
+    if (step === 3) return snapshot.preview?.message || text("main.land.stepPlaceDetail", "Place the chunk-aligned hologram on clear, level ground.");
+    return text("main.land.stepConfirmDetail", "Review the outline and register the land on chain.");
   }
 
   function appendMetric(root, label, value) {
@@ -338,6 +340,11 @@ export function createPlayBlueprintUi({
 
   function formatInteger(value) {
     return Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString();
+  }
+
+  function normalizedBalance(value) {
+    const balance = Number(value);
+    return Number.isSafeInteger(balance) && balance >= 0 ? balance : null;
   }
 
   function text(key, fallback, params = {}) {

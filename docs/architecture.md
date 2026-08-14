@@ -50,9 +50,10 @@ Guardian does not sign for a player and does not replace program validation.
 ### 3. Solana PDA state
 
 NICECHUNK programs validate signed actions and write persistent records such as
-players, inventories, skills, terrain deltas, foundations, buildings, and
-market listings. The client reads these accounts through RPC and treats a
-confirmed account update as the persistent result of an action.
+players, inventories, skills, terrain deltas, land contracts, chunk-aligned
+parcels, buildings, and market listings. The client reads these accounts
+through RPC and treats a confirmed account update as the persistent result of
+an action.
 
 Program IDs and rule-table addresses are runtime configuration. The current
 public values live in `public/mainnet.json`, despite the historical filename;
@@ -131,6 +132,26 @@ chain occupancy from the number of rendered cards.
 Resource physics uses canonical quantity, volume, density, and mass adapters.
 Smelting and forging must derive output physics from accepted recipes and skill
 effects rather than copying input presentation values.
+
+## Land and Building Model
+
+Blank land contracts are balances in the owner's market membership PDA, not
+backpack items or player-created listings. The treasury sells each contract for
+exactly `1 NCK`, and one contract covers one full `16 x 16` chunk. The selected
+parcel therefore requires `chunksX * chunksZ` contracts. The protocol and
+client both cap one parcel at `4,096` contracts so an accidental dimension
+input cannot schedule an unbounded validation or transaction sequence.
+
+Land registration is intentionally recoverable across multiple transactions.
+The first transaction reserves the full contract count in `build-site-v3`.
+Later transactions write deterministic `foundation-chunk-v3` indexes. The
+final index batch consumes the reservation and activates the parcel atomically.
+If any batch fails, the client reconciles confirmed state, removes prior indexes
+in reverse order, and asks the Building program to restore the reservation.
+
+Only active v3 parcels can receive `building-v3` NCM3 uploads. Retired Blueprint
+inventory tools, v2 foundation indexes, and v2 building manifests are excluded
+from discovery and cannot authorize the new construction flow.
 
 ## Repository Boundaries
 

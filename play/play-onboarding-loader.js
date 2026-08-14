@@ -102,7 +102,7 @@
       return isShown("#profilePanel") && selected('[data-profile-tab="equipment"]');
     }
     if (feature === "session") return isShown("#sessionFundingPanel");
-    if (feature === "foundation") return isShown("#blueprintGuide") && isShown("#foundationEditor");
+    if (feature === "foundation") return isShown("#landGuide") && isShown("#foundationEditor");
     if (feature === "smelting") return isShown("#smeltingPanel") && isShown("#backpackPanel");
     if (feature === "market") return isShown("#marketPanel") && selected('[data-market-tab="sell"]');
     if (feature === "forging") {

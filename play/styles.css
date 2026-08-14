@@ -1394,8 +1394,69 @@ body.first-person-camera::after {
   overflow: hidden;
 }
 
-/* Blueprint construction mode mirrors the in-world hologram instead of using a modal. */
-.blueprint-guide {
+/* Land construction mirrors the selected chunks in-world instead of using a modal. */
+.land-mode-hud {
+  position: fixed;
+  right: max(24px, env(safe-area-inset-right));
+  top: max(292px, calc(env(safe-area-inset-top) + 292px));
+  z-index: 27;
+  display: grid;
+  grid-template-columns: 32px auto 22px;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 5px 9px 5px 7px;
+  border: 2px solid rgba(255, 255, 255, 0.90);
+  border-radius: 15px;
+  color: #f7fcff;
+  background: linear-gradient(145deg, rgba(20, 146, 232, 0.96), rgba(7, 96, 190, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 24px rgba(4, 62, 127, 0.24);
+  cursor: pointer;
+  font: 900 0.72rem/1 "Trebuchet MS", "Avenir Next", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.land-mode-hud:hover,
+.land-mode-hud:focus-visible,
+.land-mode-hud.active {
+  background: linear-gradient(145deg, rgba(51, 191, 248, 0.98), rgba(8, 116, 218, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52), 0 0 0 3px rgba(106, 220, 255, 0.34), 0 12px 28px rgba(4, 62, 127, 0.30);
+}
+
+.land-mode-hud-icon {
+  position: relative;
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #97eb65, #3a9f43);
+  box-shadow: inset 0 -6px 0 rgba(75, 59, 30, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.42);
+}
+
+.land-mode-hud-icon i {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.76);
+  transform: rotate(-28deg);
+}
+
+.land-mode-hud-icon i:first-child { top: 9px; }
+.land-mode-hud-icon i:last-child { top: 16px; }
+
+.land-mode-hud kbd {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 5px;
+  background: rgba(0, 38, 88, 0.28);
+  font: 900 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.land-guide {
   position: fixed;
   left: max(20px, env(safe-area-inset-left));
   top: max(124px, calc(env(safe-area-inset-top) + 124px));
@@ -1403,7 +1464,8 @@ body.first-person-camera::after {
   width: 238px;
   box-sizing: border-box;
   padding: 12px;
-  overflow: hidden;
+  max-height: calc(100dvh - 148px);
+  overflow: hidden auto;
   border: 1px solid rgba(153, 226, 255, 0.32);
   border-radius: 10px;
   color: #eefaff;
@@ -1414,7 +1476,7 @@ body.first-person-camera::after {
   backdrop-filter: blur(13px) saturate(1.2);
 }
 
-.blueprint-guide::before {
+.land-guide::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1422,18 +1484,18 @@ body.first-person-camera::after {
   content: "";
 }
 
-.blueprint-guide.is-building {
+.land-guide.is-building {
   width: 286px;
 }
 
-.blueprint-guide[hidden],
-.blueprint-editor[hidden],
-.blueprint-step-hint[hidden],
+.land-guide[hidden],
+.land-editor[hidden],
+.land-step-hint[hidden],
 .foundation-measurements[hidden] {
   display: none;
 }
 
-.blueprint-guide header {
+.land-guide header {
   position: relative;
   display: flex;
   align-items: center;
@@ -1445,13 +1507,26 @@ body.first-person-camera::after {
   letter-spacing: 0.12em;
 }
 
-.blueprint-guide-title {
+.land-guide-close {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid rgba(153, 226, 255, 0.34);
+  border-radius: 8px;
+  color: #eafaff;
+  background: rgba(12, 74, 111, 0.46);
+  cursor: pointer;
+  font: 900 1rem/1 "Trebuchet MS", sans-serif;
+}
+
+.land-guide-title {
   display: grid;
   min-width: 0;
   gap: 3px;
 }
 
-.blueprint-guide-title small {
+.land-guide-title small {
   overflow: hidden;
   color: rgba(151, 225, 249, 0.64);
   text-overflow: ellipsis;
@@ -1460,7 +1535,7 @@ body.first-person-camera::after {
   letter-spacing: 0.035em;
 }
 
-.blueprint-guide-icon {
+.land-guide-icon {
   position: relative;
   display: grid;
   width: 24px;
@@ -1473,7 +1548,7 @@ body.first-person-camera::after {
   transform: rotate(-5deg);
 }
 
-.blueprint-guide-icon i {
+.land-guide-icon i {
   display: block;
   width: 15px;
   height: 1px;
@@ -1481,7 +1556,7 @@ body.first-person-camera::after {
   box-shadow: 0 0 5px rgba(138, 232, 255, 0.8);
 }
 
-.blueprint-mode-switch {
+.land-mode-switch {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1493,7 +1568,7 @@ body.first-person-camera::after {
   box-shadow: inset 0 0 0 1px rgba(130, 220, 255, 0.12);
 }
 
-.blueprint-mode-switch button {
+.land-mode-switch button {
   min-width: 0;
   height: 27px;
   border: 0;
@@ -1505,22 +1580,22 @@ body.first-person-camera::after {
   letter-spacing: 0.06em;
 }
 
-.blueprint-mode-switch button.active {
+.land-mode-switch button.active {
   color: #eafeff;
   background: linear-gradient(135deg, rgba(74, 199, 248, 0.38), rgba(35, 119, 176, 0.25));
   box-shadow: inset 0 1px 0 rgba(221, 250, 255, 0.36), 0 4px 12px rgba(0, 18, 33, 0.28);
 }
 
-.blueprint-mode-switch button:disabled:not(.active) {
+.land-mode-switch button:disabled:not(.active) {
   cursor: not-allowed;
   opacity: 0.32;
 }
 
-.blueprint-editor {
+.land-editor {
   position: relative;
 }
 
-.blueprint-guide ol {
+.land-guide ol {
   position: relative;
   display: grid;
   gap: 5px;
@@ -1529,7 +1604,7 @@ body.first-person-camera::after {
   list-style: none;
 }
 
-.blueprint-guide li {
+.land-guide li {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
@@ -1541,7 +1616,7 @@ body.first-person-camera::after {
   font: 750 0.72rem/1.15 "Trebuchet MS", "Avenir Next", sans-serif;
 }
 
-.blueprint-guide li b {
+.land-guide li b {
   display: grid;
   width: 18px;
   height: 18px;
@@ -1552,35 +1627,35 @@ body.first-person-camera::after {
   font-size: 0.63rem;
 }
 
-.blueprint-guide li.done {
+.land-guide li.done {
   color: rgba(202, 244, 255, 0.88);
 }
 
-.blueprint-guide li.done b {
+.land-guide li.done b {
   border-color: rgba(86, 218, 255, 0.62);
   color: transparent;
   background: rgba(26, 162, 228, 0.32);
 }
 
-.blueprint-guide li.done b::after {
+.land-guide li.done b::after {
   color: #d9fbff;
   content: "✓";
 }
 
-.blueprint-guide li.active {
+.land-guide li.active {
   color: #ffffff;
   background: linear-gradient(90deg, rgba(17, 147, 232, 0.31), rgba(25, 134, 196, 0.08));
   box-shadow: inset 2px 0 0 #83e6ff;
 }
 
-.blueprint-guide li.active b {
+.land-guide li.active b {
   border-color: #9deeff;
   color: #ffffff;
   background: #118fd6;
   box-shadow: 0 0 11px rgba(65, 202, 255, 0.58);
 }
 
-.blueprint-dimensions {
+.land-dimensions {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1591,7 +1666,7 @@ body.first-person-camera::after {
   border-top: 1px solid rgba(132, 218, 255, 0.19);
 }
 
-.blueprint-dimensions label {
+.land-dimensions label {
   display: grid;
   gap: 5px;
   color: rgba(190, 232, 247, 0.72);
@@ -1599,7 +1674,7 @@ body.first-person-camera::after {
   letter-spacing: 0.08em;
 }
 
-.blueprint-stepper {
+.land-stepper {
   display: grid;
   grid-template-columns: 25px minmax(0, 1fr) 25px;
   height: 29px;
@@ -1609,8 +1684,8 @@ body.first-person-camera::after {
   background: rgba(3, 21, 34, 0.44);
 }
 
-.blueprint-stepper button,
-.blueprint-stepper input {
+.land-stepper button,
+.land-stepper input {
   min-width: 0;
   padding: 0;
   border: 0;
@@ -1621,28 +1696,89 @@ body.first-person-camera::after {
   font: 900 0.76rem/1 "Trebuchet MS", sans-serif;
 }
 
-.blueprint-stepper button {
+.land-stepper button {
   cursor: pointer;
   background: rgba(61, 170, 228, 0.12);
 }
 
-.blueprint-stepper input {
+.land-stepper input {
   appearance: textfield;
   border-right: 1px solid rgba(129, 216, 255, 0.18);
   border-left: 1px solid rgba(129, 216, 255, 0.18);
 }
 
-.blueprint-stepper input::-webkit-inner-spin-button {
+.land-stepper input::-webkit-inner-spin-button {
   display: none;
 }
 
-.blueprint-dimension-cross {
+.land-dimension-cross {
   padding-bottom: 7px;
   color: rgba(186, 232, 248, 0.54);
   font-size: 0.72rem;
 }
 
-.blueprint-status {
+.land-contract-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.land-contract-summary div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding: 6px 4px;
+  border: 1px solid rgba(129, 216, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(15, 72, 103, 0.28);
+  text-align: center;
+}
+
+.land-contract-summary dt {
+  color: rgba(171, 220, 238, 0.68);
+  font: 850 0.44rem/1 "Trebuchet MS", sans-serif;
+  letter-spacing: 0.06em;
+}
+
+.land-contract-summary dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #effcff;
+  text-overflow: clip;
+  font: 900 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.land-contract-summary dd[data-state="insufficient"] {
+  color: #ffb7ad;
+}
+
+.land-buy-contracts {
+  position: relative;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 6px;
+  border: 1px solid rgba(123, 229, 255, 0.52);
+  border-radius: 7px;
+  color: #e9fbff;
+  background: linear-gradient(145deg, rgba(17, 147, 211, 0.62), rgba(19, 91, 146, 0.52));
+  cursor: pointer;
+  font: 900 0.6rem/1 "Trebuchet MS", sans-serif;
+}
+
+.land-guide button:focus-visible,
+.land-guide input:focus-visible,
+.land-guide textarea:focus-visible,
+.land-mode-hud:focus-visible {
+  outline: 2px solid #d8f9ff;
+  outline-offset: 2px;
+}
+
+.land-status {
   position: relative;
   min-height: 29px;
   margin: 9px 0 0;
@@ -1651,15 +1787,15 @@ body.first-person-camera::after {
   line-height: 1.35;
 }
 
-.blueprint-status[data-state="valid"] {
+.land-status[data-state="valid"] {
   color: #aef5ff;
 }
 
-.blueprint-status[data-state="invalid"] {
+.land-status[data-state="invalid"] {
   color: #ffb7ad;
 }
 
-.blueprint-actions {
+.land-actions {
   position: relative;
   display: grid;
   grid-template-columns: 0.72fr 1.28fr;
@@ -1667,7 +1803,7 @@ body.first-person-camera::after {
   margin-top: 8px;
 }
 
-.blueprint-actions button {
+.land-actions button {
   min-height: 34px;
   border: 1px solid rgba(144, 221, 255, 0.28);
   border-radius: 7px;
@@ -1677,7 +1813,7 @@ body.first-person-camera::after {
   font: 900 0.65rem/1 "Trebuchet MS", sans-serif;
 }
 
-#blueprintConfirm {
+#landConfirm {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1688,7 +1824,7 @@ body.first-person-camera::after {
   box-shadow: 0 0 16px rgba(65, 202, 255, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
-#blueprintConfirm i {
+#landConfirm i {
   width: 10px;
   height: 10px;
   border: 2px solid currentColor;
@@ -1696,25 +1832,25 @@ body.first-person-camera::after {
   transform: rotate(45deg);
 }
 
-#blueprintConfirm:disabled {
+#landConfirm:disabled {
   opacity: 0.38;
   cursor: default;
   filter: grayscale(0.45);
 }
 
-#blueprintConfirm.is-loading i {
+#landConfirm.is-loading i {
   border-right-color: transparent;
   border-radius: 50%;
-  animation: blueprint-button-spin 0.8s linear infinite;
+  animation: land-button-spin 0.8s linear infinite;
 }
 
-.blueprint-building-editor {
+.land-building-editor {
   display: grid;
   gap: 8px;
   padding-top: 9px;
 }
 
-.blueprint-building-field {
+.land-building-field {
   display: grid;
   gap: 5px;
   color: rgba(190, 232, 247, 0.76);
@@ -1722,21 +1858,21 @@ body.first-person-camera::after {
   letter-spacing: 0.07em;
 }
 
-.blueprint-building-field > span {
+.land-building-field > span {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
 }
 
-.blueprint-building-field small {
+.land-building-field small {
   color: rgba(134, 219, 248, 0.57);
   font-size: 0.5rem;
   letter-spacing: 0.05em;
 }
 
-.blueprint-building-field select,
-.blueprint-building-field textarea {
+.land-building-field select,
+.land-building-field textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid rgba(129, 216, 255, 0.27);
@@ -1747,13 +1883,13 @@ body.first-person-camera::after {
   box-shadow: inset 0 1px 8px rgba(0, 7, 14, 0.22);
 }
 
-.blueprint-building-field select {
+.land-building-field select {
   height: 30px;
   padding: 0 8px;
   font: 800 0.64rem/1 "Trebuchet MS", sans-serif;
 }
 
-.blueprint-building-field textarea {
+.land-building-field textarea {
   min-height: 82px;
   max-height: 150px;
   padding: 8px;
@@ -1763,20 +1899,20 @@ body.first-person-camera::after {
   user-select: text;
 }
 
-.blueprint-building-field select:focus,
-.blueprint-building-field textarea:focus {
+.land-building-field select:focus,
+.land-building-field textarea:focus {
   border-color: rgba(138, 232, 255, 0.68);
   box-shadow: 0 0 0 2px rgba(46, 183, 239, 0.12), inset 0 1px 8px rgba(0, 7, 14, 0.22);
 }
 
-.blueprint-building-transform {
+.land-building-transform {
   display: grid;
   grid-template-columns: minmax(68px, auto) 34px 1fr 34px;
   align-items: center;
   gap: 6px;
 }
 
-.blueprint-building-transform button {
+.land-building-transform button {
   height: 30px;
   border: 1px solid rgba(129, 216, 255, 0.24);
   border-radius: 6px;
@@ -1793,30 +1929,30 @@ body.first-person-camera::after {
   white-space: nowrap;
 }
 
-.blueprint-building-transform span {
+.land-building-transform span {
   display: grid;
   gap: 2px;
   place-items: center;
   color: #effcff;
 }
 
-.blueprint-building-transform small {
+.land-building-transform small {
   color: rgba(178, 222, 238, 0.58);
   font: 850 0.48rem/1 "Trebuchet MS", sans-serif;
   letter-spacing: 0.08em;
 }
 
-.blueprint-building-transform b {
+.land-building-transform b {
   font: 900 0.7rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.blueprint-building-position {
+.land-building-position {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 
-.blueprint-building-position label {
+.land-building-position label {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -1831,7 +1967,7 @@ body.first-person-camera::after {
   letter-spacing: 0.05em;
 }
 
-.blueprint-building-position input {
+.land-building-position input {
   width: 100%;
   min-width: 0;
   height: 24px;
@@ -1845,22 +1981,22 @@ body.first-person-camera::after {
   font: 850 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.blueprint-building-position input:focus {
+.land-building-position input:focus {
   border-color: rgba(138, 232, 255, 0.68);
   box-shadow: 0 0 0 2px rgba(46, 183, 239, 0.12);
 }
 
-.blueprint-building-position input:disabled {
+.land-building-position input:disabled {
   opacity: 0.46;
 }
 
-.blueprint-building-metrics {
+.land-building-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
 }
 
-.blueprint-building-metrics span {
+.land-building-metrics span {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1872,7 +2008,7 @@ body.first-person-camera::after {
   font: 800 0.58rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.blueprint-building-metrics small {
+.land-building-metrics small {
   overflow: hidden;
   color: rgba(171, 220, 238, 0.58);
   text-overflow: ellipsis;
@@ -1881,7 +2017,7 @@ body.first-person-camera::after {
   letter-spacing: 0.05em;
 }
 
-.blueprint-building-actions {
+.land-building-actions {
   grid-template-columns: 1fr;
 }
 
@@ -1914,10 +2050,10 @@ body.first-person-camera::after {
 #buildingConfirm.is-loading i {
   border-right-color: transparent;
   border-radius: 50%;
-  animation: blueprint-button-spin 0.8s linear infinite;
+  animation: land-button-spin 0.8s linear infinite;
 }
 
-.blueprint-step-hint {
+.land-step-hint {
   position: fixed;
   left: 50%;
   top: max(24px, calc(env(safe-area-inset-top) + 24px));
@@ -1938,7 +2074,7 @@ body.first-person-camera::after {
   transform: translateX(-50%);
 }
 
-.blueprint-step-hint > b {
+.land-step-hint > b {
   display: grid;
   width: 25px;
   height: 25px;
@@ -1952,18 +2088,18 @@ body.first-person-camera::after {
   font-size: 0.72rem;
 }
 
-.blueprint-step-hint span {
+.land-step-hint span {
   display: grid;
   gap: 2px;
 }
 
-.blueprint-step-hint strong {
+.land-step-hint strong {
   color: #8fe7ff;
   font-size: 0.59rem;
   letter-spacing: 0.12em;
 }
 
-.blueprint-step-hint small {
+.land-step-hint small {
   overflow: hidden;
   color: rgba(238, 250, 255, 0.92);
   text-overflow: ellipsis;
@@ -1998,43 +2134,57 @@ body.first-person-camera::after {
   will-change: transform;
 }
 
-@keyframes blueprint-button-spin {
+@keyframes land-button-spin {
   to { transform: rotate(405deg); }
 }
 
 @media (max-width: 900px), (pointer: coarse) and (orientation: portrait) {
-  .blueprint-guide {
+  .land-mode-hud {
+    right: max(8px, env(safe-area-inset-right));
+    top: max(204px, calc(env(safe-area-inset-top) + 204px));
+    grid-template-columns: 30px auto;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 5px 8px 5px 6px;
+  }
+
+  .land-mode-hud kbd {
+    display: none;
+  }
+
+  .land-guide {
     left: max(8px, env(safe-area-inset-left));
     top: max(82px, calc(env(safe-area-inset-top) + 82px));
-    width: min(188px, calc(100vw - 16px));
+    width: min(226px, calc(100vw - 16px));
+    max-height: calc(100dvh - 96px);
     padding: 8px;
     border-radius: 8px;
   }
 
-  .blueprint-guide.is-building {
+  .land-guide.is-building {
     width: min(224px, calc(100vw - 16px));
   }
 
-  .blueprint-guide header {
+  .land-guide header {
     padding-bottom: 7px;
     font-size: 0.58rem;
   }
 
-  .blueprint-guide ol {
+  .land-guide ol {
     gap: 1px;
     margin-top: 6px;
   }
 
-  .blueprint-mode-switch {
+  .land-mode-switch {
     margin-top: 6px;
   }
 
-  .blueprint-mode-switch button {
+  .land-mode-switch button {
     height: 24px;
     font-size: 0.49rem;
   }
 
-  .blueprint-guide li {
+  .land-guide li {
     grid-template-columns: 18px minmax(0, 1fr);
     gap: 5px;
     min-height: 22px;
@@ -2042,76 +2192,81 @@ body.first-person-camera::after {
     font-size: 0.59rem;
   }
 
-  .blueprint-guide li b {
+  .land-guide li b {
     width: 15px;
     height: 15px;
     font-size: 0.52rem;
   }
 
-  .blueprint-dimensions {
+  .land-dimensions {
     margin-top: 6px;
     padding-top: 7px;
   }
 
-  .blueprint-stepper {
-    grid-template-columns: 20px minmax(0, 1fr) 20px;
-    height: 25px;
+  .land-stepper {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    height: 40px;
   }
 
-  .blueprint-status {
+  .land-guide-close,
+  .land-buy-contracts,
+  .land-actions button,
+  .land-mode-switch button,
+  .land-building-transform button {
+    min-height: 40px;
+  }
+
+  .land-status {
     min-height: 24px;
     margin-top: 5px;
     font-size: 0.56rem;
   }
 
-  .blueprint-actions {
+  .land-actions {
     margin-top: 4px;
   }
 
-  .blueprint-actions button {
-    min-height: 29px;
-    font-size: 0.56rem;
-  }
+  .land-actions button { font-size: 0.56rem; }
 
-  .blueprint-building-editor {
+  .land-building-editor {
     gap: 6px;
     padding-top: 7px;
   }
 
-  .blueprint-building-field textarea {
+  .land-building-field textarea {
     min-height: 62px;
     max-height: 96px;
   }
 
-  .blueprint-building-metrics span {
+  .land-building-metrics span {
     padding: 4px 2px;
     font-size: 0.5rem;
   }
 
-  .blueprint-step-hint {
+  .land-step-hint {
     top: max(8px, calc(env(safe-area-inset-top) + 8px));
     min-width: 0;
     max-width: calc(100vw - 236px);
     padding: 6px 9px 6px 6px;
   }
 
-  .blueprint-step-hint > b {
+  .land-step-hint > b {
     width: 20px;
     height: 20px;
     font-size: 0.6rem;
   }
 
-  .blueprint-step-hint strong {
+  .land-step-hint strong {
     display: none;
   }
 
-  .blueprint-step-hint small {
+  .land-step-hint small {
     font-size: 0.6rem;
   }
 }
 
 @media (max-width: 560px) {
-  .blueprint-step-hint {
+  .land-step-hint {
     top: max(146px, calc(env(safe-area-inset-top) + 146px));
     left: max(204px, 54vw);
     right: max(8px, env(safe-area-inset-right));
@@ -8109,6 +8264,174 @@ body {
     right: auto;
     top: 50%;
     transform: translate(-50%, -50%);
+  }
+}
+
+/* Treasury contracts are protocol products, not player Listing PDA rows. */
+.market-listing-card.treasury-contract {
+  border-color: rgba(96, 224, 183, 0.62);
+  background:
+    linear-gradient(90deg, rgba(28, 146, 126, 0.24), transparent 46%),
+    rgba(5, 47, 75, 0.94);
+  box-shadow: inset 3px 0 0 #5de3b4, inset 0 1px 0 rgba(211, 255, 243, 0.1);
+}
+
+.market-contract-icon {
+  display: grid;
+  width: var(--market-contract-icon-size, 44px);
+  height: var(--market-contract-icon-size, 44px);
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 18%;
+  background: radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.28), transparent 45%);
+  filter: drop-shadow(0 6px 9px rgba(0, 19, 31, 0.34));
+}
+
+.market-contract-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.market-contract-scroll {
+  fill: #c9f5df;
+  stroke: #167c6c;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.market-contract-curl {
+  fill: #76d9b1;
+  stroke: #167c6c;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.market-contract-lines {
+  fill: none;
+  stroke: #157b85;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.market-contract-seal {
+  fill: #ffcb4d;
+  stroke: #9a6220;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.market-contract-hero {
+  border-color: rgba(87, 221, 175, 0.28) !important;
+  background: linear-gradient(135deg, rgba(27, 136, 117, 0.23), rgba(7, 51, 86, 0.56)) !important;
+}
+
+.market-contract-purchase {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) minmax(110px, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(82, 213, 174, 0.36);
+  border-radius: 9px;
+  background: rgba(4, 34, 62, 0.72);
+}
+
+.market-contract-purchase label,
+.market-contract-total {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.market-contract-purchase label > span,
+.market-contract-total small {
+  color: rgba(173, 224, 239, 0.72);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.market-contract-purchase input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid rgba(94, 208, 179, 0.46);
+  border-radius: 7px;
+  color: #f2fffb;
+  background: rgba(0, 23, 45, 0.78);
+  font: 850 0.86rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-contract-total strong {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: #7df0c4;
+  text-overflow: clip;
+  white-space: nowrap;
+  font: 900 1rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-contract-purchase button {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  border: 1px solid rgba(123, 255, 211, 0.7);
+  border-radius: 8px;
+  color: #052f2c;
+  background: linear-gradient(135deg, #7cf0c1, #35c99e);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.52), 0 8px 18px rgba(5, 83, 71, 0.28);
+  cursor: pointer;
+  font-weight: 950;
+}
+
+.market-contract-purchase button.is-pending::before {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  content: "";
+  animation: market-contract-spin 700ms linear infinite;
+}
+
+.market-contract-purchase input:focus-visible,
+.market-contract-purchase button:focus-visible {
+  outline: 2px solid #aef8dc;
+  outline-offset: 2px;
+}
+
+.market-contract-purchase button:disabled,
+.market-contract-purchase input:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+@keyframes market-contract-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 560px) {
+  .market-contract-purchase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .market-contract-purchase button {
+    grid-column: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-contract-purchase button.is-pending::before {
+    animation: none;
   }
 }
 

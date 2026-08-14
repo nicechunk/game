@@ -9,9 +9,13 @@ import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
 
 const MARKET_RULE_SET = "nicechunk-play-market-v1";
-const MARKET_CATEGORIES = Object.freeze(["all", "raw", "equipment", "building", "clothing"]);
+const MARKET_CATEGORIES = Object.freeze(["all", "contracts", "raw", "building", "equipment", "clothing"]);
+const MARKET_LISTING_CATEGORIES = Object.freeze(["raw", "building", "equipment", "clothing"]);
 const MARKET_SORTS = Object.freeze(["newest", "oldest", "price-asc", "price-desc"]);
 const MARKET_CURRENCIES = Object.freeze(["all", "NCK", "SOL"]);
+const TREASURY_LAND_CONTRACT_ID = "treasury-blank-land-contract";
+const LAND_CONTRACT_UNIT_PRICE_NCK = 1;
+const LAND_CONTRACT_PURCHASE_MAX = 4_096;
 const PAGE_SIZE = 8;
 const CHAIN_REFRESH_COOLDOWN_MS = 12_000;
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -43,6 +47,7 @@ export function createPlayMarket({
     selectedCurrency: "all",
     selectedItemId: "",
     selectedListingId: "",
+    contractQuantity: 1,
     returnToBackpack: false,
     mobileView: "listings",
     membershipStatus: "idle",
@@ -102,6 +107,9 @@ export function createPlayMarket({
     render,
     refreshChainListings,
     refreshMarketMembership,
+    refreshLandContracts,
+    getLandContractSnapshot,
+    openContracts,
     openPanel,
     closePanel,
     togglePanel,
@@ -131,6 +139,16 @@ export function createPlayMarket({
     }
     render();
     onStatus(ui("main.market.opened", "Market opened. Chain listings use PDA state when wallet and RPC are available."));
+  }
+
+  function openContracts() {
+    state.activeTab = "browse";
+    state.selectedCategory = "contracts";
+    state.selectedCurrency = "NCK";
+    state.selectedListingId = TREASURY_LAND_CONTRACT_ID;
+    state.page.browse = 1;
+    openPanel();
+    render();
   }
 
   function closePanel({ restoreBackpack = false } = {}) {
@@ -299,6 +317,7 @@ export function createPlayMarket({
     state.membershipEstimate = null;
     render();
     if (!wallet) {
+      state.membership = null;
       state.membershipStatus = "error";
       state.membershipError = ui("main.market.membershipWalletRequired", "Connect your game wallet before joining the market.");
       render();
@@ -334,6 +353,7 @@ export function createPlayMarket({
         return { ok: false, reason: "stale" };
       }
       state.membershipStatus = "error";
+      state.membership = null;
       state.membershipError = ui("main.market.membershipCheckFailed", "Could not check market access: {reason}", {
         reason: readableError(error),
       });
@@ -387,6 +407,47 @@ export function createPlayMarket({
     return String(getChainSnapshot?.()?.walletAddress || "");
   }
 
+  function getLandContractSnapshot() {
+    const wallet = currentWalletAddress();
+    const membership = state.membershipStatus === "joined" && state.membershipWallet === wallet
+      ? state.membership
+      : null;
+    const balance = Number(membership?.blankLandContracts);
+    const reserved = Number(membership?.reservedBlankLandContracts);
+    return Object.freeze({
+      status: state.membershipStatus,
+      wallet,
+      blankLandContracts: Number.isSafeInteger(balance) && balance >= 0 ? balance : null,
+      reservedBlankLandContracts: Number.isSafeInteger(reserved) && reserved >= 0 ? reserved : null,
+      marketUser: String(membership?.marketUser || ""),
+    });
+  }
+
+  async function refreshLandContracts({ quiet = true } = {}) {
+    const wallet = currentWalletAddress();
+    if (!wallet) return { ok: false, reason: "wallet-unavailable", ...getLandContractSnapshot() };
+    try {
+      const module = await loadChainModule();
+      if (typeof module.fetchMarketUserStateOnChain !== "function") {
+        return { ok: false, reason: "market-membership-unavailable", ...getLandContractSnapshot() };
+      }
+      const membership = await module.fetchMarketUserStateOnChain(wallet);
+      if (wallet !== currentWalletAddress()) return { ok: false, reason: "stale" };
+      state.membershipWallet = wallet;
+      state.membership = membership;
+      state.membershipStatus = membership ? "joined" : "required";
+      state.membershipError = "";
+      render();
+      const snapshot = getLandContractSnapshot();
+      onChanged();
+      return { ok: Boolean(membership), reason: membership ? "" : "market-membership-required", ...snapshot };
+    } catch (error) {
+      const reason = readableError(error);
+      if (!quiet) showTradeToast(ui("main.market.contractBalanceFailed", "Could not refresh land contracts: {reason}", { reason }), "error");
+      return { ok: false, reason, ...getLandContractSnapshot() };
+    }
+  }
+
   function ensureMarketMembership() {
     const wallet = currentWalletAddress();
     if (state.membershipStatus === "joined" && state.membershipWallet === wallet && wallet) return true;
@@ -410,12 +471,14 @@ export function createPlayMarket({
     const availableListings = browseListings();
     const listings = paginate(sortListings(filterListings(availableListings)), "browse");
     elements.marketSearchMeta && (elements.marketSearchMeta.textContent = marketSearchMeta(listings.total));
+    const chainState = state.chainLoading
+      ? marketLoadingState()
+      : state.chainError
+      ? marketErrorState(state.chainError)
+      : null;
     if (!listings.items.length) {
-      const noLoadedListings = availableListings.length === 0;
-      if (state.chainLoading && noLoadedListings) {
-        elements.marketListingGrid.replaceChildren(marketLoadingState());
-      } else if (state.chainError && noLoadedListings) {
-        elements.marketListingGrid.replaceChildren(marketErrorState(state.chainError));
+      if (chainState) {
+        elements.marketListingGrid.replaceChildren(chainState);
       } else {
         elements.marketListingGrid.replaceChildren(emptyState(
           ui("main.market.noListings", "No listings match"),
@@ -426,7 +489,9 @@ export function createPlayMarket({
       if (state.activeTab === "browse" && !listings.items.some((listing) => listing.id === state.selectedListingId)) {
         state.selectedListingId = listings.items[0]?.id || "";
       }
-      elements.marketListingGrid.replaceChildren(...listings.items.map((listing) => listingCard(listing)));
+      const nodes = listings.items.map((listing) => listingCard(listing));
+      if (chainState) nodes.push(chainState);
+      elements.marketListingGrid.replaceChildren(...nodes);
     }
     renderPager(elements.marketListingPager, listings, "browse");
   }
@@ -774,6 +839,63 @@ export function createPlayMarket({
     }
   }
 
+  async function buyLandContracts(quantity) {
+    if (!ensureMarketMembership()) return null;
+    const normalizedQuantity = normalizeLandContractPurchaseQuantity(quantity);
+    if (normalizedQuantity === null) {
+      const message = ui("main.market.contractQuantityRange", "Choose between 1 and 4,096 contracts.");
+      showTradeToast(message, "warn");
+      return null;
+    }
+    if (!beginMarketOperation(
+      "contract",
+      TREASURY_LAND_CONTRACT_ID,
+      ui("main.market.contractPurchasePending", "Confirm the treasury contract purchase in your wallet."),
+    )) return null;
+    try {
+      showMarketStatus(ui("main.market.contractPurchaseSubmitting", "Buying {quantity} blank land contract(s) from the treasury...", {
+        quantity: formatInteger(normalizedQuantity),
+      }));
+      const module = await loadChainModule();
+      if (typeof module.buyLandContractsOnChain !== "function") {
+        throw new Error(ui("main.market.contractPurchaseUnavailable", "Land contract purchases are unavailable in this client."));
+      }
+      const result = await module.buyLandContractsOnChain({ quantity: normalizedQuantity });
+      if (!result?.submitted) {
+        handleMarketAccessReason(result?.reason);
+        const message = ui("main.market.contractPurchaseFailed", "Contract purchase failed: {reason}", {
+          reason: marketSubmissionReason(result?.reason, ui, "contract"),
+        });
+        showMarketStatus(message, "warn");
+        showTradeToast(message, "error");
+        return result;
+      }
+      if (result.marketUserState) {
+        state.membership = result.marketUserState;
+        state.membershipStatus = "joined";
+        state.membershipWallet = currentWalletAddress();
+      }
+      const success = ui("main.market.contractPurchaseConfirmed", "Purchased {quantity} land contract(s). Owned: {owned}.", {
+        quantity: formatInteger(normalizedQuantity),
+        owned: formatInteger(result.marketUserState?.blankLandContracts ?? getLandContractSnapshot().blankLandContracts ?? 0),
+      });
+      showMarketStatus(success);
+      showTradeToast(success, "success");
+      await refreshLandContracts({ quiet: true });
+      onStatus(ui("main.market.contractPurchaseChainStatus", "Land contracts confirmed on chain: {signature}", {
+        signature: shortSignature(result.signature),
+      }));
+      return result;
+    } catch (error) {
+      const message = ui("main.market.contractPurchaseFailed", "Contract purchase failed: {reason}", { reason: readableError(error) });
+      showMarketStatus(message, "warn");
+      showTradeToast(message, "error");
+      return null;
+    } finally {
+      finishMarketOperation("contract", TREASURY_LAND_CONTRACT_ID);
+    }
+  }
+
   async function refreshChainListings({ force = false, quiet = true } = {}) {
     const now = performance.now();
     if (state.chainLoading && !force) return { ok: false, reason: "already-loading" };
@@ -868,13 +990,13 @@ export function createPlayMarket({
   }
 
   function browseListings() {
-    return state.chainListings;
+    return [treasuryLandContractListing(), ...state.chainListings];
   }
 
   function findSelectedListing() {
     const id = state.selectedListingId;
     if (!id) return null;
-    return state.chainListings.find((entry) => entry.id === id) || null;
+    return browseListings().find((entry) => entry.id === id) || null;
   }
 
   function chainOwnListings() {
@@ -894,12 +1016,40 @@ export function createPlayMarket({
   function sortListings(listings) {
     const sorted = [...listings];
     sorted.sort((a, b) => {
+      if (a.id === TREASURY_LAND_CONTRACT_ID) return b.id === TREASURY_LAND_CONTRACT_ID ? 0 : -1;
+      if (b.id === TREASURY_LAND_CONTRACT_ID) return 1;
       if (state.selectedSort === "oldest") return a.createdAt - b.createdAt;
       if (state.selectedSort === "price-asc") return compareMarketPriceValues(a.price, b.price);
       if (state.selectedSort === "price-desc") return compareMarketPriceValues(b.price, a.price);
       return b.createdAt - a.createdAt;
     });
     return sorted;
+  }
+
+  function treasuryLandContractListing() {
+    return {
+      id: TREASURY_LAND_CONTRACT_ID,
+      listingId: "",
+      listing: "",
+      source: "treasury-contract",
+      treasuryProduct: true,
+      status: "active",
+      name: ui("main.market.blankLandContract", "Blank Land Contract"),
+      meta: ui("main.market.blankLandContractMeta", "Registers one complete 16×16 chunk"),
+      category: "contracts",
+      currency: "NCK",
+      price: String(LAND_CONTRACT_UNIT_PRICE_NCK),
+      quantity: 1,
+      owner: ui("main.market.treasury", "NICECHUNK Treasury"),
+      createdAt: Number.MAX_SAFE_INTEGER,
+      itemSnapshot: {
+        kind: "land_contract",
+        itemId: "blank_land_contract",
+        count: 1,
+        label: ui("main.market.blankLandContract", "Blank Land Contract"),
+      },
+      rawListing: { treasuryProduct: true },
+    };
   }
 
   function paginate(items, tabName) {
@@ -961,6 +1111,7 @@ export function createPlayMarket({
     const card = document.createElement("article");
     card.className = "market-listing-card";
     card.classList.toggle("own", own);
+    card.classList.toggle("treasury-contract", Boolean(listing.treasuryProduct));
     card.classList.toggle("selected", listing.id === state.selectedListingId);
     card.dataset.listingId = listing.id;
     card.tabIndex = 0;
@@ -978,26 +1129,35 @@ export function createPlayMarket({
     });
     const icon = document.createElement("span");
     icon.className = "market-listing-icon";
-    icon.append(createVoxelItemIconCanvas(listing.itemSnapshot || {}, { size: 44 }));
+    icon.append(marketListingIcon(listing, 44));
     const copy = document.createElement("div");
     copy.className = "market-listing-copy";
     copy.innerHTML = `<strong>${escapeHtml(name)}</strong><span>${escapeHtml(categoryLabel(listing.category, ui))}</span><small>${escapeHtml(listingDisplayMeta(listing, ui))}</small>`;
     const price = document.createElement("b");
     price.className = "market-listing-price";
-    price.textContent = `${listing.price} ${listing.currency}`;
+    price.textContent = listing.treasuryProduct
+      ? ui("main.market.contractUnitPrice", "1 NCK / chunk")
+      : `${listing.price} ${listing.currency}`;
     const quantity = document.createElement("span");
     quantity.className = "market-listing-quantity";
-    quantity.textContent = `x${listingQuantity(listing)}`;
+    quantity.textContent = listing.treasuryProduct
+      ? ui("main.market.oneChunk", "1 chunk")
+      : `x${listingQuantity(listing)}`;
     const seller = document.createElement("span");
     seller.className = "market-listing-seller";
-    seller.textContent = own
+    seller.textContent = listing.treasuryProduct
+      ? ui("main.market.treasury", "NICECHUNK Treasury")
+      : own
       ? ui("main.market.ownListing", "Your listing")
       : shortAddress(listing.owner);
     const action = document.createElement("button");
     action.type = "button";
     action.dataset.listingId = listing.id;
     let actionType = "";
-    if (own || order) {
+    if (listing.treasuryProduct) {
+      action.dataset.marketAction = "select";
+      action.textContent = ui("main.market.chooseQuantity", "Choose quantity");
+    } else if (own || order) {
       action.dataset.marketAction = "cancel";
       actionType = "cancel";
       action.textContent = ui("main.market.cancelListing", "Cancel");
@@ -1052,6 +1212,10 @@ export function createPlayMarket({
         ui("main.market.detailTitle", "Listing details"),
         ui("main.market.detailSelectHint", "Select a market row to inspect its item and price."),
       ));
+      return;
+    }
+    if (listing.treasuryProduct) {
+      renderTreasuryContractDetail(detail, listing);
       return;
     }
     const own = listing.owner === String(getChainSnapshot?.()?.walletAddress || "");
@@ -1116,6 +1280,109 @@ export function createPlayMarket({
     custody.className = "market-inspector-custody";
     custody.textContent = ui("main.market.custodyNote", "On-chain settlement verifies listing custody and applies the 1% market fee.");
     detail.replaceChildren(heading, hero, itemDetails, listingDetails, description, trade, custody);
+  }
+
+  function renderTreasuryContractDetail(detail, listing) {
+    const contractSnapshot = getLandContractSnapshot();
+    const owned = contractSnapshot.blankLandContracts;
+    const reserved = contractSnapshot.reservedBlankLandContracts;
+    const quantity = normalizeLandContractPurchaseQuantity(state.contractQuantity) ?? 1;
+    state.contractQuantity = quantity;
+
+    const heading = document.createElement("div");
+    heading.className = "market-inspector-heading market-contract-heading";
+    heading.innerHTML = `<small>${escapeHtml(ui("main.market.contractsEyebrow", "TREASURY CONTRACT"))}</small><strong>${escapeHtml(listing.name)}</strong>`;
+
+    const hero = document.createElement("div");
+    hero.className = "market-inspector-hero market-contract-hero";
+    const icon = document.createElement("span");
+    icon.className = "market-inspector-icon market-contract-hero-icon";
+    icon.append(marketListingIcon(listing, 82));
+    const facts = document.createElement("dl");
+    facts.append(
+      detailFact(ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "1 NCK / chunk")),
+      detailFact(ui("main.market.contractCoverage", "Coverage"), ui("main.market.contractCoverageValue", "1 complete 16×16 chunk")),
+      detailFact(ui("main.market.contractsOwned", "Contracts Owned"), owned == null ? ui("main.market.balanceLoading", "Loading...") : formatInteger(owned)),
+      detailFact(ui("main.market.contractsReserved", "Registration Reserved"), reserved == null ? ui("main.market.balanceLoading", "Loading...") : formatInteger(reserved)),
+    );
+    hero.append(icon, facts);
+
+    const description = document.createElement("p");
+    description.className = "market-inspector-description";
+    description.textContent = ui(
+      "main.market.blankLandContractDescription",
+      "The NICECHUNK Treasury issues blank land contracts at a fixed price. Registering land consumes one contract for every selected chunk.",
+    );
+
+    const rules = createMarketDetailSection(
+      ui("main.market.contractRulesTitle", "Contract rules"),
+      [
+        marketDetailRow("issuer", ui("main.market.contractIssuer", "Issuer"), ui("main.market.treasury", "NICECHUNK Treasury")),
+        marketDetailRow("storage", ui("main.market.contractStorage", "Storage"), ui("main.market.contractNoBackpack", "Market membership PDA, no backpack space")),
+        marketDetailRow("transfer", ui("main.market.contractUse", "Use"), ui("main.market.contractUseValue", "Consumed atomically when land is registered")),
+      ],
+      "market-contract-rules",
+    );
+
+    const form = document.createElement("form");
+    form.className = "market-contract-purchase";
+    const quantityLabel = document.createElement("label");
+    quantityLabel.htmlFor = "marketContractQuantity";
+    const quantityCaption = document.createElement("span");
+    quantityCaption.textContent = ui("main.market.contractQuantity", "Contracts");
+    const quantityInput = document.createElement("input");
+    quantityInput.id = "marketContractQuantity";
+    quantityInput.type = "number";
+    quantityInput.min = "1";
+    quantityInput.max = String(LAND_CONTRACT_PURCHASE_MAX);
+    quantityInput.step = "1";
+    quantityInput.inputMode = "numeric";
+    quantityInput.value = String(quantity);
+    quantityInput.disabled = Boolean(state.operation);
+    quantityInput.setAttribute("aria-describedby", "marketContractTotal");
+    quantityLabel.append(quantityCaption, quantityInput);
+
+    const total = document.createElement("span");
+    total.id = "marketContractTotal";
+    total.className = "market-contract-total";
+    const totalCaption = document.createElement("small");
+    totalCaption.textContent = ui("main.market.totalPrice", "Total Price");
+    const totalValue = document.createElement("strong");
+    total.append(totalCaption, totalValue);
+    const updateQuantity = ({ commit = false } = {}) => {
+      const normalized = normalizeLandContractPurchaseQuantity(quantityInput.value);
+      if (normalized !== null) {
+        state.contractQuantity = normalized;
+        totalValue.textContent = `${formatInteger(normalized * LAND_CONTRACT_UNIT_PRICE_NCK)} NCK`;
+        quantityInput.setCustomValidity("");
+        return normalized;
+      }
+      quantityInput.setCustomValidity(ui("main.market.contractQuantityRange", "Choose between 1 and 4,096 contracts."));
+      if (commit) quantityInput.reportValidity?.();
+      totalValue.textContent = "-- NCK";
+      return null;
+    };
+    quantityInput.addEventListener("input", () => updateQuantity());
+    quantityInput.addEventListener("change", () => updateQuantity({ commit: true }));
+
+    const buy = document.createElement("button");
+    buy.type = "submit";
+    buy.dataset.marketAction = "buy-contract";
+    buy.dataset.listingId = TREASURY_LAND_CONTRACT_ID;
+    buy.textContent = ui("main.market.buyContracts", "Buy land contracts");
+    syncOperationButton(buy, "contract", TREASURY_LAND_CONTRACT_ID);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const nextQuantity = updateQuantity({ commit: true });
+      if (nextQuantity !== null) void buyLandContracts(nextQuantity);
+    });
+    form.append(quantityLabel, total, buy);
+    updateQuantity();
+
+    const note = document.createElement("p");
+    note.className = "market-inspector-custody";
+    note.textContent = ui("main.market.contractTreasuryNote", "Payment goes directly to the on-chain treasury. This product does not create or use a market Listing PDA.");
+    detail.replaceChildren(heading, hero, description, rules, form, note);
   }
 
   function renderInventoryDetail(detail, item) {
@@ -1198,6 +1465,38 @@ export function createPlayMarket({
     return row;
   }
 
+  function marketListingIcon(listing, size) {
+    if (!listing?.treasuryProduct) return createVoxelItemIconCanvas(listing?.itemSnapshot || {}, { size });
+    const root = document.createElement("span");
+    root.className = "market-contract-icon";
+    root.style.setProperty("--market-contract-icon-size", `${Math.max(24, Math.trunc(Number(size) || 44))}px`);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 64 64");
+    svg.setAttribute("aria-hidden", "true");
+    const scroll = document.createElementNS(svg.namespaceURI, "path");
+    scroll.setAttribute("d", "M17 10h31v37H22a7 7 0 0 0-7 7V16a6 6 0 0 1 2-6Z");
+    scroll.setAttribute("class", "market-contract-scroll");
+    const curl = document.createElementNS(svg.namespaceURI, "path");
+    curl.setAttribute("d", "M22 47h27v7H22a4 4 0 1 1 0-7Z");
+    curl.setAttribute("class", "market-contract-curl");
+    const grid = document.createElementNS(svg.namespaceURI, "path");
+    grid.setAttribute("d", "M24 20h17M24 27h17M24 34h8m6 0h3");
+    grid.setAttribute("class", "market-contract-lines");
+    const seal = document.createElementNS(svg.namespaceURI, "path");
+    seal.setAttribute("d", "m42 38 5 3-2 6-6-1-1-6 4-2Z");
+    seal.setAttribute("class", "market-contract-seal");
+    svg.append(scroll, curl, grid, seal);
+    root.append(svg);
+    return root;
+  }
+
+  function formatInteger(value) {
+    const number = Number(value);
+    return Number.isSafeInteger(number) && number >= 0
+      ? number.toLocaleString("en-US", { maximumFractionDigits: 0 })
+      : "--";
+  }
+
   function emptyState(title, body) {
     const node = document.createElement("div");
     node.className = "market-empty";
@@ -1253,6 +1552,7 @@ export function createPlayMarket({
   }
 
   function operationButtonLabel(type) {
+    if (type === "contract") return ui("main.market.contractPurchasePendingShort", "Purchasing...");
     if (type === "buy") return ui("main.market.buyPending", "Buying...");
     if (type === "cancel") return ui("main.market.cancelPending", "Canceling...");
     return ui("main.market.listingSubmitting", "Creating...");
@@ -1562,6 +1862,13 @@ export function marketItemDetailRows(slot, {
 export function marketListingDetailRows(listing, { translate = fallbackUi } = {}) {
   if (!listing || typeof listing !== "object") return [];
   const ui = (key, fallback, params = {}) => translate(key, fallback, params);
+  if (listing.treasuryProduct || listing.rawListing?.treasuryProduct) {
+    return [
+      marketDetailRow("issuer", ui("main.market.contractIssuer", "Issuer"), ui("main.market.treasury", "NICECHUNK Treasury")),
+      marketDetailRow("price", ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "1 NCK / chunk")),
+      marketDetailRow("coverage", ui("main.market.contractCoverage", "Coverage"), ui("main.market.contractCoverageValue", "1 complete 16×16 chunk")),
+    ];
+  }
   const raw = listing.rawListing && typeof listing.rawListing === "object" ? listing.rawListing : listing;
   const rows = [];
   const state = String(listing.status || raw.stateLabel || "active");
@@ -1744,9 +2051,10 @@ function itemMeta(slot) {
 function categoryLabel(category, translate = fallbackUi) {
   const [key, fallback] = ({
     all: ["main.market.categoryAll", "All"],
+    contracts: ["main.market.categoryContracts", "Contracts"],
     raw: ["main.market.categoryRaw", "Raw Materials"],
-    equipment: ["main.market.categoryEquipment", "Equipment"],
     building: ["main.market.categoryBuilding", "Building Materials"],
+    equipment: ["main.market.categoryEquipment", "Equipment"],
     clothing: ["main.market.categoryClothing", "Clothing"],
   })[category] || ["main.market.categoryAll", "All"];
   return translate(key, fallback);
@@ -1757,7 +2065,7 @@ function currencyLabel(currency, translate = fallbackUi) {
 }
 
 function categoryValue(value) {
-  return MARKET_CATEGORIES.includes(value) && value !== "all" ? value : "raw";
+  return MARKET_LISTING_CATEGORIES.includes(value) ? value : "raw";
 }
 
 function currencyValue(value, fallback = "all") {
@@ -1830,6 +2138,15 @@ function marketSubmissionReason(reason, translate = fallbackUi, action = "listin
     return translate("main.market.listingUnavailable", "Listing unavailable");
   }
   return String(reason || "not-submitted");
+}
+
+export function normalizeLandContractPurchaseQuantity(value) {
+  const text = String(value ?? "").trim();
+  if (!/^\d{1,4}$/u.test(text)) return null;
+  const quantity = Number(text);
+  return Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= LAND_CONTRACT_PURCHASE_MAX
+    ? quantity
+    : null;
 }
 
 export function normalizeMarketPriceInput(value, currency = "NCK") {

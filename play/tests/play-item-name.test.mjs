@@ -54,9 +54,10 @@ test("resource-only records still fall back to the resource class", () => {
   assert.equal(itemName({ kind: "resource", resourceId: 1 }), "Grass Fiber");
 });
 
-test("blueprint tools use the localized play label", () => {
+test("retired Blueprint items no longer receive a special inventory label", () => {
   translations.set("main.blueprint.toolName", "Construction Plan");
-  assert.equal(itemName({ kind: "blueprint", itemId: "blueprint_tool" }), "Construction Plan");
+  assert.equal(itemName({ kind: "blueprint", itemId: "blueprint_tool" }), "Grass Fiber");
+  assert.notEqual(itemName({ kind: "blueprint", itemId: "blueprint_tool" }), "Construction Plan");
 });
 
 test("grass keeps its configured dry-grass special drop", () => {

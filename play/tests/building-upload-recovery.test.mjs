@@ -14,18 +14,19 @@ import {
   decodeBuildingManifest,
   buildingUploadWritePlan,
   decodeBuildingShard,
+  deriveGlobalConfigPda,
   encodeBeginBuildingInstructionData,
 } from "../../src/chain/nicechunkChain.js";
 import { createPlayBuildingCache } from "../play-building-cache.js";
 
 test("incomplete building shards are readable only for resumable uploads", () => {
   const data = Buffer.alloc(64 + 10);
-  data.write("NCKBDT01", 0, "ascii");
-  data.writeUInt8(1, 8);
+  data.write("NCKBDT02", 0, "ascii");
+  data.writeUInt8(2, 8);
   data.writeUInt8(0, 10);
   data.writeUInt16LE(10, 12);
   data.writeUInt16LE(4, 14);
-  data.fill(7, 16, 48);
+  deriveGlobalConfigPda().toBuffer().copy(data, 16);
   data.writeBigUInt64LE(42n, 48);
   data.writeUInt32LE(3, 56);
   Buffer.from([1, 2, 3, 4]).copy(data, 64);
@@ -35,19 +36,26 @@ test("incomplete building shards are readable only for resumable uploads", () =>
   assert.equal(shard.uploadedLen, 4);
   assert.equal(shard.payloadLen, 10);
   assert.deepEqual([...shard.payload], [1, 2, 3, 4]);
+
+  const wrongConfig = Buffer.from(data);
+  PublicKey.unique().toBuffer().copy(wrongConfig, 16);
+  assert.throws(
+    () => decodeBuildingShard(wrongConfig, "shard", { allowIncomplete: true }),
+    /Invalid BuildingShard GlobalConfig/,
+  );
 });
 
-test("building manifests preserve signed X/Z placement offsets", () => {
+test("v3 building manifests preserve signed X/Z placement offsets", () => {
   const data = Buffer.alloc(160);
-  data.write("NCKBLD02", 0, "ascii");
-  data.writeUInt8(2, 8);
+  data.write("NCKBLD03", 0, "ascii");
+  data.writeUInt8(3, 8);
   data.writeUInt8(1, 9);
   data.writeUInt8(1, 10);
   data.writeUInt8(3, 11);
   data.writeUInt8(1, 12);
   data.writeUInt16LE(1, 14);
   Keypair.generate().publicKey.toBuffer().copy(data, 16);
-  Keypair.generate().publicKey.toBuffer().copy(data, 48);
+  deriveGlobalConfigPda().toBuffer().copy(data, 48);
   data.writeBigUInt64LE(42n, 80);
   data.writeUInt32LE(3, 88);
   data.writeUInt32LE(13, 92);
@@ -59,14 +67,18 @@ test("building manifests preserve signed X/Z placement offsets", () => {
   data.writeBigUInt64LE(12n, 144);
 
   const centered = decodeBuildingManifest(data);
-  assert.equal(centered.offsetX, 0, "existing manifests default to centered placement");
-  assert.equal(centered.offsetZ, 0, "existing manifests default to centered placement");
+  assert.equal(centered.offsetX, 0, "zero offsets keep a building centered");
+  assert.equal(centered.offsetZ, 0, "zero offsets keep a building centered");
 
   data.writeInt32LE(-17, 152);
   data.writeInt32LE(23, 156);
   const shifted = decodeBuildingManifest(data);
   assert.equal(shifted.offsetX, -17);
   assert.equal(shifted.offsetZ, 23);
+
+  const wrongConfig = Buffer.from(data);
+  PublicKey.unique().toBuffer().copy(wrongConfig, 48);
+  assert.throws(() => decodeBuildingManifest(wrongConfig), /Invalid BuildingManifest GlobalConfig/);
 });
 
 test("BeginBuilding encodes signed placement offsets in the extended payload", () => {
@@ -156,8 +168,8 @@ function cacheRecord(foundationId, contentHash) {
     minX: 0,
     minZ: 0,
     surfaceY: 10,
-    width: 2,
-    depth: 2,
+    width: 16,
+    depth: 16,
     activeRevision: 1,
     contentHash,
   };

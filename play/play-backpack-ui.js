@@ -254,7 +254,7 @@ export function backpackCategoryForSlot(slot, resourceLabel = "") {
   const kind = String(slot?.kind || "").toLowerCase();
   const itemId = String(slot?.itemId || "").toLowerCase();
   if (kind === "smelted_material" || kind === "material") return "materials";
-  if (kind === "tool" || kind === "forged" || kind === "blueprint" || itemId.includes("pickaxe") || itemId.includes("tool")) return "tools";
+  if (kind === "tool" || kind === "forged" || itemId.includes("pickaxe") || itemId.includes("tool")) return "tools";
   if (kind === "combat" || itemId.includes("sword") || itemId.includes("bow") || itemId.includes("shield")) return "combat";
   if (kind === "food" || itemId.includes("food")) return "food";
   if (kind === "resource") {

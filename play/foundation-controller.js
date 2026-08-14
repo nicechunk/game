@@ -1,7 +1,8 @@
-const DEFAULT_WIDTH = 12;
-const DEFAULT_DEPTH = 8;
-const MIN_SIZE = 2;
-const MAX_PROTOCOL_SIZE = 0xffff_ffff;
+const LAND_CHUNK_SIZE = 16;
+const DEFAULT_CHUNKS_X = 1;
+const DEFAULT_CHUNKS_Z = 1;
+const MAX_CHUNKS_PER_AXIS = 4_096;
+const MAX_LAND_CONTRACTS_PER_SITE = 4_096;
 const CLEARANCE_BLOCKS = 10;
 const VISIBLE_FOUNDATION_RADIUS = 384;
 const SYNC_VALIDATION_CELL_LIMIT = 1_024;
@@ -12,20 +13,20 @@ export function createFoundationController({
   getChunks = () => null,
   getPlayerPosition = () => [0, 0, 0],
   getWalletAddress = () => "",
-  getSelectedBlueprint = () => null,
-  isBlueprintModeActive = () => Boolean(getSelectedBlueprint?.()),
+  isConstructionModeActive = () => false,
+  getLandContractBalance = () => null,
   isBlockingBlock = () => false,
   isFluidBlock = () => false,
   blockAirId = 0,
   submitFoundation = async () => ({ submitted: false, reason: "chain-unavailable" }),
-  submitFoundationResize = async () => ({ submitted: false, reason: "chain-unavailable" }),
   refreshFoundations = async () => ({ ok: false, reason: "chain-unavailable" }),
+  refreshLandContracts = async () => null,
   onChanged = () => {},
   onStatus = () => {},
   translate = (_key, fallback) => fallback,
 } = {}) {
-  let width = DEFAULT_WIDTH;
-  let depth = DEFAULT_DEPTH;
+  let chunksX = DEFAULT_CHUNKS_X;
+  let chunksZ = DEFAULT_CHUNKS_Z;
   let hoverHit = null;
   let anchor = null;
   let preview = null;
@@ -34,20 +35,11 @@ export function createFoundationController({
   let validationTask = null;
   let submitting = false;
   let lastError = "";
-  let activeBlueprintId = "";
-  let boundFoundationSignature = "";
-  let dimensionsDirty = false;
-  const blueprintDrafts = new Map();
 
   return {
     bind: () => {},
-    isActive: () => Boolean(syncSelectedBlueprint()),
-    dimensions: () => {
-      const blueprint = syncSelectedBlueprint();
-      const foundation = foundationForBlueprint(blueprint);
-      syncFoundationEditor(foundation);
-      return { width, depth };
-    },
+    isActive: () => Boolean(isConstructionModeActive?.()),
+    dimensions: dimensionSnapshot,
     setDimensions,
     setHoverHit,
     selectAtHit,
@@ -61,19 +53,28 @@ export function createFoundationController({
     refresh: refreshFoundations,
   };
 
-  function setDimensions(nextWidth, nextDepth) {
-    const blueprint = syncSelectedBlueprint();
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
-    if (!blueprint) return snapshot();
-    const normalizedWidth = clampInt(nextWidth, MIN_SIZE, MAX_PROTOCOL_SIZE);
-    const normalizedDepth = clampInt(nextDepth, MIN_SIZE, MAX_PROTOCOL_SIZE);
-    if (normalizedWidth === width && normalizedDepth === depth) return snapshot();
-    width = normalizedWidth;
-    depth = normalizedDepth;
-    dimensionsDirty = Boolean(foundation)
-      && (width !== foundation.width || depth !== foundation.depth);
-    saveBlueprintDraft();
+  function dimensionSnapshot() {
+    return {
+      chunksX,
+      chunksZ,
+      width: chunksX * LAND_CHUNK_SIZE,
+      depth: chunksZ * LAND_CHUNK_SIZE,
+      requiredContracts: chunksX * chunksZ,
+    };
+  }
+
+  function setDimensions(nextChunksX, nextChunksZ) {
+    if (!isConstructionModeActive?.()) return snapshot();
+    const normalizedX = clampInt(nextChunksX, 1, MAX_CHUNKS_PER_AXIS);
+    const normalizedZ = clampInt(nextChunksZ, 1, MAX_CHUNKS_PER_AXIS);
+    if (BigInt(normalizedX) * BigInt(normalizedZ) > BigInt(MAX_LAND_CONTRACTS_PER_SITE)) {
+      lastError = text("main.land.contractCountTooLarge", "This land area requires too many contracts.");
+      onStatus(lastError);
+      return snapshot();
+    }
+    if (normalizedX === chunksX && normalizedZ === chunksZ) return snapshot();
+    chunksX = normalizedX;
+    chunksZ = normalizedZ;
     cancelValidation();
     rebuildPreview(anchor?.hit ?? hoverHit, { force: true });
     onChanged(snapshot());
@@ -81,19 +82,8 @@ export function createFoundationController({
   }
 
   function setHoverHit(hit) {
-    const blueprint = syncSelectedBlueprint();
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
-    if (foundation) {
-      hoverHit = null;
-      return preview;
-    }
-    if (!blueprint) {
-      if (hoverHit || preview) {
-        hoverHit = null;
-        if (!anchor) preview = null;
-        onChanged(snapshot());
-      }
+    if (!isConstructionModeActive?.()) {
+      if (hoverHit || preview) clearSelection();
       return null;
     }
     hoverHit = cloneHit(hit);
@@ -102,28 +92,10 @@ export function createFoundationController({
   }
 
   function selectAtHit(hit) {
-    const blueprint = syncSelectedBlueprint();
-    if (!blueprint) return { ok: false, reason: "blueprint-not-selected" };
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
-    if (foundation) {
-      if (!hitWithinFoundation(hit, foundation)) {
-        lastError = text("main.blueprint.selectBoundFoundation", "Click this blueprint's foundation to edit its size.");
-        onStatus(lastError);
-        onChanged(snapshot());
-        return { ok: false, reason: "bound-foundation-not-selected" };
-      }
-      anchor = { hit: foundationHit(foundation), editing: true };
-      cancelValidation();
-      rebuildBoundPreview(foundation, { force: true });
-      lastError = preview?.valid ? "" : preview?.message || "";
-      onStatus(lastError);
-      onChanged(snapshot());
-      return { ok: Boolean(preview?.valid), editing: true, foundation, preview };
-    }
+    if (!isConstructionModeActive?.()) return { ok: false, reason: "construction-mode-inactive" };
     const nextHit = cloneHit(hit);
     if (!isTopFace(nextHit)) {
-      lastError = text("main.blueprint.topFaceRequired", "Select the top face of a solid ground block.");
+      lastError = text("main.land.topFaceRequired", "Select the top face of solid ground.");
       onStatus(lastError);
       onChanged(snapshot());
       return { ok: false, reason: "top-face-required" };
@@ -133,7 +105,7 @@ export function createFoundationController({
     rebuildPreview(nextHit);
     lastError = preview?.valid
       ? ""
-      : preview?.message || text("main.blueprint.invalid", "This area cannot be used as a foundation.");
+      : preview?.message || text("main.land.invalid", "This chunk area cannot be registered as land.");
     if (lastError) onStatus(lastError);
     onChanged(snapshot());
     return { ok: Boolean(preview?.valid), preview };
@@ -141,24 +113,36 @@ export function createFoundationController({
 
   async function confirm() {
     if (submitting) return { submitted: false, reason: "already-submitting" };
-    const blueprint = syncSelectedBlueprint();
-    if (!blueprint) return { submitted: false, reason: "blueprint-not-selected" };
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
-    if (foundation && !dimensionsDirty) {
-      return { submitted: false, reason: "foundation-size-unchanged", foundation };
-    }
-    if (!foundation && !anchor && isTopFace(hoverHit)) {
+    if (!isConstructionModeActive?.()) return { submitted: false, reason: "construction-mode-inactive" };
+    if (!anchor && isTopFace(hoverHit)) {
       anchor = { hit: cloneHit(hoverHit) };
       cancelValidation();
       rebuildPreview(anchor.hit, { force: true });
     }
     if (!anchor || !preview) {
-      lastError = text("main.blueprint.chooseGround", "Click a flat area to place the blueprint.");
+      lastError = text("main.land.chooseGround", "Select a flat chunk area for this land contract.");
       onStatus(lastError);
       onChanged(snapshot());
       return { submitted: false, reason: "missing-anchor" };
     }
+    const requiredLandContracts = dimensionSnapshot().requiredContracts;
+    const availableLandContracts = normalizedContractBalance(getLandContractBalance?.());
+    if (availableLandContracts !== null && availableLandContracts < requiredLandContracts) {
+      lastError = text(
+        "main.land.insufficientContracts",
+        "You need {required} land contracts but only have {available}. Buy more in Market > Contracts.",
+        { required: requiredLandContracts, available: availableLandContracts },
+      );
+      onStatus(lastError);
+      onChanged(snapshot());
+      return {
+        submitted: false,
+        reason: "insufficient-land-contracts",
+        requiredLandContracts,
+        availableLandContracts,
+      };
+    }
+
     submitting = true;
     lastError = "";
     onChanged(snapshot());
@@ -167,49 +151,44 @@ export function createFoundationController({
       const pendingValidation = validationTask?.promise;
       if (preview?.validating && pendingValidation) await pendingValidation;
       if (!preview?.valid) {
-        lastError = preview?.message || text("main.blueprint.invalid", "This area cannot be used as a foundation.");
+        lastError = preview?.message || text("main.land.invalid", "This chunk area cannot be registered as land.");
         onStatus(lastError);
         return { submitted: false, reason: preview?.reason || "invalid-foundation" };
       }
       const payload = {
-        blueprintId: blueprint.blueprintId,
         minX: preview.minX,
         minZ: preview.minZ,
         surfaceY: preview.surfaceY,
         width: preview.width,
         depth: preview.depth,
       };
-      const result = await (foundation ? submitFoundationResize(payload) : submitFoundation(payload));
+      const result = await submitFoundation(payload);
       if (!result?.submitted) {
-        lastError = String(result?.message || result?.reason || (foundation
-          ? text("main.blueprint.resizeFailed", "Foundation size update failed.")
-          : text("main.blueprint.submitFailed", "Foundation submission failed.")));
+        lastError = submissionMessage(result, requiredLandContracts);
         onStatus(lastError);
         return result ?? { submitted: false, reason: lastError };
       }
       if (result.foundation) index?.upsert?.(result.foundation);
-      await refreshFoundations({ force: true, quiet: true });
+      await Promise.allSettled([
+        refreshFoundations({ force: true, quiet: true }),
+        refreshLandContracts({ force: true, quiet: true }),
+      ]);
       onStatus(result.guardianIndexed === false
-        ? result.message || text("main.blueprint.guardianIndexPending", "The foundation is on chain, but Guardian indexing is still pending: {reason}.", {
-          reason: text("main.blueprint.guardianUnavailable", "Guardian unavailable"),
+        ? result.message || text("main.land.guardianIndexPending", "The land is on chain, but Guardian indexing is still pending: {reason}.", {
+          reason: text("main.land.guardianUnavailable", "Guardian unavailable"),
         })
-        : foundation
-          ? text("main.blueprint.resized", "Foundation size updated and protected on chain.")
-          : text("main.blueprint.created", "Foundation created and protected on chain."));
+        : text("main.land.created", "Land registered on chain and {count} contract(s) consumed.", {
+          count: requiredLandContracts,
+        }));
       anchor = null;
       cancelValidation();
       preview = null;
-      dimensionsDirty = false;
-      boundFoundationSignature = "";
-      saveBlueprintDraft();
-      syncFoundationEditor(foundationForBlueprint(blueprint));
       return result;
     } catch (error) {
-      lastError = String(error?.message || error || (foundation
-        ? text("main.blueprint.resizeFailed", "Foundation size update failed.")
-        : text("main.blueprint.submitFailed", "Foundation submission failed.")));
-      console.error("[NiceChunk Foundation Submission Failed]", error);
+      lastError = String(error?.message || error || text("main.land.submitFailed", "Land registration failed."));
+      console.error("[NiceChunk Land Submission Failed]", error);
       onStatus(lastError);
+      await refreshLandContracts({ force: true, quiet: true }).catch(() => null);
       return { submitted: false, reason: lastError, error };
     } finally {
       submitting = false;
@@ -217,21 +196,28 @@ export function createFoundationController({
     }
   }
 
-  function cancel() {
-    const blueprint = syncSelectedBlueprint();
-    const foundation = foundationForBlueprint(blueprint);
-    lastError = "";
-    cancelValidation();
-    if (foundation) {
-      width = foundation.width;
-      depth = foundation.depth;
-      dimensionsDirty = false;
-      anchor = { hit: foundationHit(foundation), editing: true };
-      rebuildBoundPreview(foundation, { force: true });
-    } else {
-      anchor = null;
-      rebuildPreview(hoverHit, { force: true });
+  function submissionMessage(result, requiredLandContracts) {
+    if (result?.reason === "insufficient-land-contracts") {
+      return text(
+        "main.land.insufficientContracts",
+        "You need {required} land contracts but only have {available}. Buy more in Market > Contracts.",
+        {
+          required: result.requiredLandContracts ?? requiredLandContracts,
+          available: result.availableLandContracts ?? 0,
+        },
+      );
     }
+    if (result?.reason === "market-membership-required") {
+      return text("main.land.marketMembershipRequired", "Join the market before buying or using land contracts.");
+    }
+    return String(result?.message || result?.reason || text("main.land.submitFailed", "Land registration failed."));
+  }
+
+  function cancel() {
+    lastError = "";
+    anchor = null;
+    cancelValidation();
+    rebuildPreview(hoverHit, { force: true });
     onChanged(snapshot());
   }
 
@@ -240,24 +226,18 @@ export function createFoundationController({
     hoverHit = null;
     preview = null;
     lastError = "";
-    boundFoundationSignature = "";
-    dimensionsDirty = false;
     cancelValidation();
     onChanged(snapshot());
   }
 
   function rebuildPreview(hit, { force = false } = {}) {
-    const blueprint = syncSelectedBlueprint();
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
-    if (foundation) return rebuildBoundPreview(foundation, { force });
-    if (!blueprint || !isTopFace(hit)) {
+    if (!isConstructionModeActive?.() || !isTopFace(hit)) {
       preview = null;
       cancelValidation();
       return null;
     }
-    const rect = footprintForHit(hit, width, depth, getPlayerPosition());
-    const key = `${blueprint.blueprintId}:${rect.minX}:${hit.worldY}:${rect.minZ}:${width}:${depth}:${index?.size?.() ?? 0}`;
+    const rect = footprintForHit(hit, chunksX, chunksZ, getPlayerPosition());
+    const key = `${rect.minX}:${hit.worldY}:${rect.minZ}:${chunksX}:${chunksZ}:${index?.size?.() ?? 0}`;
     if (key === validationCacheKey && (!force || preview?.validating)) return preview;
     cancelValidation();
     validationCacheKey = key;
@@ -265,20 +245,8 @@ export function createFoundationController({
     return preview;
   }
 
-  function rebuildBoundPreview(foundation, { force = false } = {}) {
-    const rect = rectForFoundationSize(foundation, width, depth);
-    const key = `${foundation.id}:edit:${foundation.minX}:${foundation.surfaceY}:${foundation.minZ}:${width}:${depth}:${index?.size?.() ?? 0}`;
-    if (key === validationCacheKey && (!force || preview?.validating)) return preview;
-    cancelValidation();
-    validationCacheKey = key;
-    preview = validateFootprint(rect, foundation.surfaceY - 1, { editingFoundation: foundation });
-    return preview;
-  }
-
-  function validateFootprint(rect, groundY, { editingFoundation = null } = {}) {
+  function validateFootprint(rect, groundY) {
     const chunks = getChunks();
-    const changed = Boolean(editingFoundation)
-      && (rect.width !== editingFoundation.width || rect.depth !== editingFoundation.depth);
     const base = {
       ...rect,
       groundY,
@@ -287,29 +255,26 @@ export function createFoundationController({
       reason: "",
       message: "",
       anchored: Boolean(anchor),
-      editing: Boolean(editingFoundation),
-      changed,
-      editingFoundation,
+      editing: false,
+      changed: false,
     };
     if (rect.minX < -0x8000_0000 || rect.maxX > 0x7fff_ffff
       || rect.minZ < -0x8000_0000 || rect.maxZ > 0x7fff_ffff) {
-      return { ...base, reason: "coordinate-range", message: text("main.blueprint.coordinateRange", "The foundation exceeds the supported world coordinate range.") };
+      return { ...base, reason: "coordinate-range", message: text("main.land.coordinateRange", "The land exceeds the supported world coordinate range.") };
     }
-    const overlap = index?.intersects?.(rect, { ignoreId: editingFoundation?.id || "" });
-    if (overlap) {
-      return { ...base, reason: "overlap", message: text("main.blueprint.overlap", "This area overlaps an existing foundation.") };
+    if (index?.intersects?.(rect)) {
+      return { ...base, reason: "overlap", message: text("main.land.overlap", "This chunk area overlaps registered land.") };
     }
-    const cellsToValidate = addedCellCount(rect, editingFoundation);
-    if (cellsToValidate === 0n) return { ...base, valid: true, message: validPreviewMessage(base) };
+    const cellsToValidate = BigInt(rect.width) * BigInt(rect.depth);
     if (!chunks?.getOpaqueColumnTopAtWorld || !chunks?.getBlockAtWorld) {
-      return { ...base, reason: "world-unavailable", message: text("main.blueprint.worldLoading", "World data is still loading.") };
+      return { ...base, reason: "world-unavailable", message: text("main.land.worldLoading", "World data is still loading.") };
     }
     if (cellsToValidate > BigInt(SYNC_VALIDATION_CELL_LIMIT)) {
       const pending = {
         ...base,
         validating: true,
         reason: "validating",
-        message: text("main.blueprint.validating", "Checking ground level and clearance..."),
+        message: text("main.land.validating", "Checking ground level and clearance..."),
       };
       startAsyncValidation(rect, groundY, base, chunks);
       return pending;
@@ -363,14 +328,13 @@ export function createFoundationController({
   }
 
   function validateColumn(x, z, groundY, base, chunks) {
-    if (containsColumn(base.editingFoundation, x, z)) return null;
     const top = Math.trunc(chunks.getOpaqueColumnTopAtWorld(x, z));
     if (top !== groundY) {
       return {
         ...base,
         reason: "not-level",
         invalidCell: { x, y: top, z },
-        message: text("main.blueprint.notLevel", "The entire foundation area must be level."),
+        message: text("main.land.notLevel", "Every block in the selected chunks must be level."),
       };
     }
     const groundBlock = chunks.getBlockAtWorld(x, groundY, z);
@@ -379,7 +343,7 @@ export function createFoundationController({
         ...base,
         reason: "invalid-ground",
         invalidCell: { x, y: groundY, z },
-        message: text("main.blueprint.solidGround", "The foundation requires solid, dry ground."),
+        message: text("main.land.solidGround", "Land registration requires solid, dry ground."),
       };
     }
     for (let y = groundY + 1; y <= groundY + CLEARANCE_BLOCKS; y += 1) {
@@ -389,7 +353,7 @@ export function createFoundationController({
         ...base,
         reason: "obstructed",
         invalidCell: { x, y, z },
-        message: text("main.blueprint.clearArea", "Clear plants, rocks, and trees from the foundation area."),
+        message: text("main.land.clearArea", "Clear plants, rocks, trees, and buildings from the selected chunks."),
       };
     }
     return null;
@@ -402,14 +366,9 @@ export function createFoundationController({
   }
 
   function overlays() {
-    const blueprint = syncSelectedBlueprint();
-    if (!isBlueprintModeActive?.()) return [];
-    const selectedFoundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(selectedFoundation);
+    if (!isConstructionModeActive?.()) return [];
     const [playerX, , playerZ] = getPlayerPosition();
-    const result = (index?.listNear?.(playerX, playerZ, VISIBLE_FOUNDATION_RADIUS) ?? [])
-      .filter((foundation) => !selectedFoundation || !preview || foundation.id !== selectedFoundation.id)
-      .map((foundation) => ({
+    const result = (index?.listNear?.(playerX, playerZ, VISIBLE_FOUNDATION_RADIUS) ?? []).map((foundation) => ({
       shape: "foundation",
       worldX: foundation.minX,
       worldY: foundation.surfaceY + 0.012,
@@ -422,8 +381,8 @@ export function createFoundationController({
       gridColor: [0.82, 0.94, 1.0, 0],
       edgeColor: [0.91, 0.98, 1.0, 0.92],
       glowColor: [0.35, 0.84, 1.0, 0.18],
-      }));
-    if (blueprint && preview) {
+    }));
+    if (preview) {
       const valid = preview.valid;
       result.push({
         shape: "foundation",
@@ -445,103 +404,34 @@ export function createFoundationController({
   }
 
   function snapshot() {
-    const blueprint = syncSelectedBlueprint();
-    const foundation = foundationForBlueprint(blueprint);
-    syncFoundationEditor(foundation);
+    const active = Boolean(isConstructionModeActive?.());
+    const wallet = String(getWalletAddress?.() || "");
+    const ownedFoundations = (index?.list?.() ?? []).filter((foundation) => (
+      foundation.status !== "removed" && (!wallet || foundation.owner === wallet)
+    ));
+    const dimensions = dimensionSnapshot();
     return {
-      active: Boolean(blueprint),
-      blueprint,
-      blueprintId: blueprint?.blueprintId ?? "",
-      blueprintOrdinal: blueprint?.blueprintOrdinal ?? 0,
-      foundation,
-      foundationBound: Boolean(foundation),
-      width,
-      depth,
-      minSize: MIN_SIZE,
-      maxSize: MAX_PROTOCOL_SIZE,
+      active,
+      foundation: null,
+      foundationBound: ownedFoundations.length > 0,
+      ownedFoundationCount: ownedFoundations.length,
+      ...dimensions,
+      availableLandContracts: normalizedContractBalance(getLandContractBalance?.()),
+      minSize: 1,
+      maxSize: MAX_CHUNKS_PER_AXIS,
+      maxContracts: MAX_LAND_CONTRACTS_PER_SITE,
       anchored: Boolean(anchor),
-      editing: Boolean(foundation),
-      dimensionsDirty,
+      editing: false,
+      dimensionsDirty: false,
       submitting,
       preview,
       lastError,
-      step: !blueprint ? 1 : foundation ? 5 : !anchor ? 2 : preview?.valid ? 4 : 3,
+      step: !active ? 1 : !anchor ? 2 : preview?.valid ? 4 : 3,
     };
   }
 
-  function syncSelectedBlueprint() {
-    const selected = getSelectedBlueprint?.();
-    const slot = selected?.slot ?? selected;
-    const blueprintId = normalizeBlueprintId(slot?.blueprintId);
-    if (blueprintId === activeBlueprintId) return blueprintId ? { ...slot, blueprintId } : null;
-    saveBlueprintDraft();
-    activeBlueprintId = blueprintId;
-    const draft = blueprintDrafts.get(blueprintId);
-    width = draft?.width ?? DEFAULT_WIDTH;
-    depth = draft?.depth ?? DEFAULT_DEPTH;
-    hoverHit = null;
-    anchor = null;
-    preview = null;
-    lastError = "";
-    boundFoundationSignature = "";
-    dimensionsDirty = false;
-    cancelValidation();
-    return blueprintId ? { ...slot, blueprintId } : null;
-  }
-
-  function saveBlueprintDraft() {
-    if (!activeBlueprintId) return;
-    blueprintDrafts.set(activeBlueprintId, { width, depth });
-  }
-
-  function syncFoundationEditor(foundation) {
-    if (!foundation) {
-      if (boundFoundationSignature) {
-        boundFoundationSignature = "";
-        dimensionsDirty = false;
-        anchor = null;
-        preview = null;
-        cancelValidation();
-      }
-      return;
-    }
-    const signature = foundationGeometrySignature(foundation);
-    if (signature === boundFoundationSignature) return;
-    boundFoundationSignature = signature;
-    width = clampInt(foundation.width, MIN_SIZE, MAX_PROTOCOL_SIZE);
-    depth = clampInt(foundation.depth, MIN_SIZE, MAX_PROTOCOL_SIZE);
-    dimensionsDirty = false;
-    hoverHit = null;
-    anchor = { hit: foundationHit(foundation), editing: true };
-    cancelValidation();
-    rebuildBoundPreview(foundation, { force: true });
-  }
-
-  function foundationForBlueprint(blueprint = null) {
-    const selected = blueprint ?? selectedBlueprintWithoutSync();
-    if (!selected?.blueprintId) return null;
-    const wallet = String(getWalletAddress?.() || "");
-    return (index?.list?.() ?? []).find((foundation) => (
-      String(foundation.foundationId) === selected.blueprintId
-      && foundation.status !== "removed"
-      && (!wallet || foundation.owner === wallet)
-    )) ?? null;
-  }
-
-  function selectedBlueprintWithoutSync() {
-    if (!activeBlueprintId) return null;
-    const selected = getSelectedBlueprint?.();
-    const slot = selected?.slot ?? selected;
-    return normalizeBlueprintId(slot?.blueprintId) === activeBlueprintId
-      ? { ...slot, blueprintId: activeBlueprintId }
-      : null;
-  }
-
-  function validPreviewMessage(base) {
-    if (!base.editing) return text("main.blueprint.ready", "Flat area ready. Confirm to create the foundation.");
-    return base.changed
-      ? text("main.blueprint.resizeReady", "Foundation size ready. Save to update its protected area.")
-      : text("main.blueprint.foundationSelected", "Foundation selected. Adjust its length or width to edit it.");
+  function validPreviewMessage() {
+    return text("main.land.ready", "Chunk-aligned land is ready. Confirm to consume the required contracts.");
   }
 
   function text(key, fallback, params = {}) {
@@ -552,98 +442,44 @@ export function createFoundationController({
   }
 }
 
-function normalizeBlueprintId(value) {
-  try {
-    const normalized = BigInt(value ?? 0);
-    return normalized > 0n && normalized <= 0xffffffffffffffffn ? normalized.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
-export function footprintForHit(hit, width, depth, playerPosition = [0, 0, 0]) {
+export function footprintForHit(
+  hit,
+  chunksX,
+  chunksZ,
+  playerPosition = [0, 0, 0],
+  chunkSize = LAND_CHUNK_SIZE,
+) {
   const worldX = Math.trunc(Number(hit?.worldX) || 0);
   const worldZ = Math.trunc(Number(hit?.worldZ) || 0);
-  const safeWidth = clampInt(width, MIN_SIZE, MAX_PROTOCOL_SIZE);
-  const safeDepth = clampInt(depth, MIN_SIZE, MAX_PROTOCOL_SIZE);
+  const safeChunkSize = clampInt(chunkSize, 1, 0xffff);
+  const safeChunksX = clampInt(chunksX, 1, MAX_CHUNKS_PER_AXIS);
+  const safeChunksZ = clampInt(chunksZ, 1, MAX_CHUNKS_PER_AXIS);
+  const anchorMinX = Math.floor(worldX / safeChunkSize) * safeChunkSize;
+  const anchorMinZ = Math.floor(worldZ / safeChunkSize) * safeChunkSize;
   const playerX = Number(playerPosition?.[0]) || 0;
   const playerZ = Number(playerPosition?.[2]) || 0;
-  const xDirection = worldX + 0.5 >= playerX ? 1 : -1;
-  const zDirection = worldZ + 0.5 >= playerZ ? 1 : -1;
-  const minX = xDirection > 0 ? worldX : worldX - safeWidth + 1;
-  const minZ = zDirection > 0 ? worldZ : worldZ - safeDepth + 1;
+  const xDirection = anchorMinX + safeChunkSize * 0.5 >= playerX ? 1 : -1;
+  const zDirection = anchorMinZ + safeChunkSize * 0.5 >= playerZ ? 1 : -1;
+  const width = safeChunksX * safeChunkSize;
+  const depth = safeChunksZ * safeChunkSize;
+  const minX = xDirection > 0 ? anchorMinX : anchorMinX - (safeChunksX - 1) * safeChunkSize;
+  const minZ = zDirection > 0 ? anchorMinZ : anchorMinZ - (safeChunksZ - 1) * safeChunkSize;
   return {
     minX,
     minZ,
-    maxX: minX + safeWidth - 1,
-    maxZ: minZ + safeDepth - 1,
-    width: safeWidth,
-    depth: safeDepth,
+    maxX: minX + width - 1,
+    maxZ: minZ + depth - 1,
+    width,
+    depth,
+    chunksX: safeChunksX,
+    chunksZ: safeChunksZ,
   };
 }
 
-function rectForFoundationSize(foundation, width, depth) {
-  const safeWidth = clampInt(width, MIN_SIZE, MAX_PROTOCOL_SIZE);
-  const safeDepth = clampInt(depth, MIN_SIZE, MAX_PROTOCOL_SIZE);
-  const minX = Math.trunc(Number(foundation?.minX) || 0);
-  const minZ = Math.trunc(Number(foundation?.minZ) || 0);
-  return {
-    minX,
-    minZ,
-    maxX: minX + safeWidth - 1,
-    maxZ: minZ + safeDepth - 1,
-    width: safeWidth,
-    depth: safeDepth,
-  };
-}
-
-function foundationHit(foundation) {
-  return {
-    hit: true,
-    worldX: Math.trunc(Number(foundation?.minX) || 0),
-    worldY: Math.trunc(Number(foundation?.surfaceY) || 0) - 1,
-    worldZ: Math.trunc(Number(foundation?.minZ) || 0),
-    faceX: 0,
-    faceY: 1,
-    faceZ: 0,
-  };
-}
-
-function hitWithinFoundation(hit, foundation) {
-  if (!hit?.hit || !foundation) return false;
-  const x = Math.trunc(Number(hit.worldX));
-  const z = Math.trunc(Number(hit.worldZ));
-  return Number.isFinite(x) && Number.isFinite(z) && containsColumn(foundation, x, z);
-}
-
-function containsColumn(rect, x, z) {
-  if (!rect) return false;
-  const minX = Math.trunc(Number(rect.minX));
-  const minZ = Math.trunc(Number(rect.minZ));
-  const width = Math.trunc(Number(rect.width));
-  const depth = Math.trunc(Number(rect.depth));
-  return x >= minX && x < minX + width && z >= minZ && z < minZ + depth;
-}
-
-function addedCellCount(candidate, existing) {
-  const candidateArea = BigInt(candidate.width) * BigInt(candidate.depth);
-  if (!existing) return candidateArea;
-  const existingMaxX = existing.minX + existing.width - 1;
-  const existingMaxZ = existing.minZ + existing.depth - 1;
-  const overlapWidth = Math.max(0, Math.min(candidate.maxX, existingMaxX) - Math.max(candidate.minX, existing.minX) + 1);
-  const overlapDepth = Math.max(0, Math.min(candidate.maxZ, existingMaxZ) - Math.max(candidate.minZ, existing.minZ) + 1);
-  return candidateArea - BigInt(overlapWidth) * BigInt(overlapDepth);
-}
-
-function foundationGeometrySignature(foundation) {
-  return [
-    foundation?.id,
-    foundation?.minX,
-    foundation?.minZ,
-    foundation?.surfaceY,
-    foundation?.width,
-    foundation?.depth,
-  ].join(":");
+function normalizedContractBalance(value) {
+  if (value == null || value === "") return null;
+  const balance = Number(value);
+  return Number.isSafeInteger(balance) && balance >= 0 ? balance : null;
 }
 
 function isTopFace(hit) {

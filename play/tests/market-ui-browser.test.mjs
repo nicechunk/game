@@ -67,9 +67,19 @@ test("market renders chain item icons, mobile views, and transaction progress", 
       }
       await page.locator("#marketButton").click({ force: true });
       await page.waitForSelector("#marketListingGrid .market-loading");
-      assert.equal(await page.locator("#marketListingGrid .market-listing-card").count(), 0, `${viewport.name}: placeholder listings rendered while loading`);
+      assert.equal(await page.locator("#marketListingGrid .market-listing-card").count(), 1, `${viewport.name}: only the real treasury product may render while chain listings load`);
+      assert.equal(
+        await page.locator("#marketListingGrid .market-listing-card").first().getAttribute("data-listing-id"),
+        "treasury-blank-land-contract",
+        `${viewport.name}: the treasury contract must rank first`,
+      );
+      assert.match(await page.locator("#marketSearchMeta").textContent(), /Syncing chain listings/);
+      assert.deepEqual(await page.locator("[data-market-category]").evaluateAll((buttons) => (
+        buttons.map((button) => button.dataset.marketCategory)
+      )), ["all", "contracts", "raw", "building", "equipment", "clothing"]);
       await page.evaluate(() => globalThis.__marketHarness.releaseInitialListingRead());
       await page.waitForSelector('#marketListingGrid canvas[data-smelting-material-id="copper_bloom"]');
+      await page.waitForSelector("#marketListingGrid .market-loading", { state: "detached" });
 
       const presentation = await page.evaluate(() => {
         const body = document.querySelector("#marketBody");
@@ -198,7 +208,11 @@ test("market shows a retryable error instead of placeholder listings", async () 
     await installMarketHarness(page, { failInitialListingRead: true });
     await page.locator("#marketButton").click({ force: true });
     await page.waitForSelector("#marketListingGrid .market-load-error");
-    assert.equal(await page.locator("#marketListingGrid .market-listing-card").count(), 0);
+    assert.equal(await page.locator("#marketListingGrid .market-listing-card").count(), 1);
+    assert.equal(
+      await page.locator("#marketListingGrid .market-listing-card").first().getAttribute("data-listing-id"),
+      "treasury-blank-land-contract",
+    );
     assert.match(await page.locator("#marketListingGrid .market-load-error").textContent(), /RPC HTTP 503/);
     await page.evaluate(() => globalThis.__marketHarness.allowListingReads());
     await page.locator("#marketListingGrid .market-load-error button").click();
@@ -275,7 +289,7 @@ test("market keeps every active chain listing and ignores local fake custody", a
       globalThis.__marketHarness.setLargeListingSet();
       await globalThis.__marketHarness.market.refreshChainListings({ force: true, quiet: true });
     });
-    await page.waitForFunction(() => document.querySelector("#marketSearchMeta")?.textContent.includes("105 listings"));
+    await page.waitForFunction(() => document.querySelector("#marketSearchMeta")?.textContent.includes("106 listings"));
     await page.locator('[data-market-tab="orders"]').click();
     const ownIds = await page.locator("#marketOrdersGrid .market-listing-card").evaluateAll((cards) => (
       cards.map((card) => card.dataset.listingId)
@@ -463,8 +477,10 @@ async function installMarketHarness(page, options = {}) {
     };
     let listingRecords = [chainListing, ownChainListing, blockChainListing];
     let listingReadPlan = [];
-    const operationCalls = { listing: 0, buy: 0, cancel: 0, join: 0, listingReads: 0 };
+    const operationCalls = { listing: 0, buy: 0, cancel: 0, contract: 0, join: 0, listingReads: 0 };
     let joinedMarket = marketJoined;
+    let blankLandContracts = 4;
+    const reservedBlankLandContracts = 1;
     let failNextBuy = false;
     const submissionFailures = { listing: "", buy: "", cancel: "" };
     let failListingReads = Boolean(failInitialListingRead);
@@ -489,8 +505,11 @@ async function installMarketHarness(page, options = {}) {
       },
       fetchMarketUserStateOnChain: async () => joinedMarket ? ({
         owner: "BuyerWalletAddress",
+        marketUser: "BuyerMarketUserAddress",
         activeListingCount: 1,
         maxActiveListings: 50,
+        blankLandContracts,
+        reservedBlankLandContracts,
       }) : null,
       estimateMarketJoinCostOnChain: async () => ({
         available: true,
@@ -528,6 +547,24 @@ async function installMarketHarness(page, options = {}) {
           return { submitted: false, reason };
         }
         return { submitted: true, signature: "MarketBuySignature123456789" };
+      },
+      buyLandContractsOnChain: async ({ quantity }) => {
+        operationCalls.contract += 1;
+        await delayOperation();
+        blankLandContracts += quantity;
+        return {
+          submitted: true,
+          signature: "LandContractPurchaseSignature123456789",
+          quantity,
+          marketUserState: {
+            owner: "BuyerWalletAddress",
+            marketUser: "BuyerMarketUserAddress",
+            activeListingCount: 1,
+            maxActiveListings: 50,
+            blankLandContracts,
+            reservedBlankLandContracts,
+          },
+        };
       },
       cancelMarketListingOnChain: async () => {
         operationCalls.cancel += 1;
@@ -649,6 +686,7 @@ async function installMarketHarness(page, options = {}) {
 }
 
 async function verifyTransactionProgress(page) {
+  await verifyContractPurchaseProgress(page);
   await page.locator('[data-market-tab="sell"]').click();
   await page.locator('[data-market-mobile-view="inventory"]').click();
   await page.locator("#marketInventoryGrid .market-inventory-item").click();
@@ -707,6 +745,54 @@ async function verifyTransactionProgress(page) {
   await page.locator("#marketCreateListing").click();
   await page.waitForTimeout(520);
   assert.match(await page.locator("#marketTradeToastMessage").textContent(), /Listing unavailable/);
+}
+
+async function verifyContractPurchaseProgress(page) {
+  await page.locator('[data-market-tab="browse"]').click();
+  await page.locator('[data-market-mobile-view="listings"]').click();
+  await page.locator('[data-listing-id="treasury-blank-land-contract"] .market-listing-copy').click();
+  await page.waitForSelector("#marketContractQuantity");
+  await page.locator("#marketContractQuantity").fill("3");
+  assert.equal(await page.locator("#marketContractTotal strong").textContent(), "3 NCK");
+  await page.locator('button[data-market-action="buy-contract"]').click();
+  await page.waitForTimeout(60);
+
+  const pending = await page.evaluate(() => {
+    const button = document.querySelector('button[data-market-action="buy-contract"]');
+    return {
+      disabled: button?.disabled,
+      busy: button?.getAttribute("aria-busy"),
+      pendingClass: button?.classList.contains("is-pending"),
+      toastTone: document.querySelector("#marketTradeToast")?.dataset.tone,
+      toastText: document.querySelector("#marketTradeToastMessage")?.textContent,
+      calls: globalThis.__marketHarness.getOperationCalls().contract,
+    };
+  });
+  assert.deepEqual(pending, {
+    disabled: true,
+    busy: "true",
+    pendingClass: true,
+    toastTone: "pending",
+    toastText: "Confirm the treasury contract purchase in your wallet.",
+    calls: 1,
+  });
+  await page.evaluate(() => document.querySelector('button[data-market-action="buy-contract"]')?.click());
+  await page.waitForTimeout(520);
+
+  const complete = await page.evaluate(() => ({
+    disabled: document.querySelector('button[data-market-action="buy-contract"]')?.disabled,
+    busy: document.querySelector('button[data-market-action="buy-contract"]')?.getAttribute("aria-busy"),
+    total: document.querySelector("#marketContractTotal strong")?.textContent,
+    toastTone: document.querySelector("#marketTradeToast")?.dataset.tone,
+    toastText: document.querySelector("#marketTradeToastMessage")?.textContent,
+    calls: globalThis.__marketHarness.getOperationCalls().contract,
+  }));
+  assert.equal(complete.disabled, false);
+  assert.equal(complete.busy, "false");
+  assert.equal(complete.total, "3 NCK");
+  assert.equal(complete.toastTone, "success");
+  assert.match(complete.toastText, /Purchased 3 land contract\(s\)\. Owned: 7\./);
+  assert.equal(complete.calls, 1, "pending contract purchases must ignore repeated clicks");
 }
 
 async function verifyRejectedSubmissionReason(page, action, reason, expectedMessage, cardPrefix = "") {

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isMarketListableSlot } from "../play-market.js";
+import {
+  isMarketListableSlot,
+  normalizeLandContractPurchaseQuantity,
+} from "../play-market.js";
 
-test("market inventory excludes unique Blueprint items", () => {
+test("market inventory excludes retired Blueprint items", () => {
   assert.equal(isMarketListableSlot({ kind: "blueprint", itemId: "blueprint_tool" }), false);
   assert.equal(isMarketListableSlot({
     kind: "forged",
@@ -13,6 +16,14 @@ test("market inventory excludes unique Blueprint items", () => {
     chainIndex: 3,
   }), true);
   assert.equal(isMarketListableSlot({ kind: "resource", pending: true }), false);
+});
+
+test("blank land contract purchases accept only whole quantities from 1 through 4,096", () => {
+  assert.equal(normalizeLandContractPurchaseQuantity(1), 1);
+  assert.equal(normalizeLandContractPurchaseQuantity("4096"), 4096);
+  for (const value of [0, -1, 4097, "1.5", "1e2", "", null]) {
+    assert.equal(normalizeLandContractPurchaseQuantity(value), null, String(value));
+  }
 });
 
 test("market inventory accepts only authoritative unlocked chain custody", () => {
