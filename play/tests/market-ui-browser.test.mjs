@@ -767,7 +767,7 @@ async function verifyContractPurchaseProgress(page) {
   await page.locator('[data-listing-id="treasury-blank-land-contract"] .market-listing-copy').click();
   await page.waitForSelector("#marketContractQuantity");
   await page.locator("#marketContractQuantity").fill("3");
-  assert.equal(await page.locator("#marketContractTotal strong").textContent(), "3 NCK");
+  assert.equal(await page.locator("#marketContractTotal strong").textContent(), "30 NCK");
   await page.evaluate(() => globalThis.__marketHarness.failNextContractRefresh());
   await page.locator('button[data-market-action="buy-contract"]').click();
   await page.waitForTimeout(60);
@@ -804,7 +804,7 @@ async function verifyContractPurchaseProgress(page) {
   }));
   assert.equal(complete.disabled, false);
   assert.equal(complete.busy, "false");
-  assert.equal(complete.total, "3 NCK");
+  assert.equal(complete.total, "30 NCK");
   assert.equal(complete.toastTone, "success");
   assert.match(complete.toastText, /Purchased 3 land contract\(s\)\. Owned: 7\./);
   assert.equal(complete.calls, 1, "pending contract purchases must ignore repeated clicks");
