@@ -1149,7 +1149,7 @@ export function createPlayMarket({
     const price = document.createElement("b");
     price.className = "market-listing-price";
     price.textContent = listing.treasuryProduct
-      ? ui("main.market.contractUnitPrice", "1 NCK / chunk")
+      ? ui("main.market.contractUnitPrice", "10 NCK / chunk")
       : `${listing.price} ${listing.currency}`;
     const quantity = document.createElement("span");
     quantity.className = "market-listing-quantity";
@@ -1313,7 +1313,7 @@ export function createPlayMarket({
     icon.append(marketListingIcon(listing, 82));
     const facts = document.createElement("dl");
     facts.append(
-      detailFact(ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "1 NCK / chunk")),
+      detailFact(ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "10 NCK / chunk")),
       detailFact(ui("main.market.contractCoverage", "Coverage"), ui("main.market.contractCoverageValue", "1 complete 16×16 chunk")),
       detailFact(ui("main.market.contractsOwned", "Contracts Owned"), owned == null ? ui("main.market.balanceLoading", "Loading...") : formatInteger(owned)),
       detailFact(ui("main.market.contractsReserved", "Registration Reserved"), reserved == null ? ui("main.market.balanceLoading", "Loading...") : formatInteger(reserved)),
@@ -1858,7 +1858,7 @@ export function marketListingDetailRows(listing, { translate = fallbackUi } = {}
   if (listing.treasuryProduct || listing.rawListing?.treasuryProduct) {
     return [
       marketDetailRow("issuer", ui("main.market.contractIssuer", "Issuer"), ui("main.market.treasury", "NICECHUNK Treasury")),
-      marketDetailRow("price", ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "1 NCK / chunk")),
+      marketDetailRow("price", ui("main.market.unitPrice", "Unit Price"), ui("main.market.contractUnitPrice", "10 NCK / chunk")),
       marketDetailRow("coverage", ui("main.market.contractCoverage", "Coverage"), ui("main.market.contractCoverageValue", "1 complete 16×16 chunk")),
     ];
   }

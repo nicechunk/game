@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-09cfd7594106448c",
-    "contentHash": "09cfd7594106448c"
+    "version": "play-locale-zh-Hans-1298cde6114172e3",
+    "contentHash": "1298cde6114172e3"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -972,7 +972,7 @@
       "treasury": "NICECHUNK 国库",
       "contractsEyebrow": "国库契约",
       "unitPrice": "单价",
-      "contractUnitPrice": "1 NCK / 区块",
+      "contractUnitPrice": "10 NCK / 区块",
       "contractCoverage": "覆盖范围",
       "contractCoverageValue": "1 个完整的 16×16 区块",
       "contractsOwned": "持有契约",

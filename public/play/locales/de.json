@@ -2,8 +2,8 @@
   "_meta": {
     "language": "de",
     "label": "German",
-    "version": "play-locale-de-bef9005f3ca6ae7f",
-    "contentHash": "bef9005f3ca6ae7f"
+    "version": "play-locale-de-95df01b64001a04b",
+    "contentHash": "95df01b64001a04b"
   },
   "siteFooter": {
     "tagline": "Ein Seed-Voxelwelt-Protokoll auf Solana.",
@@ -972,7 +972,7 @@
       "treasury": "NICECHUNK-Treasury",
       "contractsEyebrow": "TREASURY-VERTRAG",
       "unitPrice": "Stückpreis",
-      "contractUnitPrice": "1 NCK / Chunk",
+      "contractUnitPrice": "10 NCK / Chunk",
       "contractCoverage": "Abdeckung",
       "contractCoverageValue": "1 ganzer 16×16-Chunk",
       "contractsOwned": "Verträge im Besitz",

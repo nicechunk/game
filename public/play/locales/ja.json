@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ja",
     "label": "Japanese",
-    "version": "play-locale-ja-1fbe6e2c51579b5a",
-    "contentHash": "1fbe6e2c51579b5a"
+    "version": "play-locale-ja-554d240383b650db",
+    "contentHash": "554d240383b650db"
   },
   "siteFooter": {
     "tagline": "Solana 上のシード型ボクセルワールドプロトコル。",
@@ -972,7 +972,7 @@
       "treasury": "NICECHUNK Treasury",
       "contractsEyebrow": "TREASURY契約",
       "unitPrice": "単価",
-      "contractUnitPrice": "1 NCK / チャンク",
+      "contractUnitPrice": "10 NCK / チャンク",
       "contractCoverage": "範囲",
       "contractCoverageValue": "16×16の完全なチャンク1個",
       "contractsOwned": "所有契約",

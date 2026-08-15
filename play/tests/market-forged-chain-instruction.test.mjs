@@ -255,7 +255,7 @@ test("Market user decoder exposes available and reserved land-contract balances"
   assert.throws(() => decodeMarketUserState(Buffer.alloc(328)), /expected 64/);
 });
 
-test("treasury land-contract purchases use a fixed 1 NCK price and no Listing PDA", () => {
+test("treasury land-contract purchases use a fixed 10 NCK price and no Listing PDA", () => {
   const buyer = Keypair.generate().publicKey;
   const marketUser = Keypair.generate().publicKey;
   const buyerNckToken = Keypair.generate().publicKey;
@@ -268,7 +268,7 @@ test("treasury land-contract purchases use a fixed 1 NCK price and no Listing PD
     quantity: 7,
   });
 
-  assert.equal(BLANK_LAND_CONTRACT_PRICE_BASE_UNITS, 1_000_000n);
+  assert.equal(BLANK_LAND_CONTRACT_PRICE_BASE_UNITS, 10_000_000n);
   assert.equal(instruction.data.length, 7);
   assert.equal(instruction.data.readUInt8(0), 4, "Game market namespace");
   assert.equal(instruction.data.readUInt8(1), 4, "Treasury contract purchase tag");

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ru",
     "label": "Russian",
-    "version": "play-locale-ru-9e9526fa895cacce",
-    "contentHash": "9e9526fa895cacce"
+    "version": "play-locale-ru-f7039bdb9548f4a8",
+    "contentHash": "f7039bdb9548f4a8"
   },
   "siteFooter": {
     "tagline": "Seeded voxel world protocol on Solana.",
@@ -972,7 +972,7 @@
       "treasury": "Казна NICECHUNK",
       "contractsEyebrow": "ДОГОВОР КАЗНЫ",
       "unitPrice": "Цена за единицу",
-      "contractUnitPrice": "1 NCK / чанк",
+      "contractUnitPrice": "10 NCK / чанк",
       "contractCoverage": "Покрытие",
       "contractCoverageValue": "1 полный чанк 16×16",
       "contractsOwned": "Договоров в наличии",

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "es",
     "label": "Spanish",
-    "version": "play-locale-es-f5acf33bcc77474a",
-    "contentHash": "f5acf33bcc77474a"
+    "version": "play-locale-es-39f43beb705c9e17",
+    "contentHash": "39f43beb705c9e17"
   },
   "siteFooter": {
     "tagline": "Un protocolo de mundo voxel con semillas en Solana.",
@@ -972,7 +972,7 @@
       "treasury": "Tesorería NICECHUNK",
       "contractsEyebrow": "CONTRATO DE TESORERÍA",
       "unitPrice": "Precio unitario",
-      "contractUnitPrice": "1 NCK / chunk",
+      "contractUnitPrice": "10 NCK / chunk",
       "contractCoverage": "Cobertura",
       "contractCoverageValue": "1 chunk completo de 16×16",
       "contractsOwned": "Contratos en posesión",

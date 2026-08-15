@@ -137,7 +137,7 @@ effects rather than copying input presentation values.
 
 Blank land contracts are balances in the owner's market membership PDA, not
 backpack items or player-created listings. The treasury sells each contract for
-exactly `1 NCK`, and one contract covers one full `16 x 16` chunk. The selected
+exactly `10 NCK`, and one contract covers one full `16 x 16` chunk. The selected
 parcel therefore requires `chunksX * chunksZ` contracts. The protocol and
 client both cap one parcel at `4,096` contracts so an accidental dimension
 input cannot schedule an unbounded validation or transaction sequence.

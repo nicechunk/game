@@ -249,7 +249,7 @@ const marketUserUpdatedSlotOffset = 44;
 const marketUserBlankLandContractsOffset = 52;
 const marketUserReservedBlankLandContractsOffset = 56;
 const marketMaxActiveListings = 50;
-export const BLANK_LAND_CONTRACT_PRICE_BASE_UNITS = 1_000_000n;
+export const BLANK_LAND_CONTRACT_PRICE_BASE_UNITS = 10_000_000n;
 export const MAX_LAND_CONTRACT_PURCHASE_QUANTITY = 4_096;
 const marketStateNames = new Map([
   [1, "active"],
