@@ -1217,8 +1217,8 @@
       "foundationTab": "土地",
       "buildingTab": "建築",
       "stepContracts": "土地契約を所有",
-      "stepSize": "チャンク範囲を選択",
-      "stepPlace": "空いた地面を選択",
+      "stepSize": "最初のチャンクを選択",
+      "stepPlace": "反対側の角を選択",
       "stepConfirm": "土地を登録",
       "chunksX": "X チャンク",
       "chunksZ": "Z チャンク",
@@ -1237,22 +1237,17 @@
       "mode": "土地モード",
       "submitting": "登録中...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "固い地面ブロックの上面を選択してください。",
       "invalid": "このチャンク範囲は土地として登録できません。",
-      "chooseGround": "Fで平坦なチャンクの上面を選択してください。",
+      "chooseGround": "地形をタップするか F を押して最初のチャンクを選択します。",
       "submitFailed": "土地の登録に失敗しました。",
       "created": "土地をオンチェーン登録し、契約を{count}枚消費しました。",
-      "worldLoading": "ワールドデータを読み込み中です。",
       "overlap": "この範囲は登録済みの土地と重なっています。",
-      "notLevel": "基礎全体を同じ高さにしてください。",
-      "solidGround": "基礎には固く乾いた地面が必要です。",
-      "clearArea": "範囲内の植物、岩、木を撤去してください。",
-      "ready": "チャンク単位の土地を登録できます。必要な契約の消費を確認してください。",
+      "ready": "チャンク単位の領域を固定しました。現在の地形は変更されません。",
       "syncFailed": "土地PDAの同期に失敗しました: {reason}",
       "stepContractsDetail": "登録するチャンクごとに空白土地契約を1枚購入します。",
-      "stepSizeDetail": "チャンク範囲を設定し、Fで平坦な地面を選択します。",
-      "stepPlaceDetail": "空いている平坦な地面にチャンク単位のホログラムを置きます。",
-      "stepConfirmDetail": "輪郭を確認し、土地をオンチェーン登録します。",
+      "stepSizeDetail": "地形をタップするか F で最初のチャンクを選択します。高低差や水面も選択できます。",
+      "stepPlaceDetail": "プレビューを動かし、反対側の角を選んで範囲を固定します。",
+      "stepConfirmDetail": "チャンク範囲を確認して登録します。現在の地形は変更されません。",
       "exactScale": "正確な1:1ボクセル",
       "codePlaceholder": "NCM3コードを貼り付け",
       "codeAria": "NCM3建築コード",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "建物PDAの同期に失敗しました: {reason}",
       "stepBuildCodeDetail": "NCM3コードを貼り付け、1:1でプレビューして建物を作成します。",
       "coordinateRange": "土地が対応する座標範囲を超えています。",
-      "validating": "地面の高さと空き領域を確認中...",
       "processingBuilding": "NCM3建築を描画スレッド外で処理中...",
       "processing": "処理中...",
       "buildingHashPending": "建物はオンチェーンで確認済みです。確定したマニフェストハッシュを待っています。",
       "contractCountTooLarge": "この土地には契約が多すぎます。",
       "insufficientContracts": "必要な契約は{required}枚、所有は{available}枚です。",
       "marketMembershipRequired": "土地契約を購入・使用する前にマーケットへ参加してください。",
-      "modeOpened": "土地建設モードを開きました。Fでチャンク全体を選択してください。",
+      "modeOpened": "土地モードを開きました。F または地形タップで2つのチャンク角を選択してください。",
       "modeClosed": "土地建設モードを閉じました。",
       "collapseAria": "土地建設を折りたたむ",
-      "expandAria": "土地建設を展開"
+      "expandAria": "土地建設を展開",
+      "chunkDimensions": "チャンク数",
+      "chunkRange": "チャンク範囲",
+      "lockSize": "正確なサイズで固定",
+      "selectTerrain": "選択したいチャンク内の地形を指定してください。",
+      "selectFirst": "地形をタップするか F を押して最初のチャンクを選択します。",
+      "selectCorner": "プレビューを動かし、反対側のチャンク角を選択してください。",
+      "alreadyLocked": "範囲は固定済みです。別の範囲を選ぶ前にクリアしてください。"
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "登録するチャンクごとにTreasuryから契約を1枚購入します。"
             },
             "size": {
-              "title": "チャンク数を設定",
-              "body": "同じ地面高にある完全なチャンクを選びます。"
+              "title": "チャンクの角を選択",
+              "body": "2つのチャンク角を選択します。高低差、水域、自然物は土地登録を妨げません。"
             },
             "place": {
-              "body": "平坦な地面でFを押し、正確な範囲を表示します。",
-              "title": "プレビューを配置"
+              "body": "最初のチャンクで地形をタップするかFを押し、プレビューを動かして反対側でもう一度選択します。",
+              "title": "チャンク範囲を固定"
             },
             "review": {
-              "title": "地形と契約を確認",
-              "body": "空間、Guardian、必要数、所有数を確認します。"
+              "title": "範囲と契約を確認",
+              "body": "座標、寸法、必要契約数、残高を確認します。登録によって地形は変更されません。"
             },
             "bind": {
               "title": "土地を登録",

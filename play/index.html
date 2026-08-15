@@ -83,8 +83,8 @@
       <div class="land-editor" id="foundationEditor">
         <ol>
           <li data-land-step="1"><b>1</b><span data-i18n="main.land.stepContracts">Own land contracts</span></li>
-          <li data-land-step="2"><b>2</b><span data-i18n="main.land.stepSize">Choose chunk area</span></li>
-          <li data-land-step="3"><b>3</b><span data-i18n="main.land.stepPlace">Select clear ground</span></li>
+          <li data-land-step="2"><b>2</b><span data-i18n="main.land.stepSize">Select first Chunk</span></li>
+          <li data-land-step="3"><b>3</b><span data-i18n="main.land.stepPlace">Select opposite corner</span></li>
           <li data-land-step="4"><b>4</b><span data-i18n="main.land.stepConfirm">Register land</span></li>
         </ol>
         <div class="land-dimensions">
@@ -106,13 +106,16 @@
             </span>
           </label>
         </div>
+        <button class="land-lock-size" id="landLockSize" type="button" data-i18n="main.land.lockSize">Lock exact size</button>
+        <p class="land-chunk-range"><span data-i18n="main.land.chunkRange">CHUNK RANGE</span><code id="landChunkRange">-</code></p>
         <dl class="land-contract-summary">
+          <div><dt data-i18n="main.land.chunkDimensions">CHUNKS</dt><dd id="landChunkDimensions">1×1</dd></div>
           <div><dt data-i18n="main.land.blockFootprint">BLOCKS</dt><dd id="landFootprint">16×16</dd></div>
           <div><dt data-i18n="main.land.requiredContracts">REQUIRED</dt><dd id="landRequiredContracts">1</dd></div>
           <div><dt data-i18n="main.land.availableContracts">OWNED</dt><dd id="landAvailableContracts">...</dd></div>
         </dl>
         <button class="land-buy-contracts" id="landBuyContracts" type="button" data-i18n="main.land.buyContracts">Buy blank land contracts</button>
-        <p class="land-status" id="landStatus" role="status" data-i18n="main.land.chooseGround">Select the top of a flat chunk with F.</p>
+        <p class="land-status" id="landStatus" role="status" data-i18n="main.land.chooseGround">Tap terrain or press F to select the first Chunk.</p>
         <div class="land-actions">
           <button id="landCancel" type="button" data-i18n="main.land.cancel">Clear</button>
           <button id="landConfirm" type="button" disabled><i aria-hidden="true"></i><span data-i18n="main.land.confirm">Register Land</span></button>

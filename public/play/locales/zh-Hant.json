@@ -1217,8 +1217,8 @@
       "foundationTab": "土地",
       "buildingTab": "建築",
       "stepContracts": "持有土地契約",
-      "stepSize": "選擇區塊範圍",
-      "stepPlace": "選擇空曠地面",
+      "stepSize": "選擇第一個區塊",
+      "stepPlace": "選擇對角區塊",
       "stepConfirm": "登記土地",
       "chunksX": "X 軸區塊",
       "chunksZ": "Z 軸區塊",
@@ -1237,22 +1237,17 @@
       "mode": "土地模式",
       "submitting": "登記中...",
       "balanceLoading": "載入中...",
-      "topFaceRequired": "請選擇堅固地面的頂面。",
       "invalid": "此區塊範圍無法登記為土地。",
-      "chooseGround": "按 F 選擇平坦區塊的頂面。",
+      "chooseGround": "點按地形或按 F 選擇第一個區塊。",
       "submitFailed": "土地登記失敗。",
       "created": "土地已登記上鏈，並消耗 {count} 份契約。",
-      "worldLoading": "世界資料仍在載入。",
       "overlap": "此區塊範圍與已登記土地重疊。",
-      "notLevel": "選中區塊內的所有方塊必須處於同一高度。",
-      "solidGround": "土地登記需要堅固、乾燥的地面。",
-      "clearArea": "請清除選中區塊內的植物、岩石、樹木與建築。",
-      "ready": "按區塊對齊的土地已就緒，確認後將消耗所需契約。",
+      "ready": "按區塊對齊的土地範圍已鎖定，現有地形不會改變。",
       "syncFailed": "土地 PDA 同步失敗：{reason}",
       "stepContractsDetail": "每登記一個區塊，需要購買一份空白土地契約。",
-      "stepSizeDetail": "設定區塊範圍，然後按 F 選擇平坦地面。",
-      "stepPlaceDetail": "將按區塊對齊的全息範圍放在空曠、水平的地面上。",
-      "stepConfirmDetail": "檢查範圍並將土地登記上鏈。",
+      "stepSizeDetail": "點按地形或按 F 選擇第一個區塊，高低差與水域均可選擇。",
+      "stepPlaceDetail": "移動預覽範圍，再選擇對角區塊完成鎖定。",
+      "stepConfirmDetail": "確認區塊範圍後登記，現有地形保持不變。",
       "exactScale": "精確 1:1 體素",
       "codePlaceholder": "貼上 NCM3 程式碼",
       "codeAria": "NCM3 建築程式碼",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "建築 PDA 同步失敗：{reason}",
       "stepBuildCodeDetail": "貼上 NCM3 程式碼，以 1:1 比例預覽後建立建築。",
       "coordinateRange": "土地超出支援的世界座標範圍。",
-      "validating": "正在檢查地面高度與淨空...",
       "processingBuilding": "正在繪圖執行緒之外處理 NCM3 建築...",
       "processing": "處理中...",
       "buildingHashPending": "建築已在鏈上確認，正在等待最終清單雜湊。",
       "contractCountTooLarge": "此土地範圍需要的契約過多。",
       "insufficientContracts": "需要 {required} 份契約，但目前持有 {available} 份。",
       "marketMembershipRequired": "購買或使用土地契約前，請先加入市場。",
-      "modeOpened": "土地建造模式已開啟，按 F 選擇完整區塊。",
+      "modeOpened": "土地模式已開啟，請按 F 或點按地形選擇兩個區塊角點。",
       "modeClosed": "土地建造模式已關閉。",
       "collapseAria": "折疊土地契約面板",
-      "expandAria": "展開土地契約面板"
+      "expandAria": "展開土地契約面板",
+      "chunkDimensions": "區塊數",
+      "chunkRange": "區塊範圍",
+      "lockSize": "鎖定精確尺寸",
+      "selectTerrain": "請指向要選擇區塊內的地形。",
+      "selectFirst": "點按地形或按 F 選擇第一個區塊。",
+      "selectCorner": "移動預覽範圍，再選擇對角區塊以鎖定。",
+      "alreadyLocked": "選區已鎖定，請先清除再選擇其他範圍。"
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "計畫登記幾個區塊，就從國庫購買幾份空白土地契約。"
             },
             "size": {
-              "title": "設定區塊範圍",
-              "body": "只能選擇完整區塊，範圍內所有地面必須處於同一高度。"
+              "title": "選擇區塊角點",
+              "body": "選擇兩個區塊角點，高低差、水域與自然物都不會阻止土地登記。"
             },
             "place": {
-              "body": "在平坦地面按 F，預覽精確對齊區塊的土地範圍。",
-              "title": "放置預覽"
+              "body": "在第一個區塊點按地形或按 F，移動預覽後在對角區塊再次選擇。",
+              "title": "鎖定區塊範圍"
             },
             "review": {
-              "title": "檢查地形與契約",
-              "body": "檢查淨空、所需契約及目前持有數量。"
+              "title": "確認範圍與契約",
+              "body": "確認區塊座標、尺寸、所需契約與餘額；登記不會改變現有地形。"
             },
             "bind": {
               "title": "登記土地",

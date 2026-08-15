@@ -11,9 +11,6 @@ export function createPlayLandConstruction({
   isConstructionModeActive = () => false,
   setConstructionModeActive = () => {},
   getLandContractBalance = () => null,
-  isBlockingBlock = () => false,
-  isFluidBlock = () => false,
-  blockAirId = 0,
   submitFoundation = async () => ({ submitted: false, reason: "chain-unavailable" }),
   refreshFoundations = async () => ({ ok: false }),
   refreshLandContracts = async () => null,
@@ -34,9 +31,6 @@ export function createPlayLandConstruction({
     isConstructionModeActive: () => isConstructionModeActive()
       && buildingController?.mode?.() !== "building",
     getLandContractBalance,
-    isBlockingBlock,
-    isFluidBlock,
-    blockAirId,
     submitFoundation,
     refreshFoundations,
     refreshLandContracts,
@@ -59,7 +53,7 @@ export function createPlayLandConstruction({
     }
     render({ force: true });
     onStatus(next
-      ? text("main.land.modeOpened", "Land construction mode opened. Select whole chunks with F.")
+      ? text("main.land.modeOpened", "Land mode opened. Select two Chunk corners with F or by tapping terrain.")
       : text("main.land.modeClosed", "Land construction mode closed."));
     return next;
   };

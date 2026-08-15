@@ -1681,10 +1681,65 @@ body.first-person-camera::after {
   font-size: 0.72rem;
 }
 
+.land-lock-size {
+  position: relative;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 6px;
+  border: 1px solid rgba(129, 216, 255, 0.31);
+  border-radius: 7px;
+  color: #dff8ff;
+  background: rgba(24, 101, 141, 0.38);
+  cursor: pointer;
+  font: 900 0.58rem/1 "Trebuchet MS", sans-serif;
+  letter-spacing: 0.045em;
+}
+
+.land-lock-size:hover:not(:disabled) {
+  border-color: rgba(181, 238, 255, 0.68);
+  background: rgba(33, 132, 181, 0.52);
+}
+
+.land-lock-size:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.land-chunk-range {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 7px 0 0;
+  padding: 6px 7px;
+  border: 1px solid rgba(129, 216, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(3, 29, 45, 0.42);
+}
+
+.land-chunk-range span {
+  color: rgba(171, 220, 238, 0.72);
+  font: 850 0.46rem/1 "Trebuchet MS", sans-serif;
+  letter-spacing: 0.06em;
+}
+
+.land-chunk-range code {
+  min-width: 0;
+  overflow: hidden;
+  color: #effcff;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 900 0.55rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 .land-contract-summary {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   margin: 8px 0 0;
 }
@@ -2160,6 +2215,7 @@ body.first-person-camera::after {
 
   .land-guide-collapse,
   .land-guide-close,
+  .land-lock-size,
   .land-buy-contracts,
   .land-actions button,
   .land-mode-switch button,

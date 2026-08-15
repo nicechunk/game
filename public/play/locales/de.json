@@ -1217,8 +1217,8 @@
       "foundationTab": "LAND",
       "buildingTab": "GEBÄUDE",
       "stepContracts": "Landverträge besitzen",
-      "stepSize": "Chunk-Fläche wählen",
-      "stepPlace": "Freien Boden wählen",
+      "stepSize": "Ersten Chunk wählen",
+      "stepPlace": "Gegenecke wählen",
       "stepConfirm": "Land registrieren",
       "chunksX": "CHUNKS X",
       "chunksZ": "CHUNKS Z",
@@ -1237,22 +1237,17 @@
       "mode": "LANDMODUS",
       "submitting": "Registrierung...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "Wähle die Oberseite eines festen Bodenblocks.",
-      "invalid": "Diese Chunk-Fläche kann nicht als Land registriert werden.",
-      "chooseGround": "Wähle mit F die Oberseite eines flachen Chunks.",
+      "invalid": "Dieser Chunk-Bereich kann nicht als Land registriert werden.",
+      "chooseGround": "Tippe auf Gelände oder drücke F, um den ersten Chunk zu wählen.",
       "submitFailed": "Landregistrierung fehlgeschlagen.",
       "created": "Land on-chain registriert und {count} Vertrag/Verträge verbraucht.",
-      "worldLoading": "Die Weltdaten werden noch geladen.",
-      "overlap": "Diese Chunk-Fläche überschneidet sich mit registriertem Land.",
-      "notLevel": "Der gesamte Fundamentbereich muss eben sein.",
-      "solidGround": "Das Fundament benötigt festen, trockenen Boden.",
-      "clearArea": "Entferne Pflanzen, Felsen und Bäume aus dem Bereich.",
-      "ready": "Chunk-genaues Land ist bereit. Bestätige den Verbrauch der benötigten Verträge.",
+      "overlap": "Dieser Bereich überschneidet sich mit registriertem Land.",
+      "ready": "Das Chunk-genaue Gebiet ist gesperrt. Das vorhandene Gelände bleibt unverändert.",
       "syncFailed": "Land-PDA-Synchronisierung fehlgeschlagen: {reason}",
       "stepContractsDetail": "Kaufe für jeden zu registrierenden Chunk einen leeren Landvertrag.",
-      "stepSizeDetail": "Lege die Chunk-Fläche fest und wähle dann mit F ebenen Boden.",
-      "stepPlaceDetail": "Platziere das Chunk-genaue Hologramm auf freiem, ebenem Boden.",
-      "stepConfirmDetail": "Prüfe den Umriss und registriere das Land on-chain.",
+      "stepSizeDetail": "Tippe auf Gelände oder drücke F für den ersten Chunk. Höhenunterschiede und Wasser sind erlaubt.",
+      "stepPlaceDetail": "Bewege die Vorschau und wähle die Gegenecke, um den Bereich zu sperren.",
+      "stepConfirmDetail": "Prüfe den Chunk-Bereich und registriere ihn. Das Gelände bleibt unverändert.",
       "exactScale": "EXAKTE 1:1-VOXEL",
       "codePlaceholder": "NCM3-Code einfügen",
       "codeAria": "NCM3-Gebäudecode",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "Gebäude-PDA-Synchronisierung fehlgeschlagen: {reason}",
       "stepBuildCodeDetail": "Füge NCM3-Code ein, prüfe ihn im Maßstab 1:1 und erstelle das Gebäude.",
       "coordinateRange": "Das Land überschreitet den unterstützten Koordinatenbereich.",
-      "validating": "Bodenniveau und Freiraum werden geprüft...",
       "processingBuilding": "Das NCM3-Gebäude wird außerhalb des Render-Threads verarbeitet...",
       "processing": "Verarbeitung...",
       "buildingHashPending": "Das Gebäude ist on-chain bestätigt; der endgültige Manifest-Hash steht noch aus.",
       "contractCountTooLarge": "Diese Landfläche benötigt zu viele Verträge.",
       "insufficientContracts": "Du benötigst {required} Verträge, besitzt aber {available}.",
       "marketMembershipRequired": "Tritt dem Markt bei, bevor du Landverträge kaufst oder nutzt.",
-      "modeOpened": "Grundstücksbaumodus geöffnet. Wähle mit F ganze Chunks.",
+      "modeOpened": "Landmodus geöffnet. Wähle zwei Chunk-Ecken mit F oder per Tippen.",
       "modeClosed": "Grundstücksbaumodus geschlossen.",
       "collapseAria": "Landbau einklappen",
-      "expandAria": "Landbau ausklappen"
+      "expandAria": "Landbau ausklappen",
+      "chunkDimensions": "CHUNKS",
+      "chunkRange": "CHUNK-BEREICH",
+      "lockSize": "Exakte Größe sperren",
+      "selectTerrain": "Ziele auf Gelände im gewünschten Chunk.",
+      "selectFirst": "Tippe auf Gelände oder drücke F, um den ersten Chunk zu wählen.",
+      "selectCorner": "Bewege die Vorschau und wähle dann die gegenüberliegende Chunk-Ecke.",
+      "alreadyLocked": "Der Bereich ist gesperrt. Lösche ihn vor einer neuen Auswahl."
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "Kaufe für jeden geplanten Chunk einen leeren Vertrag von der Treasury."
             },
             "size": {
-              "title": "Chunk-Maße setzen",
-              "body": "Wähle ganze Chunks auf derselben Bodenhöhe."
+              "title": "Chunk-Ecken wählen",
+              "body": "Wähle zwei Chunk-Ecken. Höhen, Wasser und natürliche Objekte verhindern die Registrierung nicht."
             },
             "place": {
-              "body": "Drücke F auf ebenem Boden für die exakte Chunk-Fläche.",
-              "title": "Vorschau platzieren"
+              "body": "Tippe auf Gelände oder drücke F für den ersten Chunk, bewege die Vorschau und wiederhole dies an der Gegenecke.",
+              "title": "Chunk-Bereich sperren"
             },
             "review": {
-              "title": "Gelände und Verträge prüfen",
-              "body": "Prüfe Freiraum, Guardian-Abdeckung, Bedarf und Besitz."
+              "title": "Bereich und Verträge prüfen",
+              "body": "Prüfe Koordinaten, Maße, benötigte Verträge und Guthaben. Die Registrierung verändert das Gelände nicht."
             },
             "bind": {
               "title": "Land registrieren",

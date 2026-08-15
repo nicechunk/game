@@ -1217,8 +1217,8 @@
       "foundationTab": "토지",
       "buildingTab": "건물",
       "stepContracts": "토지 계약 보유",
-      "stepSize": "청크 범위 선택",
-      "stepPlace": "빈 지면 선택",
+      "stepSize": "첫 청크 선택",
+      "stepPlace": "반대쪽 모서리 선택",
       "stepConfirm": "토지 등록",
       "chunksX": "X 청크",
       "chunksZ": "Z 청크",
@@ -1237,22 +1237,17 @@
       "mode": "토지 모드",
       "submitting": "등록 중...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "단단한 지면 블록의 윗면을 선택하세요.",
       "invalid": "이 청크 범위는 토지로 등록할 수 없습니다.",
-      "chooseGround": "F로 평평한 청크의 윗면을 선택하세요.",
+      "chooseGround": "지형을 탭하거나 F를 눌러 첫 청크를 선택하세요.",
       "submitFailed": "토지 등록에 실패했습니다.",
       "created": "토지를 온체인에 등록하고 계약 {count}개를 사용했습니다.",
-      "worldLoading": "월드 데이터를 불러오는 중입니다.",
       "overlap": "이 범위는 등록된 토지와 겹칩니다.",
-      "notLevel": "기초 전체가 같은 높이여야 합니다.",
-      "solidGround": "기초에는 단단하고 마른 지면이 필요합니다.",
-      "clearArea": "영역의 식물, 바위, 나무를 제거하세요.",
-      "ready": "청크에 맞춘 토지가 준비되었습니다. 필요한 계약 사용을 확인하세요.",
+      "ready": "청크 경계에 맞춘 영역이 잠겼습니다. 기존 지형은 변경되지 않습니다.",
       "syncFailed": "토지 PDA 동기화 실패: {reason}",
       "stepContractsDetail": "등록할 청크마다 빈 토지 계약 1개를 구매하세요.",
-      "stepSizeDetail": "청크 범위를 설정한 뒤 F로 평평한 지면을 선택하세요.",
-      "stepPlaceDetail": "비어 있고 평평한 지면에 청크 단위 홀로그램을 배치하세요.",
-      "stepConfirmDetail": "윤곽을 확인하고 토지를 온체인에 등록하세요.",
+      "stepSizeDetail": "지형을 탭하거나 F로 첫 청크를 선택하세요. 높낮이와 물은 제한하지 않습니다.",
+      "stepPlaceDetail": "미리보기를 옮기고 반대쪽 모서리를 선택해 영역을 잠그세요.",
+      "stepConfirmDetail": "청크 범위를 확인하고 등록하세요. 기존 지형은 그대로 유지됩니다.",
       "exactScale": "정확한 1:1 복셀",
       "codePlaceholder": "NCM3 코드 붙여넣기",
       "codeAria": "NCM3 건물 코드",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "건물 PDA 동기화 실패: {reason}",
       "stepBuildCodeDetail": "NCM3 코드를 붙여넣고 1:1로 미리 본 뒤 건물을 생성하세요.",
       "coordinateRange": "토지가 지원되는 좌표 범위를 벗어났습니다.",
-      "validating": "지면 높이와 빈 공간을 확인 중...",
       "processingBuilding": "렌더링 스레드 밖에서 NCM3 건물을 처리 중...",
       "processing": "처리 중...",
       "buildingHashPending": "건물이 온체인에서 확인되었습니다. 최종 매니페스트 해시를 기다리는 중입니다.",
       "contractCountTooLarge": "이 토지에는 너무 많은 계약이 필요합니다.",
       "insufficientContracts": "계약 {required}개가 필요하지만 {available}개를 보유하고 있습니다.",
       "marketMembershipRequired": "토지 계약을 구매하거나 사용하기 전에 시장에 가입하세요.",
-      "modeOpened": "토지 건설 모드를 열었습니다. F로 전체 청크를 선택하세요.",
+      "modeOpened": "토지 모드가 열렸습니다. F 또는 지형 탭으로 두 청크 모서리를 선택하세요.",
       "modeClosed": "토지 건설 모드를 닫았습니다.",
       "collapseAria": "토지 건설 패널 접기",
-      "expandAria": "토지 건설 패널 펼치기"
+      "expandAria": "토지 건설 패널 펼치기",
+      "chunkDimensions": "청크",
+      "chunkRange": "청크 범위",
+      "lockSize": "정확한 크기로 잠금",
+      "selectTerrain": "선택할 청크 안의 지형을 가리키세요.",
+      "selectFirst": "지형을 탭하거나 F를 눌러 첫 청크를 선택하세요.",
+      "selectCorner": "미리보기를 옮긴 뒤 반대쪽 청크 모서리를 선택하세요.",
+      "alreadyLocked": "영역이 잠겼습니다. 다른 영역을 선택하려면 먼저 지우세요."
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "등록할 청크마다 Treasury에서 계약 1개를 구매하세요."
             },
             "size": {
-              "title": "청크 크기 설정",
-              "body": "같은 지면 높이의 전체 청크를 선택하세요."
+              "title": "청크 모서리 선택",
+              "body": "두 청크 모서리를 선택하세요. 높낮이, 물, 자연물은 토지 등록을 막지 않습니다."
             },
             "place": {
-              "body": "평평한 지면에서 F를 눌러 정확한 범위를 확인하세요.",
-              "title": "미리보기 배치"
+              "body": "첫 청크에서 지형을 탭하거나 F를 누르고, 미리보기를 옮긴 뒤 반대쪽에서 다시 선택하세요.",
+              "title": "청크 범위 잠금"
             },
             "review": {
-              "title": "지형과 계약 확인",
-              "body": "빈 공간, Guardian, 필요 계약 수와 보유량을 확인하세요."
+              "title": "범위와 계약 확인",
+              "body": "좌표, 크기, 필요한 계약 수와 잔액을 확인하세요. 등록해도 지형은 바뀌지 않습니다."
             },
             "bind": {
               "title": "토지 등록",

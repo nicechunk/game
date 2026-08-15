@@ -1217,8 +1217,8 @@
       "foundationTab": "TIERRA",
       "buildingTab": "EDIFICIO",
       "stepContracts": "Tener contratos de tierra",
-      "stepSize": "Elegir área de chunks",
-      "stepPlace": "Elegir terreno libre",
+      "stepSize": "Seleccionar primer chunk",
+      "stepPlace": "Seleccionar esquina opuesta",
       "stepConfirm": "Registrar tierra",
       "chunksX": "CHUNKS X",
       "chunksZ": "CHUNKS Z",
@@ -1237,22 +1237,17 @@
       "mode": "MODO TIERRA",
       "submitting": "Registrando...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "Selecciona la cara superior de un bloque de suelo sólido.",
-      "invalid": "Esta área de chunks no puede registrarse como tierra.",
-      "chooseGround": "Selecciona con F la parte superior de un chunk plano.",
+      "invalid": "Esta área de chunks no puede registrarse como terreno.",
+      "chooseGround": "Toca el terreno o pulsa F para seleccionar el primer chunk.",
       "submitFailed": "Error al registrar la tierra.",
       "created": "Tierra registrada en cadena; se consumieron {count} contrato(s).",
-      "worldLoading": "Los datos del mundo aún se están cargando.",
-      "overlap": "Esta área se superpone con tierra registrada.",
-      "notLevel": "Toda la zona del cimiento debe estar nivelada.",
-      "solidGround": "El cimiento requiere terreno sólido y seco.",
-      "clearArea": "Retira plantas, rocas y árboles de la zona del cimiento.",
-      "ready": "La tierra alineada a chunks está lista. Confirma para consumir los contratos.",
+      "overlap": "Esta área se superpone con un terreno registrado.",
+      "ready": "El territorio alineado a chunks está fijado. El terreno existente no cambiará.",
       "syncFailed": "Error al sincronizar el PDA de tierra: {reason}",
       "stepContractsDetail": "Compra un contrato en blanco por cada chunk que quieras registrar.",
-      "stepSizeDetail": "Define la huella en chunks y selecciona terreno plano con F.",
-      "stepPlaceDetail": "Coloca el holograma alineado a chunks sobre terreno libre y nivelado.",
-      "stepConfirmDetail": "Revisa el contorno y registra la tierra en cadena.",
+      "stepSizeDetail": "Toca el terreno o pulsa F para elegir el primer chunk. Se permiten desniveles y agua.",
+      "stepPlaceDetail": "Mueve la vista previa y elige la esquina opuesta para fijar el área.",
+      "stepConfirmDetail": "Revisa el rango de chunks y regístralo. El terreno existente no cambia.",
       "exactScale": "VÓXELES EXACTOS 1:1",
       "codePlaceholder": "Pega el código NCM3",
       "codeAria": "Código de edificio NCM3",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "Error al sincronizar el PDA del edificio: {reason}",
       "stepBuildCodeDetail": "Pega el código NCM3, previsualízalo a escala 1:1 y crea el edificio.",
       "coordinateRange": "La tierra supera el rango de coordenadas admitido.",
-      "validating": "Comprobando nivel y espacio libre...",
       "processingBuilding": "Procesando el edificio NCM3 fuera del hilo de renderizado...",
       "processing": "Procesando...",
       "buildingHashPending": "El edificio está confirmado en cadena; esperando el hash final del manifiesto.",
       "contractCountTooLarge": "Esta superficie requiere demasiados contratos.",
       "insufficientContracts": "Necesitas {required} contratos y tienes {available}.",
       "marketMembershipRequired": "Únete al mercado antes de comprar o usar contratos de tierra.",
-      "modeOpened": "Modo tierra abierto. Selecciona chunks completos con F.",
+      "modeOpened": "Modo de terreno abierto. Selecciona dos esquinas con F o tocando el terreno.",
       "modeClosed": "Modo tierra cerrado.",
       "collapseAria": "Contraer construcción de terreno",
-      "expandAria": "Expandir construcción de terreno"
+      "expandAria": "Expandir construcción de terreno",
+      "chunkDimensions": "CHUNKS",
+      "chunkRange": "RANGO DE CHUNKS",
+      "lockSize": "Fijar tamaño exacto",
+      "selectTerrain": "Apunta a cualquier terreno dentro del chunk que quieras seleccionar.",
+      "selectFirst": "Toca el terreno o pulsa F para seleccionar el primer chunk.",
+      "selectCorner": "Mueve la vista previa y selecciona la esquina opuesta del chunk.",
+      "alreadyLocked": "El área está fijada. Bórrala antes de seleccionar otra."
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "Compra a la tesorería un contrato por cada chunk que quieras registrar."
             },
             "size": {
-              "title": "Define los chunks",
-              "body": "Elige chunks completos con el mismo nivel de suelo."
+              "title": "Selecciona las esquinas",
+              "body": "Elige dos esquinas de chunks. El desnivel, el agua y los objetos naturales no impiden el registro."
             },
             "place": {
-              "body": "Pulsa F sobre terreno plano para ver el área exacta.",
-              "title": "Coloca la vista previa"
+              "body": "Toca el terreno o pulsa F para el primer chunk, mueve la vista previa y repite en la esquina opuesta.",
+              "title": "Fija el rango de chunks"
             },
             "review": {
-              "title": "Revisa terreno y contratos",
-              "body": "Comprueba espacio, Guardian, contratos necesarios y saldo."
+              "title": "Revisa rango y contratos",
+              "body": "Comprueba coordenadas, dimensiones, contratos necesarios y saldo. Registrar no modifica el terreno."
             },
             "bind": {
               "title": "Registra la tierra",

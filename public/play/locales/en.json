@@ -1217,8 +1217,8 @@
       "foundationTab": "LAND",
       "buildingTab": "BUILDING",
       "stepContracts": "Own land contracts",
-      "stepSize": "Choose chunk area",
-      "stepPlace": "Select clear ground",
+      "stepSize": "Select first Chunk",
+      "stepPlace": "Select opposite corner",
       "stepConfirm": "Register land",
       "chunksX": "CHUNKS X",
       "chunksZ": "CHUNKS Z",
@@ -1237,22 +1237,17 @@
       "mode": "LAND MODE",
       "submitting": "Registering...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "Select the top face of solid ground.",
-      "invalid": "This chunk area cannot be registered as land.",
-      "chooseGround": "Select the top of a flat chunk with F.",
+      "invalid": "This Chunk area cannot be registered as land.",
+      "chooseGround": "Tap terrain or press F to select the first Chunk.",
       "submitFailed": "Land registration failed.",
       "created": "Land registered on chain and {count} contract(s) consumed.",
-      "worldLoading": "World data is still loading.",
-      "overlap": "This chunk area overlaps registered land.",
-      "notLevel": "Every block in the selected chunks must be level.",
-      "solidGround": "Land registration requires solid, dry ground.",
-      "clearArea": "Clear plants, rocks, trees, and buildings from the selected chunks.",
-      "ready": "Chunk-aligned land is ready. Confirm to consume the required contracts.",
+      "overlap": "This Chunk area overlaps registered land.",
+      "ready": "Chunk-aligned territory is locked. Existing terrain will remain unchanged.",
       "syncFailed": "Land PDA sync failed: {reason}",
       "stepContractsDetail": "Buy one blank land contract for every chunk you want to register.",
-      "stepSizeDetail": "Set the chunk footprint, then select flat ground with F.",
-      "stepPlaceDetail": "Place the chunk-aligned hologram on clear, level ground.",
-      "stepConfirmDetail": "Review the outline and register the land on chain.",
+      "stepSizeDetail": "Tap terrain or press F to select the first Chunk. Any elevation or water is allowed.",
+      "stepPlaceDetail": "Move the preview, then select the opposite Chunk corner to lock the area.",
+      "stepConfirmDetail": "Review the Chunk range and register it. Existing terrain remains unchanged.",
       "exactScale": "EXACT 1:1 VOXELS",
       "codePlaceholder": "Paste NCM3 code",
       "codeAria": "NCM3 building code",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "Building PDA sync failed: {reason}",
       "stepBuildCodeDetail": "Paste NCM3 code, preview it at 1:1 scale, then create the building.",
       "coordinateRange": "The land exceeds the supported world coordinate range.",
-      "validating": "Checking ground level and clearance...",
       "processingBuilding": "Processing the NCM3 building off the render thread...",
       "processing": "Processing...",
       "buildingHashPending": "Building confirmed on chain; waiting for its finalized manifest hash.",
       "contractCountTooLarge": "This land area requires too many contracts.",
       "insufficientContracts": "You need {required} contracts but own {available}.",
       "marketMembershipRequired": "Join the market before buying or using land contracts.",
-      "modeOpened": "Land construction mode opened. Select whole chunks with F.",
+      "modeOpened": "Land mode opened. Select two Chunk corners with F or by tapping terrain.",
       "modeClosed": "Land construction mode closed.",
       "collapseAria": "Collapse land construction",
-      "expandAria": "Expand land construction"
+      "expandAria": "Expand land construction",
+      "chunkDimensions": "CHUNKS",
+      "chunkRange": "CHUNK RANGE",
+      "lockSize": "Lock exact size",
+      "selectTerrain": "Point at terrain inside the Chunk you want to select.",
+      "selectFirst": "Tap terrain or press F to select the first Chunk.",
+      "selectCorner": "Move the preview, then select the opposite Chunk corner.",
+      "alreadyLocked": "The area is locked. Clear it before selecting another area."
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "Buy one blank land contract from the treasury for every chunk you plan to register."
             },
             "size": {
-              "title": "Set chunk dimensions",
-              "body": "Choose whole chunks. Every selected block column must share one ground level."
+              "title": "Select Chunk corners",
+              "body": "Choose two Chunk corners. Elevation, water, and natural objects do not block registration."
             },
             "place": {
-              "body": "Press F on flat ground to preview the exact chunk-aligned area.",
-              "title": "Place the preview"
+              "body": "Tap terrain or press F for the first Chunk, move the preview, then repeat for the opposite corner.",
+              "title": "Lock the Chunk range"
             },
             "review": {
-              "title": "Review terrain and contracts",
-              "body": "Check clearance, required contracts, and your current balance."
+              "title": "Review range and contracts",
+              "body": "Check the Chunk coordinates, dimensions, required contracts, and balance. Registration does not alter terrain."
             },
             "bind": {
               "title": "Register the land",

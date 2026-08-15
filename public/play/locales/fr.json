@@ -1217,8 +1217,8 @@
       "foundationTab": "TERRAIN",
       "buildingTab": "BÂTIMENT",
       "stepContracts": "Posséder des contrats",
-      "stepSize": "Choisir la zone de chunks",
-      "stepPlace": "Choisir un sol dégagé",
+      "stepSize": "Choisir le premier chunk",
+      "stepPlace": "Choisir le coin opposé",
       "stepConfirm": "Enregistrer le terrain",
       "chunksX": "CHUNKS X",
       "chunksZ": "CHUNKS Z",
@@ -1237,22 +1237,17 @@
       "mode": "MODE TERRAIN",
       "submitting": "Enregistrement...",
       "balanceLoading": "Loading...",
-      "topFaceRequired": "Sélectionnez la face supérieure d'un bloc de sol solide.",
       "invalid": "Cette zone de chunks ne peut pas être enregistrée.",
-      "chooseGround": "Sélectionnez avec F le dessus d’un chunk plat.",
+      "chooseGround": "Touchez le terrain ou appuyez sur F pour choisir le premier chunk.",
       "submitFailed": "Échec de l’enregistrement du terrain.",
       "created": "Terrain enregistré sur la chaîne et {count} contrat(s) consommé(s).",
-      "worldLoading": "Les données du monde sont encore en chargement.",
       "overlap": "Cette zone chevauche un terrain enregistré.",
-      "notLevel": "Toute la zone des fondations doit être plane.",
-      "solidGround": "Les fondations exigent un sol solide et sec.",
-      "clearArea": "Retirez plantes, rochers et arbres de la zone.",
-      "ready": "Le terrain aligné sur les chunks est prêt. Confirmez pour consommer les contrats.",
+      "ready": "Le territoire aligné sur les chunks est verrouillé. Le terrain existant reste inchangé.",
       "syncFailed": "Échec de synchronisation du PDA du terrain : {reason}",
       "stepContractsDetail": "Achetez un contrat vierge pour chaque chunk à enregistrer.",
-      "stepSizeDetail": "Définissez l’emprise en chunks, puis choisissez un sol plat avec F.",
-      "stepPlaceDetail": "Placez l’hologramme aligné sur les chunks sur un sol libre et plat.",
-      "stepConfirmDetail": "Vérifiez le contour et enregistrez le terrain sur la chaîne.",
+      "stepSizeDetail": "Touchez le terrain ou appuyez sur F pour choisir le premier chunk. Relief et eau sont autorisés.",
+      "stepPlaceDetail": "Déplacez l’aperçu puis choisissez le coin opposé pour verrouiller la zone.",
+      "stepConfirmDetail": "Vérifiez la plage de chunks et enregistrez-la. Le terrain reste inchangé.",
       "exactScale": "VOXELS EXACTS 1:1",
       "codePlaceholder": "Collez le code NCM3",
       "codeAria": "Code de bâtiment NCM3",
@@ -1277,17 +1272,23 @@
       "buildingSyncFailed": "Échec de synchronisation du PDA du bâtiment : {reason}",
       "stepBuildCodeDetail": "Collez le code NCM3, prévisualisez-le à l’échelle 1:1, puis créez le bâtiment.",
       "coordinateRange": "Le terrain dépasse la plage de coordonnées prise en charge.",
-      "validating": "Vérification du niveau et de l'espace libre...",
       "processingBuilding": "Traitement du bâtiment NCM3 hors du thread de rendu...",
       "processing": "Traitement...",
       "buildingHashPending": "Le bâtiment est confirmé sur la chaîne ; attente du hachage final du manifeste.",
       "contractCountTooLarge": "Cette zone exige trop de contrats.",
       "insufficientContracts": "Il faut {required} contrats, vous en possédez {available}.",
       "marketMembershipRequired": "Rejoignez le marché avant d’acheter ou d’utiliser des contrats fonciers.",
-      "modeOpened": "Mode terrain ouvert. Sélectionnez des chunks entiers avec F.",
+      "modeOpened": "Mode terrain ouvert. Choisissez deux coins avec F ou en touchant le terrain.",
       "modeClosed": "Mode terrain fermé.",
       "collapseAria": "Réduire la construction du terrain",
-      "expandAria": "Développer la construction du terrain"
+      "expandAria": "Développer la construction du terrain",
+      "chunkDimensions": "CHUNKS",
+      "chunkRange": "PLAGE DE CHUNKS",
+      "lockSize": "Verrouiller la taille",
+      "selectTerrain": "Visez un terrain dans le chunk à sélectionner.",
+      "selectFirst": "Touchez le terrain ou appuyez sur F pour choisir le premier chunk.",
+      "selectCorner": "Déplacez l’aperçu puis choisissez le coin opposé du chunk.",
+      "alreadyLocked": "La zone est verrouillée. Effacez-la avant d’en choisir une autre."
     },
     "onboarding": {
       "features": {
@@ -1301,16 +1302,16 @@
               "body": "Achetez à la trésorerie un contrat vierge par chunk à enregistrer."
             },
             "size": {
-              "title": "Définir les chunks",
-              "body": "Choisissez des chunks entiers sur un même niveau de sol."
+              "title": "Choisir les coins des chunks",
+              "body": "Choisissez deux coins. Le relief, l’eau et les objets naturels ne bloquent pas l’enregistrement."
             },
             "place": {
-              "body": "Appuyez sur F sur un sol plat pour afficher la zone exacte.",
-              "title": "Placer l’aperçu"
+              "body": "Touchez le terrain ou appuyez sur F pour le premier chunk, déplacez l’aperçu puis répétez au coin opposé.",
+              "title": "Verrouiller la plage"
             },
             "review": {
-              "title": "Vérifier terrain et contrats",
-              "body": "Vérifiez l’espace, Guardian, les contrats requis et votre solde."
+              "title": "Vérifier plage et contrats",
+              "body": "Vérifiez coordonnées, dimensions, contrats requis et solde. L’enregistrement ne modifie pas le terrain."
             },
             "bind": {
               "title": "Enregistrer le terrain",

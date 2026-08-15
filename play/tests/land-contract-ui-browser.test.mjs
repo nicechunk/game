@@ -42,8 +42,25 @@ test("land contracts open on demand and collapse without viewport overflow", asy
           availableLandContracts: 3,
           foundationBound: false,
           anchored: false,
+          locked: false,
+          canLockDimensions: true,
           submitting: false,
-          preview: null,
+          preview: {
+            valid: true,
+            chunkMinX: -1,
+            chunkMinZ: 2,
+            chunkMaxX: -1,
+            chunkMaxZ: 2,
+            minX: -16,
+            minZ: 32,
+            maxX: -1,
+            maxZ: 47,
+            width: 16,
+            depth: 16,
+            surfaceY: 11,
+            maxSurfaceY: 13,
+            message: "Select the opposite Chunk corner.",
+          },
           step: 2,
         };
         const foundationController = {
@@ -51,6 +68,12 @@ test("land contracts open on demand and collapse without viewport overflow", asy
           setDimensions(chunksX, chunksZ) {
             foundation.chunksX = chunksX;
             foundation.chunksZ = chunksZ;
+          },
+          lockDimensions() {
+            foundation.anchored = true;
+            foundation.locked = true;
+            foundation.step = 4;
+            ui?.render({ force: true });
           },
           cancel() {},
           confirm() {},
@@ -74,8 +97,11 @@ test("land contracts open on demand and collapse without viewport overflow", asy
             buildingEditor: byId("buildingEditor"),
             landChunksX: byId("landChunksX"),
             landChunksZ: byId("landChunksZ"),
+            landLockSize: byId("landLockSize"),
             landDimensionButtons: document.querySelectorAll("[data-land-dimension]"),
             landSteps: document.querySelectorAll("[data-land-step]"),
+            landChunkDimensions: byId("landChunkDimensions"),
+            landChunkRange: byId("landChunkRange"),
             landFootprint: byId("landFootprint"),
             landRequiredContracts: byId("landRequiredContracts"),
             landAvailableContracts: byId("landAvailableContracts"),
@@ -122,6 +148,14 @@ test("land contracts open on demand and collapse without viewport overflow", asy
       await page.evaluate(() => globalThis.__landContractUi.open());
       assert.equal(await page.locator("#landGuide").isVisible(), true, `${viewport.width}px: selected contract did not open land UI`);
       assert.equal(await page.locator("#landStepHint").isVisible(), true, `${viewport.width}px: active instructions were not visible`);
+      assert.equal(await page.locator("#landConfirm").isDisabled(), true, `${viewport.width}px: registration was enabled before range lock`);
+      assert.equal(await page.locator("#landChunkRange").textContent(), "C -1,2 → C -1,2");
+      await page.locator("#landLockSize").click();
+      assert.equal(await page.locator("#landConfirm").isEnabled(), true, `${viewport.width}px: exact-size lock did not enable registration`);
+      if (viewport.mobile) {
+        const lockBox = await page.locator("#landLockSize").boundingBox();
+        assert.ok(lockBox.width >= 39.5 && lockBox.height >= 39.5, `${viewport.width}px: exact-size lock target is too small`);
+      }
 
       await page.locator("#landCollapse").press("Enter");
       const collapsed = await page.evaluate(() => {

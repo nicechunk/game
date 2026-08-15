@@ -28,6 +28,7 @@ export function createPlayLandUi({
     elements?.landChunksZ?.addEventListener("change", applyDimensions);
     elements?.landChunksX?.addEventListener("input", applyDimensions);
     elements?.landChunksZ?.addEventListener("input", applyDimensions);
+    elements?.landLockSize?.addEventListener("click", () => getController()?.lockDimensions?.());
     for (const button of elements?.landDimensionButtons ?? []) {
       button.addEventListener("click", () => {
         const field = button.dataset.landDimension;
@@ -118,7 +119,14 @@ export function createPlayLandUi({
       foundation.requiredContracts,
       foundation.availableLandContracts,
       foundation.anchored,
+      foundation.locked,
+      foundation.manualSizing,
+      foundation.canLockDimensions,
       foundation.submitting,
+      foundation.preview?.minX,
+      foundation.preview?.minZ,
+      foundation.preview?.maxX,
+      foundation.preview?.maxZ,
       foundation.preview?.valid,
       foundation.preview?.reason,
       foundation.preview?.message,
@@ -174,7 +182,16 @@ export function createPlayLandUi({
     const required = Math.max(1, Math.trunc(Number(snapshot.requiredContracts) || 1));
     const available = normalizedBalance(snapshot.availableLandContracts);
     const insufficient = available !== null && available < required;
+    if (elements?.landChunkDimensions) {
+      elements.landChunkDimensions.textContent = `${snapshot.chunksX || 1}×${snapshot.chunksZ || 1}`;
+    }
     if (elements?.landFootprint) elements.landFootprint.textContent = `${snapshot.width || 16}×${snapshot.depth || 16}`;
+    if (elements?.landChunkRange) {
+      const selected = snapshot.preview;
+      elements.landChunkRange.textContent = selected
+        ? `C ${selected.chunkMinX},${selected.chunkMinZ} → C ${selected.chunkMaxX},${selected.chunkMaxZ}`
+        : "-";
+    }
     if (elements?.landRequiredContracts) elements.landRequiredContracts.textContent = String(required);
     if (elements?.landAvailableContracts) {
       elements.landAvailableContracts.textContent = available === null
@@ -183,7 +200,7 @@ export function createPlayLandUi({
       elements.landAvailableContracts.dataset.state = insufficient ? "insufficient" : "ready";
     }
     if (elements?.landConfirm) {
-      elements.landConfirm.disabled = snapshot.submitting || !snapshot.preview?.valid || insufficient;
+      elements.landConfirm.disabled = snapshot.submitting || !snapshot.locked || !snapshot.preview?.valid || insufficient;
       elements.landConfirm.classList.toggle("is-loading", snapshot.submitting);
       elements.landConfirm.setAttribute("aria-busy", snapshot.submitting ? "true" : "false");
       const label = elements.landConfirm.querySelector("span");
@@ -194,20 +211,24 @@ export function createPlayLandUi({
     if (elements?.landChunksX) elements.landChunksX.disabled = snapshot.submitting;
     if (elements?.landChunksZ) elements.landChunksZ.disabled = snapshot.submitting;
     for (const button of elements?.landDimensionButtons ?? []) button.disabled = snapshot.submitting;
+    if (elements?.landLockSize) {
+      elements.landLockSize.disabled = snapshot.submitting || snapshot.locked || !snapshot.canLockDimensions;
+    }
+    if (elements?.landCancel) elements.landCancel.disabled = snapshot.submitting;
     if (elements?.landBuyContracts) elements.landBuyContracts.disabled = snapshot.submitting;
     if (elements?.landStatus) {
-      elements.landStatus.dataset.state = insufficient
+      elements.landStatus.dataset.state = snapshot.locked && insufficient
         ? "invalid"
-        : snapshot.preview?.valid
+        : snapshot.locked && snapshot.preview?.valid
           ? "valid"
           : snapshot.preview
             ? "invalid"
             : "idle";
-      elements.landStatus.textContent = insufficient
+      elements.landStatus.textContent = snapshot.locked && insufficient
         ? text("main.land.insufficientContracts", "You need {required} contracts but own {available}.", { required, available })
         : snapshot.lastError
           || snapshot.preview?.message
-          || text("main.land.chooseGround", "Select the top of a flat chunk with F.");
+          || text("main.land.chooseGround", "Tap terrain or press F to select the first Chunk.");
     }
     const activeStep = Math.max(1, Math.min(4, Number(snapshot.step) || 1));
     for (const item of elements?.landSteps ?? []) {
@@ -315,7 +336,7 @@ export function createPlayLandUi({
       matrix,
       origin,
       preview.minX + preview.width * 0.5,
-      preview.surfaceY + 0.22,
+      (preview.maxSurfaceY ?? preview.surfaceY) + 0.22,
       preview.minZ + preview.depth + 0.42,
       rect,
     );
@@ -323,7 +344,7 @@ export function createPlayLandUi({
       matrix,
       origin,
       preview.minX + preview.width + 0.42,
-      preview.surfaceY + 0.22,
+      (preview.maxSurfaceY ?? preview.surfaceY) + 0.22,
       preview.minZ + preview.depth * 0.5,
       rect,
     );
@@ -341,9 +362,9 @@ export function createPlayLandUi({
 
   function stepLabel(step, snapshot) {
     if (step === 1) return text("main.land.stepContractsDetail", "Buy one blank land contract for every chunk you want to register.");
-    if (step === 2) return text("main.land.stepSizeDetail", "Set the chunk footprint, then select flat ground with F.");
-    if (step === 3) return snapshot.preview?.message || text("main.land.stepPlaceDetail", "Place the chunk-aligned hologram on clear, level ground.");
-    return text("main.land.stepConfirmDetail", "Review the outline and register the land on chain.");
+    if (step === 2) return text("main.land.stepSizeDetail", "Tap terrain or press F to select the first Chunk. Any elevation or water is allowed.");
+    if (step === 3) return snapshot.preview?.message || text("main.land.stepPlaceDetail", "Move the preview, then select the opposite Chunk corner to lock the area.");
+    return text("main.land.stepConfirmDetail", "Review the Chunk range and register it. Existing terrain remains unchanged.");
   }
 
   function appendMetric(root, label, value) {

@@ -3,10 +3,10 @@ const DEFAULT_CHUNKS_X = 1;
 const DEFAULT_CHUNKS_Z = 1;
 const MAX_CHUNKS_PER_AXIS = 4_096;
 const MAX_LAND_CONTRACTS_PER_SITE = 4_096;
-const CLEARANCE_BLOCKS = 10;
 const VISIBLE_FOUNDATION_RADIUS = 384;
-const SYNC_VALIDATION_CELL_LIMIT = 1_024;
-const VALIDATION_YIELD_BUDGET_MS = 4;
+const TERRAIN_PROFILE_CACHE_LIMIT = 32;
+const TERRAIN_PROFILE_SAMPLE_LIMIT = 256;
+const FOUNDATION_SURFACE_OFFSET = 0.035;
 
 export function createFoundationController({
   index,
@@ -15,9 +15,6 @@ export function createFoundationController({
   getWalletAddress = () => "",
   isConstructionModeActive = () => false,
   getLandContractBalance = () => null,
-  isBlockingBlock = () => false,
-  isFluidBlock = () => false,
-  blockAirId = 0,
   submitFoundation = async () => ({ submitted: false, reason: "chain-unavailable" }),
   refreshFoundations = async () => ({ ok: false, reason: "chain-unavailable" }),
   refreshLandContracts = async () => null,
@@ -25,22 +22,25 @@ export function createFoundationController({
   onStatus = () => {},
   translate = (_key, fallback) => fallback,
 } = {}) {
-  let chunksX = DEFAULT_CHUNKS_X;
-  let chunksZ = DEFAULT_CHUNKS_Z;
+  let configuredChunksX = DEFAULT_CHUNKS_X;
+  let configuredChunksZ = DEFAULT_CHUNKS_Z;
   let hoverHit = null;
   let anchor = null;
+  let corner = null;
+  let selectionLocked = false;
+  let manualSizing = false;
   let preview = null;
-  let validationCacheKey = "";
-  let validationEpoch = 0;
-  let validationTask = null;
+  let previewCacheKey = "";
   let submitting = false;
   let lastError = "";
+  const terrainProfileCache = new Map();
 
   return {
     bind: () => {},
     isActive: () => Boolean(isConstructionModeActive?.()),
     dimensions: dimensionSnapshot,
     setDimensions,
+    lockDimensions,
     setHoverHit,
     selectAtHit,
     confirm,
@@ -54,6 +54,8 @@ export function createFoundationController({
   };
 
   function dimensionSnapshot() {
+    const chunksX = preview?.chunksX ?? configuredChunksX;
+    const chunksZ = preview?.chunksZ ?? configuredChunksZ;
     return {
       chunksX,
       chunksZ,
@@ -72,13 +74,51 @@ export function createFoundationController({
       onStatus(lastError);
       return snapshot();
     }
-    if (normalizedX === chunksX && normalizedZ === chunksZ) return snapshot();
-    chunksX = normalizedX;
-    chunksZ = normalizedZ;
-    cancelValidation();
-    rebuildPreview(anchor?.hit ?? hoverHit, { force: true });
+    configuredChunksX = normalizedX;
+    configuredChunksZ = normalizedZ;
+    selectionLocked = false;
+    corner = null;
+    manualSizing = true;
+    lastError = "";
+    previewCacheKey = "";
+    if (anchor) rebuildManualPreview({ force: true });
+    else rebuildHoverPreview({ force: true });
     onChanged(snapshot());
     return snapshot();
+  }
+
+  function lockDimensions() {
+    if (!isConstructionModeActive?.()) return { ok: false, reason: "construction-mode-inactive" };
+    if (selectionLocked) return { ok: true, stage: "locked", preview };
+    const baseHit = anchor?.hit ?? hoverHit;
+    if (!isWorldHit(baseHit)) {
+      lastError = text("main.land.selectFirst", "Tap terrain or press F to select the first Chunk.");
+      onStatus(lastError);
+      onChanged(snapshot());
+      return { ok: false, reason: "missing-anchor" };
+    }
+    const createdAnchor = !anchor;
+    if (createdAnchor) anchor = { hit: cloneHit(baseHit) };
+    manualSizing = true;
+    const rect = manualFootprint(anchor.hit);
+    const candidate = buildPreview(rect, anchor.hit, { anchored: true, locked: true, force: true });
+    if (!candidate?.valid) {
+      if (createdAnchor) anchor = null;
+      selectionLocked = false;
+      corner = null;
+      preview = candidate;
+      lastError = candidate?.message || text("main.land.invalid", "This Chunk area cannot be registered as land.");
+      onStatus(lastError);
+      onChanged(snapshot());
+      return { ok: false, reason: candidate?.reason || "invalid-land", preview: candidate };
+    }
+    corner = { hit: cornerHitForRect(rect, anchor.hit) };
+    selectionLocked = true;
+    preview = candidate;
+    lastError = "";
+    onStatus(candidate.message);
+    onChanged(snapshot());
+    return { ok: true, stage: "locked", preview: candidate };
   }
 
   function setHoverHit(hit) {
@@ -87,45 +127,94 @@ export function createFoundationController({
       return null;
     }
     hoverHit = cloneHit(hit);
-    if (!anchor) rebuildPreview(hoverHit);
+    if (selectionLocked) return preview;
+    if (!anchor) rebuildHoverPreview();
+    else if (!manualSizing) rebuildCornerPreview(hoverHit ?? anchor.hit);
     return preview;
   }
 
   function selectAtHit(hit) {
     if (!isConstructionModeActive?.()) return { ok: false, reason: "construction-mode-inactive" };
     const nextHit = cloneHit(hit);
-    if (!isTopFace(nextHit)) {
-      lastError = text("main.land.topFaceRequired", "Select the top face of solid ground.");
+    if (!isWorldHit(nextHit)) {
+      lastError = text("main.land.selectTerrain", "Point at terrain inside the Chunk you want to select.");
       onStatus(lastError);
       onChanged(snapshot());
-      return { ok: false, reason: "top-face-required" };
+      return { ok: false, reason: "terrain-hit-required" };
     }
-    anchor = { hit: nextHit };
-    cancelValidation();
-    rebuildPreview(nextHit);
-    lastError = preview?.valid
-      ? ""
-      : preview?.message || text("main.land.invalid", "This chunk area cannot be registered as land.");
-    if (lastError) onStatus(lastError);
+    if (selectionLocked) {
+      lastError = text("main.land.alreadyLocked", "The area is locked. Clear it before selecting another area.");
+      onStatus(lastError);
+      onChanged(snapshot());
+      return { ok: false, reason: "selection-locked", preview };
+    }
+
+    if (!anchor) {
+      anchor = { hit: nextHit };
+      corner = null;
+      manualSizing = false;
+      configuredChunksX = 1;
+      configuredChunksZ = 1;
+      previewCacheKey = "";
+      const candidate = buildPreview(
+        footprintForCorners(nextHit, nextHit),
+        nextHit,
+        { anchored: true, locked: false, force: true },
+      );
+      if (!candidate?.valid) {
+        anchor = null;
+        preview = { ...candidate, anchored: false, locked: false };
+        lastError = candidate?.message || text("main.land.invalid", "This Chunk area cannot be registered as land.");
+        onStatus(lastError);
+        onChanged(snapshot());
+        return { ok: false, reason: candidate?.reason || "invalid-land", preview };
+      }
+      preview = candidate;
+      lastError = "";
+      onStatus(candidate.message);
+      onChanged(snapshot());
+      return { ok: true, stage: "anchor", preview: candidate };
+    }
+
+    manualSizing = false;
+    const rect = footprintForCorners(anchor.hit, nextHit);
+    const candidate = buildPreview(rect, anchor.hit, { anchored: true, locked: true, force: true });
+    configuredChunksX = rect.chunksX;
+    configuredChunksZ = rect.chunksZ;
+    if (!candidate?.valid) {
+      corner = null;
+      selectionLocked = false;
+      preview = { ...candidate, locked: false };
+      lastError = candidate?.message || text("main.land.invalid", "This Chunk area cannot be registered as land.");
+      onStatus(lastError);
+      onChanged(snapshot());
+      return { ok: false, reason: candidate?.reason || "invalid-land", preview };
+    }
+    corner = { hit: nextHit };
+    selectionLocked = true;
+    preview = candidate;
+    lastError = "";
+    onStatus(candidate.message);
     onChanged(snapshot());
-    return { ok: Boolean(preview?.valid), preview };
+    return { ok: true, stage: "locked", preview: candidate };
   }
 
   async function confirm() {
     if (submitting) return { submitted: false, reason: "already-submitting" };
     if (!isConstructionModeActive?.()) return { submitted: false, reason: "construction-mode-inactive" };
-    if (!anchor && isTopFace(hoverHit)) {
-      anchor = { hit: cloneHit(hoverHit) };
-      cancelValidation();
-      rebuildPreview(anchor.hit, { force: true });
-    }
-    if (!anchor || !preview) {
-      lastError = text("main.land.chooseGround", "Select a flat chunk area for this land contract.");
+    if (!anchor) {
+      lastError = text("main.land.selectFirst", "Tap terrain or press F to select the first Chunk.");
       onStatus(lastError);
       onChanged(snapshot());
       return { submitted: false, reason: "missing-anchor" };
     }
-    const requiredLandContracts = dimensionSnapshot().requiredContracts;
+    if (!selectionLocked || !preview) {
+      lastError = text("main.land.selectCorner", "Select the opposite Chunk corner to lock the area.");
+      onStatus(lastError);
+      onChanged(snapshot());
+      return { submitted: false, reason: "selection-not-locked" };
+    }
+    const requiredLandContracts = preview.requiredContracts;
     const availableLandContracts = normalizedContractBalance(getLandContractBalance?.());
     if (availableLandContracts !== null && availableLandContracts < requiredLandContracts) {
       lastError = text(
@@ -147,20 +236,24 @@ export function createFoundationController({
     lastError = "";
     onChanged(snapshot());
     try {
-      rebuildPreview(anchor.hit, { force: true });
-      const pendingValidation = validationTask?.promise;
-      if (preview?.validating && pendingValidation) await pendingValidation;
-      if (!preview?.valid) {
-        lastError = preview?.message || text("main.land.invalid", "This chunk area cannot be registered as land.");
+      const lockedPreview = buildPreview(
+        footprintForCorners(anchor.hit, corner?.hit ?? anchor.hit),
+        anchor.hit,
+        { anchored: true, locked: true, force: true },
+      );
+      preview = lockedPreview;
+      if (!lockedPreview?.valid) {
+        selectionLocked = false;
+        lastError = lockedPreview?.message || text("main.land.invalid", "This Chunk area cannot be registered as land.");
         onStatus(lastError);
-        return { submitted: false, reason: preview?.reason || "invalid-foundation" };
+        return { submitted: false, reason: lockedPreview?.reason || "invalid-land" };
       }
       const payload = {
-        minX: preview.minX,
-        minZ: preview.minZ,
-        surfaceY: preview.surfaceY,
-        width: preview.width,
-        depth: preview.depth,
+        minX: lockedPreview.minX,
+        minZ: lockedPreview.minZ,
+        surfaceY: lockedPreview.surfaceY,
+        width: lockedPreview.width,
+        depth: lockedPreview.depth,
       };
       const result = await submitFoundation(payload);
       if (!result?.submitted) {
@@ -176,9 +269,7 @@ export function createFoundationController({
       onStatus(result.message || text("main.land.created", "Land registered on chain and {count} contract(s) consumed.", {
         count: requiredLandContracts,
       }));
-      anchor = null;
-      cancelValidation();
-      preview = null;
+      resetSelection({ keepHover: true });
       return result;
     } catch (error) {
       lastError = String(error?.message || error || text("main.land.submitFailed", "Land registration failed."));
@@ -210,193 +301,285 @@ export function createFoundationController({
   }
 
   function cancel() {
-    lastError = "";
-    anchor = null;
-    cancelValidation();
-    rebuildPreview(hoverHit, { force: true });
+    resetSelection({ keepHover: true });
+    rebuildHoverPreview({ force: true });
     onChanged(snapshot());
   }
 
   function clearSelection() {
-    anchor = null;
-    hoverHit = null;
-    preview = null;
-    lastError = "";
-    cancelValidation();
+    resetSelection({ keepHover: false });
     onChanged(snapshot());
   }
 
-  function rebuildPreview(hit, { force = false } = {}) {
-    if (!isConstructionModeActive?.() || !isTopFace(hit)) {
+  function resetSelection({ keepHover }) {
+    anchor = null;
+    corner = null;
+    selectionLocked = false;
+    manualSizing = false;
+    configuredChunksX = DEFAULT_CHUNKS_X;
+    configuredChunksZ = DEFAULT_CHUNKS_Z;
+    if (!keepHover) hoverHit = null;
+    preview = null;
+    previewCacheKey = "";
+    lastError = "";
+  }
+
+  function rebuildHoverPreview({ force = false } = {}) {
+    if (!isWorldHit(hoverHit)) {
       preview = null;
-      cancelValidation();
+      previewCacheKey = "";
       return null;
     }
-    const rect = footprintForHit(hit, chunksX, chunksZ, getPlayerPosition());
-    const key = `${rect.minX}:${hit.worldY}:${rect.minZ}:${chunksX}:${chunksZ}:${index?.size?.() ?? 0}`;
-    if (key === validationCacheKey && (!force || preview?.validating)) return preview;
-    cancelValidation();
-    validationCacheKey = key;
-    preview = validateFootprint(rect, hit.worldY);
+    const rect = manualSizing
+      ? footprintForHit(hoverHit, configuredChunksX, configuredChunksZ, getPlayerPosition())
+      : footprintForCorners(hoverHit, hoverHit);
+    preview = buildPreview(rect, hoverHit, { anchored: false, locked: false, force });
     return preview;
   }
 
-  function validateFootprint(rect, groundY) {
-    const chunks = getChunks();
+  function rebuildCornerPreview(hit, { force = false } = {}) {
+    if (!anchor || !isWorldHit(hit)) return preview;
+    const rect = footprintForCorners(anchor.hit, hit);
+    configuredChunksX = rect.chunksX;
+    configuredChunksZ = rect.chunksZ;
+    preview = buildPreview(rect, anchor.hit, { anchored: true, locked: false, force });
+    return preview;
+  }
+
+  function rebuildManualPreview({ force = false } = {}) {
+    if (!anchor) return rebuildHoverPreview({ force });
+    const rect = manualFootprint(anchor.hit);
+    preview = buildPreview(rect, anchor.hit, { anchored: true, locked: false, force });
+    return preview;
+  }
+
+  function manualFootprint(anchorHit) {
+    const directionHit = corner?.hit ?? hoverHit;
+    const directions = chunkDirections(anchorHit, directionHit, getPlayerPosition());
+    return footprintFromAnchor(anchorHit, configuredChunksX, configuredChunksZ, directions);
+  }
+
+  function buildPreview(rect, referenceHit, { anchored, locked, force = false }) {
+    const surfaceY = surfaceYForHit(referenceHit, getChunks());
+    const cacheKey = [
+      rect.minX,
+      rect.minZ,
+      rect.width,
+      rect.depth,
+      surfaceY,
+      anchored ? 1 : 0,
+      locked ? 1 : 0,
+      indexVersion(index),
+    ].join(":");
+    if (!force && cacheKey === previewCacheKey && preview) return preview;
+    previewCacheKey = cacheKey;
+
+    const requiredContracts = rect.chunksX * rect.chunksZ;
     const base = {
       ...rect,
-      groundY,
-      surfaceY: groundY + 1,
+      chunkMinX: Math.floor(rect.minX / LAND_CHUNK_SIZE),
+      chunkMinZ: Math.floor(rect.minZ / LAND_CHUNK_SIZE),
+      chunkMaxX: Math.floor(rect.maxX / LAND_CHUNK_SIZE),
+      chunkMaxZ: Math.floor(rect.maxZ / LAND_CHUNK_SIZE),
+      surfaceY,
+      minSurfaceY: surfaceY,
+      maxSurfaceY: surfaceY,
+      requiredContracts,
       valid: false,
       reason: "",
       message: "",
-      anchored: Boolean(anchor),
+      anchored: Boolean(anchored),
+      locked: Boolean(locked),
       editing: false,
       changed: false,
+      terrain: null,
     };
-    if (rect.minX < -0x8000_0000 || rect.maxX > 0x7fff_ffff
-      || rect.minZ < -0x8000_0000 || rect.maxZ > 0x7fff_ffff) {
-      return { ...base, reason: "coordinate-range", message: text("main.land.coordinateRange", "The land exceeds the supported world coordinate range.") };
-    }
-    if (index?.intersects?.(rect)) {
-      return { ...base, reason: "overlap", message: text("main.land.overlap", "This chunk area overlaps registered land.") };
-    }
-    const cellsToValidate = BigInt(rect.width) * BigInt(rect.depth);
-    if (!chunks?.getOpaqueColumnTopAtWorld || !chunks?.getBlockAtWorld) {
-      return { ...base, reason: "world-unavailable", message: text("main.land.worldLoading", "World data is still loading.") };
-    }
-    if (cellsToValidate > BigInt(SYNC_VALIDATION_CELL_LIMIT)) {
-      const pending = {
-        ...base,
-        validating: true,
-        reason: "validating",
-        message: text("main.land.validating", "Checking ground level and clearance..."),
-      };
-      startAsyncValidation(rect, groundY, base, chunks);
-      return pending;
-    }
-    return scanFootprintSync(rect, groundY, base, chunks);
+    const invalid = validateSelection(base);
+    if (invalid) return invalid;
+    const terrain = terrainProfileForRect(rect, surfaceY);
+    return {
+      ...base,
+      minSurfaceY: terrain.minSurfaceY,
+      maxSurfaceY: terrain.maxSurfaceY,
+      terrain,
+      valid: true,
+      message: locked
+        ? validPreviewMessage()
+        : anchored
+          ? text("main.land.selectCorner", "Move the preview, then select the opposite Chunk corner.")
+          : text("main.land.selectFirst", "Tap terrain or press F to select the first Chunk."),
+    };
   }
 
-  function scanFootprintSync(rect, groundY, base, chunks) {
-    for (let z = rect.minZ; z <= rect.maxZ; z += 1) {
-      for (let x = rect.minX; x <= rect.maxX; x += 1) {
-        const invalid = validateColumn(x, z, groundY, base, chunks);
-        if (invalid) return invalid;
-      }
-    }
-    return { ...base, valid: true, message: validPreviewMessage(base) };
-  }
-
-  function startAsyncValidation(rect, groundY, base, chunks) {
-    const epoch = ++validationEpoch;
-    const key = validationCacheKey;
-    const task = { epoch, key, promise: null };
-    task.promise = scanFootprintAsync(rect, groundY, base, chunks, epoch)
-      .then((result) => {
-        if (result && validationEpoch === epoch && validationCacheKey === key) {
-          preview = result;
-          lastError = result.valid ? "" : result.message;
-          if (lastError) onStatus(lastError);
-          onChanged(snapshot());
-        }
-        return result;
-      })
-      .finally(() => {
-        if (validationTask === task) validationTask = null;
-      });
-    validationTask = task;
-  }
-
-  async function scanFootprintAsync(rect, groundY, base, chunks, epoch) {
-    let sliceStartedAt = nowMs();
-    for (let z = rect.minZ; z <= rect.maxZ; z += 1) {
-      for (let x = rect.minX; x <= rect.maxX; x += 1) {
-        if (validationEpoch !== epoch) return null;
-        const invalid = validateColumn(x, z, groundY, base, chunks);
-        if (invalid) return invalid;
-        if (nowMs() - sliceStartedAt < VALIDATION_YIELD_BUDGET_MS) continue;
-        await yieldToMainThread();
-        sliceStartedAt = nowMs();
-      }
-    }
-    return { ...base, valid: true, message: validPreviewMessage(base) };
-  }
-
-  function validateColumn(x, z, groundY, base, chunks) {
-    const top = Math.trunc(chunks.getOpaqueColumnTopAtWorld(x, z));
-    if (top !== groundY) {
+  function validateSelection(base) {
+    if (base.chunksX < 1 || base.chunksZ < 1
+      || base.chunksX > MAX_CHUNKS_PER_AXIS || base.chunksZ > MAX_CHUNKS_PER_AXIS
+      || base.requiredContracts > MAX_LAND_CONTRACTS_PER_SITE) {
       return {
         ...base,
-        reason: "not-level",
-        invalidCell: { x, y: top, z },
-        message: text("main.land.notLevel", "Every block in the selected chunks must be level."),
+        reason: "contract-count-too-large",
+        message: text("main.land.contractCountTooLarge", "This land area requires too many contracts."),
       };
     }
-    const groundBlock = chunks.getBlockAtWorld(x, groundY, z);
-    if (!isBlockingBlock(groundBlock) || isFluidBlock(groundBlock)) {
+    if (base.minX < -0x8000_0000 || base.maxX > 0x7fff_ffff
+      || base.minZ < -0x8000_0000 || base.maxZ > 0x7fff_ffff
+      || base.surfaceY < -0x8000 || base.surfaceY > 0x7fff) {
       return {
         ...base,
-        reason: "invalid-ground",
-        invalidCell: { x, y: groundY, z },
-        message: text("main.land.solidGround", "Land registration requires solid, dry ground."),
+        reason: "coordinate-range",
+        message: text("main.land.coordinateRange", "The land exceeds the supported world coordinate range."),
       };
     }
-    for (let y = groundY + 1; y <= groundY + CLEARANCE_BLOCKS; y += 1) {
-      const blockId = chunks.getBlockAtWorld(x, y, z);
-      if (blockId === blockAirId) continue;
+    if (index?.intersects?.(base)) {
       return {
         ...base,
-        reason: "obstructed",
-        invalidCell: { x, y, z },
-        message: text("main.land.clearArea", "Clear plants, rocks, trees, and buildings from the selected chunks."),
+        reason: "overlap",
+        message: text("main.land.overlap", "This Chunk area overlaps registered land."),
       };
     }
     return null;
   }
 
-  function cancelValidation() {
-    validationEpoch += 1;
-    validationTask = null;
-    validationCacheKey = "";
-  }
-
   function overlays() {
     if (!isConstructionModeActive?.()) return [];
     const [playerX, , playerZ] = getPlayerPosition();
-    const result = (index?.listNear?.(playerX, playerZ, VISIBLE_FOUNDATION_RADIUS) ?? []).map((foundation) => ({
-      shape: "foundation",
-      worldX: foundation.minX,
-      worldY: foundation.surfaceY + 0.012,
-      worldZ: foundation.minZ,
-      width: foundation.width,
-      depth: foundation.depth,
-      preview: false,
-      grid: false,
-      fillColor: [0.50, 0.82, 1.0, 0.055],
-      gridColor: [0.82, 0.94, 1.0, 0],
-      edgeColor: [0.91, 0.98, 1.0, 0.92],
-      glowColor: [0.35, 0.84, 1.0, 0.18],
-    }));
+    const result = (index?.listNear?.(playerX, playerZ, VISIBLE_FOUNDATION_RADIUS) ?? []).map((foundation) => {
+      const rect = rectForFoundation(foundation);
+      const terrain = cachedTerrainProfile(foundation, rect);
+      return foundationOverlay({
+        foundation,
+        rect,
+        terrain,
+        preview: false,
+        grid: false,
+        valid: true,
+        fillColor: [0.50, 0.82, 1.0, 0.055],
+        gridColor: [0.82, 0.94, 1.0, 0],
+        edgeColor: [0.91, 0.98, 1.0, 0.92],
+        glowColor: [0.35, 0.84, 1.0, 0.18],
+      });
+    });
     if (preview) {
       const valid = preview.valid;
-      result.push({
-        shape: "foundation",
-        worldX: preview.minX,
-        worldY: preview.surfaceY + 0.018,
-        worldZ: preview.minZ,
-        width: preview.width,
-        depth: preview.depth,
+      result.push(foundationOverlay({
+        foundation: preview,
+        rect: preview,
+        terrain: preview.terrain,
         preview: true,
         grid: true,
         valid,
-        fillColor: valid ? [0.08, 0.48, 1.0, 0.28] : [1.0, 0.12, 0.10, 0.22],
-        gridColor: valid ? [0.48, 0.84, 1.0, 0.58] : [1.0, 0.46, 0.42, 0.62],
+        xray: true,
+        geometryKey: "land-selection-preview",
+        fillColor: valid ? [0.08, 0.48, 1.0, 0.24] : [1.0, 0.12, 0.10, 0.20],
+        gridColor: valid ? [0.48, 0.84, 1.0, 0.72] : [1.0, 0.46, 0.42, 0.72],
         edgeColor: valid ? [0.72, 0.96, 1.0, 0.98] : [1.0, 0.56, 0.50, 0.98],
         glowColor: valid ? [0.12, 0.68, 1.0, 0.34] : [1.0, 0.08, 0.06, 0.28],
-      });
+      }));
     }
     return result;
+  }
+
+  function foundationOverlay({ foundation, rect, terrain, geometryKey, ...appearance }) {
+    const surfaceHeights = terrain?.overlayHeights ?? null;
+    return {
+      shape: "foundation",
+      worldX: rect.minX,
+      worldY: (terrain?.minSurfaceY ?? foundation.surfaceY) + FOUNDATION_SURFACE_OFFSET,
+      worldZ: rect.minZ,
+      width: rect.width,
+      depth: rect.depth,
+      terrainColumns: rect.chunksX,
+      terrainRows: rect.chunksZ,
+      terrainCellSize: LAND_CHUNK_SIZE,
+      surfaceHeights,
+      geometryKey: geometryKey || `land:${foundation.id ?? foundation.foundationId ?? `${rect.minX}:${rect.minZ}`}`,
+      geometryRevision: terrain?.revision ?? `flat:${foundation.surfaceY}`,
+      ...appearance,
+    };
+  }
+
+  function cachedTerrainProfile(foundation, rect) {
+    const key = [
+      foundation.id ?? foundation.foundationId ?? "land",
+      rect.minX,
+      rect.minZ,
+      rect.width,
+      rect.depth,
+      foundation.surfaceY,
+    ].join(":");
+    const cached = terrainProfileCache.get(key);
+    if (cached) {
+      terrainProfileCache.delete(key);
+      terrainProfileCache.set(key, cached);
+      return cached;
+    }
+    const profile = terrainProfileForRect(rect, foundation.surfaceY);
+    terrainProfileCache.set(key, profile);
+    while (terrainProfileCache.size > TERRAIN_PROFILE_CACHE_LIMIT) {
+      terrainProfileCache.delete(terrainProfileCache.keys().next().value);
+    }
+    return profile;
+  }
+
+  function terrainProfileForRect(rect, fallbackSurfaceY) {
+    const chunks = getChunks();
+    const totalChunks = rect.chunksX * rect.chunksZ;
+    const { strideX, strideZ } = terrainSampleStrides(rect.chunksX, rect.chunksZ);
+    const heights = new Float32Array(totalChunks);
+    let minSurfaceY = Infinity;
+    let maxSurfaceY = -Infinity;
+    let hash = 0x811c9dc5;
+    for (let groupZ = 0; groupZ < rect.chunksZ; groupZ += strideZ) {
+      const groupRows = Math.min(strideZ, rect.chunksZ - groupZ);
+      for (let groupX = 0; groupX < rect.chunksX; groupX += strideX) {
+        const groupColumns = Math.min(strideX, rect.chunksX - groupX);
+        const sampleChunkX = groupX + Math.floor((groupColumns - 1) * 0.5);
+        const sampleChunkZ = groupZ + Math.floor((groupRows - 1) * 0.5);
+        const sampleX = rect.minX + sampleChunkX * LAND_CHUNK_SIZE + Math.floor(LAND_CHUNK_SIZE * 0.5);
+        const sampleZ = rect.minZ + sampleChunkZ * LAND_CHUNK_SIZE + Math.floor(LAND_CHUNK_SIZE * 0.5);
+        const groupSurfaceY = terrainSurfaceYAt(
+          chunks,
+          sampleX,
+          sampleZ,
+          fallbackSurfaceY,
+        );
+        for (let chunkZ = groupZ; chunkZ < groupZ + groupRows; chunkZ += 1) {
+          for (let chunkX = groupX; chunkX < groupX + groupColumns; chunkX += 1) {
+            heights[chunkZ * rect.chunksX + chunkX] = groupSurfaceY;
+            hash ^= Math.trunc(groupSurfaceY) & 0xffff;
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+          }
+        }
+        minSurfaceY = Math.min(minSurfaceY, groupSurfaceY);
+        maxSurfaceY = Math.max(maxSurfaceY, groupSurfaceY);
+      }
+    }
+    if (!Number.isFinite(minSurfaceY)) minSurfaceY = fallbackSurfaceY;
+    if (!Number.isFinite(maxSurfaceY)) maxSurfaceY = fallbackSurfaceY;
+    const overlayHeights = new Array(heights.length);
+    for (let index = 0; index < heights.length; index += 1) {
+      overlayHeights[index] = heights[index] + FOUNDATION_SURFACE_OFFSET;
+    }
+    return {
+      heights,
+      overlayHeights,
+      minSurfaceY,
+      maxSurfaceY,
+      revision: `${rect.chunksX}x${rect.chunksZ}:${hash.toString(16).padStart(8, "0")}`,
+    };
+  }
+
+  function terrainSampleStrides(chunksX, chunksZ) {
+    let sampleColumns = chunksX;
+    let sampleRows = chunksZ;
+    while (sampleColumns * sampleRows > TERRAIN_PROFILE_SAMPLE_LIMIT) {
+      if (sampleColumns >= sampleRows && sampleColumns > 1) sampleColumns = Math.ceil(sampleColumns * 0.5);
+      else sampleRows = Math.ceil(sampleRows * 0.5);
+    }
+    return {
+      strideX: Math.max(1, Math.ceil(chunksX / sampleColumns)),
+      strideZ: Math.max(1, Math.ceil(chunksZ / sampleRows)),
+    };
   }
 
   function snapshot() {
@@ -417,17 +600,23 @@ export function createFoundationController({
       maxSize: MAX_CHUNKS_PER_AXIS,
       maxContracts: MAX_LAND_CONTRACTS_PER_SITE,
       anchored: Boolean(anchor),
+      locked: selectionLocked,
+      manualSizing,
+      canLockDimensions: Boolean((anchor || hoverHit) && !selectionLocked),
       editing: false,
-      dimensionsDirty: false,
+      dimensionsDirty: manualSizing && !selectionLocked,
       submitting,
       preview,
       lastError,
-      step: !active ? 1 : !anchor ? 2 : preview?.valid ? 4 : 3,
+      step: !active ? 1 : !anchor ? 2 : !selectionLocked ? 3 : 4,
     };
   }
 
   function validPreviewMessage() {
-    return text("main.land.ready", "Chunk-aligned land is ready. Confirm to consume the required contracts.");
+    return text(
+      "main.land.ready",
+      "Chunk-aligned territory is locked. Existing terrain will remain unchanged.",
+    );
   }
 
   function text(key, fallback, params = {}) {
@@ -438,6 +627,32 @@ export function createFoundationController({
   }
 }
 
+export function footprintForCorners(firstHit, secondHit, chunkSize = LAND_CHUNK_SIZE) {
+  const safeChunkSize = clampInt(chunkSize, 1, 0xffff);
+  const first = chunkCoordinates(firstHit, safeChunkSize);
+  const second = chunkCoordinates(secondHit, safeChunkSize);
+  const chunkMinX = Math.min(first.chunkX, second.chunkX);
+  const chunkMaxX = Math.max(first.chunkX, second.chunkX);
+  const chunkMinZ = Math.min(first.chunkZ, second.chunkZ);
+  const chunkMaxZ = Math.max(first.chunkZ, second.chunkZ);
+  const chunksX = chunkMaxX - chunkMinX + 1;
+  const chunksZ = chunkMaxZ - chunkMinZ + 1;
+  const minX = chunkMinX * safeChunkSize;
+  const minZ = chunkMinZ * safeChunkSize;
+  const width = chunksX * safeChunkSize;
+  const depth = chunksZ * safeChunkSize;
+  return {
+    minX,
+    minZ,
+    maxX: minX + width - 1,
+    maxZ: minZ + depth - 1,
+    width,
+    depth,
+    chunksX,
+    chunksZ,
+  };
+}
+
 export function footprintForHit(
   hit,
   chunksX,
@@ -445,21 +660,24 @@ export function footprintForHit(
   playerPosition = [0, 0, 0],
   chunkSize = LAND_CHUNK_SIZE,
 ) {
-  const worldX = Math.trunc(Number(hit?.worldX) || 0);
-  const worldZ = Math.trunc(Number(hit?.worldZ) || 0);
   const safeChunkSize = clampInt(chunkSize, 1, 0xffff);
   const safeChunksX = clampInt(chunksX, 1, MAX_CHUNKS_PER_AXIS);
   const safeChunksZ = clampInt(chunksZ, 1, MAX_CHUNKS_PER_AXIS);
-  const anchorMinX = Math.floor(worldX / safeChunkSize) * safeChunkSize;
-  const anchorMinZ = Math.floor(worldZ / safeChunkSize) * safeChunkSize;
-  const playerX = Number(playerPosition?.[0]) || 0;
-  const playerZ = Number(playerPosition?.[2]) || 0;
-  const xDirection = anchorMinX + safeChunkSize * 0.5 >= playerX ? 1 : -1;
-  const zDirection = anchorMinZ + safeChunkSize * 0.5 >= playerZ ? 1 : -1;
+  const directions = chunkDirections(hit, null, playerPosition, safeChunkSize);
+  return footprintFromAnchor(hit, safeChunksX, safeChunksZ, directions, safeChunkSize);
+}
+
+function footprintFromAnchor(hit, chunksX, chunksZ, directions, chunkSize = LAND_CHUNK_SIZE) {
+  const safeChunkSize = clampInt(chunkSize, 1, 0xffff);
+  const anchor = chunkCoordinates(hit, safeChunkSize);
+  const safeChunksX = clampInt(chunksX, 1, MAX_CHUNKS_PER_AXIS);
+  const safeChunksZ = clampInt(chunksZ, 1, MAX_CHUNKS_PER_AXIS);
+  const chunkMinX = directions.x > 0 ? anchor.chunkX : anchor.chunkX - safeChunksX + 1;
+  const chunkMinZ = directions.z > 0 ? anchor.chunkZ : anchor.chunkZ - safeChunksZ + 1;
+  const minX = chunkMinX * safeChunkSize;
+  const minZ = chunkMinZ * safeChunkSize;
   const width = safeChunksX * safeChunkSize;
   const depth = safeChunksZ * safeChunkSize;
-  const minX = xDirection > 0 ? anchorMinX : anchorMinX - (safeChunksX - 1) * safeChunkSize;
-  const minZ = zDirection > 0 ? anchorMinZ : anchorMinZ - (safeChunksZ - 1) * safeChunkSize;
   return {
     minX,
     minZ,
@@ -472,36 +690,118 @@ export function footprintForHit(
   };
 }
 
+function chunkDirections(anchorHit, directionHit, playerPosition, chunkSize = LAND_CHUNK_SIZE) {
+  const anchor = chunkCoordinates(anchorHit, chunkSize);
+  if (isWorldHit(directionHit)) {
+    const target = chunkCoordinates(directionHit, chunkSize);
+    return {
+      x: target.chunkX === anchor.chunkX ? playerDirection(anchor.chunkX, playerPosition?.[0], chunkSize) : Math.sign(target.chunkX - anchor.chunkX),
+      z: target.chunkZ === anchor.chunkZ ? playerDirection(anchor.chunkZ, playerPosition?.[2], chunkSize) : Math.sign(target.chunkZ - anchor.chunkZ),
+    };
+  }
+  return {
+    x: playerDirection(anchor.chunkX, playerPosition?.[0], chunkSize),
+    z: playerDirection(anchor.chunkZ, playerPosition?.[2], chunkSize),
+  };
+}
+
+function playerDirection(anchorChunk, playerCoordinate, chunkSize) {
+  const center = anchorChunk * chunkSize + chunkSize * 0.5;
+  return center >= (Number(playerCoordinate) || 0) ? 1 : -1;
+}
+
+function chunkCoordinates(hit, chunkSize) {
+  return {
+    chunkX: Math.floor(Math.trunc(Number(hit?.worldX) || 0) / chunkSize),
+    chunkZ: Math.floor(Math.trunc(Number(hit?.worldZ) || 0) / chunkSize),
+  };
+}
+
+function cornerHitForRect(rect, anchorHit) {
+  const anchor = chunkCoordinates(anchorHit, LAND_CHUNK_SIZE);
+  const chunkMinX = Math.floor(rect.minX / LAND_CHUNK_SIZE);
+  const chunkMaxX = Math.floor(rect.maxX / LAND_CHUNK_SIZE);
+  const chunkMinZ = Math.floor(rect.minZ / LAND_CHUNK_SIZE);
+  const chunkMaxZ = Math.floor(rect.maxZ / LAND_CHUNK_SIZE);
+  const chunkX = anchor.chunkX === chunkMinX ? chunkMaxX : chunkMinX;
+  const chunkZ = anchor.chunkZ === chunkMinZ ? chunkMaxZ : chunkMinZ;
+  return {
+    ...anchorHit,
+    hit: true,
+    worldX: chunkX * LAND_CHUNK_SIZE,
+    worldZ: chunkZ * LAND_CHUNK_SIZE,
+  };
+}
+
+function rectForFoundation(foundation) {
+  const minX = Math.trunc(Number(foundation?.minX) || 0);
+  const minZ = Math.trunc(Number(foundation?.minZ) || 0);
+  const width = Math.max(1, Math.trunc(Number(foundation?.width) || LAND_CHUNK_SIZE));
+  const depth = Math.max(1, Math.trunc(Number(foundation?.depth) || LAND_CHUNK_SIZE));
+  return {
+    minX,
+    minZ,
+    maxX: minX + width - 1,
+    maxZ: minZ + depth - 1,
+    width,
+    depth,
+    chunksX: Math.max(1, Math.ceil(width / LAND_CHUNK_SIZE)),
+    chunksZ: Math.max(1, Math.ceil(depth / LAND_CHUNK_SIZE)),
+  };
+}
+
+function surfaceYForHit(hit, chunks) {
+  const fallback = clampInt(Number(hit?.worldY) + 1, -0x8000, 0x7fff);
+  return terrainSurfaceYAt(chunks, hit?.worldX, hit?.worldZ, fallback);
+}
+
+function terrainSurfaceYAt(chunks, worldX, worldZ, fallbackSurfaceY) {
+  if (!chunks?.getOpaqueColumnTopAtWorld) return fallbackSurfaceY;
+  try {
+    const terrainTop = Number(chunks.getOpaqueColumnTopAtWorld(Math.trunc(worldX), Math.trunc(worldZ)));
+    if (!Number.isFinite(terrainTop)) return fallbackSurfaceY;
+    let visibleTop = Math.trunc(terrainTop);
+    if (chunks.getWaterLevelAtWorld) {
+      const rawWater = chunks.getWaterLevelAtWorld(Math.trunc(worldX), Math.trunc(worldZ), visibleTop);
+      const waterTop = rawWater == null ? NaN : Number(rawWater);
+      if (Number.isFinite(waterTop)) visibleTop = Math.max(visibleTop, Math.trunc(waterTop));
+    }
+    return clampInt(visibleTop + 1, -0x8000, 0x7fff);
+  } catch {
+    return fallbackSurfaceY;
+  }
+}
+
+function indexVersion(index) {
+  const value = Number(index?.version?.());
+  return Number.isFinite(value) ? Math.trunc(value) : Number(index?.size?.()) || 0;
+}
+
 function normalizedContractBalance(value) {
   if (value == null || value === "") return null;
   const balance = Number(value);
   return Number.isSafeInteger(balance) && balance >= 0 ? balance : null;
 }
 
-function isTopFace(hit) {
-  return Boolean(hit?.hit && Math.trunc(Number(hit.faceY)) === 1);
+function isWorldHit(hit) {
+  return Boolean(hit?.hit)
+    && [hit.worldX, hit.worldY, hit.worldZ].every((value) => Number.isFinite(Number(value)));
 }
 
 function cloneHit(hit) {
-  if (!hit?.hit) return null;
+  if (!isWorldHit(hit)) return null;
   return {
     ...hit,
     worldX: Math.trunc(Number(hit.worldX)),
     worldY: Math.trunc(Number(hit.worldY)),
     worldZ: Math.trunc(Number(hit.worldZ)),
-    faceY: Math.trunc(Number(hit.faceY)),
+    faceX: Math.trunc(Number(hit.faceX) || 0),
+    faceY: Math.trunc(Number(hit.faceY) || 0),
+    faceZ: Math.trunc(Number(hit.faceZ) || 0),
   };
 }
 
 function clampInt(value, min, max) {
   const number = Math.trunc(Number(value));
   return Math.max(min, Math.min(max, Number.isFinite(number) ? number : min));
-}
-
-function nowMs() {
-  return globalThis.performance?.now?.() ?? Date.now();
-}
-
-function yieldToMainThread() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
 }
