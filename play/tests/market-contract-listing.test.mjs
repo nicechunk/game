@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  LAND_CONTRACT_UNIT_PRICE_NCK,
   isMarketListableSlot,
   normalizeLandContractPurchaseQuantity,
 } from "../play-market.js";
@@ -19,6 +20,7 @@ test("market inventory excludes retired Blueprint items", () => {
 });
 
 test("blank land contract purchases accept only whole quantities from 1 through 4,096", () => {
+  assert.equal(LAND_CONTRACT_UNIT_PRICE_NCK, 10);
   assert.equal(normalizeLandContractPurchaseQuantity(1), 1);
   assert.equal(normalizeLandContractPurchaseQuantity("4096"), 4096);
   for (const value of [0, -1, 4097, "1.5", "1e2", "", null]) {
