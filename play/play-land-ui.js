@@ -15,16 +15,15 @@ export function createPlayLandUi({
 } = {}) {
   let bound = false;
   let lastSignature = "";
+  let collapsed = false;
 
-  return { bind, render, update };
+  return { bind, render, update, setCollapsed, isCollapsed: () => collapsed };
 
   function bind() {
     if (bound) return;
     bound = true;
-    elements?.landModeButton?.addEventListener("click", () => {
-      setConstructionModeActive(!isConstructionModeActive());
-    });
     elements?.landClose?.addEventListener("click", () => setConstructionModeActive(false));
+    elements?.landCollapse?.addEventListener("click", () => setCollapsed(!collapsed));
     elements?.landChunksX?.addEventListener("change", applyDimensions);
     elements?.landChunksZ?.addEventListener("change", applyDimensions);
     elements?.landChunksX?.addEventListener("input", applyDimensions);
@@ -63,6 +62,27 @@ export function createPlayLandUi({
     elements?.buildingOffsetZ?.addEventListener("change", applyBuildingOffsets);
     elements?.buildingPreview?.addEventListener("click", () => getBuildingController()?.preview?.());
     elements?.buildingConfirm?.addEventListener("click", () => getBuildingController()?.confirm?.());
+  }
+
+  function setCollapsed(nextCollapsed) {
+    collapsed = Boolean(nextCollapsed);
+    render({ force: true });
+    return collapsed;
+  }
+
+  function syncCollapsedState() {
+    elements?.landGuide?.classList.toggle("is-collapsed", collapsed);
+    if (elements?.landGuideBody) elements.landGuideBody.hidden = collapsed;
+    if (!elements?.landCollapse) return;
+    elements.landCollapse.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    elements.landCollapse.setAttribute(
+      "aria-label",
+      collapsed
+        ? text("main.land.expandAria", "Expand land construction")
+        : text("main.land.collapseAria", "Collapse land construction"),
+    );
+    const icon = elements.landCollapse.querySelector("span");
+    if (icon) icon.textContent = collapsed ? "+" : "−";
   }
 
   function applyDimensions() {
@@ -114,21 +134,19 @@ export function createPlayLandUi({
       building.meshing,
       building.submitting,
       building.lastError,
+      collapsed,
     ]);
     if (!force && signature === lastSignature) return;
     lastSignature = signature;
 
-    if (elements?.landModeButton) {
-      elements.landModeButton.classList.toggle("active", active);
-      elements.landModeButton.setAttribute("aria-pressed", active ? "true" : "false");
-    }
     if (elements?.landGuide) {
       elements.landGuide.hidden = !active;
       elements.landGuide.classList.toggle("is-building", mode === "building");
     }
+    syncCollapsedState();
     if (elements?.foundationEditor) elements.foundationEditor.hidden = mode !== "foundation";
     if (elements?.buildingEditor) elements.buildingEditor.hidden = mode !== "building";
-    if (elements?.landStepHint) elements.landStepHint.hidden = !active;
+    if (elements?.landStepHint) elements.landStepHint.hidden = !active || collapsed;
     if (elements?.foundationMeasurements) {
       elements.foundationMeasurements.hidden = !active || mode !== "foundation" || !foundation.preview;
     }

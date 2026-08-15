@@ -547,7 +547,16 @@
       "detailUnitVolume": "단위 부피",
       "detailUnitWeight": "단위 무게",
       "detailTotalVolume": "총 부피",
-      "detailTotalWeight": "총 무게"
+      "detailTotalWeight": "총 무게",
+      "chainVerified": "온체인 검증됨",
+      "contractProjection": "MarketUser PDA 투영",
+      "contractAria": "{item}, 계약 잔액 {count}",
+      "contractTag": "계약",
+      "contractBackpackSpace": "배낭 공간",
+      "contractBackpackSpaceValue": "0칸",
+      "contractPda": "MarketUser PDA",
+      "equipToHotbar": "단축바에 장착",
+      "contractEquippedStatus": "토지 계약을 단축바 {slot}번 칸에 장착했습니다."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "계약 {required}개가 필요하지만 {available}개를 보유하고 있습니다.",
       "marketMembershipRequired": "토지 계약을 구매하거나 사용하기 전에 시장에 가입하세요.",
       "modeOpened": "토지 건설 모드를 열었습니다. F로 전체 청크를 선택하세요.",
-      "modeClosed": "토지 건설 모드를 닫았습니다."
+      "modeClosed": "토지 건설 모드를 닫았습니다.",
+      "collapseAria": "토지 건설 패널 접기",
+      "expandAria": "토지 건설 패널 펼치기"
     },
     "onboarding": {
       "features": {

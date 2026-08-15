@@ -10,6 +10,12 @@ import {
   isForgedPlacementReady,
 } from "./forged-item-interaction.js";
 import { resourceIdForBlock } from "../src/world/blocks.js";
+import {
+  LAND_CONTRACT_ITEM_ID,
+  createLandContractInventoryItem,
+  isLandContractItem,
+  normalizeLandContractBalance,
+} from "./play-land-contract-item.js";
 
 export const HOTBAR_STORAGE_KEY = "nicechunk.play.hotbar.v2";
 export const BACKPACK_STORAGE_KEY = "nicechunk.play.backpack.v2";
@@ -31,6 +37,7 @@ export function createPlayGameState({
   resourceNone = 0,
   ownerAddress = "",
   onEquipmentChange = () => {},
+  onHotbarSelectionChange = () => {},
 } = {}) {
   clearLegacyBackpackCache();
   const initialOwnerAddress = normalizeOwnerAddress(ownerAddress);
@@ -45,6 +52,7 @@ export function createPlayGameState({
     backpackTotalMassGrams: "0",
     backpackAvailable: false,
     backpackStatusKnown: false,
+    landContractBalance: normalizeLandContractBalance(),
     playerProfile: loadPlayerProfile(initialOwnerAddress),
     setOwnerAddress(nextOwnerAddress) {
       const nextOwner = normalizeOwnerAddress(nextOwnerAddress);
@@ -62,7 +70,9 @@ export function createPlayGameState({
       this.backpackTotalMassGrams = "0";
       this.backpackAvailable = false;
       this.backpackStatusKnown = false;
+      this.landContractBalance = normalizeLandContractBalance();
       this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
+      notifyHotbarSelectionChange("owner-changed");
       return { changed: true, previousOwner, ownerAddress: nextOwner };
     },
     isBackpackAvailable() {
@@ -85,6 +95,7 @@ export function createPlayGameState({
       if (!this.isHotbarSlotSelectable(next)) return this.selectedHotbarSlot;
       this.selectedHotbarSlot = next;
       this.saveHotbarSlots();
+      notifyHotbarSelectionChange("selected");
       return next;
     },
     saveHotbarSlots() {
@@ -219,6 +230,7 @@ export function createPlayGameState({
         equipmentMutationChange(from, beforeFrom, this.hotbarSlots[from]),
         equipmentMutationChange(to, beforeTo, this.hotbarSlots[to]),
       ]);
+      notifyHotbarSelectionChange("swapped");
       return { ok: true, from, to };
     },
     clearHotbarSlot(index) {
@@ -226,10 +238,12 @@ export function createPlayGameState({
       if (!this.canModifyHotbarSlot(safeIndex)) return { ok: false, reason: "That hotbar slot is locked." };
       if (!this.hotbarSlots[safeIndex]) return { ok: false, reason: "That hotbar slot is already empty." };
       const before = cloneHotbarSlot(this.hotbarSlots[safeIndex]);
+      const wasSelected = this.selectedHotbarSlot === safeIndex;
       this.hotbarSlots[safeIndex] = null;
-      if (this.selectedHotbarSlot === safeIndex) this.selectHotbarSlot(0);
+      if (wasSelected) this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
       this.saveHotbarSlots();
       notifyEquipmentChanges([equipmentMutationChange(safeIndex, before, null)]);
+      if (wasSelected) notifyHotbarSelectionChange("cleared");
       return { ok: true, index: safeIndex };
     },
     getBackpackSlotEquipment(slotOrId) {
@@ -241,6 +255,48 @@ export function createPlayGameState({
     },
     isBackpackSlotEquipped(slotOrId) {
       return Boolean(this.getBackpackSlotEquipment(slotOrId));
+    },
+    getLandContractInventoryItem() {
+      return createLandContractInventoryItem(this.landContractBalance);
+    },
+    getLandContractEquipment() {
+      const index = this.hotbarSlots.findIndex((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID);
+      return index >= 0 ? { index, slot: this.hotbarSlots[index] } : null;
+    },
+    syncLandContractBalance(snapshot = {}) {
+      const next = normalizeLandContractBalance(snapshot);
+      const previous = this.landContractBalance;
+      this.landContractBalance = next;
+      let hotbarChanged = false;
+      let selectedRemoved = false;
+      for (let index = 0; index < this.hotbarSlots.length; index += 1) {
+        const slot = this.hotbarSlots[index];
+        if (slot?.itemId !== LAND_CONTRACT_ITEM_ID) continue;
+        if (next.known && next.total <= 0) {
+          this.hotbarSlots[index] = null;
+          hotbarChanged = true;
+          selectedRemoved ||= this.selectedHotbarSlot === index;
+          continue;
+        }
+        if (next.known && (
+          slot.count !== next.total
+          || slot.availableCount !== (next.available ?? 0)
+          || slot.reservedCount !== (next.reserved ?? 0)
+          || slot.marketUser !== next.marketUser
+        )) {
+          this.hotbarSlots[index] = landContractHotbarSlot(createLandContractInventoryItem(next));
+          hotbarChanged = true;
+        }
+      }
+      if (selectedRemoved) this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
+      if (hotbarChanged) this.saveHotbarSlots();
+      if (selectedRemoved) notifyHotbarSelectionChange("contract-balance-empty");
+      return {
+        changed: JSON.stringify(previous) !== JSON.stringify(next) || hotbarChanged,
+        hotbarChanged,
+        removed: selectedRemoved,
+        balance: next,
+      };
     },
     getHotbarEquipmentChainReference(index) {
       const safeIndex = clampInt(index, 0, this.hotbarSlots.length - 1);
@@ -329,12 +385,14 @@ export function createPlayGameState({
       }
       const slot = this.hotbarSlots[safeIndex];
       const before = cloneHotbarSlot(slot);
+      const wasSelected = this.selectedHotbarSlot === safeIndex;
       this.hotbarSlots[safeIndex] = null;
-      if (this.selectedHotbarSlot === safeIndex) {
+      if (wasSelected) {
         this.selectedHotbarSlot = firstSelectableHotbarIndex(this.hotbarSlots);
       }
       this.saveHotbarSlots();
       notifyEquipmentChanges([equipmentMutationChange(safeIndex, before, null)]);
+      if (wasSelected) notifyHotbarSelectionChange("unequipped");
       return { ok: true, index: safeIndex, slot };
     },
     moveBackpackSlotToHotbar(backpackIndex, hotbarIndex) {
@@ -365,6 +423,11 @@ export function createPlayGameState({
     getSelectedForgedPlaceableSlot() {
       const selected = this.getSelectedForgedSlot();
       return selected && isForgedPlacementReady(selected.slot) ? selected : null;
+    },
+    getSelectedLandContractSlot() {
+      const slot = this.hotbarSlots[this.selectedHotbarSlot];
+      if (slot?.itemId !== LAND_CONTRACT_ITEM_ID || !this.landContractBalance.known || this.landContractBalance.total <= 0) return null;
+      return { slot, index: this.selectedHotbarSlot };
     },
     getForgedInteraction(slot) {
       return forgedItemInteraction(slot);
@@ -399,6 +462,7 @@ export function createPlayGameState({
         this.selectedHotbarSlot = index;
         this.saveHotbarSlots();
         notifyEquipmentChanges(changes);
+        notifyHotbarSelectionChange("backpack-selected");
         return { ok: true, index, slot: this.hotbarSlots[index], alreadyEquipped: true, deduplicated };
       }
       const index = this.hotbarTargetIndex(targetIndex);
@@ -410,7 +474,31 @@ export function createPlayGameState({
       this.selectedHotbarSlot = index;
       this.saveHotbarSlots();
       notifyEquipmentChanges([equipmentMutationChange(index, before, equipped)]);
+      notifyHotbarSelectionChange("backpack-equipped");
       return { ok: true, index, slot: this.hotbarSlots[index] };
+    },
+    equipLandContractToHotbar(targetIndex = this.selectedHotbarSlot) {
+      const item = this.getLandContractInventoryItem();
+      if (!item) return { ok: false, reason: "No land contract is available in this MarketUser PDA." };
+      const existing = this.hotbarSlots.findIndex((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID);
+      if (existing >= 0) {
+        this.hotbarSlots[existing] = landContractHotbarSlot(item);
+        this.selectedHotbarSlot = existing;
+        this.saveHotbarSlots();
+        notifyHotbarSelectionChange("contract-selected");
+        return { ok: true, index: existing, slot: this.hotbarSlots[existing], alreadyEquipped: true };
+      }
+      const preferredIndex = clampInt(targetIndex, 0, this.hotbarSlots.length - 1);
+      const index = this.canModifyHotbarSlot(preferredIndex) && !this.hotbarSlots[preferredIndex]
+        ? preferredIndex
+        : this.hotbarSlots.findIndex((slot, slotIndex) => slotIndex > 0 && this.canModifyHotbarSlot(slotIndex) && !slot);
+      if (index < 0) return { ok: false, reason: "No available hotbar slot for this contract." };
+      const equipped = landContractHotbarSlot(item);
+      this.hotbarSlots[index] = equipped;
+      this.selectedHotbarSlot = index;
+      this.saveHotbarSlots();
+      notifyHotbarSelectionChange("contract-equipped");
+      return { ok: true, index, slot: equipped };
     },
     hotbarTargetIndex(preferredIndex = this.selectedHotbarSlot) {
       const preferred = clampInt(preferredIndex, 0, this.hotbarSlots.length - 1);
@@ -548,6 +636,18 @@ export function createPlayGameState({
       // The local hotbar remains usable while the chain sync reports its own error.
     }
   }
+  function notifyHotbarSelectionChange(reason) {
+    try {
+      onHotbarSelectionChange({
+        ownerAddress: state.ownerAddress,
+        index: state.selectedHotbarSlot,
+        slot: cloneHotbarSlot(state.hotbarSlots[state.selectedHotbarSlot]),
+        reason,
+      });
+    } catch {
+      // Feature panels must not interfere with local hotbar selection.
+    }
+  }
   state.selectedHotbarSlot = preferredHotbarIndex(state.hotbarSlots);
   return state;
 }
@@ -557,6 +657,7 @@ export function createPlayHotbarItems() {
     iron_pickaxe: { kind: "tool", itemId: "iron_pickaxe", label: "Pickaxe", maxDurability: DEFAULT_PICKAXE_DURABILITY },
     forged_item: { kind: "forged", itemId: FORGED_ITEM_ID, label: "Forged Tool", maxDurability: DEFAULT_PICKAXE_DURABILITY },
     resource_block: { kind: "resource", itemId: "resource_block", label: "Block", action: "placeBlock" },
+    [LAND_CONTRACT_ITEM_ID]: { kind: "contract", itemId: LAND_CONTRACT_ITEM_ID, label: "Blank Land Contract", action: "openLandConstruction" },
     backpack: { kind: "backpack", itemId: "backpack", label: "Backpack" },
   });
 }
@@ -655,6 +756,7 @@ function removeDuplicateBackpackShortcuts(slots) {
 }
 
 function backpackShortcutIdentity(slot) {
+  if (isLandContractItem(slot)) return `contract:${LAND_CONTRACT_ITEM_ID}`;
   if (slot?.kind === "resource") {
     const sourceId = String(slot.id || "").trim();
     return sourceId ? `resource:${sourceId}` : "";
@@ -669,6 +771,7 @@ function resolveBackpackSlot(slots, slotOrId) {
 }
 
 function hotbarShortcutIdentity(slot) {
+  if (slot?.itemId === LAND_CONTRACT_ITEM_ID) return `contract:${LAND_CONTRACT_ITEM_ID}`;
   if (slot?.itemId === "resource_block") {
     const sourceId = String(slot.backpackSlotId || "").trim();
     return sourceId ? `resource:${sourceId}` : "";
@@ -786,8 +889,30 @@ function normalizeHotbarSlot(slot, { ownerAddress = "" } = {}) {
       ...surfaceDecorationFields(slot),
     };
   }
+  if (slot.itemId === LAND_CONTRACT_ITEM_ID) {
+    return landContractHotbarSlot({
+      count: clampInt(slot.count, 1, 0xffffffff),
+      availableCount: clampInt(slot.availableCount, 0, 0xffffffff),
+      reservedCount: clampInt(slot.reservedCount, 0, 0xffffffff),
+      marketUser: String(slot.marketUser || ""),
+    });
+  }
   if (slot.itemId === "backpack") return { itemId: "backpack", locked: true };
   return null;
+}
+
+function landContractHotbarSlot(item) {
+  if (!item) return null;
+  return {
+    itemId: LAND_CONTRACT_ITEM_ID,
+    kind: "contract",
+    label: "Blank Land Contract",
+    count: clampInt(item.count, 1, 0xffffffff),
+    availableCount: clampInt(item.availableCount, 0, 0xffffffff),
+    reservedCount: clampInt(item.reservedCount, 0, 0xffffffff),
+    marketUser: String(item.marketUser || ""),
+    source: "market-user",
+  };
 }
 
 function normalizeU64String(value) {

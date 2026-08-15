@@ -1,3 +1,8 @@
+import {
+  createLandContractIconElement,
+  isLandContractItem,
+} from "./play-land-contract-item.js";
+
 export function createPlayHotbarUi({
   elements,
   gameState,
@@ -39,6 +44,7 @@ export function createPlayHotbarUi({
     const item = visibleSlot ? gameState.hotbarItems[visibleSlot.itemId] : null;
     const renderedItem = visibleSlot ? { ...item, ...visibleSlot } : null;
     const opensBackpack = isBackpackSlot && backpackAvailable;
+    const isLandContract = isLandContractItem(visibleSlot);
     const label = visibleSlot ? voxelItemLabel(renderedItem) : "Empty";
     return {
       slot,
@@ -46,9 +52,10 @@ export function createPlayHotbarUi({
       renderedItem,
       isBackpackSlot,
       opensBackpack,
+      isLandContract,
       label,
       amount: hotbarSlotAmount(visibleSlot),
-      renderKey: hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, label }),
+      renderKey: hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, isLandContract, label }),
       selected: !isBackpackSlot && index === gameState.selectedHotbarSlot,
     };
   }
@@ -65,7 +72,9 @@ export function createPlayHotbarUi({
 
     const icon = document.createElement("span");
     icon.className = "hotbar-icon";
-    if (view.renderedItem) {
+    if (view.isLandContract) {
+      icon.append(createLandContractIconElement({ size: 40 }));
+    } else if (view.renderedItem) {
       icon.append(createVoxelItemIconCanvas(view.renderedItem, { size: 42 }));
     } else {
       icon.textContent = "·";
@@ -94,6 +103,7 @@ export function createPlayHotbarUi({
     if (!button) return;
     button.classList.toggle("selected", view.selected);
     button.classList.toggle("hotbar-action", view.opensBackpack);
+    button.classList.toggle("land-contract-shortcut", view.isLandContract);
     button.classList.toggle("backpack-unavailable", view.isBackpackSlot && !view.opensBackpack);
     button.dataset.slot = String(index);
     syncOptionalDataset(button, "backpackTarget", view.isBackpackSlot ? "true" : "");
@@ -106,7 +116,8 @@ export function createPlayHotbarUi({
       button.setAttribute("aria-label", "Backpack not created");
       button.setAttribute("aria-disabled", "true");
     } else {
-      button.removeAttribute("aria-label");
+      if (view.isLandContract) button.setAttribute("aria-label", `${view.label}, ${view.amount}`);
+      else button.removeAttribute("aria-label");
       button.removeAttribute("aria-disabled");
     }
     syncAmount(button, view.amount);
@@ -134,10 +145,11 @@ export function createPlayHotbarUi({
   }
 }
 
-function hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, label }) {
+function hotbarRenderKey({ renderedItem, isBackpackSlot, opensBackpack, isLandContract, label }) {
   return JSON.stringify([
     isBackpackSlot,
     opensBackpack,
+    isLandContract,
     label,
     renderedItem ? hotbarVisualFields(renderedItem) : null,
   ]);

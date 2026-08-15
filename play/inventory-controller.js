@@ -1,5 +1,9 @@
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
 import { buildBackpackDisplayStacks, findBackpackDisplayStack } from "./backpack-display-stacks.js";
+import {
+  LAND_CONTRACT_INVENTORY_ID,
+  createLandContractIconElement,
+} from "./play-land-contract-item.js";
 
 const DRAG_START_PX = 8;
 const LONG_PRESS_MS = 560;
@@ -61,6 +65,7 @@ export function createInventoryController({
   let contextMenu = null;
   let longPressTimer = 0;
   let focusedBackpackIndex = null;
+  let focusedVirtualItemId = null;
   const selectedBackpackIndexes = new Set();
   const discardingBackpackIndexes = new Set();
   const ui = (key, fallback, params = {}) => {
@@ -160,6 +165,7 @@ export function createInventoryController({
 
   function handleBackpackPointerDown(event) {
     if (event.button !== 0 || event.target.closest(".backpack-equip")) return;
+    if (virtualInventoryItemIdFromEvent(event)) return;
     const index = backpackSlotIndexFromEvent(event);
     if (index === null || !gameState.backpackSlots[index]) return;
     closeContextMenu();
@@ -396,9 +402,18 @@ export function createInventoryController({
 
   function handleBackpackClick(event) {
     if (event.target.closest(".backpack-equip")) return;
+    const virtualItemId = virtualInventoryItemIdFromEvent(event);
+    if (virtualItemId) {
+      selectedBackpackIndexes.clear();
+      focusedBackpackIndex = null;
+      focusedVirtualItemId = virtualItemId;
+      refresh();
+      return;
+    }
     const index = backpackSlotIndexFromEvent(event);
     if (index === null || !gameState.backpackSlots[index]) {
       focusedBackpackIndex = null;
+      focusedVirtualItemId = null;
       if (!selectedBackpackIndexes.size) refresh();
       return;
     }
@@ -410,27 +425,43 @@ export function createInventoryController({
     } else if (shouldToggle) toggleBackpackSelection(index);
     else {
       focusedBackpackIndex = index;
+      focusedVirtualItemId = null;
       refresh();
     }
   }
 
   function handleBackpackKeyDown(event) {
     if (event.key !== "Enter" && event.key !== " ") return;
+    const virtualItemId = virtualInventoryItemIdFromEvent(event);
+    if (virtualItemId) {
+      event.preventDefault();
+      selectedBackpackIndexes.clear();
+      focusedBackpackIndex = null;
+      focusedVirtualItemId = virtualItemId;
+      refresh();
+      return;
+    }
     const index = backpackSlotIndexFromEvent(event);
     if (index === null || !gameState.backpackSlots[index]) return;
     event.preventDefault();
     focusedBackpackIndex = index;
+    focusedVirtualItemId = null;
     refresh();
   }
 
   function handleBackpackFilterChange() {
     selectedBackpackIndexes.clear();
     focusedBackpackIndex = null;
+    focusedVirtualItemId = null;
     closeContextMenu();
     refresh();
   }
 
   function handleBackpackContextMenu(event) {
+    if (virtualInventoryItemIdFromEvent(event)) {
+      event.preventDefault();
+      return;
+    }
     const index = backpackSlotIndexFromEvent(event);
     if (index === null || !gameState.backpackSlots[index]) return;
     event.preventDefault();
@@ -568,7 +599,10 @@ export function createInventoryController({
   function clearSelection(options = {}) {
     if (selectionSweep) clearSelectionSweep();
     selectedBackpackIndexes.clear();
-    if (!options.keepFocus) focusedBackpackIndex = null;
+    if (!options.keepFocus) {
+      focusedBackpackIndex = null;
+      focusedVirtualItemId = null;
+    }
     closeContextMenu();
     refresh();
     if (!options.silent) onStatus("Backpack selection cleared.");
@@ -582,6 +616,7 @@ export function createInventoryController({
       if (slot && !slot.pending && !isEquippedBackpackSlot(slot) && !discardingBackpackIndexes.has(index)) selectedBackpackIndexes.add(index);
     }
     focusedBackpackIndex = selectedBackpackIndexes.values().next().value ?? null;
+    focusedVirtualItemId = null;
     refresh();
     onStatus(selectedBackpackIndexes.size
       ? `Selected ${selectedBackpackIndexes.size} confirmed backpack item${selectedBackpackIndexes.size === 1 ? "" : "s"}.`
@@ -591,6 +626,7 @@ export function createInventoryController({
   function toggleBackpackSelection(index) {
     if (!Number.isInteger(index) || !gameState.backpackSlots[index]) return;
     const slot = gameState.backpackSlots[index];
+    focusedVirtualItemId = null;
     if (isEquippedBackpackSlot(slot)) {
       focusedBackpackIndex = index;
       refresh();
@@ -652,6 +688,7 @@ export function createInventoryController({
       }
     }
     if (focusedBackpackIndex !== null && !gameState.backpackSlots[focusedBackpackIndex]) focusedBackpackIndex = null;
+    if (focusedVirtualItemId && gameState.getLandContractInventoryItem?.()?.id !== focusedVirtualItemId) focusedVirtualItemId = null;
   }
 
   function updateSelectionClasses() {
@@ -668,6 +705,13 @@ export function createInventoryController({
       slot.classList.toggle("equipped", equipped);
       slot.dataset.equipped = equipped ? "true" : "false";
       slot.setAttribute("aria-disabled", equipped || discarding ? "true" : "false");
+    });
+    elements.backpackGrid?.querySelectorAll(".backpack-slot[data-inventory-virtual-item]").forEach((slot) => {
+      const itemId = String(slot.dataset.inventoryVirtualItem || "");
+      const equipment = gameState.getLandContractEquipment?.() ?? null;
+      slot.classList.toggle("focused", itemId === focusedVirtualItemId);
+      slot.classList.toggle("equipped", Boolean(equipment));
+      slot.dataset.equipped = equipment ? "true" : "false";
     });
   }
 
@@ -693,17 +737,25 @@ export function createInventoryController({
   function renderBackpackDetail() {
     const detail = elements.backpackDetail;
     if (!detail) return;
+    const virtualItem = focusedVirtualItemId === LAND_CONTRACT_INVENTORY_ID
+      ? gameState.getLandContractInventoryItem?.() ?? null
+      : null;
+    if (virtualItem) {
+      renderLandContractDetail(detail, virtualItem);
+      return;
+    }
     const index = focusedBackpackIndex ?? selectedBackpackIndexes.values().next().value ?? null;
     const displayStack = Number.isInteger(index) ? currentDisplayStack(index) : null;
     const slot = displayStack?.slot ?? (Number.isInteger(index) ? gameState.backpackSlots[index] : null);
     const stackIndexes = displayStack?.indexes ?? (Number.isInteger(index) ? [index] : []);
     const sourceSlot = Number.isInteger(index) ? gameState.backpackSlots[index] : null;
     if (!slot) {
-      detail.classList.remove("has-item");
+      detail.classList.remove("has-item", "has-land-contract");
       detail.innerHTML = "<i class=\"backpack-detail-empty-icon\" aria-hidden=\"true\"></i><strong>No item selected</strong><span>Choose a slot to inspect its item and proof data.</span>";
       return;
     }
     detail.classList.add("has-item");
+    detail.classList.remove("has-land-contract");
     const equipment = gameState.getBackpackSlotEquipment?.(sourceSlot) ?? null;
     const equipped = Boolean(equipment);
 
@@ -820,6 +872,78 @@ export function createInventoryController({
     });
     discard.disabled = Boolean(equipped || slot.pending || stackIndexes.some((entry) => discardingBackpackIndexes.has(entry)));
     actions.append(equip, select, discard);
+    detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, actions);
+  }
+
+  function renderLandContractDetail(detail, contract) {
+    detail.classList.add("has-item", "has-land-contract");
+    const equipment = gameState.getLandContractEquipment?.() ?? null;
+
+    const kicker = document.createElement("div");
+    kicker.className = "backpack-detail-kicker";
+    const verified = document.createElement("span");
+    verified.textContent = ui("main.backpack.chainVerified", "Chain verified");
+    const stack = document.createElement("span");
+    stack.textContent = `Stack ${contract.count}`;
+    kicker.append(verified, stack);
+
+    const preview = document.createElement("div");
+    preview.className = "backpack-detail-preview land-contract-preview";
+    preview.append(createLandContractIconElement({ size: 112 }));
+    const projection = ui("main.backpack.contractProjection", "MarketUser PDA projection");
+    const title = detailTitle(backpackItemName(contract), `x${contract.count} · ${projection}`);
+
+    const tags = document.createElement("div");
+    tags.className = "backpack-detail-tags";
+    tags.append(
+      detailTag(ui("main.backpack.contractTag", "Contract")),
+      detailTag("On-chain"),
+    );
+    if (equipment) tags.append(detailTag(ui("main.backpack.equipped", "Equipped"), "equipped"));
+
+    const description = document.createElement("p");
+    description.className = "backpack-detail-description";
+    description.textContent = ui(
+      "main.market.blankLandContractDescription",
+      "The NICECHUNK Treasury issues blank land contracts at a fixed price. Registering land consumes one contract for every selected chunk.",
+    );
+
+    const rows = [
+      [ui("main.market.contractsOwned", "Contracts Owned"), String(contract.availableCount)],
+      [ui("main.market.contractsReserved", "Registration Reserved"), String(contract.reservedCount)],
+      [ui("main.market.contractCoverage", "Coverage"), ui("main.market.contractCoverageValue", "1 complete 16×16 chunk")],
+      [ui("main.market.contractStorage", "Storage"), ui("main.market.contractNoBackpack", "Market membership PDA, no backpack space")],
+      [ui("main.backpack.contractBackpackSpace", "Backpack space"), ui("main.backpack.contractBackpackSpaceValue", "0 slots")],
+      [ui("main.market.contractUse", "Use"), ui("main.market.contractUseValue", "Consumed atomically when land is registered")],
+      [ui("main.backpack.contractPda", "MarketUser PDA"), shortAddress(contract.marketUser) || "-"],
+    ];
+    if (equipment) {
+      rows.push([ui("main.backpack.equipped", "Equipped"), ui(
+        "main.backpack.equippedSlot",
+        "Equipped in hotbar slot {slot}",
+        { slot: equipment.index + 1 },
+      )]);
+    }
+    const rowWrap = document.createElement("div");
+    rowWrap.className = "backpack-detail-rows";
+    rowWrap.replaceChildren(...rows.map(([label, value]) => detailRow(label, value)));
+
+    const actions = document.createElement("div");
+    actions.className = "backpack-detail-actions land-contract-actions";
+    const equip = detailAction(
+      equipment ? ui("main.backpack.equipped", "Equipped") : ui("main.backpack.equipToHotbar", "Equip to hotbar"),
+      "primary",
+      () => {
+        const result = gameState.equipLandContractToHotbar?.();
+        renderGameUi();
+        refresh();
+        onStatus(result?.ok
+          ? ui("main.backpack.contractEquippedStatus", "Equipped the land contract to hotbar slot {slot}.", { slot: result.index + 1 })
+          : result?.reason || "Land contract could not be equipped.");
+      },
+    );
+    equip.disabled = Boolean(equipment);
+    actions.append(equip);
     detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, actions);
   }
 
@@ -1172,6 +1296,11 @@ function backpackSlotIndexFromEvent(event) {
   if (!slot) return null;
   const index = Number(slot.dataset.backpackSlot);
   return Number.isInteger(index) ? index : null;
+}
+
+function virtualInventoryItemIdFromEvent(event) {
+  const slot = event.target.closest(".backpack-slot[data-inventory-virtual-item]");
+  return String(slot?.dataset?.inventoryVirtualItem || "");
 }
 
 function backpackSlotIndexesFromEvent(event) {

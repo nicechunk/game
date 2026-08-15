@@ -547,7 +547,16 @@
       "detailUnitVolume": "单位体积",
       "detailUnitWeight": "单位重量",
       "detailTotalVolume": "总体积",
-      "detailTotalWeight": "总重量"
+      "detailTotalWeight": "总重量",
+      "chainVerified": "链上已验证",
+      "contractProjection": "MarketUser PDA 投影视图",
+      "contractAria": "{item}，契约余额 {count}",
+      "contractTag": "契约",
+      "contractBackpackSpace": "背包空间",
+      "contractBackpackSpaceValue": "0 格",
+      "contractPda": "MarketUser PDA",
+      "equipToHotbar": "装备到快捷栏",
+      "contractEquippedStatus": "已将土地契约装备到快捷栏第 {slot} 格。"
     },
     "loading": {
       "eyebrow": "世界网关",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "需要 {required} 份契约，但目前持有 {available} 份。",
       "marketMembershipRequired": "购买或使用土地契约前，请先加入市场。",
       "modeOpened": "土地建造模式已打开，按 F 选择完整区块。",
-      "modeClosed": "土地建造模式已关闭。"
+      "modeClosed": "土地建造模式已关闭。",
+      "collapseAria": "折叠土地契约面板",
+      "expandAria": "展开土地契约面板"
     },
     "onboarding": {
       "features": {

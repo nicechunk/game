@@ -547,7 +547,16 @@
       "detailUnitVolume": "Volume unitaire",
       "detailUnitWeight": "Poids unitaire",
       "detailTotalVolume": "Volume total",
-      "detailTotalWeight": "Poids total"
+      "detailTotalWeight": "Poids total",
+      "chainVerified": "Vérifié on-chain",
+      "contractProjection": "Projection du PDA MarketUser",
+      "contractAria": "{item}, solde de contrats {count}",
+      "contractTag": "Contrat",
+      "contractBackpackSpace": "Espace du sac",
+      "contractBackpackSpaceValue": "0 emplacement",
+      "contractPda": "PDA MarketUser",
+      "equipToHotbar": "Équiper dans la barre",
+      "contractEquippedStatus": "Contrat foncier équipé dans l’emplacement {slot}."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "Il faut {required} contrats, vous en possédez {available}.",
       "marketMembershipRequired": "Rejoignez le marché avant d’acheter ou d’utiliser des contrats fonciers.",
       "modeOpened": "Mode terrain ouvert. Sélectionnez des chunks entiers avec F.",
-      "modeClosed": "Mode terrain fermé."
+      "modeClosed": "Mode terrain fermé.",
+      "collapseAria": "Réduire la construction du terrain",
+      "expandAria": "Développer la construction du terrain"
     },
     "onboarding": {
       "features": {

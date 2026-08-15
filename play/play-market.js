@@ -7,6 +7,7 @@ import { marketCategoryForBackpackSlot } from "../src/market/marketCategories.js
 import { resourceIdForBlock } from "../src/world/blocks.js";
 import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { formatMassGrams, formatVolumeCm3 } from "./play-ui-format.js";
+import { createLandContractIconElement } from "./play-land-contract-item.js";
 
 const MARKET_RULE_SET = "nicechunk-play-market-v1";
 const MARKET_CATEGORIES = Object.freeze(["all", "contracts", "raw", "building", "equipment", "clothing"]);
@@ -321,6 +322,7 @@ export function createPlayMarket({
       state.membershipStatus = "error";
       state.membershipError = ui("main.market.membershipWalletRequired", "Connect your game wallet before joining the market.");
       render();
+      onChanged();
       return { ok: false, reason: "wallet-unavailable" };
     }
     try {
@@ -337,6 +339,7 @@ export function createPlayMarket({
         state.membershipEstimate = null;
         state.membershipError = "";
         render();
+        onChanged();
         if (loadMarket && api.isOpen()) loadMarketForActiveTab();
         return { ok: true, joined: true, membership };
       }
@@ -347,6 +350,7 @@ export function createPlayMarket({
       state.membershipEstimate = estimate;
       state.membershipStatus = "required";
       render();
+      onChanged();
       return { ok: true, joined: false, estimate };
     } catch (error) {
       if (requestId !== membershipRequestId || wallet !== currentWalletAddress()) {
@@ -358,6 +362,7 @@ export function createPlayMarket({
         reason: readableError(error),
       });
       render();
+      onChanged();
       return { ok: false, reason: state.membershipError };
     }
   }
@@ -425,6 +430,7 @@ export function createPlayMarket({
 
   async function refreshLandContracts({ quiet = true } = {}) {
     const wallet = currentWalletAddress();
+    const requestId = ++membershipRequestId;
     if (!wallet) return { ok: false, reason: "wallet-unavailable", ...getLandContractSnapshot() };
     try {
       const module = await loadChainModule();
@@ -432,7 +438,9 @@ export function createPlayMarket({
         return { ok: false, reason: "market-membership-unavailable", ...getLandContractSnapshot() };
       }
       const membership = await module.fetchMarketUserStateOnChain(wallet);
-      if (wallet !== currentWalletAddress()) return { ok: false, reason: "stale" };
+      if (requestId !== membershipRequestId || wallet !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
       state.membershipWallet = wallet;
       state.membership = membership;
       state.membershipStatus = membership ? "joined" : "required";
@@ -442,6 +450,9 @@ export function createPlayMarket({
       onChanged();
       return { ok: Boolean(membership), reason: membership ? "" : "market-membership-required", ...snapshot };
     } catch (error) {
+      if (requestId !== membershipRequestId || wallet !== currentWalletAddress()) {
+        return { ok: false, reason: "stale" };
+      }
       const reason = readableError(error);
       if (!quiet) showTradeToast(ui("main.market.contractBalanceFailed", "Could not refresh land contracts: {reason}", { reason }), "error");
       return { ok: false, reason, ...getLandContractSnapshot() };
@@ -874,6 +885,8 @@ export function createPlayMarket({
         state.membership = result.marketUserState;
         state.membershipStatus = "joined";
         state.membershipWallet = currentWalletAddress();
+        // Project the confirmed balance immediately; a follow-up RPC read is only reconciliation.
+        onChanged();
       }
       const success = ui("main.market.contractPurchaseConfirmed", "Purchased {quantity} land contract(s). Owned: {owned}.", {
         quantity: formatInteger(normalizedQuantity),
@@ -1467,27 +1480,7 @@ export function createPlayMarket({
 
   function marketListingIcon(listing, size) {
     if (!listing?.treasuryProduct) return createVoxelItemIconCanvas(listing?.itemSnapshot || {}, { size });
-    const root = document.createElement("span");
-    root.className = "market-contract-icon";
-    root.style.setProperty("--market-contract-icon-size", `${Math.max(24, Math.trunc(Number(size) || 44))}px`);
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 64 64");
-    svg.setAttribute("aria-hidden", "true");
-    const scroll = document.createElementNS(svg.namespaceURI, "path");
-    scroll.setAttribute("d", "M17 10h31v37H22a7 7 0 0 0-7 7V16a6 6 0 0 1 2-6Z");
-    scroll.setAttribute("class", "market-contract-scroll");
-    const curl = document.createElementNS(svg.namespaceURI, "path");
-    curl.setAttribute("d", "M22 47h27v7H22a4 4 0 1 1 0-7Z");
-    curl.setAttribute("class", "market-contract-curl");
-    const grid = document.createElementNS(svg.namespaceURI, "path");
-    grid.setAttribute("d", "M24 20h17M24 27h17M24 34h8m6 0h3");
-    grid.setAttribute("class", "market-contract-lines");
-    const seal = document.createElementNS(svg.namespaceURI, "path");
-    seal.setAttribute("d", "m42 38 5 3-2 6-6-1-1-6 4-2Z");
-    seal.setAttribute("class", "market-contract-seal");
-    svg.append(scroll, curl, grid, seal);
-    root.append(svg);
-    return root;
+    return createLandContractIconElement({ size });
   }
 
   function formatInteger(value) {

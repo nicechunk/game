@@ -416,8 +416,9 @@ const elements = {
   backpackCreateLearn: document.querySelector("#backpackCreateLearn"),
   backpackCreateStatus: document.querySelector("#backpackCreateStatus"),
   backpackCreateCallout: document.querySelector("#backpackCreateCallout"),
-  landModeButton: document.querySelector("#landModeButton"),
   landGuide: document.querySelector("#landGuide"),
+  landGuideBody: document.querySelector("#landGuideBody"),
+  landCollapse: document.querySelector("#landCollapse"),
   landClose: document.querySelector("#landClose"),
   landModeButtons: document.querySelectorAll("[data-land-mode]"),
   foundationEditor: document.querySelector("#foundationEditor"),
@@ -488,6 +489,7 @@ const gameState = createPlayGameState({
   resourceNone: RESOURCE_ID.none,
   ownerAddress: initialWalletSession.walletAddress,
   onEquipmentChange: (mutation) => chainPlayer?.queueEquipmentChanges?.(mutation),
+  onHotbarSelectionChange: handleHotbarSelectionChange,
 });
 const foundationIndex = createFoundationSpatialIndex({ chunkSize: 16 });
 const buildingCache = createPlayBuildingCache({
@@ -625,6 +627,7 @@ async function handleWalletSessionChanged(walletAddress) {
     chainBackpack?.refresh?.({ force: true, quiet: true }),
     chainPlayer?.refresh?.({ force: true, quiet: true }),
     foundationSync?.refresh?.({ force: true, quiet: true }),
+    market?.refreshLandContracts?.({ quiet: true }),
   ].filter(Boolean));
   if (serial !== walletSwitchSerial || gameState.ownerAddress !== nextWallet) return;
   await avatarSession?.syncModelFromProfile?.({ force: true, quiet: true });
@@ -1067,7 +1070,10 @@ async function boot() {
     onEnterMarket: () => playUi?.closeBackpackPanel(),
     onReturnToBackpack: () => playUi?.openBackpackPanel(),
     onStatus: setStatus,
-    onChanged: renderGameUi,
+    onChanged: () => {
+      syncLandContractState();
+      renderGameUi();
+    },
   });
   actionHit = createPlayActionHit({
     canvas: elements.canvas,
@@ -1348,6 +1354,10 @@ async function boot() {
     mobileChat.bind();
     cacheMaintenance.bind();
   });
+  startupLogger.track("land contract initial refresh", market.refreshLandContracts({ quiet: true })).then(() => {
+    syncLandContractState();
+    renderGameUi();
+  });
   startupLogger.step("chain delta memory cache reset", () => chainChunkDeltas.clearLocalCache({ clearRenderDeltas: true }));
   startupLogger.track("chunk delta persistent cache warm", chainChunkDeltas.preloadPersistentCache({ reason: "startup-cache" }));
   startupLogger.track("player PDA initial refresh", chainPlayer.refresh({ force: true, quiet: true })).then((result) => {
@@ -1363,7 +1373,6 @@ async function boot() {
     }
   });
   startupLogger.step("initial game UI render", () => renderGameUi());
-  void ensureLandConstruction();
   if (params.get("debug") === "1") {
     const controller = await ensureDebugController();
     controller?.setDebugVisible?.(true);
@@ -1664,10 +1673,35 @@ function ensureLandConstruction() {
 }
 
 function dispatchLandConstructionAction(action, ...args) {
+  if ((action === "open" || action === "toggle") && !gameState.getSelectedLandContractSlot?.()) return null;
   if (landConstruction) return landConstruction.actions?.[action]?.(...args);
   return ensureLandConstruction().then((construction) => (
     construction?.actions?.[action]?.(...args) ?? construction?.[action]?.(...args) ?? null
   ));
+}
+
+function syncLandContractState() {
+  const snapshot = market?.getLandContractSnapshot?.();
+  return snapshot ? gameState.syncLandContractBalance?.(snapshot) : null;
+}
+
+function handleHotbarSelectionChange() {
+  const selected = gameState.getSelectedLandContractSlot?.() ?? null;
+  if (!selected) {
+    if (constructionModeActive) landConstruction?.close?.();
+    return;
+  }
+  playUi?.closeBackpackPanel?.();
+  playUi?.closeProfilePanel?.();
+  smelting?.closePanel?.();
+  market?.closePanel?.({ restoreBackpack: false });
+  const expectedOwner = gameState.ownerAddress;
+  const expectedIndex = selected.index;
+  void ensureLandConstruction().then((construction) => {
+    const current = gameState.getSelectedLandContractSlot?.();
+    if (!construction || gameState.ownerAddress !== expectedOwner || current?.index !== expectedIndex) return;
+    construction.open?.();
+  });
 }
 
 function renderGameUi() {

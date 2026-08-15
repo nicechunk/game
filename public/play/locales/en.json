@@ -547,7 +547,16 @@
       "detailUnitVolume": "Unit volume",
       "detailUnitWeight": "Unit weight",
       "detailTotalVolume": "Total volume",
-      "detailTotalWeight": "Total weight"
+      "detailTotalWeight": "Total weight",
+      "chainVerified": "Chain verified",
+      "contractProjection": "MarketUser PDA projection",
+      "contractAria": "{item}, contract balance {count}",
+      "contractTag": "Contract",
+      "contractBackpackSpace": "Backpack space",
+      "contractBackpackSpaceValue": "0 slots",
+      "contractPda": "MarketUser PDA",
+      "equipToHotbar": "Equip to hotbar",
+      "contractEquippedStatus": "Equipped the land contract to hotbar slot {slot}."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "You need {required} contracts but own {available}.",
       "marketMembershipRequired": "Join the market before buying or using land contracts.",
       "modeOpened": "Land construction mode opened. Select whole chunks with F.",
-      "modeClosed": "Land construction mode closed."
+      "modeClosed": "Land construction mode closed.",
+      "collapseAria": "Collapse land construction",
+      "expandAria": "Expand land construction"
     },
     "onboarding": {
       "features": {

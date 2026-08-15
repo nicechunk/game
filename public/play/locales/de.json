@@ -547,7 +547,16 @@
       "detailUnitVolume": "Volumen je Einheit",
       "detailUnitWeight": "Gewicht je Einheit",
       "detailTotalVolume": "Gesamtvolumen",
-      "detailTotalWeight": "Gesamtgewicht"
+      "detailTotalWeight": "Gesamtgewicht",
+      "chainVerified": "On-chain verifiziert",
+      "contractProjection": "MarketUser-PDA-Projektion",
+      "contractAria": "{item}, Vertragsbestand {count}",
+      "contractTag": "Vertrag",
+      "contractBackpackSpace": "Rucksackplatz",
+      "contractBackpackSpaceValue": "0 Plätze",
+      "contractPda": "MarketUser-PDA",
+      "equipToHotbar": "In Schnellleiste ausrüsten",
+      "contractEquippedStatus": "Landvertrag in Schnellleistenplatz {slot} ausgerüstet."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "Du benötigst {required} Verträge, besitzt aber {available}.",
       "marketMembershipRequired": "Tritt dem Markt bei, bevor du Landverträge kaufst oder nutzt.",
       "modeOpened": "Grundstücksbaumodus geöffnet. Wähle mit F ganze Chunks.",
-      "modeClosed": "Grundstücksbaumodus geschlossen."
+      "modeClosed": "Grundstücksbaumodus geschlossen.",
+      "collapseAria": "Landbau einklappen",
+      "expandAria": "Landbau ausklappen"
     },
     "onboarding": {
       "features": {

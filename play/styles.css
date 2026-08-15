@@ -1394,68 +1394,7 @@ body.first-person-camera::after {
   overflow: hidden;
 }
 
-/* Land construction mirrors the selected chunks in-world instead of using a modal. */
-.land-mode-hud {
-  position: fixed;
-  right: max(24px, env(safe-area-inset-right));
-  top: max(292px, calc(env(safe-area-inset-top) + 292px));
-  z-index: 27;
-  display: grid;
-  grid-template-columns: 32px auto 22px;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 5px 9px 5px 7px;
-  border: 2px solid rgba(255, 255, 255, 0.90);
-  border-radius: 15px;
-  color: #f7fcff;
-  background: linear-gradient(145deg, rgba(20, 146, 232, 0.96), rgba(7, 96, 190, 0.92));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 24px rgba(4, 62, 127, 0.24);
-  cursor: pointer;
-  font: 900 0.72rem/1 "Trebuchet MS", "Avenir Next", sans-serif;
-  letter-spacing: 0.04em;
-}
-
-.land-mode-hud:hover,
-.land-mode-hud:focus-visible,
-.land-mode-hud.active {
-  background: linear-gradient(145deg, rgba(51, 191, 248, 0.98), rgba(8, 116, 218, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52), 0 0 0 3px rgba(106, 220, 255, 0.34), 0 12px 28px rgba(4, 62, 127, 0.30);
-}
-
-.land-mode-hud-icon {
-  position: relative;
-  display: block;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(145deg, #97eb65, #3a9f43);
-  box-shadow: inset 0 -6px 0 rgba(75, 59, 30, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.42);
-}
-
-.land-mode-hud-icon i {
-  position: absolute;
-  left: 5px;
-  right: 5px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.76);
-  transform: rotate(-28deg);
-}
-
-.land-mode-hud-icon i:first-child { top: 9px; }
-.land-mode-hud-icon i:last-child { top: 16px; }
-
-.land-mode-hud kbd {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 5px;
-  background: rgba(0, 38, 88, 0.28);
-  font: 900 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
+/* Land construction mirrors selected chunks in-world instead of using a modal. */
 .land-guide {
   position: fixed;
   left: max(20px, env(safe-area-inset-left));
@@ -1488,7 +1427,19 @@ body.first-person-camera::after {
   width: 286px;
 }
 
+.land-guide.is-collapsed {
+  width: min(238px, calc(100vw - 40px));
+  max-height: 58px;
+  overflow: hidden;
+}
+
+.land-guide.is-collapsed header {
+  padding-bottom: 2px;
+  border-bottom-color: transparent;
+}
+
 .land-guide[hidden],
+.land-guide-body[hidden],
 .land-editor[hidden],
 .land-step-hint[hidden],
 .foundation-measurements[hidden] {
@@ -1507,17 +1458,30 @@ body.first-person-camera::after {
   letter-spacing: 0.12em;
 }
 
+.land-guide-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.land-guide-collapse,
 .land-guide-close {
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
-  margin-left: auto;
   border: 1px solid rgba(153, 226, 255, 0.34);
   border-radius: 8px;
   color: #eafaff;
   background: rgba(12, 74, 111, 0.46);
   cursor: pointer;
   font: 900 1rem/1 "Trebuchet MS", sans-serif;
+}
+
+.land-guide-collapse:hover,
+.land-guide-close:hover {
+  border-color: rgba(201, 244, 255, 0.72);
+  background: rgba(35, 126, 175, 0.58);
 }
 
 .land-guide-title {
@@ -1772,8 +1736,7 @@ body.first-person-camera::after {
 
 .land-guide button:focus-visible,
 .land-guide input:focus-visible,
-.land-guide textarea:focus-visible,
-.land-mode-hud:focus-visible {
+.land-guide textarea:focus-visible {
   outline: 2px solid #d8f9ff;
   outline-offset: 2px;
 }
@@ -2139,19 +2102,6 @@ body.first-person-camera::after {
 }
 
 @media (max-width: 900px), (pointer: coarse) and (orientation: portrait) {
-  .land-mode-hud {
-    right: max(8px, env(safe-area-inset-right));
-    top: max(204px, calc(env(safe-area-inset-top) + 204px));
-    grid-template-columns: 30px auto;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 5px 8px 5px 6px;
-  }
-
-  .land-mode-hud kbd {
-    display: none;
-  }
-
   .land-guide {
     left: max(8px, env(safe-area-inset-left));
     top: max(82px, calc(env(safe-area-inset-top) + 82px));
@@ -2208,12 +2158,19 @@ body.first-person-camera::after {
     height: 40px;
   }
 
+  .land-guide-collapse,
   .land-guide-close,
   .land-buy-contracts,
   .land-actions button,
   .land-mode-switch button,
   .land-building-transform button {
     min-height: 40px;
+  }
+
+  .land-guide-collapse,
+  .land-guide-close {
+    width: 40px;
+    height: 40px;
   }
 
   .land-status {
@@ -2312,6 +2269,20 @@ body.first-person-camera::after {
   display: block;
   font-size: 1.15rem;
   line-height: 1.1;
+}
+
+.hotbar-slot.land-contract-shortcut {
+  border-color: rgba(94, 229, 181, 0.55);
+  background: linear-gradient(145deg, rgba(31, 155, 127, 0.25), rgba(255, 202, 77, 0.10));
+}
+
+.hotbar-slot.land-contract-shortcut.selected {
+  border-color: rgba(210, 255, 238, 0.94);
+  box-shadow: inset 0 0 0 2px rgba(94, 229, 181, 0.25), 0 0 22px rgba(55, 222, 169, 0.28);
+}
+
+.hotbar-icon .land-contract-icon {
+  margin: 0 auto;
 }
 
 .hotbar-label {
@@ -5111,6 +5082,48 @@ body {
   transform: translateY(2px);
   filter: drop-shadow(0 4px 3px rgba(0, 45, 85, 0.18));
   image-rendering: pixelated;
+}
+
+.backpack-slot.virtual-contract {
+  appearance: none;
+  text-align: inherit;
+  border-color: rgba(67, 191, 151, 0.60);
+  background:
+    radial-gradient(circle at 30% 12%, rgba(232, 255, 246, 0.52), transparent 42%),
+    linear-gradient(145deg, rgba(197, 246, 224, 0.92), rgba(96, 210, 169, 0.78));
+  cursor: pointer;
+  font: inherit;
+}
+
+.backpack-slot.virtual-contract.focused,
+.backpack-slot.virtual-contract:focus-visible {
+  border-color: #f0fff8;
+  outline: 2px solid rgba(45, 151, 121, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 8px 22px rgba(10, 91, 75, 0.25);
+}
+
+.backpack-slot.virtual-contract .backpack-slot-number {
+  color: #0c644f;
+}
+
+.backpack-slot-virtual-source {
+  position: absolute;
+  left: 5px;
+  bottom: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #0a624d;
+  background: rgba(230, 255, 246, 0.82);
+  font: 950 0.48rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.backpack-detail.has-land-contract .land-contract-preview {
+  background: radial-gradient(circle, rgba(102, 224, 181, 0.24), transparent 68%);
+}
+
+.land-contract-actions .backpack-detail-action {
+  width: 100%;
 }
 
 .backpack-slot-name {
@@ -8276,10 +8289,10 @@ body {
   box-shadow: inset 3px 0 0 #5de3b4, inset 0 1px 0 rgba(211, 255, 243, 0.1);
 }
 
-.market-contract-icon {
+.land-contract-icon {
   display: grid;
-  width: var(--market-contract-icon-size, 44px);
-  height: var(--market-contract-icon-size, 44px);
+  width: var(--land-contract-icon-size, 44px);
+  height: var(--land-contract-icon-size, 44px);
   place-items: center;
   flex: 0 0 auto;
   border-radius: 18%;
@@ -8287,34 +8300,34 @@ body {
   filter: drop-shadow(0 6px 9px rgba(0, 19, 31, 0.34));
 }
 
-.market-contract-icon svg {
+.land-contract-icon svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.market-contract-scroll {
+.land-contract-scroll {
   fill: #c9f5df;
   stroke: #167c6c;
   stroke-linejoin: round;
   stroke-width: 3;
 }
 
-.market-contract-curl {
+.land-contract-curl {
   fill: #76d9b1;
   stroke: #167c6c;
   stroke-linejoin: round;
   stroke-width: 3;
 }
 
-.market-contract-lines {
+.land-contract-lines {
   fill: none;
   stroke: #157b85;
   stroke-linecap: round;
   stroke-width: 3;
 }
 
-.market-contract-seal {
+.land-contract-seal {
   fill: #ffcb4d;
   stroke: #9a6220;
   stroke-linejoin: round;

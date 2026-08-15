@@ -50,6 +50,32 @@ test("the backpack hotbar number shortcut toggles the backpack panel", () => {
   }
 });
 
+test("the retired L shortcut no longer opens land construction", () => {
+  const originalAddEventListener = globalThis.addEventListener;
+  const originalDocument = globalThis.document;
+  const listeners = new Map();
+  globalThis.addEventListener = (type, listener) => listeners.set(type, listener);
+  globalThis.document = { activeElement: null };
+  try {
+    let toggles = 0;
+    createPlayInputActions({
+      gameState: { hotbarSlots: [] },
+      getConstruction: () => ({ toggle: () => { toggles += 1; } }),
+    }).bind();
+    const event = keyboardEvent({ code: "KeyL" });
+
+    listeners.get("keydown")(event);
+
+    assert.equal(toggles, 0);
+    assert.equal(event.prevented, false);
+  } finally {
+    if (originalAddEventListener === undefined) delete globalThis.addEventListener;
+    else globalThis.addEventListener = originalAddEventListener;
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
 function keyboardEvent(overrides = {}) {
   return {
     code: "Digit5",

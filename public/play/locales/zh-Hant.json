@@ -547,7 +547,16 @@
       "detailUnitVolume": "單位體積",
       "detailUnitWeight": "單位重量",
       "detailTotalVolume": "總體積",
-      "detailTotalWeight": "總重量"
+      "detailTotalWeight": "總重量",
+      "chainVerified": "鏈上已驗證",
+      "contractProjection": "MarketUser PDA 投影檢視",
+      "contractAria": "{item}，契約餘額 {count}",
+      "contractTag": "契約",
+      "contractBackpackSpace": "背包空間",
+      "contractBackpackSpaceValue": "0 格",
+      "contractPda": "MarketUser PDA",
+      "equipToHotbar": "裝備到快捷欄",
+      "contractEquippedStatus": "已將土地契約裝備到快捷欄第 {slot} 格。"
     },
     "loading": {
       "eyebrow": "世界閘道",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "需要 {required} 份契約，但目前持有 {available} 份。",
       "marketMembershipRequired": "購買或使用土地契約前，請先加入市場。",
       "modeOpened": "土地建造模式已開啟，按 F 選擇完整區塊。",
-      "modeClosed": "土地建造模式已關閉。"
+      "modeClosed": "土地建造模式已關閉。",
+      "collapseAria": "折疊土地契約面板",
+      "expandAria": "展開土地契約面板"
     },
     "onboarding": {
       "features": {

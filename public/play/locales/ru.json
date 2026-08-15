@@ -547,7 +547,16 @@
       "detailUnitVolume": "Объём единицы",
       "detailUnitWeight": "Вес единицы",
       "detailTotalVolume": "Общий объём",
-      "detailTotalWeight": "Общий вес"
+      "detailTotalWeight": "Общий вес",
+      "chainVerified": "Проверено в блокчейне",
+      "contractProjection": "Проекция PDA MarketUser",
+      "contractAria": "{item}, баланс контрактов: {count}",
+      "contractTag": "Контракт",
+      "contractBackpackSpace": "Место в рюкзаке",
+      "contractBackpackSpaceValue": "0 ячеек",
+      "contractPda": "PDA MarketUser",
+      "equipToHotbar": "Поместить на панель",
+      "contractEquippedStatus": "Земельный контракт помещён в ячейку {slot}."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "Нужно договоров: {required}, доступно: {available}.",
       "marketMembershipRequired": "Вступите в рынок перед покупкой или использованием договоров.",
       "modeOpened": "Режим земли открыт. Выбирайте целые чанки клавишей F.",
-      "modeClosed": "Режим земли закрыт."
+      "modeClosed": "Режим земли закрыт.",
+      "collapseAria": "Свернуть панель земли",
+      "expandAria": "Развернуть панель земли"
     },
     "onboarding": {
       "features": {

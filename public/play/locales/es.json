@@ -547,7 +547,16 @@
       "detailUnitVolume": "Volumen unitario",
       "detailUnitWeight": "Peso unitario",
       "detailTotalVolume": "Volumen total",
-      "detailTotalWeight": "Peso total"
+      "detailTotalWeight": "Peso total",
+      "chainVerified": "Verificado en cadena",
+      "contractProjection": "Proyección del PDA MarketUser",
+      "contractAria": "{item}, saldo de contratos {count}",
+      "contractTag": "Contrato",
+      "contractBackpackSpace": "Espacio de mochila",
+      "contractBackpackSpaceValue": "0 espacios",
+      "contractPda": "PDA MarketUser",
+      "equipToHotbar": "Equipar en la barra",
+      "contractEquippedStatus": "Contrato de tierra equipado en la ranura {slot}."
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "Necesitas {required} contratos y tienes {available}.",
       "marketMembershipRequired": "Únete al mercado antes de comprar o usar contratos de tierra.",
       "modeOpened": "Modo tierra abierto. Selecciona chunks completos con F.",
-      "modeClosed": "Modo tierra cerrado."
+      "modeClosed": "Modo tierra cerrado.",
+      "collapseAria": "Contraer construcción de terreno",
+      "expandAria": "Expandir construcción de terreno"
     },
     "onboarding": {
       "features": {

@@ -481,6 +481,7 @@ async function installMarketHarness(page, options = {}) {
     let joinedMarket = marketJoined;
     let blankLandContracts = 4;
     const reservedBlankLandContracts = 1;
+    let failNextMembershipRead = false;
     let failNextBuy = false;
     const submissionFailures = { listing: "", buy: "", cancel: "" };
     let failListingReads = Boolean(failInitialListingRead);
@@ -503,14 +504,20 @@ async function installMarketHarness(page, options = {}) {
         if (failListingReads) throw new Error("RPC HTTP 503");
         return listingRecords;
       },
-      fetchMarketUserStateOnChain: async () => joinedMarket ? ({
-        owner: "BuyerWalletAddress",
-        marketUser: "BuyerMarketUserAddress",
-        activeListingCount: 1,
-        maxActiveListings: 50,
-        blankLandContracts,
-        reservedBlankLandContracts,
-      }) : null,
+      fetchMarketUserStateOnChain: async () => {
+        if (failNextMembershipRead) {
+          failNextMembershipRead = false;
+          throw new Error("simulated contract balance RPC failure");
+        }
+        return joinedMarket ? ({
+          owner: "BuyerWalletAddress",
+          marketUser: "BuyerMarketUserAddress",
+          activeListingCount: 1,
+          maxActiveListings: 50,
+          blankLandContracts,
+          reservedBlankLandContracts,
+        }) : null;
+      },
       estimateMarketJoinCostOnChain: async () => ({
         available: true,
         userStateRentSol: 0.00133632,
@@ -620,7 +627,9 @@ async function installMarketHarness(page, options = {}) {
         itemSnapshot: gameState.backpackSlots.at(-1),
       }]));
     }
-    const market = createPlayMarket({
+    const contractSnapshots = [];
+    let market = null;
+    market = createPlayMarket({
       elements,
       gameState,
       createVoxelItemIconCanvas: chunk.createVoxelItemIconCanvas,
@@ -636,6 +645,9 @@ async function installMarketHarness(page, options = {}) {
       translate: (_key, fallback, params) => interpolate(fallback, params),
       onEnterMarket: () => { elements.backpackPanel.hidden = true; },
       onReturnToBackpack: () => { elements.backpackPanel.hidden = false; },
+      onChanged: () => {
+        if (market) contractSnapshots.push(market.getLandContractSnapshot());
+      },
     });
     market.bind();
     elements.marketPanel.hidden = true;
@@ -643,6 +655,8 @@ async function installMarketHarness(page, options = {}) {
     globalThis.__marketHarness = {
       market,
       getOperationCalls: () => ({ ...operationCalls }),
+      getContractSnapshots: () => contractSnapshots.map((snapshot) => ({ ...snapshot })),
+      failNextContractRefresh: () => { failNextMembershipRead = true; },
       failNextBuy: () => { failNextBuy = true; },
       failNextSubmission: (action, reason) => { submissionFailures[action] = reason; },
       allowListingReads: () => { failListingReads = false; },
@@ -754,6 +768,7 @@ async function verifyContractPurchaseProgress(page) {
   await page.waitForSelector("#marketContractQuantity");
   await page.locator("#marketContractQuantity").fill("3");
   assert.equal(await page.locator("#marketContractTotal strong").textContent(), "3 NCK");
+  await page.evaluate(() => globalThis.__marketHarness.failNextContractRefresh());
   await page.locator('button[data-market-action="buy-contract"]').click();
   await page.waitForTimeout(60);
 
@@ -793,6 +808,8 @@ async function verifyContractPurchaseProgress(page) {
   assert.equal(complete.toastTone, "success");
   assert.match(complete.toastText, /Purchased 3 land contract\(s\)\. Owned: 7\./);
   assert.equal(complete.calls, 1, "pending contract purchases must ignore repeated clicks");
+  const projected = await page.evaluate(() => globalThis.__marketHarness.getContractSnapshots().at(-1));
+  assert.equal(projected.blankLandContracts, 7, "the confirmed purchase must reach inventory even if reconciliation RPC fails");
 }
 
 async function verifyRejectedSubmissionReason(page, action, reason, expectedMessage, cardPrefix = "") {

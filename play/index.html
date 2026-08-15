@@ -63,11 +63,6 @@
       <span class="minimap-coordinate minimap-coordinate-chunk" id="minimapChunkCoord">C 0, 0</span>
       <span class="guardian-connection-indicator" id="guardianConnectionIndicator" data-state="disconnected" aria-hidden="true"></span>
     </button>
-    <button class="land-mode-hud" id="landModeButton" type="button" aria-pressed="false" data-i18n-aria-label="main.land.openAria" aria-label="Open land construction">
-      <span class="land-mode-hud-icon" aria-hidden="true"><i></i><i></i></span>
-      <span data-i18n="main.land.hudButton">Land</span>
-      <kbd>L</kbd>
-    </button>
     <section class="land-guide" id="landGuide" aria-label="Land construction guide" data-i18n-aria-label="main.land.guideAria" hidden>
       <header>
         <span class="land-guide-icon" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -75,8 +70,12 @@
           <strong data-i18n="main.land.guideTitle">LAND CONSTRUCTION</strong>
           <small data-i18n="main.land.guideSubtitle">1 contract registers 1 whole chunk</small>
         </span>
-        <button class="land-guide-close" id="landClose" type="button" data-i18n-aria-label="main.land.closeAria" aria-label="Close land construction">×</button>
+        <span class="land-guide-header-actions">
+          <button class="land-guide-collapse" id="landCollapse" type="button" aria-expanded="true" aria-controls="landGuideBody" data-i18n-aria-label="main.land.collapseAria" aria-label="Collapse land construction"><span aria-hidden="true">−</span></button>
+          <button class="land-guide-close" id="landClose" type="button" data-i18n-aria-label="main.land.closeAria" aria-label="Close land construction">×</button>
+        </span>
       </header>
+      <div class="land-guide-body" id="landGuideBody">
       <div class="land-mode-switch" role="tablist" aria-label="Land construction mode" data-i18n-aria-label="main.land.modeAria">
         <button type="button" role="tab" data-land-mode="foundation" data-i18n="main.land.foundationTab">LAND</button>
         <button type="button" role="tab" data-land-mode="building" data-i18n="main.land.buildingTab">BUILDING</button>
@@ -145,6 +144,7 @@
         <div class="land-actions land-building-actions">
           <button id="buildingConfirm" type="button"><i aria-hidden="true"></i><span data-i18n="main.land.createBuilding">Create Building</span></button>
         </div>
+      </div>
       </div>
     </section>
     <div class="land-step-hint" id="landStepHint" hidden>

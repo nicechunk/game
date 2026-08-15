@@ -232,6 +232,59 @@ test("equipped backpack cells render a locked equipment marker", () => {
   }
 });
 
+test("a MarketUser contract renders beside all physical backpack capacity", () => {
+  const originalDocument = globalThis.document;
+  const document = new FakeDocument();
+  globalThis.document = document;
+  try {
+    const backpackGrid = document.createElement("div");
+    const backpackMeta = document.createElement("span");
+    const contract = {
+      id: "market-user-blank-land-contract",
+      itemId: "blank_land_contract",
+      kind: "contract",
+      count: 7,
+      availableCount: 5,
+      reservedCount: 2,
+      source: "market-user",
+      marketUser: "MarketUser111",
+      virtual: true,
+    };
+    const ui = createPlayBackpackUi({
+      elements: {
+        backpackGrid,
+        backpackMeta,
+        backpackPanel: { hidden: false },
+        backpackCategoryButtons: [],
+      },
+      gameState: {
+        backpackSlots: [],
+        backpackCapacity: 5,
+        totalBackpackItems: () => 0,
+        totalBackpackMassGrams: () => "0",
+        getLandContractInventoryItem: () => contract,
+        getLandContractEquipment: () => null,
+      },
+      createVoxelItemIconCanvas: () => document.createElement("canvas"),
+      voxelItemLabel: (item) => item.itemId === "blank_land_contract" ? "Blank Land Contract" : "Item",
+    });
+
+    ui.render({ force: true });
+
+    assert.equal(backpackGrid.children.length, 6, "the contract is rendered in addition to five physical slots");
+    assert.equal(backpackGrid.children[0].tagName, "BUTTON", "the contract must use a native keyboard-accessible control");
+    assert.equal(backpackGrid.children[0].type, "button");
+    assert.equal(backpackGrid.children[0].dataset.inventoryVirtualItem, contract.id);
+    assert.equal(backpackGrid.children[0].children[3].textContent, "7");
+    assert.equal(backpackMeta.children[0].textContent, "1 stack");
+    assert.equal(backpackMeta.children[1].textContent, "0 / 5 slots · 0 items");
+    assert.equal(backpackMeta.children[2].textContent, "Weight: 0 g");
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});
+
 class FakeDocument {
   createElement(tagName) {
     return new FakeElement(tagName);

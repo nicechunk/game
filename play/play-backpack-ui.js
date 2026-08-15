@@ -1,6 +1,10 @@
 import { BACKPACK_CAPACITY } from "./game-state.js";
 import { buildBackpackDisplayStacks } from "./backpack-display-stacks.js";
 import { backpackSlotMeta, formatMassGrams } from "./play-ui-format.js";
+import {
+  createLandContractIconElement,
+  isLandContractItem,
+} from "./play-land-contract-item.js";
 
 const DEFAULT_CATEGORY = "all";
 const NATURAL_RESOURCE_WORDS = Object.freeze([
@@ -73,14 +77,16 @@ export function createPlayBackpackUi({
     const displayStacks = buildBackpackDisplayStacks(slots, {
       isStackable: (slot) => !gameState.isBackpackSlotEquipped?.(slot),
     });
+    const landContract = gameState.getLandContractInventoryItem?.() ?? null;
+    const inventoryEntryCount = displayStacks.length + (landContract ? 1 : 0);
     if (elements.backpackMeta) {
       const stackMeta = document.createElement("span");
       stackMeta.className = "backpack-meta-stacks";
       stackMeta.textContent = ui(
-        displayStacks.length === 1 ? "main.backpack.displayStack" : "main.backpack.displayStacks",
-        displayStacks.length === 1 ? "{count} stack" : "{count} stacks",
+        inventoryEntryCount === 1 ? "main.backpack.displayStack" : "main.backpack.displayStacks",
+        inventoryEntryCount === 1 ? "{count} stack" : "{count} stacks",
         {
-          count: displayStacks.length,
+          count: inventoryEntryCount,
         },
       );
       const itemMeta = document.createElement("span");
@@ -97,18 +103,67 @@ export function createPlayBackpackUi({
       });
       elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
     }
-    updateCategoryButtons(displayStacks.map((stack) => stack.slot));
+    updateCategoryButtons([
+      ...displayStacks.map((stack) => stack.slot),
+      ...(landContract ? [landContract] : []),
+    ]);
 
     const entries = displayStacks;
     const visible = activeCategory === DEFAULT_CATEGORY
       ? entries
       : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
-    const cells = visible.map((stack, displayIndex) => backpackCell(stack, displayIndex));
+    const landContractVisible = landContract && (activeCategory === DEFAULT_CATEGORY || backpackCategory(landContract) === activeCategory);
+    const cells = [
+      ...(landContractVisible ? [landContractCell(landContract)] : []),
+      ...visible.map((stack, displayIndex) => backpackCell(stack, displayIndex)),
+    ];
     const emptyDisplaySlots = Math.max(0, capacity - visible.length);
     for (let offset = 0; offset < emptyDisplaySlots; offset += 1) {
       cells.push(emptyBackpackCell(cells.length));
     }
     elements.backpackGrid.replaceChildren(...cells);
+  }
+
+  function landContractCell(contract) {
+    const cell = document.createElement("button");
+    const equipment = gameState.getLandContractEquipment?.() ?? null;
+    const titleText = safeItemName(contract);
+    cell.type = "button";
+    cell.className = "backpack-slot virtual-contract";
+    if (equipment) cell.classList.add("equipped");
+    cell.dataset.inventoryVirtualItem = String(contract.id);
+    cell.dataset.backpackItemCategory = backpackCategory(contract);
+    cell.dataset.backpackItemId = String(contract.id);
+    cell.dataset.equipped = equipment ? "true" : "false";
+    cell.setAttribute("aria-label", ui("main.backpack.contractAria", "{item}, contract balance {count}", {
+      item: titleText,
+      count: contract.count,
+    }));
+    cell.title = ui("main.backpack.contractProjection", "MarketUser PDA projection");
+
+    const slotNumber = document.createElement("span");
+    slotNumber.className = "backpack-slot-number";
+    slotNumber.textContent = "C";
+    const icon = createLandContractIconElement({ size: 48, className: "backpack-slot-icon" });
+    const title = document.createElement("strong");
+    title.className = "backpack-slot-name";
+    title.textContent = titleText;
+    const count = document.createElement("span");
+    count.className = "backpack-slot-count";
+    count.textContent = String(contract.count);
+    cell.append(slotNumber, icon, title, count);
+
+    const source = document.createElement("span");
+    source.className = "backpack-slot-virtual-source";
+    source.textContent = "PDA";
+    cell.append(source);
+    if (equipment) {
+      const badge = document.createElement("span");
+      badge.className = "backpack-slot-equipped";
+      badge.textContent = ui("main.backpack.equipped", "Equipped");
+      cell.append(badge);
+    }
+    return cell;
   }
 
   function updateCategoryButtons(slots) {
@@ -219,6 +274,7 @@ export function createPlayBackpackUi({
   }
 
   function backpackCategory(slot) {
+    if (isLandContractItem(slot)) return "misc";
     const label = String(slot?.kind === "resource" && Number(slot.decorationId) <= 0
       ? safeResourceName(slot.resourceId)
       : "").toLowerCase();
@@ -253,6 +309,7 @@ export function createPlayBackpackUi({
 export function backpackCategoryForSlot(slot, resourceLabel = "") {
   const kind = String(slot?.kind || "").toLowerCase();
   const itemId = String(slot?.itemId || "").toLowerCase();
+  if (isLandContractItem(slot)) return "misc";
   if (kind === "smelted_material" || kind === "material") return "materials";
   if (kind === "tool" || kind === "forged" || itemId.includes("pickaxe") || itemId.includes("tool")) return "tools";
   if (kind === "combat" || itemId.includes("sword") || itemId.includes("bow") || itemId.includes("shield")) return "combat";

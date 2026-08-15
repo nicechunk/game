@@ -1,3 +1,5 @@
+import { isLandContractItem } from "./play-land-contract-item.js";
+
 export function createPlayItemName({
   blockDef,
   voxelItemLabel,
@@ -5,6 +7,9 @@ export function createPlayItemName({
   translate,
 } = {}) {
   return (item = {}) => {
+    if (isLandContractItem(item)) {
+      return safeTranslation(translate, "main.market.blankLandContract") || "Blank Land Contract";
+    }
     if (item.kind === "smelted_material" && item.materialId) {
       const translationKey = `resourceAtlas.material.item.${item.materialId}.name`;
       const translated = safeTranslation(translate, translationKey);

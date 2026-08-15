@@ -94,11 +94,6 @@ export function createPlayInputActions({
       }
     }
     if (isTextInputActive()) return;
-    if (event.code === "KeyL" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      event.preventDefault();
-      getConstruction()?.toggle?.();
-      return;
-    }
     if (event.code === "KeyE" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleFirstPersonCamera();
@@ -130,6 +125,7 @@ export function createPlayInputActions({
     const bulkMining = getBulkMining();
     if (bulkMining?.isEnabled?.()) return bulkMining.selectAtHit?.(getBulkMiningHit());
     if (isConstructionModeActive()) return getConstruction()?.selectAtHit?.(getConstructionHit());
+    if (gameState?.getSelectedLandContractSlot?.()) return getConstruction()?.open?.();
     const forged = gameState?.getSelectedForgedSlot?.();
     if (forged) {
       const interaction = gameState?.getForgedInteraction?.(forged.slot);

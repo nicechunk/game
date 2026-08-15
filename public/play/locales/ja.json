@@ -547,7 +547,16 @@
       "detailUnitVolume": "単位体積",
       "detailUnitWeight": "単位重量",
       "detailTotalVolume": "総体積",
-      "detailTotalWeight": "総重量"
+      "detailTotalWeight": "総重量",
+      "chainVerified": "オンチェーン検証済み",
+      "contractProjection": "MarketUser PDA の投影",
+      "contractAria": "{item}、契約残高 {count}",
+      "contractTag": "契約",
+      "contractBackpackSpace": "バックパック容量",
+      "contractBackpackSpaceValue": "0 スロット",
+      "contractPda": "MarketUser PDA",
+      "equipToHotbar": "ホットバーに装備",
+      "contractEquippedStatus": "土地契約をホットバーのスロット {slot} に装備しました。"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1276,7 +1285,9 @@
       "insufficientContracts": "必要な契約は{required}枚、所有は{available}枚です。",
       "marketMembershipRequired": "土地契約を購入・使用する前にマーケットへ参加してください。",
       "modeOpened": "土地建設モードを開きました。Fでチャンク全体を選択してください。",
-      "modeClosed": "土地建設モードを閉じました。"
+      "modeClosed": "土地建設モードを閉じました。",
+      "collapseAria": "土地建設を折りたたむ",
+      "expandAria": "土地建設を展開"
     },
     "onboarding": {
       "features": {
