@@ -529,8 +529,9 @@
           <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="orders"><i class="market-tab-icon market-tab-orders" aria-hidden="true"></i><span data-i18n="main.market.ordersTab">Orders</span></button>
         </nav>
         <div class="market-header-meta">
-          <span id="marketWallet">Local wallet</span>
-          <span id="marketBackpack">0 / 50</span>
+          <span class="market-balance-pill" aria-live="polite"><small>SOL</small><strong id="marketSolBalance">--</strong></span>
+          <span class="market-balance-pill market-balance-pill-nck" aria-live="polite"><small>NCK</small><strong id="marketNckBalance">--</strong></span>
+          <button class="market-swap-open" id="marketSwapButton" type="button" data-i18n="main.market.swapAction">Swap</button>
           <button class="market-refresh" id="marketRefreshButton" type="button" data-i18n-aria-label="main.market.refresh" aria-label="Refresh market listings">↻</button>
           <button class="market-close" id="closeMarketButton" type="button" data-i18n-aria-label="main.market.close" aria-label="Close market">×</button>
         </div>
@@ -703,6 +704,42 @@
 
         <aside class="market-inspector" id="marketListingDetail" aria-live="polite"></aside>
       </div>
+      <section class="market-swap-overlay" id="marketSwapDialog" role="dialog" aria-modal="true" aria-labelledby="marketSwapTitle" hidden>
+        <form class="market-swap-card" id="marketSwapForm">
+          <header class="market-swap-header">
+            <span>
+              <small data-i18n="main.market.swapEyebrow">Treasury exchange</small>
+              <strong id="marketSwapTitle" data-i18n="main.market.swapTitle">Swap SOL and NCK</strong>
+            </span>
+            <button id="marketSwapClose" type="button" data-i18n-aria-label="main.market.swapClose" aria-label="Close swap">×</button>
+          </header>
+          <p class="market-swap-description" data-i18n="main.market.swapDescription">Exchange against the program-controlled treasury reserves at the current on-chain fixed rate.</p>
+          <div class="market-swap-route" id="marketSwapRoute" data-direction="SOL_TO_NCK">
+            <div class="market-swap-asset">
+              <span><label for="marketSwapAmount" data-i18n="main.market.swapPay">You pay</label><b id="marketSwapInputCurrency">SOL</b></span>
+              <span class="market-swap-input-row">
+                <input id="marketSwapAmount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" aria-describedby="marketSwapStatus" />
+                <button id="marketSwapMax" type="button" data-i18n="main.market.swapMax">MAX</button>
+              </span>
+              <span class="market-swap-balance"><span data-i18n="main.market.swapBalance">Balance</span> <strong id="marketSwapInputBalance">--</strong></span>
+            </div>
+            <button class="market-swap-direction" id="marketSwapDirection" type="button" data-i18n-aria-label="main.market.swapDirection" aria-label="Switch swap direction"><span aria-hidden="true">⇅</span></button>
+            <div class="market-swap-asset market-swap-output">
+              <span><small data-i18n="main.market.swapReceive">You receive</small><b id="marketSwapOutputCurrency">NCK</b></span>
+              <strong id="marketSwapOutput">--</strong>
+              <span class="market-swap-balance"><span data-i18n="main.market.swapTreasuryReserve">Treasury reserve</span> <strong id="marketSwapOutputReserve">--</strong></span>
+            </div>
+          </div>
+          <dl class="market-swap-facts">
+            <div><dt data-i18n="main.market.swapRate">On-chain rate</dt><dd id="marketSwapRate">--</dd></div>
+            <div><dt data-i18n="main.market.swapFee">Treasury fee</dt><dd id="marketSwapFee">--</dd></div>
+            <div><dt data-i18n="main.market.swapMinimumReceived">Minimum received</dt><dd id="marketSwapMinimum">--</dd></div>
+          </dl>
+          <p class="market-swap-status" id="marketSwapStatus" role="status" aria-live="polite"></p>
+          <button class="market-swap-submit" id="marketSwapSubmit" type="submit" disabled data-i18n="main.market.swapReview">Enter an amount</button>
+          <p class="market-swap-note" data-i18n="main.market.swapTreasuryNote">Reserves are held by program PDAs controlled by the NICECHUNK treasury. Your wallet signs one atomic transaction; Solana network fees apply.</p>
+        </form>
+      </section>
     </section>
     <div class="market-trade-toast" id="marketTradeToast" role="status" aria-live="assertive" aria-atomic="true" hidden>
       <span class="market-trade-toast-icon" aria-hidden="true"></span>

@@ -19,6 +19,7 @@ export const LAND_CONTRACT_UNIT_PRICE_NCK = 10;
 const LAND_CONTRACT_PURCHASE_MAX = 4_096;
 const PAGE_SIZE = 8;
 const CHAIN_REFRESH_COOLDOWN_MS = 12_000;
+const SWAP_SOL_FEE_RESERVE_LAMPORTS = 3_000_000n;
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 export function createPlayMarket({
@@ -56,12 +57,28 @@ export function createPlayMarket({
     membership: null,
     membershipEstimate: null,
     membershipError: "",
+    balanceStatus: "idle",
+    balanceWallet: "",
+    balanceError: "",
+    balances: null,
+    swapOpen: false,
+    swapDirection: "SOL_TO_NCK",
+    swapAmount: "",
+    swapStatus: "idle",
+    swapError: "",
+    swapInputError: "",
+    swapState: null,
+    swapQuote: null,
     operation: null,
     page: { browse: 1, orders: 1 },
   };
   let tradeToastTimer = 0;
   let membershipRequestId = 0;
   let chainRequestId = 0;
+  let balanceRequestId = 0;
+  let swapRequestId = 0;
+  let swapChainModule = null;
+  let swapPreviousFocus = null;
 
   const api = {
     bind() {
@@ -71,6 +88,7 @@ export function createPlayMarket({
       elements.marketViewOrders?.addEventListener("click", () => selectTab("orders"));
       elements.marketRefresh?.addEventListener("click", () => {
         api.refreshChainListings({ force: true, quiet: false });
+        void refreshMarketBalances({ force: true });
         showMarketStatus(ui("main.market.chainListingsSyncing", "Syncing chain listings..."));
         render();
       });
@@ -104,6 +122,16 @@ export function createPlayMarket({
         renderDraft();
       });
       elements.marketMembershipSubmit?.addEventListener("click", handleMembershipSubmit);
+      elements.marketSwapButton?.addEventListener("click", openSwap);
+      elements.marketSwapClose?.addEventListener("click", closeSwap);
+      elements.marketSwapDirection?.addEventListener("click", switchSwapDirection);
+      elements.marketSwapMax?.addEventListener("click", setSwapMaximum);
+      elements.marketSwapAmount?.addEventListener("input", handleSwapAmountInput);
+      elements.marketSwapForm?.addEventListener("submit", submitTreasurySwap);
+      elements.marketSwapDialog?.addEventListener("pointerdown", (event) => {
+        if (event.target === elements.marketSwapDialog) closeSwap();
+      });
+      document.addEventListener("keydown", handleSwapKeydown);
     },
     render,
     refreshChainListings,
@@ -138,6 +166,7 @@ export function createPlayMarket({
       state.membershipEstimate = null;
       void refreshMarketMembership({ loadMarket: true });
     }
+    void refreshMarketBalances({ force: true });
     render();
     onStatus(ui("main.market.opened", "Market opened. Chain listings use PDA state when wallet and RPC are available."));
   }
@@ -153,6 +182,11 @@ export function createPlayMarket({
   }
 
   function closePanel({ restoreBackpack = false } = {}) {
+    if (state.operation) {
+      showTradeToast(ui("main.market.transactionInProgress", "A market transaction is already in progress."), "warn");
+      return;
+    }
+    if (state.swapOpen && !state.operation) closeSwap({ restoreFocus: false });
     const shouldRestore = restoreBackpack && state.returnToBackpack;
     if (elements.marketPanel) elements.marketPanel.hidden = true;
     state.returnToBackpack = false;
@@ -190,21 +224,386 @@ export function createPlayMarket({
     renderActiveOrders();
     renderDraft();
     renderListingDetail();
+    renderSwap();
   }
 
   function syncHeader() {
-    const chain = getChainSnapshot?.() || {};
-    if (elements.marketWallet) elements.marketWallet.textContent = chain.walletShort || ui("main.market.localWallet", "Local wallet");
     const capacity = Math.max(1, Math.trunc(Number(gameState.backpackCapacity) || 50));
     const count = buildBackpackDisplayStacks(gameState.backpackSlots).length;
-    if (elements.marketBackpack) elements.marketBackpack.textContent = ui("main.market.backpackCount", "{count}/{capacity}", { count, capacity });
+    if (elements.marketSolBalance) {
+      elements.marketSolBalance.textContent = state.balanceStatus === "loading"
+        ? "..."
+        : formatHeaderTokenBalance(state.balances?.solLamports, 9);
+    }
+    if (elements.marketNckBalance) {
+      elements.marketNckBalance.textContent = state.balanceStatus === "loading"
+        ? "..."
+        : formatHeaderTokenBalance(state.balances?.nckBaseUnits, 6);
+    }
+    if (elements.marketSwapButton) {
+      elements.marketSwapButton.disabled = !currentWalletAddress() || Boolean(state.operation);
+      elements.marketSwapButton.setAttribute("aria-expanded", state.swapOpen ? "true" : "false");
+      elements.marketSwapButton.setAttribute("aria-controls", "marketSwapDialog");
+    }
     if (elements.marketInventoryCount) elements.marketInventoryCount.textContent = ui("main.market.backpackCount", "{count}/{capacity}", { count, capacity });
     if (elements.marketRefresh) {
       elements.marketRefresh.disabled = state.chainLoading
         || Boolean(state.operation)
         || state.membershipStatus !== "joined";
     }
+    if (elements.closeMarket) elements.closeMarket.disabled = Boolean(state.operation);
     elements.marketPanel?.setAttribute("aria-busy", state.operation ? "true" : "false");
+  }
+
+  async function refreshMarketBalances({ force = false } = {}) {
+    const wallet = currentWalletAddress();
+    if (!wallet) {
+      state.balanceStatus = "idle";
+      state.balanceWallet = "";
+      state.balanceError = "";
+      state.balances = null;
+      render();
+      return null;
+    }
+    if (!force && state.balanceStatus === "loading" && state.balanceWallet === wallet) {
+      return null;
+    }
+    const requestId = ++balanceRequestId;
+    state.balanceStatus = "loading";
+    state.balanceWallet = wallet;
+    state.balanceError = "";
+    render();
+    try {
+      const module = await loadChainModule();
+      if (typeof module.fetchMarketWalletBalancesOnChain !== "function") {
+        throw new Error(ui("main.market.swapClientUnavailable", "This game client does not include Treasury Swap support."));
+      }
+      const balances = await module.fetchMarketWalletBalancesOnChain(wallet);
+      if (requestId !== balanceRequestId || wallet !== currentWalletAddress()) return null;
+      state.balanceStatus = "ready";
+      state.balanceWallet = wallet;
+      state.balances = balances;
+      state.balanceError = "";
+      updateSwapQuote();
+      render();
+      return balances;
+    } catch (error) {
+      if (requestId !== balanceRequestId || wallet !== currentWalletAddress()) return null;
+      state.balanceStatus = "error";
+      state.balanceError = readableError(error);
+      state.balances = null;
+      render();
+      return null;
+    }
+  }
+
+  async function refreshTreasurySwapState() {
+    const requestId = ++swapRequestId;
+    state.swapStatus = "loading";
+    state.swapError = "";
+    state.swapInputError = "";
+    state.swapState = null;
+    state.swapQuote = null;
+    render();
+    try {
+      const module = await loadChainModule();
+      if (
+        typeof module.fetchTreasurySwapStateOnChain !== "function"
+        || typeof module.quoteTreasurySwap !== "function"
+        || typeof module.parseTreasurySwapAmountBaseUnits !== "function"
+        || typeof module.swapWithTreasuryOnChain !== "function"
+      ) {
+        throw new Error(ui("main.market.swapClientUnavailable", "This game client does not include Treasury Swap support."));
+      }
+      const swapState = await module.fetchTreasurySwapStateOnChain();
+      if (requestId !== swapRequestId || !state.swapOpen) return null;
+      swapChainModule = module;
+      state.swapState = swapState;
+      state.swapStatus = swapState?.available ? "ready" : "unavailable";
+      state.swapError = "";
+      updateSwapQuote();
+      render();
+      return swapState;
+    } catch (error) {
+      if (requestId !== swapRequestId || !state.swapOpen) return null;
+      state.swapStatus = "error";
+      state.swapError = readableError(error);
+      state.swapState = null;
+      state.swapQuote = null;
+      render();
+      return null;
+    }
+  }
+
+  function openSwap() {
+    if (!currentWalletAddress()) {
+      showTradeToast(ui("main.market.swapWalletRequired", "Connect your game wallet before using Treasury Swap."), "warn");
+      return;
+    }
+    if (state.operation) {
+      showTradeToast(ui("main.market.transactionInProgress", "A market transaction is already in progress."), "warn");
+      return;
+    }
+    swapPreviousFocus = document.activeElement;
+    state.swapOpen = true;
+    state.swapAmount = "";
+    state.swapInputError = "";
+    state.swapQuote = null;
+    render();
+    void Promise.allSettled([
+      refreshMarketBalances({ force: true }),
+      refreshTreasurySwapState(),
+    ]);
+    globalThis.requestAnimationFrame?.(() => elements.marketSwapAmount?.focus());
+  }
+
+  function closeSwap({ restoreFocus = true } = {}) {
+    if (state.operation?.type === "swap") return;
+    state.swapOpen = false;
+    state.swapAmount = "";
+    state.swapQuote = null;
+    state.swapInputError = "";
+    swapRequestId += 1;
+    render();
+    if (restoreFocus) {
+      const target = swapPreviousFocus?.isConnected ? swapPreviousFocus : elements.marketSwapButton;
+      target?.focus?.();
+    }
+    swapPreviousFocus = null;
+  }
+
+  function switchSwapDirection() {
+    if (state.operation) return;
+    state.swapDirection = state.swapDirection === "SOL_TO_NCK" ? "NCK_TO_SOL" : "SOL_TO_NCK";
+    state.swapAmount = "";
+    state.swapInputError = "";
+    state.swapQuote = null;
+    render();
+    elements.marketSwapAmount?.focus();
+  }
+
+  function setSwapMaximum() {
+    if (state.operation || !state.balances) return;
+    const rawBalance = state.swapDirection === "SOL_TO_NCK"
+      ? BigInt(state.balances.solLamports || 0)
+      : BigInt(state.balances.nckBaseUnits || 0);
+    const maximum = state.swapDirection === "SOL_TO_NCK"
+      ? (rawBalance > SWAP_SOL_FEE_RESERVE_LAMPORTS ? rawBalance - SWAP_SOL_FEE_RESERVE_LAMPORTS : 0n)
+      : rawBalance;
+    state.swapAmount = maximum > 0n
+      ? formatBaseUnitsInput(maximum, state.swapDirection === "SOL_TO_NCK" ? 9 : 6)
+      : "";
+    updateSwapQuote();
+    render();
+    elements.marketSwapAmount?.focus();
+  }
+
+  function handleSwapAmountInput(event) {
+    state.swapAmount = String(event.currentTarget?.value || "").trim();
+    updateSwapQuote();
+    renderSwap();
+  }
+
+  function updateSwapQuote() {
+    state.swapQuote = null;
+    state.swapInputError = "";
+    if (!state.swapAmount || !swapChainModule || !state.swapState?.available || state.swapState.paused) return;
+    try {
+      const inputCurrency = state.swapDirection === "SOL_TO_NCK" ? "SOL" : "NCK";
+      const amountIn = swapChainModule.parseTreasurySwapAmountBaseUnits(state.swapAmount, inputCurrency);
+      state.swapQuote = swapChainModule.quoteTreasurySwap({
+        direction: state.swapDirection,
+        amountInBaseUnits: amountIn,
+        state: state.swapState,
+      });
+    } catch (error) {
+      state.swapInputError = readableError(error);
+    }
+  }
+
+  function renderSwap() {
+    if (!elements.marketSwapDialog) return;
+    elements.marketSwapDialog.hidden = !state.swapOpen;
+    if (!state.swapOpen) return;
+    const solToNck = state.swapDirection === "SOL_TO_NCK";
+    const inputCurrency = solToNck ? "SOL" : "NCK";
+    const outputCurrency = solToNck ? "NCK" : "SOL";
+    const inputBaseUnits = solToNck ? state.balances?.solLamports : state.balances?.nckBaseUnits;
+    const reserveBaseUnits = solToNck
+      ? state.swapState?.nckLiquidityBaseUnits
+      : state.swapState?.solLiquidityLamports;
+    const inputDecimals = solToNck ? 9 : 6;
+    const outputDecimals = solToNck ? 6 : 9;
+    const pending = state.operation?.type === "swap";
+    if (elements.marketSwapRoute) elements.marketSwapRoute.dataset.direction = state.swapDirection;
+    if (elements.marketSwapInputCurrency) elements.marketSwapInputCurrency.textContent = inputCurrency;
+    if (elements.marketSwapOutputCurrency) elements.marketSwapOutputCurrency.textContent = outputCurrency;
+    if (elements.marketSwapInputBalance) {
+      elements.marketSwapInputBalance.textContent = `${formatDetailedTokenBalance(inputBaseUnits, inputDecimals)} ${inputCurrency}`;
+    }
+    if (elements.marketSwapOutputReserve) {
+      elements.marketSwapOutputReserve.textContent = `${formatDetailedTokenBalance(reserveBaseUnits, outputDecimals)} ${outputCurrency}`;
+    }
+    if (elements.marketSwapAmount && elements.marketSwapAmount.value !== state.swapAmount) {
+      elements.marketSwapAmount.value = state.swapAmount;
+    }
+    if (elements.marketSwapOutput) {
+      elements.marketSwapOutput.textContent = state.swapQuote
+        ? `${formatDetailedTokenBalance(state.swapQuote.amountOutBaseUnits, outputDecimals)} ${outputCurrency}`
+        : "--";
+    }
+    if (elements.marketSwapRate) {
+      const rate = formatDetailedTokenBalance(state.swapState?.lamportsPerNck, 9);
+      elements.marketSwapRate.textContent = rate === "--" ? "--" : `1 NCK = ${rate} SOL`;
+    }
+    if (elements.marketSwapFee) {
+      elements.marketSwapFee.textContent = formatBasisPointsPercent(state.swapState?.feeBps);
+    }
+    if (elements.marketSwapMinimum) {
+      elements.marketSwapMinimum.textContent = state.swapQuote
+        ? `${formatDetailedTokenBalance(state.swapQuote.amountOutBaseUnits, outputDecimals)} ${outputCurrency}`
+        : "--";
+    }
+    const status = swapStatusMessage(inputCurrency, outputCurrency, pending);
+    if (elements.marketSwapStatus) {
+      elements.marketSwapStatus.textContent = status.message;
+      elements.marketSwapStatus.dataset.tone = status.tone;
+    }
+    for (const control of [
+      elements.marketSwapAmount,
+      elements.marketSwapMax,
+      elements.marketSwapDirection,
+      elements.marketSwapClose,
+    ]) {
+      if (control) control.disabled = pending;
+    }
+    if (elements.marketSwapSubmit) {
+      elements.marketSwapSubmit.disabled = pending
+        || state.swapStatus !== "ready"
+        || Boolean(state.swapState?.paused)
+        || !state.swapQuote;
+      elements.marketSwapSubmit.classList.toggle("is-pending", pending);
+      elements.marketSwapSubmit.setAttribute("aria-busy", pending ? "true" : "false");
+      elements.marketSwapSubmit.textContent = pending
+        ? ui("main.market.swapSubmitting", "Swapping on-chain...")
+        : state.swapQuote
+          ? ui("main.market.swapConfirm", "Swap {input} for {output}", { input: inputCurrency, output: outputCurrency })
+          : ui("main.market.swapReview", "Enter an amount");
+    }
+  }
+
+  function swapStatusMessage(inputCurrency, outputCurrency, pending) {
+    if (pending) return { message: ui("main.market.swapPending", "Confirm the atomic Treasury Swap transaction in your wallet."), tone: "pending" };
+    if (state.swapStatus === "loading" || state.balanceStatus === "loading") {
+      return { message: ui("main.market.swapLoading", "Reading balances, rate, and treasury reserves from Solana..."), tone: "info" };
+    }
+    if (state.swapStatus === "error") {
+      return { message: ui("main.market.swapLoadFailed", "Treasury Swap could not be loaded: {reason}", { reason: state.swapError }), tone: "error" };
+    }
+    if (state.balanceStatus === "error") {
+      return { message: ui("main.market.swapBalanceFailed", "Wallet balances could not be loaded: {reason}", { reason: state.balanceError }), tone: "error" };
+    }
+    if (state.swapStatus === "unavailable") {
+      return { message: ui("main.market.swapUnavailable", "Treasury Swap is not initialized on this network."), tone: "warn" };
+    }
+    if (state.swapState?.paused) {
+      return { message: ui("main.market.swapPaused", "Treasury Swap is temporarily paused by the treasury."), tone: "warn" };
+    }
+    if (state.swapInputError) return { message: state.swapInputError, tone: "warn" };
+    if (state.swapQuote) {
+      return { message: ui("main.market.swapAtomic", "The rate revision and minimum output are locked into one atomic transaction."), tone: "success" };
+    }
+    return { message: ui("main.market.swapEnterAmount", "Enter the {input} amount to receive an exact {output} quote.", { input: inputCurrency, output: outputCurrency }), tone: "info" };
+  }
+
+  async function submitTreasurySwap(event) {
+    event?.preventDefault?.();
+    if (!state.swapQuote || !state.swapState?.available || state.swapState.paused) return null;
+    const inputCurrency = state.swapDirection === "SOL_TO_NCK" ? "SOL" : "NCK";
+    const outputCurrency = state.swapDirection === "SOL_TO_NCK" ? "NCK" : "SOL";
+    state.swapStatus = "submitting";
+    if (!beginMarketOperation(
+      "swap",
+      "treasury-swap",
+      ui("main.market.swapPending", "Confirm the atomic Treasury Swap transaction in your wallet."),
+    )) return null;
+    try {
+      const module = swapChainModule || await loadChainModule();
+      const result = await module.swapWithTreasuryOnChain({
+        direction: state.swapDirection,
+        amount: state.swapAmount,
+        expectedRevision: state.swapState.revision,
+        minimumAmountOut: state.swapQuote.amountOutBaseUnits,
+      });
+      if (result?.balances) {
+        state.balances = result.balances;
+        state.balanceStatus = "ready";
+      }
+      if (result?.swapState) {
+        state.swapState = result.swapState;
+        state.swapStatus = result.swapState.available ? "ready" : "unavailable";
+        updateSwapQuote();
+      }
+      if (!result?.submitted) {
+        const message = ui("main.market.swapFailed", "Swap failed: {reason}", {
+          reason: treasurySwapSubmissionReason(result?.reason, ui),
+        });
+        showMarketStatus(message, "warn");
+        showTradeToast(message, "error");
+        return result;
+      }
+      state.swapStatus = "ready";
+      const inputAmount = state.swapAmount;
+      const outputAmount = formatDetailedTokenBalance(result.amountOutBaseUnits, outputCurrency === "SOL" ? 9 : 6);
+      state.swapAmount = "";
+      state.swapQuote = null;
+      state.swapInputError = "";
+      const success = ui("main.market.swapConfirmed", "Swapped {inputAmount} {input} for {outputAmount} {output}.", {
+        inputAmount,
+        input: inputCurrency,
+        outputAmount,
+        output: outputCurrency,
+      });
+      showMarketStatus(success, "success");
+      showTradeToast(success, "success");
+      onStatus(ui("main.market.swapChainStatus", "Treasury Swap confirmed on chain: {signature}", {
+        signature: shortSignature(result.signature),
+      }));
+      onChanged();
+      return result;
+    } catch (error) {
+      state.swapStatus = "ready";
+      const message = ui("main.market.swapFailed", "Swap failed: {reason}", { reason: readableError(error) });
+      showMarketStatus(message, "warn");
+      showTradeToast(message, "error");
+      return null;
+    } finally {
+      finishMarketOperation("swap", "treasury-swap");
+    }
+  }
+
+  function handleSwapKeydown(event) {
+    if (!state.swapOpen) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeSwap();
+      return;
+    }
+    if (event.key !== "Tab" || !elements.marketSwapDialog) return;
+    const focusable = Array.from(elements.marketSwapDialog.querySelectorAll(
+      "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href]",
+    )).filter((node) => !node.hidden);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   function syncTabs() {
@@ -1545,6 +1944,7 @@ export function createPlayMarket({
   }
 
   function operationButtonLabel(type) {
+    if (type === "swap") return ui("main.market.swapSubmitting", "Swapping on-chain...");
     if (type === "contract") return ui("main.market.contractPurchasePendingShort", "Purchasing...");
     if (type === "buy") return ui("main.market.buyPending", "Buying...");
     if (type === "cancel") return ui("main.market.cancelPending", "Canceling...");
@@ -1566,6 +1966,7 @@ export function createPlayMarket({
     if (state.operation?.type !== type || state.operation?.targetId !== String(targetId || "")) return;
     state.operation = null;
     render();
+    if (type !== "swap") void refreshMarketBalances({ force: true });
   }
 
   function showTradeToast(message, tone = "info", { persistent = false } = {}) {
@@ -2090,6 +2491,76 @@ function shortSignature(signature) {
 function readableError(error) {
   const message = String(error?.message || error || "unknown error");
   return message.length > 180 ? `${message.slice(0, 177)}...` : message;
+}
+
+function formatHeaderTokenBalance(value, decimals) {
+  let amount;
+  try {
+    amount = BigInt(value);
+  } catch {
+    return "--";
+  }
+  if (amount < 0n) return "--";
+  const scale = 10n ** BigInt(decimals);
+  for (const [magnitude, suffix] of [[1_000_000_000_000n, "T"], [1_000_000_000n, "B"], [1_000_000n, "M"], [1_000n, "K"]]) {
+    const threshold = scale * magnitude;
+    if (amount >= threshold) {
+      const tenths = amount * 10n / threshold;
+      return tenths % 10n === 0n
+        ? `${tenths / 10n}${suffix}`
+        : `${tenths / 10n}.${tenths % 10n}${suffix}`;
+    }
+  }
+  const visibleDecimals = Math.min(4, decimals);
+  const displayScale = 10n ** BigInt(decimals - visibleDecimals);
+  const truncated = amount / displayScale;
+  if (amount > 0n && truncated === 0n) return `<0.${"0".repeat(Math.max(0, visibleDecimals - 1))}1`;
+  return formatBaseUnitsInput(truncated, visibleDecimals);
+}
+
+function formatDetailedTokenBalance(value, decimals) {
+  let amount;
+  try {
+    amount = BigInt(value);
+  } catch {
+    return "--";
+  }
+  if (amount < 0n) return "--";
+  const [whole, fraction = ""] = formatBaseUnitsInput(amount, decimals).split(".");
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/gu, ",");
+  return fraction ? `${groupedWhole}.${fraction}` : groupedWhole;
+}
+
+function formatBaseUnitsInput(value, decimals) {
+  const amount = BigInt(value);
+  const scale = 10n ** BigInt(decimals);
+  const whole = amount / scale;
+  const fraction = amount % scale;
+  if (fraction === 0n) return whole.toString();
+  return `${whole}.${fraction.toString().padStart(decimals, "0").replace(/0+$/u, "")}`;
+}
+
+function formatBasisPointsPercent(value) {
+  const bps = Number(value);
+  if (!Number.isSafeInteger(bps) || bps < 0 || bps > 10_000) return "--";
+  const whole = Math.floor(bps / 100);
+  const fraction = String(bps % 100).padStart(2, "0").replace(/0+$/u, "");
+  return `${whole}${fraction ? `.${fraction}` : ""}%`;
+}
+
+function treasurySwapSubmissionReason(reason, translate = fallbackUi) {
+  const message = ({
+    "wallet-unavailable": ["main.market.swapWalletRequired", "Connect your game wallet before using Treasury Swap."],
+    "treasury-swap-uninitialized": ["main.market.swapUnavailable", "Treasury Swap is not initialized on this network."],
+    "treasury-swap-paused": ["main.market.swapPaused", "Treasury Swap is temporarily paused by the treasury."],
+    "treasury-swap-quote-expired": ["main.market.swapQuoteExpired", "The on-chain rate changed. Review the refreshed quote and try again."],
+    "insufficient-sol-balance": ["main.market.swapInsufficientSol", "Your wallet does not have enough SOL for this amount and network fees."],
+    "insufficient-nck-balance": ["main.market.swapInsufficientNck", "Your wallet does not have enough NCK."],
+    "insufficient-treasury-sol-liquidity": ["main.market.swapInsufficientTreasurySol", "The treasury does not currently have enough SOL liquidity."],
+    "insufficient-treasury-nck-liquidity": ["main.market.swapInsufficientTreasuryNck", "The treasury does not currently have enough NCK liquidity."],
+    "nck-token-missing": ["main.market.nckTokenMissing", "Wallet has no NCK token account."],
+  })[reason];
+  return message ? translate(...message) : String(reason || "not-submitted");
 }
 
 function marketSubmissionReason(reason, translate = fallbackUi, action = "listing") {

@@ -84,6 +84,10 @@ const forgedItemSeed = "forged-item-v1";
 const marketListingSeed = "listing";
 const marketAuthoritySeed = "market-authority";
 const marketUserSeed = "market-user-v1";
+const treasurySwapStateSeed = "treasury-swap-v1";
+const treasurySwapAuthoritySeed = "treasury-swap-authority-v1";
+const treasurySwapSolVaultSeed = "treasury-swap-sol-v1";
+const treasurySwapNckVaultSeed = "treasury-swap-nck-v1";
 const smeltingRecipeTableSeed = "smelting-recipes";
 const smeltingAuthoritySeed = "smelting-authority";
 const smeltingDefaultRecipeTableId = 220n;
@@ -249,6 +253,13 @@ const marketUserUpdatedSlotOffset = 44;
 const marketUserBlankLandContractsOffset = 52;
 const marketUserReservedBlankLandContractsOffset = 56;
 const marketMaxActiveListings = 50;
+const treasurySwapMagic = "NCKSWP01";
+const treasurySwapVersion = 1;
+const treasurySwapStateLength = 160;
+const treasurySwapMaxFeeBps = 1_000;
+const treasurySwapDeadlineSlots = 150n;
+const treasurySwapBpsDenominator = 10_000n;
+const nckBaseUnits = 1_000_000n;
 export const BLANK_LAND_CONTRACT_PRICE_BASE_UNITS = 10_000_000n;
 export const MAX_LAND_CONTRACT_PURCHASE_QUANTITY = 4_096;
 const marketStateNames = new Map([
@@ -963,6 +974,19 @@ export function deriveMarketUserPda(owner) {
   return deriveMarketUserPdaForProgram(owner, gameProgramId);
 }
 
+function deriveTreasurySwapPdasForProgram(programId = gameProgramId) {
+  return {
+    state: PublicKey.findProgramAddressSync([Buffer.from(treasurySwapStateSeed)], programId),
+    authority: PublicKey.findProgramAddressSync([Buffer.from(treasurySwapAuthoritySeed)], programId),
+    solVault: PublicKey.findProgramAddressSync([Buffer.from(treasurySwapSolVaultSeed)], programId),
+    nckVault: PublicKey.findProgramAddressSync([Buffer.from(treasurySwapNckVaultSeed)], programId),
+  };
+}
+
+export function deriveTreasurySwapPdas() {
+  return deriveTreasurySwapPdasForProgram(gameProgramId);
+}
+
 export function deriveLandContractAuthorityPda() {
   return PublicKey.findProgramAddressSync(
     [Buffer.from(landContractAuthoritySeed), deriveGlobalConfigPda().toBuffer()],
@@ -1082,6 +1106,10 @@ function deriveMarketAuthorityPdaForContext(context = gameContext) {
 
 function deriveMarketUserPdaForContext(owner, context = gameContext) {
   return deriveMarketUserPdaForProgram(owner, context.marketProgramId);
+}
+
+function deriveTreasurySwapPdasForContext(context = gameContext) {
+  return deriveTreasurySwapPdasForProgram(context.marketProgramId);
 }
 
 function deriveSmeltingRecipeTablePdaForContext(tableId = smeltingDefaultRecipeTableId, context = gameContext) {
@@ -1526,6 +1554,215 @@ export async function buyLandContractsOnChain({ quantity = 1 } = {}) {
     marketUserState: updatedMarketUserState,
     treasury: marketTreasury.toBase58(),
     treasuryNckToken: treasuryNckToken.toBase58(),
+    programId: context.marketProgramId.toBase58(),
+  };
+}
+
+export async function fetchMarketWalletBalancesOnChain(owner) {
+  const ownerKey = owner instanceof PublicKey ? owner : new PublicKey(owner);
+  const ownerNckToken = getAssociatedTokenAddressSync(
+    nckMint,
+    ownerKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const conn = getNicechunkConnection();
+  const [solLamports, nckAccount] = await Promise.all([
+    conn.getBalance(ownerKey, "confirmed"),
+    conn.getAccountInfo(ownerNckToken, "confirmed"),
+  ]);
+  let nckBaseUnitBalance = 0n;
+  if (nckAccount?.data?.length) {
+    nckBaseUnitBalance = decodeNckTokenAccountAmount(nckAccount, ownerKey);
+  }
+  return {
+    owner: ownerKey.toBase58(),
+    ownerNckToken: ownerNckToken.toBase58(),
+    solLamports: BigInt(Math.max(0, Math.trunc(Number(solLamports) || 0))).toString(),
+    nckBaseUnits: nckBaseUnitBalance.toString(),
+    sol: formatTreasurySwapBaseUnits(solLamports, "SOL"),
+    nck: formatTreasurySwapBaseUnits(nckBaseUnitBalance, "NCK"),
+  };
+}
+
+export async function fetchTreasurySwapStateOnChain() {
+  const context = gameContext;
+  const pdas = deriveTreasurySwapPdasForContext(context);
+  const keys = [pdas.state[0], pdas.solVault[0], pdas.nckVault[0]];
+  const conn = getNicechunkConnection();
+  const [response, solVaultRentLamports] = await Promise.all([
+    conn.getMultipleAccountsInfoAndContext(keys, "confirmed"),
+    conn.getMinimumBalanceForRentExemption(0, "confirmed"),
+  ]);
+  const [stateAccount, solVaultAccount, nckVaultAccount] = response?.value || [];
+  const addresses = {
+    state: keys[0].toBase58(),
+    authority: pdas.authority[0].toBase58(),
+    solVault: keys[1].toBase58(),
+    nckVault: keys[2].toBase58(),
+  };
+  if (!stateAccount?.data?.length) {
+    if (solVaultAccount || nckVaultAccount) {
+      throw new Error("Treasury Swap initialization is incomplete.");
+    }
+    return {
+      available: false,
+      reason: "treasury-swap-uninitialized",
+      contextSlot: String(response?.context?.slot || 0),
+      ...addresses,
+    };
+  }
+  if (!stateAccount.owner.equals(context.marketProgramId)) {
+    throw new Error("Treasury Swap state is owned by an unexpected program.");
+  }
+  if (
+    !solVaultAccount
+    || !solVaultAccount.owner.equals(context.marketProgramId)
+    || solVaultAccount.data.length !== 0
+  ) {
+    throw new Error("Treasury Swap SOL vault is invalid.");
+  }
+  if (!nckVaultAccount?.data?.length) {
+    throw new Error("Treasury Swap NCK vault is unavailable.");
+  }
+  const state = decodeTreasurySwapState(stateAccount.data);
+  if (
+    state.stateBump !== pdas.state[1]
+    || state.authorityBump !== pdas.authority[1]
+    || state.solVaultBump !== pdas.solVault[1]
+    || state.nckVaultBump !== pdas.nckVault[1]
+  ) {
+    throw new Error("Treasury Swap PDA bump mismatch.");
+  }
+  const nckLiquidity = decodeNckTokenAccountAmount(nckVaultAccount, pdas.authority[0]);
+  const solVaultLamports = BigInt(Math.max(0, Math.trunc(Number(solVaultAccount.lamports) || 0)));
+  const solVaultRent = BigInt(Math.max(0, Math.trunc(Number(solVaultRentLamports) || 0)));
+  const solLiquidity = solVaultLamports > solVaultRent
+    ? solVaultLamports - solVaultRent
+    : 0n;
+  return {
+    available: true,
+    ...state,
+    ...addresses,
+    contextSlot: String(response?.context?.slot || 0),
+    solLiquidityLamports: solLiquidity.toString(),
+    nckLiquidityBaseUnits: nckLiquidity.toString(),
+    solLiquidity: formatTreasurySwapBaseUnits(solLiquidity, "SOL"),
+    nckLiquidity: formatTreasurySwapBaseUnits(nckLiquidity, "NCK"),
+    programId: context.marketProgramId.toBase58(),
+  };
+}
+
+export async function swapWithTreasuryOnChain({
+  direction,
+  amount,
+  expectedRevision = null,
+  minimumAmountOut = null,
+  deadlineSlot = null,
+} = {}) {
+  const normalizedDirection = normalizeTreasurySwapDirection(direction);
+  const provider = await connectedWalletProvider({ prompt: true });
+  if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+  const sourceCurrency = normalizedDirection === "SOL_TO_NCK" ? "SOL" : "NCK";
+  const amountIn = parseTreasurySwapAmountBaseUnits(amount, sourceCurrency);
+  const [swapState, balances] = await Promise.all([
+    fetchTreasurySwapStateOnChain(),
+    fetchMarketWalletBalancesOnChain(provider.publicKey),
+  ]);
+  if (!swapState.available) return { submitted: false, reason: swapState.reason, swapState };
+  if (swapState.paused) return { submitted: false, reason: "treasury-swap-paused", swapState };
+  if (expectedRevision != null && BigInt(expectedRevision) !== BigInt(swapState.revision)) {
+    return { submitted: false, reason: "treasury-swap-quote-expired", swapState };
+  }
+  const quote = quoteTreasurySwap({
+    direction: normalizedDirection,
+    amountInBaseUnits: amountIn,
+    state: swapState,
+  });
+  const minimumOut = minimumAmountOut == null ? BigInt(quote.amountOutBaseUnits) : BigInt(minimumAmountOut);
+  if (minimumOut <= 0n || minimumOut > BigInt(quote.amountOutBaseUnits)) {
+    throw new Error("Invalid Treasury Swap minimum amount out.");
+  }
+  if (
+    normalizedDirection === "SOL_TO_NCK"
+    && amountIn > BigInt(balances.solLamports)
+  ) {
+    return { submitted: false, reason: "insufficient-sol-balance", balances, swapState };
+  }
+  if (
+    normalizedDirection === "NCK_TO_SOL"
+    && amountIn > BigInt(balances.nckBaseUnits)
+  ) {
+    return { submitted: false, reason: "insufficient-nck-balance", balances, swapState };
+  }
+  if (
+    normalizedDirection === "SOL_TO_NCK"
+    && BigInt(quote.amountOutBaseUnits) > BigInt(swapState.nckLiquidityBaseUnits)
+  ) {
+    return { submitted: false, reason: "insufficient-treasury-nck-liquidity", balances, swapState };
+  }
+  if (
+    normalizedDirection === "NCK_TO_SOL"
+    && BigInt(quote.amountOutBaseUnits) > BigInt(swapState.solLiquidityLamports)
+  ) {
+    return { submitted: false, reason: "insufficient-treasury-sol-liquidity", balances, swapState };
+  }
+
+  const context = gameContext;
+  const conn = getNicechunkConnection();
+  const userNckToken = getAssociatedTokenAddressSync(
+    nckMint,
+    provider.publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const tx = new Transaction();
+  if (normalizedDirection === "SOL_TO_NCK") {
+    const userNckAccount = await conn.getAccountInfo(userNckToken, "confirmed");
+    if (!userNckAccount?.data?.length) {
+      tx.add(createAssociatedTokenAccountInstruction(
+        provider.publicKey,
+        userNckToken,
+        provider.publicKey,
+        nckMint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+      ));
+    }
+  } else if (BigInt(balances.nckBaseUnits) === 0n) {
+    return { submitted: false, reason: "nck-token-missing", balances, swapState };
+  }
+  const liveDeadline = deadlineSlot == null
+    ? BigInt(swapState.contextSlot) + treasurySwapDeadlineSlots
+    : BigInt(deadlineSlot);
+  tx.add(createTreasurySwapInstruction({
+    user: provider.publicKey,
+    userNckToken,
+    direction: normalizedDirection,
+    amountIn,
+    minimumAmountOut: minimumOut,
+    expectedRevision: BigInt(swapState.revision),
+    deadlineSlot: liveDeadline,
+    context,
+  }));
+  const signature = await signAndSendWalletTransaction(provider, tx, conn);
+  const [updatedBalances, updatedSwapState] = await Promise.all([
+    fetchMarketWalletBalancesOnChain(provider.publicKey),
+    fetchTreasurySwapStateOnChain(),
+  ]);
+  return {
+    submitted: true,
+    signature,
+    direction: normalizedDirection,
+    amountInBaseUnits: amountIn.toString(),
+    amountOutBaseUnits: quote.amountOutBaseUnits,
+    minimumAmountOut: minimumOut.toString(),
+    revision: swapState.revision,
+    deadlineSlot: liveDeadline.toString(),
+    balances: updatedBalances,
+    swapState: updatedSwapState,
     programId: context.marketProgramId.toBase58(),
   };
 }
@@ -5879,6 +6116,105 @@ export function decodeMarketUserState(data) {
   };
 }
 
+export function decodeTreasurySwapState(data) {
+  if (data.length !== treasurySwapStateLength) {
+    throw new Error(`Invalid TreasurySwapState length: expected ${treasurySwapStateLength}, got ${data.length}.`);
+  }
+  const pausedCode = data.readUInt8(14);
+  const feeBps = data.readUInt16LE(16);
+  const lamportsPerNck = data.readBigUInt64LE(88);
+  const minimumNckUnits = data.readBigUInt64LE(96);
+  const maximumNckUnits = data.readBigUInt64LE(104);
+  const revision = data.readBigUInt64LE(112);
+  if (
+    data.subarray(0, 8).toString("utf8") !== treasurySwapMagic
+    || data.readUInt16LE(8) !== treasurySwapVersion
+    || pausedCode > 1
+    || data.readUInt8(15) !== 0
+    || feeBps > treasurySwapMaxFeeBps
+    || lamportsPerNck === 0n
+    || minimumNckUnits === 0n
+    || maximumNckUnits < minimumNckUnits
+    || revision === 0n
+    || !data.subarray(18, 24).every((byte) => byte === 0)
+  ) {
+    throw new Error("Invalid TreasurySwapState layout.");
+  }
+  const admin = new PublicKey(data.subarray(24, 56));
+  const mint = new PublicKey(data.subarray(56, 88));
+  if (!admin.equals(marketTreasury) || !mint.equals(nckMint)) {
+    throw new Error("TreasurySwapState treasury or NCK mint mismatch.");
+  }
+  return {
+    magic: treasurySwapMagic,
+    version: treasurySwapVersion,
+    stateBump: data.readUInt8(10),
+    authorityBump: data.readUInt8(11),
+    solVaultBump: data.readUInt8(12),
+    nckVaultBump: data.readUInt8(13),
+    paused: pausedCode === 1,
+    feeBps,
+    admin: admin.toBase58(),
+    nckMint: mint.toBase58(),
+    lamportsPerNck: lamportsPerNck.toString(),
+    minimumNckUnits: minimumNckUnits.toString(),
+    maximumNckUnits: maximumNckUnits.toString(),
+    revision: revision.toString(),
+    updatedSlot: data.readBigUInt64LE(120).toString(),
+    totalSolToNckLamports: data.readBigUInt64LE(128).toString(),
+    totalSolToNckUnits: data.readBigUInt64LE(136).toString(),
+    totalNckToSolUnits: data.readBigUInt64LE(144).toString(),
+    totalNckToSolLamports: data.readBigUInt64LE(152).toString(),
+  };
+}
+
+export function quoteTreasurySwap({ direction, amountInBaseUnits, state } = {}) {
+  const normalizedDirection = normalizeTreasurySwapDirection(direction);
+  const amountIn = BigInt(amountInBaseUnits);
+  const lamportsPerNck = BigInt(state?.lamportsPerNck || 0);
+  const minimumNckUnits = BigInt(state?.minimumNckUnits || 0);
+  const maximumNckUnits = BigInt(state?.maximumNckUnits || 0);
+  const feeBps = BigInt(state?.feeBps ?? -1);
+  const maxU64 = 0xffff_ffff_ffff_ffffn;
+  if (
+    amountIn <= 0n
+    || amountIn > maxU64
+    || lamportsPerNck <= 0n
+    || lamportsPerNck > maxU64
+    || minimumNckUnits <= 0n
+    || minimumNckUnits > maxU64
+    || maximumNckUnits > maxU64
+    || maximumNckUnits < minimumNckUnits
+    || feeBps < 0n
+    || feeBps > BigInt(treasurySwapMaxFeeBps)
+  ) {
+    throw new Error("Invalid Treasury Swap quote parameters.");
+  }
+  const grossAmountOut = normalizedDirection === "SOL_TO_NCK"
+    ? amountIn * nckBaseUnits / lamportsPerNck
+    : amountIn * lamportsPerNck / nckBaseUnits;
+  const nckSideAmount = normalizedDirection === "SOL_TO_NCK" ? grossAmountOut : amountIn;
+  if (nckSideAmount < minimumNckUnits || nckSideAmount > maximumNckUnits) {
+    throw new Error("Treasury Swap amount is outside the configured limits.");
+  }
+  const amountOut = grossAmountOut * (treasurySwapBpsDenominator - feeBps) / treasurySwapBpsDenominator;
+  if (amountOut <= 0n || amountOut > maxU64 || grossAmountOut > maxU64) {
+    throw new Error("Treasury Swap quote is too small or too large.");
+  }
+  const outputCurrency = normalizedDirection === "SOL_TO_NCK" ? "NCK" : "SOL";
+  return {
+    direction: normalizedDirection,
+    inputCurrency: normalizedDirection === "SOL_TO_NCK" ? "SOL" : "NCK",
+    outputCurrency,
+    amountInBaseUnits: amountIn.toString(),
+    grossAmountOutBaseUnits: grossAmountOut.toString(),
+    amountOutBaseUnits: amountOut.toString(),
+    feeBaseUnits: (grossAmountOut - amountOut).toString(),
+    amountOut: formatTreasurySwapBaseUnits(amountOut, outputCurrency),
+    fee: formatTreasurySwapBaseUnits(grossAmountOut - amountOut, outputCurrency),
+  };
+}
+
 export function decodeMarketListing(data) {
   if (data.length !== marketListingLength) {
     throw new Error(`Invalid MarketListing length: expected ${marketListingLength}, got ${data.length}.`);
@@ -7700,6 +8036,61 @@ export function createBuyTreasuryContractInstruction({
   });
 }
 
+export function createTreasurySwapInstruction({
+  user,
+  userNckToken,
+  direction,
+  amountIn,
+  minimumAmountOut,
+  expectedRevision,
+  deadlineSlot,
+  context = gameContext,
+}) {
+  const normalizedDirection = normalizeTreasurySwapDirection(direction);
+  const normalizedUser = user instanceof PublicKey ? user : new PublicKey(user);
+  const normalizedUserNckToken = userNckToken instanceof PublicKey
+    ? userNckToken
+    : new PublicKey(userNckToken);
+  const normalizedAmountIn = normalizeUnsignedU64(amountIn, "Treasury Swap input amount");
+  const normalizedMinimumOut = normalizeUnsignedU64(minimumAmountOut, "Treasury Swap minimum output");
+  const normalizedRevision = normalizeUnsignedU64(expectedRevision, "Treasury Swap revision");
+  const normalizedDeadline = normalizeUnsignedU64(deadlineSlot, "Treasury Swap deadline");
+  const pdas = deriveTreasurySwapPdasForContext(context);
+  const data = Buffer.alloc(33);
+  data.writeUInt8(normalizedDirection === "SOL_TO_NCK" ? 14 : 15, 0);
+  data.writeBigUInt64LE(normalizedAmountIn, 1);
+  data.writeBigUInt64LE(normalizedMinimumOut, 9);
+  data.writeBigUInt64LE(normalizedRevision, 17);
+  data.writeBigUInt64LE(normalizedDeadline, 25);
+  const keys = [
+    { pubkey: normalizedUser, isSigner: true, isWritable: true },
+    { pubkey: pdas.state[0], isSigner: false, isWritable: true },
+    { pubkey: pdas.solVault[0], isSigner: false, isWritable: true },
+  ];
+  if (normalizedDirection === "SOL_TO_NCK") {
+    keys.push(
+      { pubkey: pdas.authority[0], isSigner: false, isWritable: false },
+      { pubkey: pdas.nckVault[0], isSigner: false, isWritable: true },
+      { pubkey: normalizedUserNckToken, isSigner: false, isWritable: true },
+      { pubkey: nckMint, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    );
+  } else {
+    keys.push(
+      { pubkey: pdas.nckVault[0], isSigner: false, isWritable: true },
+      { pubkey: normalizedUserNckToken, isSigner: false, isWritable: true },
+      { pubkey: nckMint, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    );
+  }
+  return new TransactionInstruction({
+    programId: context.marketProgramId,
+    keys,
+    data: contextInstructionData(context, gameNamespaceMarket, data),
+  });
+}
+
 export function createMarketListingInstruction({
   seller,
   listing,
@@ -8195,6 +8586,19 @@ function normalizeMiningActionId(value) {
   return actionId;
 }
 
+function normalizeUnsignedU64(value, label = "value") {
+  let normalized;
+  try {
+    normalized = BigInt(value);
+  } catch {
+    throw new Error(`${label} must be a nonzero unsigned 64-bit integer.`);
+  }
+  if (normalized <= 0n || normalized > 0xffff_ffff_ffff_ffffn) {
+    throw new Error(`${label} must be a nonzero unsigned 64-bit integer.`);
+  }
+  return normalized;
+}
+
 function createMarketListingId() {
   const time = BigInt(Date.now()) & ((1n << 42n) - 1n);
   const random = BigInt(Math.floor(Math.random() * 2 ** 22));
@@ -8224,6 +8628,37 @@ export function parseMarketPriceBaseUnits(value, currency) {
   return amount;
 }
 
+export function parseTreasurySwapAmountBaseUnits(value, currency) {
+  const normalizedCurrency = String(currency || "").toUpperCase();
+  const decimals = marketCurrencyDecimals.get(normalizedCurrency);
+  const text = String(value ?? "").trim();
+  if (decimals == null || text.length > 30 || !/^\d+(\.\d+)?$/.test(text)) {
+    throw new Error("Enter a valid Treasury Swap amount.");
+  }
+  const [whole, fraction = ""] = text.split(".");
+  if (fraction.length > decimals) {
+    throw new Error(`${normalizedCurrency} supports at most ${decimals} decimal places.`);
+  }
+  const amount = BigInt(whole || "0") * 10n ** BigInt(decimals)
+    + BigInt(fraction.padEnd(decimals, "0") || "0");
+  if (amount <= 0n || amount > 0xffff_ffff_ffff_ffffn) {
+    throw new Error("Enter a valid Treasury Swap amount.");
+  }
+  return amount;
+}
+
+export function formatTreasurySwapBaseUnits(value, currency) {
+  const normalizedCurrency = String(currency || "").toUpperCase();
+  if (!marketCurrencyDecimals.has(normalizedCurrency)) return "--";
+  try {
+    const amount = BigInt(value);
+    if (amount < 0n) return "--";
+    return formatMarketBaseUnits(amount, normalizedCurrency);
+  } catch {
+    return "--";
+  }
+}
+
 function formatMarketBaseUnits(value, currency) {
   const decimals = marketCurrencyDecimals.get(currency) ?? 6;
   const amount = BigInt(value);
@@ -8232,6 +8667,27 @@ function formatMarketBaseUnits(value, currency) {
   const fraction = amount % scale;
   if (fraction === 0n) return whole.toString();
   return `${whole}.${fraction.toString().padStart(decimals, "0").replace(/0+$/, "")}`;
+}
+
+function normalizeTreasurySwapDirection(direction) {
+  const normalized = String(direction || "").trim().toUpperCase();
+  if (normalized !== "SOL_TO_NCK" && normalized !== "NCK_TO_SOL") {
+    throw new Error("Unsupported Treasury Swap direction.");
+  }
+  return normalized;
+}
+
+function decodeNckTokenAccountAmount(account, expectedOwner) {
+  if (
+    !account?.owner?.equals?.(TOKEN_PROGRAM_ID)
+    || !account.data?.length
+    || account.data.length < 165
+    || !account.data.subarray(0, 32).equals(nckMint.toBuffer())
+    || !account.data.subarray(32, 64).equals(expectedOwner.toBuffer())
+  ) {
+    throw new Error("Invalid NCK token account.");
+  }
+  return account.data.readBigUInt64LE(64);
 }
 
 function getConfiguredGameplaySessionFundingLamports(owner = null) {

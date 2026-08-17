@@ -157,6 +157,95 @@ test("market renders chain item icons, mobile views, and transaction progress", 
   }
 });
 
+test("market header balances and Treasury Swap stay usable without overflow", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const viewport of [
+      { width: 1280, height: 800, mobile: false },
+      { width: 768, height: 900, mobile: true },
+      { width: 375, height: 812, mobile: true },
+    ]) {
+      const context = await browser.newContext({
+        viewport,
+        screen: viewport,
+        isMobile: viewport.mobile,
+        hasTouch: viewport.mobile,
+      });
+      const page = await context.newPage();
+      await page.route(`${origin}/play/`, (route) => route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: sourceHtml,
+      }));
+      await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
+      await installMarketHarness(page);
+      await page.locator("#marketButton").click({ force: true });
+      await page.waitForFunction(() => document.querySelector("#marketSolBalance")?.textContent === "1.2345");
+      assert.equal(await page.locator("#marketNckBalance").textContent(), "87.6543");
+      assert.equal(await page.locator("#marketWallet").count(), 0);
+      assert.equal(await page.locator("#marketBackpack").count(), 0);
+
+      const headerLayout = await page.evaluate(() => {
+        const header = document.querySelector(".market-terminal-header").getBoundingClientRect();
+        const controls = [...document.querySelectorAll(".market-header-meta > *")]
+          .map((node) => node.getBoundingClientRect());
+        return {
+          documentOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
+          metaOverflow: Math.max(0, document.querySelector(".market-header-meta").scrollWidth - document.querySelector(".market-header-meta").clientWidth),
+          outside: controls.some((rect) => rect.left < header.left - 1 || rect.right > header.right + 1),
+        };
+      });
+      assert.deepEqual(headerLayout, { documentOverflow: 0, metaOverflow: 0, outside: false }, `${viewport.width}px header overflow`);
+
+      await page.locator("#marketSwapButton").click();
+      await page.waitForSelector("#marketSwapDialog:not([hidden])");
+      await page.waitForFunction(() => document.querySelector("#marketSwapRate")?.textContent.includes("0.025 SOL"));
+      await page.locator("#marketSwapAmount").fill("0.1");
+      assert.equal(await page.locator("#marketSwapOutput").textContent(), "4 NCK");
+      assert.equal(await page.locator("#marketSwapMinimum").textContent(), "4 NCK");
+      assert.equal(await page.locator("#marketSwapSubmit").isDisabled(), false);
+
+      const swapLayout = await page.evaluate(() => {
+        const dialog = document.querySelector("#marketSwapDialog").getBoundingClientRect();
+        const card = document.querySelector("#marketSwapForm").getBoundingClientRect();
+        return {
+          documentOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
+          cardOverflow: Math.max(0, document.querySelector("#marketSwapForm").scrollWidth - document.querySelector("#marketSwapForm").clientWidth),
+          contained: card.left >= dialog.left - 1 && card.right <= dialog.right + 1,
+        };
+      });
+      assert.deepEqual(swapLayout, { documentOverflow: 0, cardOverflow: 0, contained: true }, `${viewport.width}px swap overflow`);
+
+      await page.locator("#marketSwapDirection").click();
+      assert.equal(await page.locator("#marketSwapInputCurrency").textContent(), "NCK");
+      await page.locator("#marketSwapAmount").fill("4");
+      assert.equal(await page.locator("#marketSwapOutput").textContent(), "0.1 SOL");
+      await page.keyboard.press("Escape");
+      await page.waitForSelector("#marketSwapDialog", { state: "hidden" });
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "marketSwapButton");
+
+      await page.locator("#marketSwapButton").click();
+      await page.waitForFunction(() => document.querySelector("#marketSwapRate")?.textContent.includes("0.025 SOL"));
+      await page.locator("#marketSwapDirection").click();
+      await page.locator("#marketSwapAmount").fill("0.1");
+      await page.evaluate(() => globalThis.__marketHarness.expireNextSwapQuote());
+      await page.locator("#marketSwapSubmit").click();
+      await page.waitForFunction(() => document.querySelector("#marketSwapSubmit")?.getAttribute("aria-busy") === "true");
+      assert.equal(await page.locator("#marketSwapSubmit").isDisabled(), true);
+      await page.waitForFunction(() => globalThis.__marketHarness.getOperationCalls().swap === 1);
+      await page.waitForFunction(() => document.querySelector("#marketTradeToastMessage")?.textContent.includes("rate changed"));
+      await page.waitForFunction(() => document.querySelector("#marketSwapSubmit")?.disabled === false);
+      assert.equal(await page.locator("#marketSwapSubmit").isDisabled(), false, "fresh quote should be immediately retryable");
+      await page.locator("#marketSwapSubmit").click();
+      await page.waitForFunction(() => globalThis.__marketHarness.getOperationCalls().swap === 2);
+      await page.waitForFunction(() => document.querySelector("#marketTradeToastMessage")?.textContent.includes("Swapped 0.1 SOL for 4 NCK"));
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
 test("market inventory keeps an incomplete row directly below the preceding row", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -347,8 +436,26 @@ async function installMarketHarness(page, options = {}) {
       marketTabs: document.querySelectorAll("[data-market-tab]"),
       marketTabPanels: document.querySelectorAll("[data-market-tab-panel]"),
       marketMobileViewTabs: document.querySelectorAll("[data-market-mobile-view]"),
-      marketWallet: byId("marketWallet"),
-      marketBackpack: byId("marketBackpack"),
+      marketSolBalance: byId("marketSolBalance"),
+      marketNckBalance: byId("marketNckBalance"),
+      marketSwapButton: byId("marketSwapButton"),
+      marketSwapDialog: byId("marketSwapDialog"),
+      marketSwapForm: byId("marketSwapForm"),
+      marketSwapClose: byId("marketSwapClose"),
+      marketSwapRoute: byId("marketSwapRoute"),
+      marketSwapAmount: byId("marketSwapAmount"),
+      marketSwapMax: byId("marketSwapMax"),
+      marketSwapDirection: byId("marketSwapDirection"),
+      marketSwapInputCurrency: byId("marketSwapInputCurrency"),
+      marketSwapOutputCurrency: byId("marketSwapOutputCurrency"),
+      marketSwapInputBalance: byId("marketSwapInputBalance"),
+      marketSwapOutputReserve: byId("marketSwapOutputReserve"),
+      marketSwapOutput: byId("marketSwapOutput"),
+      marketSwapRate: byId("marketSwapRate"),
+      marketSwapFee: byId("marketSwapFee"),
+      marketSwapMinimum: byId("marketSwapMinimum"),
+      marketSwapStatus: byId("marketSwapStatus"),
+      marketSwapSubmit: byId("marketSwapSubmit"),
       marketRefresh: byId("marketRefreshButton"),
       marketSearch: byId("marketSearch"),
       marketSort: byId("marketSort"),
@@ -477,18 +584,92 @@ async function installMarketHarness(page, options = {}) {
     };
     let listingRecords = [chainListing, ownChainListing, blockChainListing];
     let listingReadPlan = [];
-    const operationCalls = { listing: 0, buy: 0, cancel: 0, contract: 0, join: 0, listingReads: 0 };
+    const operationCalls = { listing: 0, buy: 0, cancel: 0, contract: 0, join: 0, swap: 0, listingReads: 0 };
     let joinedMarket = marketJoined;
     let blankLandContracts = 4;
     const reservedBlankLandContracts = 1;
     let failNextMembershipRead = false;
     let failNextBuy = false;
+    let expireNextSwapQuote = false;
+    let swapRevision = 3;
     const submissionFailures = { listing: "", buy: "", cancel: "" };
     let failListingReads = Boolean(failInitialListingRead);
     let holdInitialListingRead = !failInitialListingRead;
     let releaseInitialListingRead = null;
     const delayOperation = () => new Promise((resolve) => setTimeout(resolve, 360));
     const chainModule = {
+      fetchMarketWalletBalancesOnChain: async () => ({
+        owner: "BuyerWalletAddress",
+        ownerNckToken: "BuyerNckTokenAddress",
+        solLamports: "1234567890",
+        nckBaseUnits: "87654321",
+        sol: "1.23456789",
+        nck: "87.654321",
+      }),
+      fetchTreasurySwapStateOnChain: async () => ({
+        available: true,
+        paused: false,
+        feeBps: 0,
+        lamportsPerNck: "25000000",
+        minimumNckUnits: "1000000",
+        maximumNckUnits: "1000000000",
+        revision: String(swapRevision),
+        contextSlot: "1000",
+        solLiquidityLamports: "100000000000",
+        nckLiquidityBaseUnits: "2000000000",
+      }),
+      parseTreasurySwapAmountBaseUnits: (value, currency) => {
+        const decimals = currency === "SOL" ? 9 : 6;
+        const [whole, fraction = ""] = String(value).split(".");
+        if (!/^\d+$/u.test(whole) || !/^\d*$/u.test(fraction) || fraction.length > decimals) {
+          throw new Error("Enter a valid Treasury Swap amount.");
+        }
+        const amount = BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, "0") || "0");
+        if (amount <= 0n) throw new Error("Enter a valid Treasury Swap amount.");
+        return amount;
+      },
+      quoteTreasurySwap: ({ direction, amountInBaseUnits }) => {
+        const amountIn = BigInt(amountInBaseUnits);
+        const amountOut = direction === "SOL_TO_NCK"
+          ? amountIn * 1_000_000n / 25_000_000n
+          : amountIn * 25_000_000n / 1_000_000n;
+        const decimals = direction === "SOL_TO_NCK" ? 6 : 9;
+        const scale = 10n ** BigInt(decimals);
+        const whole = amountOut / scale;
+        const fraction = (amountOut % scale).toString().padStart(decimals, "0").replace(/0+$/u, "");
+        return {
+          amountOutBaseUnits: amountOut.toString(),
+          amountOut: fraction ? `${whole}.${fraction}` : whole.toString(),
+        };
+      },
+      swapWithTreasuryOnChain: async ({ direction, amount }) => {
+        operationCalls.swap += 1;
+        await delayOperation();
+        if (expireNextSwapQuote) {
+          expireNextSwapQuote = false;
+          swapRevision += 1;
+          return {
+            submitted: false,
+            reason: "treasury-swap-quote-expired",
+            swapState: await chainModule.fetchTreasurySwapStateOnChain(),
+            balances: await chainModule.fetchMarketWalletBalancesOnChain(),
+          };
+        }
+        const quote = chainModule.quoteTreasurySwap({
+          direction,
+          amountInBaseUnits: chainModule.parseTreasurySwapAmountBaseUnits(amount, direction === "SOL_TO_NCK" ? "SOL" : "NCK"),
+        });
+        return {
+          submitted: true,
+          signature: "TreasurySwapSignature123456789",
+          amountOutBaseUnits: quote.amountOutBaseUnits,
+          balances: {
+            solLamports: "1134567890",
+            nckBaseUnits: "91654321",
+          },
+          swapState: await chainModule.fetchTreasurySwapStateOnChain(),
+        };
+      },
       fetchMarketListingsOnChain: async () => {
         operationCalls.listingReads += 1;
         if (listingReadPlan.length) {
@@ -658,6 +839,7 @@ async function installMarketHarness(page, options = {}) {
       getContractSnapshots: () => contractSnapshots.map((snapshot) => ({ ...snapshot })),
       failNextContractRefresh: () => { failNextMembershipRead = true; },
       failNextBuy: () => { failNextBuy = true; },
+      expireNextSwapQuote: () => { expireNextSwapQuote = true; },
       failNextSubmission: (action, reason) => { submissionFailures[action] = reason; },
       allowListingReads: () => { failListingReads = false; },
       releaseInitialListingRead: () => {

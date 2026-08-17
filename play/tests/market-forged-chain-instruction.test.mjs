@@ -7,20 +7,25 @@ import {
   BLANK_LAND_CONTRACT_PRICE_BASE_UNITS,
   compareMarketListingPrices,
   createBuyTreasuryContractInstruction,
+  createTreasurySwapInstruction,
   createJoinMarketInstruction,
   createMarketListingInstruction,
   decodeBackpack,
   decodeForgedItem,
   decodeMarketListing,
   decodeMarketUserState,
+  decodeTreasurySwapState,
   decodePlayerEquipment,
   deriveForgedItemPda,
   deriveGlobalConfigPda,
   deriveMarketUserPda,
+  deriveTreasurySwapPdas,
   derivePlayerEquipmentPda,
   derivePlayerProfilePda,
   isNonTransferableMarketSourceSlot,
   parseMarketPriceBaseUnits,
+  parseTreasurySwapAmountBaseUnits,
+  quoteTreasurySwap,
 } from "../../src/chain/nicechunkChain.js";
 
 const GAME_PROGRAM = new PublicKey("6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7");
@@ -296,6 +301,128 @@ test("treasury land-contract purchases use a fixed 10 NCK price and no Listing P
     treasuryNckToken,
     quantity: 4_097,
   }), /contract quantity/);
+});
+
+test("Treasury Swap instructions lock quote revision, deadline, and exact PDA accounts", () => {
+  const user = Keypair.generate().publicKey;
+  const userNckToken = Keypair.generate().publicKey;
+  const pdas = deriveTreasurySwapPdas();
+  const common = {
+    user,
+    userNckToken,
+    amountIn: 100_000_000n,
+    minimumAmountOut: 4_000_000n,
+    expectedRevision: 7n,
+    deadlineSlot: 9_999n,
+  };
+  const buyNck = createTreasurySwapInstruction({ ...common, direction: "SOL_TO_NCK" });
+  assert.equal(buyNck.programId.toBase58(), GAME_PROGRAM.toBase58());
+  assert.equal(buyNck.data.length, 34);
+  assert.equal(buyNck.data.readUInt8(0), 4, "Game market namespace");
+  assert.equal(buyNck.data.readUInt8(1), 14, "SOL to NCK tag");
+  assert.equal(buyNck.data.readBigUInt64LE(2), 100_000_000n);
+  assert.equal(buyNck.data.readBigUInt64LE(10), 4_000_000n);
+  assert.equal(buyNck.data.readBigUInt64LE(18), 7n);
+  assert.equal(buyNck.data.readBigUInt64LE(26), 9_999n);
+  assert.deepEqual(buyNck.keys.map((key) => key.pubkey.toBase58()), [
+    user.toBase58(),
+    pdas.state[0].toBase58(),
+    pdas.solVault[0].toBase58(),
+    pdas.authority[0].toBase58(),
+    pdas.nckVault[0].toBase58(),
+    userNckToken.toBase58(),
+    "HSnWF5kjkWVrceW2SaSskScuLveUZE4gpthZ2ZXRPQPo",
+    SystemProgram.programId.toBase58(),
+    TOKEN_PROGRAM_ID.toBase58(),
+  ]);
+  assert.deepEqual(buyNck.keys.map(({ isSigner, isWritable }) => [isSigner, isWritable]), [
+    [true, true], [false, true], [false, true], [false, false], [false, true],
+    [false, true], [false, false], [false, false], [false, false],
+  ]);
+
+  const sellNck = createTreasurySwapInstruction({
+    ...common,
+    direction: "NCK_TO_SOL",
+    amountIn: 4_000_000n,
+    minimumAmountOut: 100_000_000n,
+  });
+  assert.equal(sellNck.data.readUInt8(1), 15, "NCK to SOL tag");
+  assert.deepEqual(sellNck.keys.map((key) => key.pubkey.toBase58()), [
+    user.toBase58(),
+    pdas.state[0].toBase58(),
+    pdas.solVault[0].toBase58(),
+    pdas.nckVault[0].toBase58(),
+    userNckToken.toBase58(),
+    "HSnWF5kjkWVrceW2SaSskScuLveUZE4gpthZ2ZXRPQPo",
+    TOKEN_PROGRAM_ID.toBase58(),
+  ]);
+  assert.throws(() => createTreasurySwapInstruction({ ...common, direction: "INVALID" }), /direction/);
+  assert.throws(() => createTreasurySwapInstruction({ ...common, amountIn: 0n, direction: "SOL_TO_NCK" }), /nonzero unsigned/);
+});
+
+test("Treasury Swap state decoder and BigInt quotes preserve fixed-price invariants", () => {
+  const pdas = deriveTreasurySwapPdas();
+  const data = Buffer.alloc(160);
+  data.write("NCKSWP01", 0, "utf8");
+  data.writeUInt16LE(1, 8);
+  data.writeUInt8(pdas.state[1], 10);
+  data.writeUInt8(pdas.authority[1], 11);
+  data.writeUInt8(pdas.solVault[1], 12);
+  data.writeUInt8(pdas.nckVault[1], 13);
+  data.writeUInt8(0, 14);
+  data.writeUInt16LE(100, 16);
+  new PublicKey("CtPV2vmqNNwUSfMu5nz58ZtMPy6ZvxL4LyNdPHVW7WvF").toBuffer().copy(data, 24);
+  new PublicKey("HSnWF5kjkWVrceW2SaSskScuLveUZE4gpthZ2ZXRPQPo").toBuffer().copy(data, 56);
+  data.writeBigUInt64LE(25_000_000n, 88);
+  data.writeBigUInt64LE(1n, 96);
+  data.writeBigUInt64LE(1_000_000_000n, 104);
+  data.writeBigUInt64LE(3n, 112);
+  data.writeBigUInt64LE(99n, 120);
+
+  const state = decodeTreasurySwapState(data);
+  assert.equal(state.revision, "3");
+  assert.equal(state.feeBps, 100);
+  assert.deepEqual(quoteTreasurySwap({
+    direction: "SOL_TO_NCK",
+    amountInBaseUnits: parseTreasurySwapAmountBaseUnits("0.1", "SOL"),
+    state,
+  }), {
+    direction: "SOL_TO_NCK",
+    inputCurrency: "SOL",
+    outputCurrency: "NCK",
+    amountInBaseUnits: "100000000",
+    grossAmountOutBaseUnits: "4000000",
+    amountOutBaseUnits: "3960000",
+    feeBaseUnits: "40000",
+    amountOut: "3.96",
+    fee: "0.04",
+  });
+  assert.equal(quoteTreasurySwap({
+    direction: "NCK_TO_SOL",
+    amountInBaseUnits: 4_000_000n,
+    state,
+  }).amountOutBaseUnits, "99000000");
+  assert.equal(parseTreasurySwapAmountBaseUnits("0.000000001", "SOL"), 1n);
+  assert.equal(parseTreasurySwapAmountBaseUnits("0.000001", "NCK"), 1n);
+  assert.throws(() => parseTreasurySwapAmountBaseUnits("1e3", "SOL"), /valid Treasury Swap/);
+  assert.throws(() => parseTreasurySwapAmountBaseUnits("0.0000001", "NCK"), /at most 6/);
+
+  const forgedTreasury = Buffer.from(data);
+  Keypair.generate().publicKey.toBuffer().copy(forgedTreasury, 24);
+  assert.throws(() => decodeTreasurySwapState(forgedTreasury), /treasury or NCK mint mismatch/);
+  const retired = Buffer.from(data);
+  retired.writeUInt16LE(2, 8);
+  assert.throws(() => decodeTreasurySwapState(retired), /layout/);
+  for (const offset of [15, 18, 23]) {
+    const noncanonical = Buffer.from(data);
+    noncanonical[offset] = 1;
+    assert.throws(() => decodeTreasurySwapState(noncanonical), /layout/);
+  }
+  assert.throws(() => quoteTreasurySwap({
+    direction: "SOL_TO_NCK",
+    amountInBaseUnits: 0x1_0000_0000_0000_0000n,
+    state,
+  }), /parameters/);
 });
 
 function emptyBackpackAccount() {
