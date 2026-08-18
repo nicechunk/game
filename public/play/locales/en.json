@@ -399,7 +399,8 @@
       "submitting": "Submitting {count} blocks in chunk batches.",
       "cancelled": "Bulk mining selection cleared.",
       "resultTitle": "Mining complete · {count} blocks",
-      "noDropsSaved": "No drops saved · backpack capacity and drop rolls applied"
+      "noDropsSaved": "No drops saved · backpack capacity and drop rolls applied",
+      "protected": "Selection touches {count} protected blocks. No blocks can be submitted."
     },
     "minimap": "Minimap",
     "map": "Map",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 slots",
       "contractPda": "MarketUser PDA",
       "equipToHotbar": "Equip to hotbar",
-      "contractEquippedStatus": "Equipped the land contract to hotbar slot {slot}."
+      "contractEquippedStatus": "Equipped the land contract to hotbar slot {slot}.",
+      "contractPortfolio": "Land Contracts",
+      "contractPortfolioAria": "Land contracts, {count} contract units. {action}",
+      "collapseContracts": "Collapse contract list",
+      "expandContracts": "Expand contract list",
+      "contractPortfolioMeta": "{records} records · no backpack slots",
+      "registeredContractTitle": "Land Contract #{id}",
+      "registeredContractAria": "{title}, {count} chunks, from Chunk {minX}, {minZ} to {maxX}, {maxZ}",
+      "registeredContractRange": "Chunks ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "{available} available · {reserved} registering",
+      "contractChunkCount": "{count} chunks",
+      "contractLoadFailed": "Contracts could not be refreshed: {reason}",
+      "retryContracts": "Retry",
+      "noContracts": "No land contracts yet. Buy a blank contract to register your first Chunk.",
+      "openContractMarket": "Open contract market",
+      "registeredContractSubtitle": "{count} Chunk units · BuildSite PDA",
+      "registeredContractTag": "Registered land",
+      "registeredContractDescription": "This independent contract record proves control of every world column inside its registered Chunk range. It uses no backpack slots.",
+      "foundationId": "Contract ID",
+      "contractOwner": "Owner",
+      "contractChunkRange": "Chunk range",
+      "contractBlockRange": "Block range",
+      "contractDimensions": "Dimensions",
+      "contractArea": "Area",
+      "contractAreaValue": "{area} block²",
+      "contractChunkUnits": "Contract units",
+      "contractIndexProgress": "Chunk index",
+      "contractStatus": "Status",
+      "buildSitePda": "BuildSite PDA",
+      "contractTradeReady": "The contract keeps a stable on-chain ID so a future market transfer can reference this exact parcel.",
+      "contractStatusActive": "Active",
+      "contractStatusIndexing": "Registering",
+      "contractStatusCanceling": "Canceling",
+      "contractStatusUnknown": "Unknown"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "Point at terrain inside the Chunk you want to select.",
       "selectFirst": "Tap terrain or press F to select the first Chunk.",
       "selectCorner": "Move the preview, then select the opposite Chunk corner.",
-      "alreadyLocked": "The area is locked. Clear it before selecting another area."
+      "alreadyLocked": "The area is locked. Clear it before selecting another area.",
+      "chunkProtected": "This Chunk is protected by a land contract and cannot be modified."
     },
     "onboarding": {
       "features": {

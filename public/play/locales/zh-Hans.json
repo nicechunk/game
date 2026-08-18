@@ -399,7 +399,8 @@
       "submitting": "正在按区块批次提交 {count} 个方块。",
       "cancelled": "已清除批量挖掘选择范围。",
       "resultTitle": "挖掘完成 · {count} 个方块",
-      "noDropsSaved": "没有掉落物存入背包 · 已应用容量与掉落概率"
+      "noDropsSaved": "没有掉落物存入背包 · 已应用容量与掉落概率",
+      "protected": "选区包含 {count} 个受保护方块，无法提交任何方块。"
     },
     "minimap": "小地图",
     "map": "地图",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 格",
       "contractPda": "MarketUser PDA",
       "equipToHotbar": "装备到快捷栏",
-      "contractEquippedStatus": "已将土地契约装备到快捷栏第 {slot} 格。"
+      "contractEquippedStatus": "已将土地契约装备到快捷栏第 {slot} 格。",
+      "contractPortfolio": "土地契约",
+      "contractPortfolioAria": "土地契约，共 {count} 个契约单位。{action}",
+      "collapseContracts": "收起契约列表",
+      "expandContracts": "展开契约列表",
+      "contractPortfolioMeta": "{records} 条记录 · 不占背包格",
+      "registeredContractTitle": "土地契约 #{id}",
+      "registeredContractAria": "{title}，覆盖 {count} 个 Chunk，从 Chunk {minX}, {minZ} 到 {maxX}, {maxZ}",
+      "registeredContractRange": "Chunk（{minX}, {minZ}）→（{maxX}, {maxZ}）",
+      "blankContractBalance": "{available} 个可用 · {reserved} 个登记中",
+      "contractChunkCount": "{count} 个 Chunk",
+      "contractLoadFailed": "无法刷新契约：{reason}",
+      "retryContracts": "重试",
+      "noContracts": "暂无土地契约。购买空白契约即可登记第一个 Chunk。",
+      "openContractMarket": "打开契约市场",
+      "registeredContractSubtitle": "{count} 个 Chunk 单位 · BuildSite PDA",
+      "registeredContractTag": "已登记土地",
+      "registeredContractDescription": "这条独立契约记录证明你对登记 Chunk 范围内全部世界高度列的控制权，并且不占用背包格。",
+      "foundationId": "契约 ID",
+      "contractOwner": "所有者",
+      "contractChunkRange": "Chunk 范围",
+      "contractBlockRange": "方块范围",
+      "contractDimensions": "尺寸",
+      "contractArea": "面积",
+      "contractAreaValue": "{area} 平方方块",
+      "contractChunkUnits": "契约单位",
+      "contractIndexProgress": "Chunk 索引",
+      "contractStatus": "状态",
+      "buildSitePda": "BuildSite PDA",
+      "contractTradeReady": "契约保留稳定的链上 ID，后续市场交易可以精确引用这块土地。",
+      "contractStatusActive": "已生效",
+      "contractStatusIndexing": "登记中",
+      "contractStatusCanceling": "取消中",
+      "contractStatusUnknown": "未知"
     },
     "loading": {
       "eyebrow": "世界网关",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "请指向要选择区块内的地形。",
       "selectFirst": "点按地形或按 F 选择第一个区块。",
       "selectCorner": "移动预览范围，再选择对角区块完成锁定。",
-      "alreadyLocked": "选区已经锁定，请先清除再选择其他范围。"
+      "alreadyLocked": "选区已经锁定，请先清除再选择其他范围。",
+      "chunkProtected": "该 Chunk 受契约保护，无法修改。"
     },
     "onboarding": {
       "features": {

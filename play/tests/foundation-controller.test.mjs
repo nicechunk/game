@@ -54,7 +54,7 @@ test("two-corner footprints work in every direction across negative coordinates"
   assert.deepEqual(footprintForCorners(second, first), expected);
 });
 
-test("foundation index deduplicates cross-chunk records and protects only the surface layer", () => {
+test("foundation index protects the full world column from non-owners only", () => {
   const index = createFoundationSpatialIndex({ chunkSize: 16 });
   const foundation = {
     id: "owner:9",
@@ -76,9 +76,11 @@ test("foundation index deduplicates cross-chunk records and protects only the su
   assert.equal(index.version(), version);
   assert.equal(index.list()[0].contentHash, foundation.contentHash);
   assert.equal(index.listNear(0, 16, 32).length, 1);
-  assert.equal(index.isBlockProtected({ worldX: -1, worldY: 10, worldZ: 15 }), true);
-  assert.equal(index.isBlockProtected({ worldX: -1, worldY: 9, worldZ: 15 }), false);
-  assert.equal(index.isBlockProtected({ worldX: 15, worldY: 10, worldZ: 15 }), false);
+  assert.equal(index.isBlockProtected({ worldX: -1, worldY: 10, worldZ: 15 }, "visitor"), true);
+  assert.equal(index.isBlockProtected({ worldX: -1, worldY: -32, worldZ: 15 }, "visitor"), true);
+  assert.equal(index.isBlockProtected({ worldX: -1, worldY: 255, worldZ: 15 }, "visitor"), true);
+  assert.equal(index.isBlockProtected({ worldX: -1, worldY: 10, worldZ: 15 }, "owner"), false);
+  assert.equal(index.isBlockProtected({ worldX: 15, worldY: 10, worldZ: 15 }, "visitor"), false);
   assert.equal(index.intersects({ minX: 14, minZ: 16, width: 2, depth: 2 })?.id, foundation.id);
 });
 

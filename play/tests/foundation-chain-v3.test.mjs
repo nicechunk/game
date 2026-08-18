@@ -10,7 +10,9 @@ import {
   deriveBuildSitePda,
   deriveFoundationChunkPda,
   deriveGlobalConfigPda,
+  deriveMarketUserPda,
   encodeBeginBuildingInstructionData,
+  fetchLandContractPortfolioOnChain,
   loadFoundationsForChunks,
   loadOwnedFoundations,
 } from "../../src/chain/nicechunkChain.js";
@@ -139,6 +141,80 @@ test("owned land discovery filters by v3 magic and version before decoding", asy
   });
 });
 
+test("land contract portfolio combines blank balances with independently addressable BuildSite records", async () => {
+  const owner = PublicKey.unique();
+  const gameProgram = new PublicKey("6CurnvneezBuHwPUnrCiFg1QMWeUF67ufQxYebyr2UP7");
+  const buildingProgram = new PublicKey("39UMTUWXQkuomkFNbDPF5NGZnJmG6pDkJHVSkZyqVwWx");
+  const [marketUser, marketUserBump] = deriveMarketUserPda(owner);
+  const marketUserData = Buffer.alloc(64);
+  marketUserData.write("NCKMUS01", 0, "utf8");
+  marketUserData.writeUInt16LE(1, 8);
+  marketUserData.writeUInt8(marketUserBump, 10);
+  owner.toBuffer().copy(marketUserData, 12);
+  marketUserData.writeBigUInt64LE(91n, 44);
+  marketUserData.writeUInt32LE(5, 52);
+  marketUserData.writeUInt32LE(2, 56);
+
+  const sites = [
+    {
+      pubkey: PublicKey.unique(),
+      account: {
+        owner: buildingProgram,
+        data: buildSiteData({
+          owner,
+          foundationId: 12n,
+          chunkX: 4,
+          chunkZ: -2,
+          activeRevision: 0,
+          statusCode: 0,
+          width: 32,
+          registeredChunks: 1n,
+        }),
+      },
+    },
+    {
+      pubkey: PublicKey.unique(),
+      account: {
+        owner: buildingProgram,
+        data: buildSiteData({
+          owner,
+          foundationId: 2n,
+          chunkX: -1,
+          chunkZ: 3,
+          activeRevision: 1,
+        }),
+      },
+    },
+  ];
+  const conn = {
+    getAccountInfo: async (address) => {
+      assert.equal(address.toBase58(), marketUser.toBase58());
+      return { owner: gameProgram, data: marketUserData };
+    },
+    getProgramAccounts: async (programId, options) => {
+      assert.equal(programId.toBase58(), buildingProgram.toBase58());
+      assert.deepEqual(options.filters[2], {
+        memcmp: { offset: 16, bytes: owner.toBase58() },
+      });
+      return sites;
+    },
+  };
+
+  const portfolio = await fetchLandContractPortfolioOnChain(owner, conn);
+  assert.equal(portfolio.owner, owner.toBase58());
+  assert.equal(portfolio.status, "ready");
+  assert.equal(portfolio.blankLandContracts, 5);
+  assert.equal(portfolio.reservedBlankLandContracts, 2);
+  assert.equal(portfolio.registeredContractUnits, 3);
+  assert.equal(portfolio.totalContractUnits, 8);
+  assert.deepEqual(portfolio.registeredContracts.map((contract) => contract.foundationId), ["2", "12"]);
+  assert.equal(portfolio.registeredContracts[0].sourcePda, sites[1].pubkey.toBase58());
+  assert.equal(portfolio.registeredContracts[1].status, "indexing");
+  assert.equal(portfolio.registeredContracts[1].registeredChunks, "1");
+  assert.ok(Object.isFrozen(portfolio));
+  assert.ok(Object.isFrozen(portfolio.registeredContracts));
+});
+
 test("view discovery resolves FoundationChunk indexes through BuildSite and BuildingManifest PDAs", async () => {
   const owner = PublicKey.unique();
   const foundationId = 777n;
@@ -199,27 +275,41 @@ function foundationChunkData({ owner, foundationId, chunkX, chunkZ }) {
   return data;
 }
 
-function buildSiteData({ owner, foundationId, chunkX, chunkZ, activeRevision }) {
+function buildSiteData({
+  owner,
+  foundationId,
+  chunkX,
+  chunkZ,
+  activeRevision,
+  statusCode = 1,
+  width = 16,
+  depth = 16,
+  registeredChunks = null,
+} = {}) {
+  const totalChunks = BigInt(Math.ceil(width / 16) * Math.ceil(depth / 16));
+  const indexedChunks = registeredChunks === null
+    ? (statusCode === 1 ? totalChunks : 0n)
+    : BigInt(registeredChunks);
   const data = Buffer.alloc(160);
   data.write("NCKSITE3", 0, "utf8");
   data.writeUInt8(3, 8);
   data.writeUInt8(1, 9);
-  data.writeUInt8(1, 10);
+  data.writeUInt8(statusCode, 10);
   data.writeUInt8(1, 11);
-  data.writeUInt32LE(1, 12);
+  data.writeUInt32LE(Number(totalChunks), 12);
   owner.toBuffer().copy(data, 16);
   deriveGlobalConfigPda().toBuffer().copy(data, 48);
   data.writeBigUInt64LE(foundationId, 80);
   data.writeInt32LE(chunkX * 16, 88);
   data.writeInt32LE(chunkZ * 16, 92);
   data.writeInt16LE(100, 96);
-  data.writeUInt32LE(16, 100);
-  data.writeUInt32LE(16, 104);
+  data.writeUInt32LE(width, 100);
+  data.writeUInt32LE(depth, 104);
   data.writeBigUInt64LE(1n, 108);
   data.writeUInt32LE(activeRevision, 116);
   data.writeBigUInt64LE(2n, 124);
-  data.writeBigUInt64LE(1n, 132);
-  data.writeBigUInt64LE(1n, 140);
+  data.writeBigUInt64LE(indexedChunks, 132);
+  data.writeBigUInt64LE(totalChunks, 140);
   return data;
 }
 

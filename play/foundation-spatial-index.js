@@ -21,7 +21,7 @@ export function createFoundationSpatialIndex({ chunkSize = DEFAULT_CHUNK_SIZE } 
     foundationsAt,
     intersects,
     protectedFoundationAt,
-    isBlockProtected: (block) => Boolean(protectedFoundationAt(block)),
+    isBlockProtected: (block, actorOwner = "") => Boolean(protectedFoundationAt(block, actorOwner)),
     size: () => records.size,
     version: () => generation,
   };
@@ -132,13 +132,14 @@ export function createFoundationSpatialIndex({ chunkSize = DEFAULT_CHUNK_SIZE } 
     return null;
   }
 
-  function protectedFoundationAt(block = {}) {
+  function protectedFoundationAt(block = {}, actorOwner = "") {
     const x = finiteInt(block.worldX ?? block.x);
-    const y = finiteInt(block.worldY ?? block.y);
     const z = finiteInt(block.worldZ ?? block.z);
+    const actor = String(actorOwner || "");
     for (const foundation of foundationsAt(x, z)) {
       if (foundation.status === "removed") continue;
-      if (y === foundation.surfaceY - 1) return foundation;
+      if (actor && foundation.owner === actor) continue;
+      return foundation;
     }
     return null;
   }

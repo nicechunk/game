@@ -1869,11 +1869,11 @@ export async function fetchMarketListingsPageOnChain({
   };
 }
 
-export async function fetchMarketUserStateOnChain(owner) {
+export async function fetchMarketUserStateOnChain(owner, conn = getNicechunkConnection()) {
   const ownerKey = typeof owner === "string" ? new PublicKey(owner) : owner;
   const context = gameContext;
   const [marketUser] = deriveMarketUserPdaForContext(ownerKey, context);
-  const account = await getNicechunkConnection().getAccountInfo(marketUser, "confirmed");
+  const account = await conn.getAccountInfo(marketUser, "confirmed");
   if (!account?.data?.length) return null;
   if (!account.owner.equals(context.marketProgramId)) {
     throw new Error("MarketUserState is owned by an unexpected program.");
@@ -1887,6 +1887,51 @@ export async function fetchMarketUserStateOnChain(owner) {
     marketUser: marketUser.toBase58(),
     programId: context.marketProgramId.toBase58(),
   };
+}
+
+export async function fetchLandContractPortfolioOnChain(owner, conn = getNicechunkConnection()) {
+  const ownerKey = typeof owner === "string" ? new PublicKey(owner) : owner;
+  const ownerAddress = ownerKey.toBase58();
+  const [marketUserState, registeredContracts] = await Promise.all([
+    fetchMarketUserStateOnChain(ownerKey, conn),
+    loadOwnedFoundations(ownerAddress, conn),
+  ]);
+  const contracts = registeredContracts
+    .slice()
+    .sort((left, right) => compareU64Strings(left.foundationId, right.foundationId));
+  const blankLandContracts = nonNegativeSafeInteger(marketUserState?.blankLandContracts);
+  const reservedBlankLandContracts = nonNegativeSafeInteger(marketUserState?.reservedBlankLandContracts);
+  const registeredContractUnits = contracts.reduce(
+    (total, contract) => total + nonNegativeSafeInteger(contract.landContractCount),
+    0,
+  );
+  const indexingContractUnits = contracts.reduce((total, contract) => (
+    contract.status === "active"
+      ? total
+      : total + nonNegativeSafeInteger(contract.landContractCount)
+  ), 0);
+  const unmatchedReservedContracts = Math.max(0, reservedBlankLandContracts - indexingContractUnits);
+  return Object.freeze({
+    owner: ownerAddress,
+    status: marketUserState ? "ready" : "market-membership-required",
+    marketUser: String(marketUserState?.marketUser || ""),
+    blankLandContracts,
+    reservedBlankLandContracts,
+    registeredContracts: Object.freeze(contracts),
+    registeredContractUnits,
+    totalContractUnits: blankLandContracts + registeredContractUnits + unmatchedReservedContracts,
+  });
+}
+
+function compareU64Strings(left, right) {
+  const leftValue = BigInt(left ?? 0);
+  const rightValue = BigInt(right ?? 0);
+  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+}
+
+function nonNegativeSafeInteger(value) {
+  const number = Math.trunc(Number(value));
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0;
 }
 
 function createSingleByteMemcmpFilter(offset, value) {
@@ -7736,7 +7781,9 @@ export function createFellTreeWithRewardsInstruction({ authority, block, owner, 
   if (!owner) throw new Error("owner is required for tree felling");
   if (!backpack) throw new Error("backpack is required for tree felling");
   if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for tree felling");
-  const normalizedChunks = Array.isArray(chunks) ? chunks.slice(0, treeFellMaxChunkCount) : [];
+  const normalizedChunks = Array.isArray(chunks)
+    ? dedupeChunks(chunks).slice(0, treeFellMaxChunkCount)
+    : [];
   if (!normalizedChunks.length) throw new Error("at least one chunk is required for tree felling");
   const [playerProfile] = derivePlayerProfilePda(owner);
   const [playerSession] = derivePlayerSessionPda(owner, authority);
@@ -7765,11 +7812,18 @@ export function createFellTreeWithRewardsInstruction({ authority, block, owner, 
       { pubkey: materialPhysics, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: playerSkills, isSigner: false, isWritable: false },
-      ...normalizedChunks.map((chunk) => ({
-        pubkey: deriveChunkBrokenPdaForContext(chunk.chunkX, chunk.chunkZ, context)[0],
-        isSigner: false,
-        isWritable: true,
-      })),
+      ...normalizedChunks.flatMap((chunk) => [
+        {
+          pubkey: deriveChunkBrokenPdaForContext(chunk.chunkX, chunk.chunkZ, context)[0],
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: deriveFoundationChunkPdaForContext(chunk.chunkX, chunk.chunkZ, context)[0],
+          isSigner: false,
+          isWritable: false,
+        },
+      ]),
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
   });

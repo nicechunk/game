@@ -28,6 +28,7 @@ export function createMiningController({
   canMine = () => true,
   onMiningBlocked = () => {},
   isBlockProtected = () => false,
+  translate = (_key, fallback) => fallback,
   getSkillEffects = () => null,
   swingDurationMs = 260,
   miningReach = 9.5,
@@ -79,7 +80,7 @@ export function createMiningController({
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
     const miningPlan = miningPlanForHit(targetHit, def);
     if (miningPlan.blocks?.some?.((block) => isBlockProtected(block)) || isBlockProtected(targetHit)) {
-      onStatus("This block is protected by a foundation.");
+      onStatus(protectedChunkMessage());
       return null;
     }
     const duration = Math.max(1, swingDurationMs);
@@ -123,7 +124,11 @@ export function createMiningController({
     for (const source of Array.isArray(blocks) ? blocks : []) {
       if (selected.length >= limit) break;
       const block = normalizeMiningBlock(source);
-      if (!block || isBlockPending(block) || isBlockProtected(block)) continue;
+      if (!block || isBlockPending(block)) continue;
+      if (isBlockProtected(block)) {
+        onStatus(protectedChunkMessage());
+        return null;
+      }
       const currentBlockId = chunks.getBlockAtWorld(block.worldX, block.worldY, block.worldZ);
       if (currentBlockId !== block.blockId) continue;
       const validation = validateMiningTarget(block, { checkReach: false });
@@ -259,7 +264,7 @@ export function createMiningController({
 
   function validateMiningTarget(hit, { checkReach = true } = {}) {
     if (isBlockProtected(hit)) {
-      return { ok: false, reason: "This block is protected by a foundation." };
+      return { ok: false, reason: protectedChunkMessage() };
     }
     if (checkReach && typeof getToolTargetingSolution !== "function" && !isHitInMiningReach(hit)) {
       return { ok: false, reason: "Target block is out of mining reach." };
@@ -269,6 +274,13 @@ export function createMiningController({
       return { ok: false, reason: `Target ${def.name} is not a mineable solid block.` };
     }
     return { ok: true };
+  }
+
+  function protectedChunkMessage() {
+    return translate(
+      "main.land.chunkProtected",
+      "This Chunk is protected by a land contract and cannot be modified.",
+    );
   }
 
   function canToolReachHit(hit, aimYaw = null) {

@@ -16,6 +16,7 @@ export function createForgedItemPlacementController({
   getPlayerYaw = () => 0,
   getRenderer = () => null,
   ensureSelectedRuntime = async () => null,
+  isBlockProtected = () => false,
   onStatus = () => {},
   onChanged = () => {},
   onPlacementStart = () => {},
@@ -118,6 +119,7 @@ export function createForgedItemPlacementController({
     };
     const bounds = rotatedWorldBounds(mesh.localBounds, origin, yaw);
     const base = { hit, target, origin, bounds, yaw, mesh, runtime: interaction.runtime };
+    if (isBlockProtected(target)) return { ...base, ok: false, reason: "foundation-protected" };
     if (!isWithinReach(bounds, getPlayerBounds?.(), placementReach)) return { ...base, ok: false, reason: "out-of-range" };
     if (intersectsPlayer(bounds, getPlayerBounds?.())) return { ...base, ok: false, reason: "player-overlap" };
     if (intersectsWorld(bounds, chunks)) return { ...base, ok: false, reason: "occupied" };

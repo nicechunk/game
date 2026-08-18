@@ -9,6 +9,8 @@ import {
   createMineBlockWithRewardsInstruction,
   createRangeMineWithRewardsInstruction,
   createSyncPlayerSkillsInstruction,
+  deriveChunkBrokenPda,
+  deriveFoundationChunkPda,
   deriveMaterialPhysicsPda,
   derivePlayerSkillsPda,
 } from "../../src/chain/nicechunkChain.js";
@@ -72,7 +74,7 @@ test("browser reward mining instructions include the material physics PDA", () =
   assertRewardMiningTail(rangeInstruction, accounts.backpack, accounts.owner);
 });
 
-test("browser tree mining places material physics before system and chunk accounts", () => {
+test("browser tree mining pairs every writable ChunkBroken PDA with its readonly FoundationChunk PDA", () => {
   const accounts = miningAccounts();
   const [materialPhysics] = deriveMaterialPhysicsPda();
   const instruction = createFellTreeWithRewardsInstruction({
@@ -88,12 +90,36 @@ test("browser tree mining places material physics before system and chunk accoun
   assert.equal(instruction.data.readInt16LE(13), 80);
   assert.equal(instruction.data.readInt32LE(15), 1);
   assert.equal(instruction.data.readUInt16LE(19), 22);
-  assert.equal(instruction.keys.length, 11);
+  assert.equal(instruction.keys.length, 12);
   assert.equal(instruction.keys[6].pubkey.toBase58(), accounts.backpack.toBase58());
   assert.equal(instruction.keys[7].pubkey.toBase58(), materialPhysics.toBase58());
   assert.equal(instruction.keys[8].pubkey.toBase58(), SystemProgram.programId.toBase58());
   assert.equal(instruction.keys[9].pubkey.toBase58(), derivePlayerSkillsPda(accounts.owner)[0].toBase58());
+  assert.equal(instruction.keys[10].pubkey.toBase58(), deriveChunkBrokenPda(0, 0)[0].toBase58());
   assert.equal(instruction.keys[10].isWritable, true);
+  assert.equal(instruction.keys[11].pubkey.toBase58(), deriveFoundationChunkPda(0, 0)[0].toBase58());
+  assert.equal(instruction.keys[11].isWritable, false);
+});
+
+test("tree mining de-duplicates Chunk pairs without changing first-seen order", () => {
+  const accounts = miningAccounts();
+  const chunks = [
+    { chunkX: -1, chunkZ: 2 },
+    { chunkX: 0, chunkZ: 2 },
+    { chunkX: -1, chunkZ: 2 },
+  ];
+  const instruction = createFellTreeWithRewardsInstruction({
+    ...accounts,
+    block: { x: -1, y: 80, z: 32 },
+    expectedBlockId: 22,
+    chunks,
+  });
+
+  assert.equal(instruction.keys.length, 14);
+  assert.equal(instruction.keys[10].pubkey.toBase58(), deriveChunkBrokenPda(-1, 2)[0].toBase58());
+  assert.equal(instruction.keys[11].pubkey.toBase58(), deriveFoundationChunkPda(-1, 2)[0].toBase58());
+  assert.equal(instruction.keys[12].pubkey.toBase58(), deriveChunkBrokenPda(0, 2)[0].toBase58());
+  assert.equal(instruction.keys[13].pubkey.toBase58(), deriveFoundationChunkPda(0, 2)[0].toBase58());
 });
 
 test("a 640-block eight-type range plus skill sync fits one Solana packet", () => {

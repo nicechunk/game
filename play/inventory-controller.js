@@ -3,6 +3,7 @@ import { buildBackpackDisplayStacks, findBackpackDisplayStack } from "./backpack
 import {
   LAND_CONTRACT_INVENTORY_ID,
   createLandContractIconElement,
+  findLandContractPortfolioItem,
 } from "./play-land-contract-item.js";
 
 const DRAG_START_PX = 8;
@@ -102,6 +103,8 @@ export function createInventoryController({
     elements.backpackGrid?.addEventListener("click", handleBackpackClick);
     elements.backpackGrid?.addEventListener("keydown", handleBackpackKeyDown);
     elements.backpackGrid?.addEventListener("backpackfilterchange", handleBackpackFilterChange);
+    elements.backpackContracts?.addEventListener("click", handleBackpackClick);
+    elements.backpackContracts?.addEventListener("keydown", handleBackpackKeyDown);
 
     elements.selectAllBackpack?.addEventListener("click", selectAllBackpack);
     elements.discardSelectedBackpack?.addEventListener("click", discardSelectedBackpack);
@@ -401,6 +404,7 @@ export function createInventoryController({
   }
 
   function handleBackpackClick(event) {
+    if (event.target.closest?.("[data-contract-action]")) return;
     if (event.target.closest(".backpack-equip")) return;
     const virtualItemId = virtualInventoryItemIdFromEvent(event);
     if (virtualItemId) {
@@ -432,6 +436,7 @@ export function createInventoryController({
 
   function handleBackpackKeyDown(event) {
     if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target.closest?.("[data-contract-action]")) return;
     const virtualItemId = virtualInventoryItemIdFromEvent(event);
     if (virtualItemId) {
       event.preventDefault();
@@ -688,7 +693,7 @@ export function createInventoryController({
       }
     }
     if (focusedBackpackIndex !== null && !gameState.backpackSlots[focusedBackpackIndex]) focusedBackpackIndex = null;
-    if (focusedVirtualItemId && gameState.getLandContractInventoryItem?.()?.id !== focusedVirtualItemId) focusedVirtualItemId = null;
+    if (focusedVirtualItemId && !virtualContractItem(focusedVirtualItemId)) focusedVirtualItemId = null;
   }
 
   function updateSelectionClasses() {
@@ -712,6 +717,16 @@ export function createInventoryController({
       slot.classList.toggle("focused", itemId === focusedVirtualItemId);
       slot.classList.toggle("equipped", Boolean(equipment));
       slot.dataset.equipped = equipment ? "true" : "false";
+    });
+    elements.backpackContracts?.querySelectorAll("[data-inventory-virtual-item]").forEach((row) => {
+      const itemId = String(row.dataset.inventoryVirtualItem || "");
+      const item = virtualContractItem(itemId);
+      const equipment = item?.id === LAND_CONTRACT_INVENTORY_ID
+        ? gameState.getLandContractEquipment?.() ?? null
+        : null;
+      row.classList.toggle("focused", itemId === focusedVirtualItemId);
+      row.classList.toggle("equipped", Boolean(equipment));
+      row.dataset.equipped = equipment ? "true" : "false";
     });
   }
 
@@ -737,11 +752,10 @@ export function createInventoryController({
   function renderBackpackDetail() {
     const detail = elements.backpackDetail;
     if (!detail) return;
-    const virtualItem = focusedVirtualItemId === LAND_CONTRACT_INVENTORY_ID
-      ? gameState.getLandContractInventoryItem?.() ?? null
-      : null;
+    const virtualItem = virtualContractItem(focusedVirtualItemId);
     if (virtualItem) {
-      renderLandContractDetail(detail, virtualItem);
+      if (virtualItem.kind === "registered_land_contract") renderRegisteredLandContractDetail(detail, virtualItem);
+      else renderLandContractDetail(detail, virtualItem);
       return;
     }
     const index = focusedBackpackIndex ?? selectedBackpackIndexes.values().next().value ?? null;
@@ -750,12 +764,12 @@ export function createInventoryController({
     const stackIndexes = displayStack?.indexes ?? (Number.isInteger(index) ? [index] : []);
     const sourceSlot = Number.isInteger(index) ? gameState.backpackSlots[index] : null;
     if (!slot) {
-      detail.classList.remove("has-item", "has-land-contract");
+      detail.classList.remove("has-item", "has-land-contract", "has-registered-land-contract");
       detail.innerHTML = "<i class=\"backpack-detail-empty-icon\" aria-hidden=\"true\"></i><strong>No item selected</strong><span>Choose a slot to inspect its item and proof data.</span>";
       return;
     }
     detail.classList.add("has-item");
-    detail.classList.remove("has-land-contract");
+    detail.classList.remove("has-land-contract", "has-registered-land-contract");
     const equipment = gameState.getBackpackSlotEquipment?.(sourceSlot) ?? null;
     const equipped = Boolean(equipment);
 
@@ -877,6 +891,7 @@ export function createInventoryController({
 
   function renderLandContractDetail(detail, contract) {
     detail.classList.add("has-item", "has-land-contract");
+    detail.classList.remove("has-registered-land-contract");
     const equipment = gameState.getLandContractEquipment?.() ?? null;
 
     const kicker = document.createElement("div");
@@ -942,9 +957,87 @@ export function createInventoryController({
           : result?.reason || "Land contract could not be equipped.");
       },
     );
-    equip.disabled = Boolean(equipment);
+    equip.disabled = Boolean(equipment || contract.availableCount <= 0);
     actions.append(equip);
     detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, actions);
+  }
+
+  function renderRegisteredLandContractDetail(detail, contract) {
+    detail.classList.add("has-item", "has-land-contract", "has-registered-land-contract");
+
+    const kicker = document.createElement("div");
+    kicker.className = "backpack-detail-kicker";
+    const verified = document.createElement("span");
+    verified.textContent = ui("main.backpack.chainVerified", "Chain verified");
+    const status = document.createElement("span");
+    status.textContent = contractStatusLabel(contract.status);
+    kicker.append(verified, status);
+
+    const preview = document.createElement("div");
+    preview.className = "backpack-detail-preview land-contract-preview registered-land-contract-preview";
+    preview.append(createLandContractIconElement({ size: 112, className: "registered-contract-icon" }));
+    const title = detailTitle(
+      ui("main.backpack.registeredContractTitle", "Land Contract #{id}", { id: contract.foundationId }),
+      ui("main.backpack.registeredContractSubtitle", "{count} Chunk units · BuildSite PDA", {
+        count: contract.landContractCount,
+      }),
+    );
+
+    const tags = document.createElement("div");
+    tags.className = "backpack-detail-tags";
+    tags.append(
+      detailTag(ui("main.backpack.registeredContractTag", "Registered land")),
+      detailTag("On-chain"),
+      detailTag(contractStatusLabel(contract.status), contract.status === "active" ? "equipped" : ""),
+    );
+
+    const description = document.createElement("p");
+    description.className = "backpack-detail-description";
+    description.textContent = ui(
+      "main.backpack.registeredContractDescription",
+      "This independent contract record proves control of every world column inside its registered Chunk range. It uses no backpack slots.",
+    );
+
+    const rows = [
+      [ui("main.backpack.foundationId", "Contract ID"), contract.foundationId],
+      [ui("main.backpack.contractOwner", "Owner"), shortAddress(contract.owner) || "-"],
+      [ui("main.backpack.contractChunkRange", "Chunk range"), `(${contract.minChunkX}, ${contract.minChunkZ}) → (${contract.maxChunkX}, ${contract.maxChunkZ})`],
+      [ui("main.backpack.contractBlockRange", "Block range"), `X ${contract.minX}…${contract.maxX} · Z ${contract.minZ}…${contract.maxZ}`],
+      [ui("main.backpack.contractDimensions", "Dimensions"), `${contract.width} × ${contract.depth} blocks`],
+      [ui("main.backpack.contractArea", "Area"), ui("main.backpack.contractAreaValue", "{area} block²", { area: contract.areaBlocks })],
+      [ui("main.backpack.contractChunkUnits", "Contract units"), String(contract.landContractCount)],
+      [ui("main.backpack.contractIndexProgress", "Chunk index"), `${contract.registeredChunks} / ${contract.totalChunks}`],
+      [ui("main.backpack.contractStatus", "Status"), contractStatusLabel(contract.status)],
+      [ui("main.backpack.contractBackpackSpace", "Backpack space"), ui("main.backpack.contractBackpackSpaceValue", "0 slots")],
+      [ui("main.backpack.buildSitePda", "BuildSite PDA"), shortAddress(contract.sourcePda) || "-"],
+    ];
+    const rowWrap = document.createElement("div");
+    rowWrap.className = "backpack-detail-rows";
+    rowWrap.replaceChildren(...rows.map(([label, value]) => detailRow(label, value)));
+
+    const note = document.createElement("p");
+    note.className = "backpack-contract-trade-note";
+    note.textContent = ui(
+      "main.backpack.contractTradeReady",
+      "The contract keeps a stable on-chain ID so a future market transfer can reference this exact parcel.",
+    );
+    detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, note);
+  }
+
+  function virtualContractItem(id) {
+    if (!id) return null;
+    return findLandContractPortfolioItem(gameState.getLandContractPortfolio?.(), id);
+  }
+
+  function contractStatusLabel(status) {
+    const normalized = String(status || "active");
+    const labels = {
+      active: ["main.backpack.contractStatusActive", "Active"],
+      indexing: ["main.backpack.contractStatusIndexing", "Registering"],
+      canceling: ["main.backpack.contractStatusCanceling", "Canceling"],
+    };
+    const [key, fallback] = labels[normalized] ?? ["main.backpack.contractStatusUnknown", "Unknown"];
+    return ui(key, fallback);
   }
 
   function discardBackpackIndexes(indexes) {
@@ -1299,7 +1392,7 @@ function backpackSlotIndexFromEvent(event) {
 }
 
 function virtualInventoryItemIdFromEvent(event) {
-  const slot = event.target.closest(".backpack-slot[data-inventory-virtual-item]");
+  const slot = event.target.closest("[data-inventory-virtual-item]");
   return String(slot?.dataset?.inventoryVirtualItem || "");
 }
 

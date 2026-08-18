@@ -4830,7 +4830,7 @@ body {
 
 .backpack-inventory {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 9px;
   padding: 10px;
   overflow: hidden;
@@ -5140,42 +5140,207 @@ body {
   image-rendering: pixelated;
 }
 
-.backpack-slot.virtual-contract {
-  appearance: none;
-  text-align: inherit;
-  border-color: rgba(67, 191, 151, 0.60);
+.backpack-contracts {
+  min-width: 0;
+  border: 1px solid rgba(117, 234, 206, 0.54);
+  border-radius: 13px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 30% 12%, rgba(232, 255, 246, 0.52), transparent 42%),
-    linear-gradient(145deg, rgba(197, 246, 224, 0.92), rgba(96, 210, 169, 0.78));
-  cursor: pointer;
+    radial-gradient(circle at 8% 0, rgba(235, 255, 247, 0.40), transparent 38%),
+    linear-gradient(145deg, rgba(18, 133, 126, 0.23), rgba(4, 79, 131, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.play-panel .backpack-contract-summary,
+.play-panel .backpack-contract-row {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  color: #efffff;
   font: inherit;
+  text-align: left;
 }
 
-.backpack-slot.virtual-contract.focused,
-.backpack-slot.virtual-contract:focus-visible {
-  border-color: #f0fff8;
-  outline: 2px solid rgba(45, 151, 121, 0.85);
-  outline-offset: 2px;
-  box-shadow: 0 8px 22px rgba(10, 91, 75, 0.25);
+.play-panel .backpack-contract-summary {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto 18px;
+  min-height: 50px;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(12, 130, 120, 0.72), rgba(7, 84, 153, 0.68));
+  cursor: pointer;
 }
 
-.backpack-slot.virtual-contract .backpack-slot-number {
-  color: #0c644f;
+.backpack-contract-summary > span,
+.backpack-contract-row > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
 }
 
-.backpack-slot-virtual-source {
-  position: absolute;
-  left: 5px;
-  bottom: 4px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  color: #0a624d;
-  background: rgba(230, 255, 246, 0.82);
-  font: 950 0.48rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+.backpack-contract-summary strong,
+.backpack-contract-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.backpack-contract-summary small,
+.backpack-contract-row small {
+  overflow: hidden;
+  color: rgba(225, 255, 249, 0.78);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.57rem;
+  font-weight: 750;
+}
+
+.backpack-contract-summary > b {
+  min-width: 30px;
+  padding: 4px 8px;
+  border: 1px solid rgba(226, 255, 247, 0.46);
+  border-radius: 999px;
+  background: rgba(1, 55, 83, 0.36);
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+.backpack-contract-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, 2px);
+  transition: transform 160ms ease;
+}
+
+.backpack-contract-summary[aria-expanded="true"] .backpack-contract-chevron {
+  transform: rotate(225deg) translate(-2px, 2px);
+}
+
+.backpack-contract-list {
+  display: grid;
+  gap: 5px;
+  max-height: 184px;
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid rgba(189, 255, 239, 0.22);
+  scrollbar-width: thin;
+}
+
+.play-panel .backpack-contract-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  min-height: 50px;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 9px;
+  border: 1px solid rgba(216, 255, 246, 0.20);
+  border-radius: 10px;
+  background: rgba(2, 57, 89, 0.34);
+  cursor: pointer;
+}
+
+.play-panel .backpack-contract-row.registered {
+  background: linear-gradient(135deg, rgba(19, 113, 105, 0.42), rgba(8, 65, 112, 0.46));
+}
+
+.play-panel .backpack-contract-row > b {
+  color: #d9fff4;
+  white-space: nowrap;
+  font-size: 0.62rem;
+}
+
+.play-panel .backpack-contract-summary:hover,
+.play-panel .backpack-contract-row:hover {
+  filter: brightness(1.09);
+}
+
+.play-panel .backpack-contract-summary:focus-visible,
+.play-panel .backpack-contract-row:focus-visible,
+.play-panel .backpack-contract-state button:focus-visible {
+  outline: 2px solid #e7fff9;
+  outline-offset: -3px;
+}
+
+.play-panel .backpack-contract-row.focused {
+  border-color: rgba(239, 255, 251, 0.96);
+  box-shadow: inset 3px 0 0 #8effd6, 0 0 12px rgba(71, 255, 207, 0.22);
+}
+
+.backpack-contract-state {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  color: rgba(235, 255, 251, 0.88);
+  background: rgba(1, 42, 72, 0.30);
+  font-size: 0.61rem;
+  line-height: 1.35;
+}
+
+.backpack-contract-state.error {
+  border: 1px solid rgba(255, 193, 142, 0.44);
+  color: #fff2df;
+}
+
+.play-panel .backpack-contract-state button {
+  min-width: max-content;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(229, 255, 248, 0.54);
+  border-radius: 9px;
+  color: #f3fffc;
+  background: rgba(19, 151, 130, 0.58);
+  font-size: 0.61rem;
+  font-weight: 900;
+}
+
+.backpack-contract-skeleton {
+  min-height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(100deg, rgba(205, 255, 244, 0.10) 30%, rgba(235, 255, 250, 0.30) 50%, rgba(205, 255, 244, 0.10) 70%);
+  background-size: 220% 100%;
+  animation: backpack-contract-loading 1.25s linear infinite;
+}
+
+@keyframes backpack-contract-loading {
+  to { background-position: -220% 0; }
 }
 
 .backpack-detail.has-land-contract .land-contract-preview {
   background: radial-gradient(circle, rgba(102, 224, 181, 0.24), transparent 68%);
+}
+
+.backpack-detail.has-registered-land-contract .registered-land-contract-preview {
+  background:
+    linear-gradient(rgba(104, 238, 198, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(104, 238, 198, 0.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(102, 224, 181, 0.26), transparent 68%);
+  background-size: 12px 12px, 12px 12px, auto;
+}
+
+.registered-contract-icon .land-contract-scroll {
+  fill: #aee9ff;
+  stroke: #126d85;
+}
+
+.backpack-contract-trade-note {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed rgba(153, 255, 224, 0.36);
+  border-radius: 9px;
+  color: rgba(224, 255, 247, 0.76);
+  background: rgba(4, 56, 83, 0.28);
+  font-size: 0.6rem;
+  line-height: 1.45;
 }
 
 .land-contract-actions .backpack-detail-action {
@@ -5664,6 +5829,28 @@ body {
     padding: 7px;
     border-radius: 13px;
   }
+  .play-panel .backpack-contract-summary {
+    grid-template-columns: 32px minmax(0, 1fr) auto 15px;
+    min-height: 44px;
+    gap: 7px;
+    padding: 4px 8px;
+  }
+  .backpack-contract-summary strong,
+  .backpack-contract-row strong {
+    font-size: 0.64rem;
+  }
+  .backpack-contract-summary small,
+  .backpack-contract-row small {
+    font-size: 0.52rem;
+  }
+  .backpack-contract-list {
+    max-height: min(160px, 22dvh);
+    padding: 5px;
+  }
+  .play-panel .backpack-contract-row {
+    min-height: 44px;
+    padding-block: 3px;
+  }
   .backpack-actions {
     gap: 4px;
   }
@@ -5736,6 +5923,13 @@ body {
     width: 66px !important;
     height: 66px !important;
   }
+  .backpack-detail-preview .land-contract-icon {
+    width: 64px;
+    height: 64px;
+  }
+  .backpack-detail.has-registered-land-contract .backpack-contract-trade-note {
+    grid-column: 1 / -1;
+  }
   .backpack-detail-title strong {
     font-size: 0.92rem;
   }
@@ -5770,6 +5964,12 @@ body {
   }
   .backpack-slot {
     transition: none;
+  }
+  .backpack-contract-chevron {
+    transition: none;
+  }
+  .backpack-contract-skeleton {
+    animation: none;
   }
 }
 

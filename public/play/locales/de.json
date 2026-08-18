@@ -399,7 +399,8 @@
       "submitting": "{count} Blöcke werden in Chunk-Stapeln gesendet.",
       "cancelled": "Massenabbau-Auswahl gelöscht.",
       "resultTitle": "Abbau abgeschlossen · {count} Blöcke",
-      "noDropsSaved": "Keine Beute gespeichert · Kapazität und Fundchancen wurden angewendet"
+      "noDropsSaved": "Keine Beute gespeichert · Kapazität und Fundchancen wurden angewendet",
+      "protected": "Die Auswahl berührt {count} geschützte Blöcke. Es können keine Blöcke gesendet werden."
     },
     "minimap": "Minikarte",
     "map": "Karte",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 Plätze",
       "contractPda": "MarketUser-PDA",
       "equipToHotbar": "In Schnellleiste ausrüsten",
-      "contractEquippedStatus": "Landvertrag in Schnellleistenplatz {slot} ausgerüstet."
+      "contractEquippedStatus": "Landvertrag in Schnellleistenplatz {slot} ausgerüstet.",
+      "contractPortfolio": "Landverträge",
+      "contractPortfolioAria": "Landverträge, {count} Vertragseinheiten. {action}",
+      "collapseContracts": "Vertragsliste einklappen",
+      "expandContracts": "Vertragsliste ausklappen",
+      "contractPortfolioMeta": "{records} Einträge · keine Rucksackplätze",
+      "registeredContractTitle": "Landvertrag #{id}",
+      "registeredContractAria": "{title}, {count} Chunks, von Chunk {minX}, {minZ} bis {maxX}, {maxZ}",
+      "registeredContractRange": "Chunks ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "{available} verfügbar · {reserved} in Registrierung",
+      "contractChunkCount": "{count} Chunks",
+      "contractLoadFailed": "Verträge konnten nicht aktualisiert werden: {reason}",
+      "retryContracts": "Erneut versuchen",
+      "noContracts": "Noch keine Landverträge. Kaufe einen Blankovertrag für deinen ersten Chunk.",
+      "openContractMarket": "Vertragsmarkt öffnen",
+      "registeredContractSubtitle": "{count} Chunk-Einheiten · BuildSite-PDA",
+      "registeredContractTag": "Registriertes Land",
+      "registeredContractDescription": "Dieser eigenständige Vertrag belegt die Kontrolle aller Weltspalten im registrierten Chunk-Bereich und belegt keinen Rucksackplatz.",
+      "foundationId": "Vertrags-ID",
+      "contractOwner": "Eigentümer",
+      "contractChunkRange": "Chunk-Bereich",
+      "contractBlockRange": "Blockbereich",
+      "contractDimensions": "Abmessungen",
+      "contractArea": "Fläche",
+      "contractAreaValue": "{area} Blöcke²",
+      "contractChunkUnits": "Vertragseinheiten",
+      "contractIndexProgress": "Chunk-Index",
+      "contractStatus": "Status",
+      "buildSitePda": "BuildSite-PDA",
+      "contractTradeReady": "Die stabile On-Chain-ID erlaubt es, dieses Grundstück bei einem künftigen Transfer eindeutig zu referenzieren.",
+      "contractStatusActive": "Aktiv",
+      "contractStatusIndexing": "Wird registriert",
+      "contractStatusCanceling": "Wird abgebrochen",
+      "contractStatusUnknown": "Unbekannt"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "Ziele auf Gelände im gewünschten Chunk.",
       "selectFirst": "Tippe auf Gelände oder drücke F, um den ersten Chunk zu wählen.",
       "selectCorner": "Bewege die Vorschau und wähle dann die gegenüberliegende Chunk-Ecke.",
-      "alreadyLocked": "Der Bereich ist gesperrt. Lösche ihn vor einer neuen Auswahl."
+      "alreadyLocked": "Der Bereich ist gesperrt. Lösche ihn vor einer neuen Auswahl.",
+      "chunkProtected": "Dieser Chunk ist durch einen Landvertrag geschützt und kann nicht verändert werden."
     },
     "onboarding": {
       "features": {

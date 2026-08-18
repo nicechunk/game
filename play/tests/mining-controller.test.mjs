@@ -213,6 +213,41 @@ test("ordinary callers cannot enter the bulk mining path", () => {
   assert.equal(harness.controller.pendingCount(), 0);
 });
 
+test("a tree plan touching protected land is rejected as one atomic action", () => {
+  const protectedLeaf = {
+    ...TARGET,
+    worldX: TARGET.worldX + 1,
+    blockId: 23,
+    resourceId: 10,
+  };
+  const harness = createHarness({
+    getMiningPlan: () => ({
+      kind: "tree-fell",
+      blocks: [TARGET, protectedLeaf],
+      rewardBlocks: [protectedLeaf],
+    }),
+    extraBlocks: [protectedLeaf],
+    isBlockProtected: (block) => block.worldX === protectedLeaf.worldX,
+  });
+
+  assert.equal(harness.controller.minePending(), null);
+  assert.equal(harness.controller.activeSwing(), null);
+  assert.equal(harness.controller.pendingCount(), 0);
+  assert.match(harness.calls.status.at(-1), /protected/i);
+});
+
+test("authorized batch mining rejects all blocks when any one is protected", () => {
+  const protectedBlock = { ...TARGET, worldX: TARGET.worldX + 1 };
+  const harness = createHarness({
+    extraBlocks: [protectedBlock],
+    isBlockProtected: (block) => block.worldX === protectedBlock.worldX,
+  });
+
+  assert.equal(harness.controller.queueBatchMine([TARGET, protectedBlock], { authorization: "debug" }), null);
+  assert.equal(harness.controller.pendingCount(), 0);
+  assert.match(harness.calls.status.at(-1), /protected/i);
+});
+
 test("action overlays ignore automatic center hits and flash only pending clicks", () => {
   let rememberedHit = null;
   let rememberedUntil = 0;
@@ -249,9 +284,10 @@ function createHarness({
   toolFactory = () => ({ kind: "tool", durability: 20, maxDurability: 20 }),
   getMiningPlan = null,
   extraBlocks = [],
+  isBlockProtected = () => false,
 } = {}) {
   const blocks = new Map([[key(TARGET), TARGET.blockId], ...extraBlocks.map((block) => [key(block), block.blockId])]);
-  const calls = { apply: [], confirm: [], rollback: [], selected: [], pending: [], confirmed: [], rolledBack: [] };
+  const calls = { apply: [], confirm: [], rollback: [], selected: [], pending: [], confirmed: [], rolledBack: [], status: [] };
   const gameState = {
     hotbarSlots: Array.from({ length: toolCount }, (_, index) => toolFactory(index)),
     selectedToolIndex: 0,
@@ -295,12 +331,14 @@ function createHarness({
     isFluidBlock: () => false,
     isMineableBlock: (blockId) => blockId !== 0,
     getMiningPlan,
+    isBlockProtected,
     blockAirId: 0,
     canMine: () => true,
     onTargetSelected: (hit) => calls.selected.push(hit),
     onPending: (pending) => calls.pending.push(pending),
     onConfirm: (pending) => calls.confirmed.push(pending),
     onRollback: (pending) => calls.rolledBack.push(pending),
+    onStatus: (message) => calls.status.push(message),
     swingDurationMs: 100,
   });
   return { controller, chunks, calls, gameState, blockId: () => blocks.get(key(TARGET)) };

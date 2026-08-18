@@ -232,12 +232,13 @@ test("equipped backpack cells render a locked equipment marker", () => {
   }
 });
 
-test("a MarketUser contract renders beside all physical backpack capacity", () => {
+test("blank and registered contracts render below all physical backpack capacity", () => {
   const originalDocument = globalThis.document;
   const document = new FakeDocument();
   globalThis.document = document;
   try {
     const backpackGrid = document.createElement("div");
+    const backpackContracts = document.createElement("section");
     const backpackMeta = document.createElement("span");
     const contract = {
       id: "market-user-blank-land-contract",
@@ -250,9 +251,28 @@ test("a MarketUser contract renders beside all physical backpack capacity", () =
       marketUser: "MarketUser111",
       virtual: true,
     };
+    const registered = {
+      id: "registered-land-contract:91",
+      itemId: "registered_land_contract",
+      kind: "registered_land_contract",
+      foundationId: "91",
+      landContractCount: 2,
+      minChunkX: -2,
+      minChunkZ: 1,
+      maxChunkX: -1,
+      maxChunkZ: 1,
+    };
+    const portfolio = {
+      totalContractUnits: 9,
+      recordCount: 2,
+      loading: false,
+      error: "",
+      items: [contract, registered],
+    };
     const ui = createPlayBackpackUi({
       elements: {
         backpackGrid,
+        backpackContracts,
         backpackMeta,
         backpackPanel: { hidden: false },
         backpackCategoryButtons: [],
@@ -262,7 +282,7 @@ test("a MarketUser contract renders beside all physical backpack capacity", () =
         backpackCapacity: 5,
         totalBackpackItems: () => 0,
         totalBackpackMassGrams: () => "0",
-        getLandContractInventoryItem: () => contract,
+        getLandContractPortfolio: () => portfolio,
         getLandContractEquipment: () => null,
       },
       createVoxelItemIconCanvas: () => document.createElement("canvas"),
@@ -271,12 +291,26 @@ test("a MarketUser contract renders beside all physical backpack capacity", () =
 
     ui.render({ force: true });
 
-    assert.equal(backpackGrid.children.length, 6, "the contract is rendered in addition to five physical slots");
-    assert.equal(backpackGrid.children[0].tagName, "BUTTON", "the contract must use a native keyboard-accessible control");
-    assert.equal(backpackGrid.children[0].type, "button");
-    assert.equal(backpackGrid.children[0].dataset.inventoryVirtualItem, contract.id);
-    assert.equal(backpackGrid.children[0].children[3].textContent, "7");
-    assert.equal(backpackMeta.children[0].textContent, "1 stack");
+    assert.equal(backpackGrid.children.length, 5, "contracts must not add or consume physical backpack slots");
+    assert.equal(backpackGrid.children.every((cell) => !cell.dataset.inventoryVirtualItem), true);
+    assert.equal(backpackContracts.children.length, 1);
+    const summary = backpackContracts.children[0];
+    assert.equal(summary.tagName, "BUTTON");
+    assert.equal(summary.type, "button");
+    assert.equal(summary.attributes.get("aria-expanded"), "false");
+    assert.equal(summary.children[2].textContent, "9");
+
+    backpackContracts.emit("click", { target: summary });
+
+    assert.equal(backpackContracts.children.length, 2);
+    assert.equal(backpackContracts.children[0].attributes.get("aria-expanded"), "true");
+    const list = backpackContracts.children[1];
+    assert.equal(list.children.length, 2);
+    assert.equal(list.children[0].tagName, "BUTTON");
+    assert.equal(list.children[0].dataset.inventoryVirtualItem, contract.id);
+    assert.equal(list.children[1].dataset.inventoryVirtualItem, registered.id);
+    assert.equal(list.children[1].children[2].textContent, "2 chunks");
+    assert.equal(backpackMeta.children[0].textContent, "0 stacks");
     assert.equal(backpackMeta.children[1].textContent, "0 / 5 slots · 0 items");
     assert.equal(backpackMeta.children[2].textContent, "Weight: 0 g");
   } finally {
@@ -301,9 +335,23 @@ class FakeElement {
     this.classList = new FakeClassList(this);
     this.textContent = "";
     this.title = "";
+    this.listeners = new Map();
   }
 
-  addEventListener() {}
+  addEventListener(type, listener) {
+    const listeners = this.listeners.get(type) ?? [];
+    listeners.push(listener);
+    this.listeners.set(type, listeners);
+  }
+
+  emit(type, event = {}) {
+    for (const listener of this.listeners.get(type) ?? []) listener({ target: this, ...event });
+  }
+
+  closest(selector) {
+    if (selector === "[data-contract-action]" && this.dataset.contractAction) return this;
+    return null;
+  }
 
   append(...children) {
     this.children.push(...children);

@@ -399,7 +399,8 @@
       "submitting": "Envoi de {count} blocs par lots de chunk.",
       "cancelled": "Sélection de minage groupé effacée.",
       "resultTitle": "Minage terminé · {count} blocs",
-      "noDropsSaved": "Aucune ressource enregistrée · capacité et probabilités appliquées"
+      "noDropsSaved": "Aucune ressource enregistrée · capacité et probabilités appliquées",
+      "protected": "La sélection touche {count} blocs protégés. Aucun bloc ne peut être envoyé."
     },
     "minimap": "Mini-carte",
     "map": "Carte",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 emplacement",
       "contractPda": "PDA MarketUser",
       "equipToHotbar": "Équiper dans la barre",
-      "contractEquippedStatus": "Contrat foncier équipé dans l’emplacement {slot}."
+      "contractEquippedStatus": "Contrat foncier équipé dans l’emplacement {slot}.",
+      "contractPortfolio": "Contrats fonciers",
+      "contractPortfolioAria": "Contrats fonciers, {count} unités. {action}",
+      "collapseContracts": "Réduire la liste des contrats",
+      "expandContracts": "Développer la liste des contrats",
+      "contractPortfolioMeta": "{records} enregistrements · aucun emplacement de sac",
+      "registeredContractTitle": "Contrat foncier nº {id}",
+      "registeredContractAria": "{title}, {count} chunks, du Chunk {minX}, {minZ} au {maxX}, {maxZ}",
+      "registeredContractRange": "Chunks ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "{available} disponibles · {reserved} en cours",
+      "contractChunkCount": "{count} chunks",
+      "contractLoadFailed": "Impossible d’actualiser les contrats : {reason}",
+      "retryContracts": "Réessayer",
+      "noContracts": "Aucun contrat foncier. Achetez un contrat vierge pour enregistrer votre premier Chunk.",
+      "openContractMarket": "Ouvrir le marché des contrats",
+      "registeredContractSubtitle": "{count} unités Chunk · PDA BuildSite",
+      "registeredContractTag": "Terrain enregistré",
+      "registeredContractDescription": "Ce contrat indépendant prouve le contrôle de toutes les colonnes du monde dans sa plage de Chunks et n’occupe aucun emplacement du sac.",
+      "foundationId": "ID du contrat",
+      "contractOwner": "Propriétaire",
+      "contractChunkRange": "Plage de Chunks",
+      "contractBlockRange": "Plage de blocs",
+      "contractDimensions": "Dimensions",
+      "contractArea": "Surface",
+      "contractAreaValue": "{area} blocs²",
+      "contractChunkUnits": "Unités de contrat",
+      "contractIndexProgress": "Index des Chunks",
+      "contractStatus": "Statut",
+      "buildSitePda": "PDA BuildSite",
+      "contractTradeReady": "Le contrat conserve un ID on-chain stable afin qu’un futur transfert désigne exactement cette parcelle.",
+      "contractStatusActive": "Actif",
+      "contractStatusIndexing": "Enregistrement",
+      "contractStatusCanceling": "Annulation",
+      "contractStatusUnknown": "Inconnu"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "Visez un terrain dans le chunk à sélectionner.",
       "selectFirst": "Touchez le terrain ou appuyez sur F pour choisir le premier chunk.",
       "selectCorner": "Déplacez l’aperçu puis choisissez le coin opposé du chunk.",
-      "alreadyLocked": "La zone est verrouillée. Effacez-la avant d’en choisir une autre."
+      "alreadyLocked": "La zone est verrouillée. Effacez-la avant d’en choisir une autre.",
+      "chunkProtected": "Ce Chunk est protégé par un contrat foncier et ne peut pas être modifié."
     },
     "onboarding": {
       "features": {

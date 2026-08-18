@@ -98,6 +98,37 @@ test("a rejected chain placement removes only the preview and never restores fak
   assert.equal(restored, 0, "inventory is authoritative on chain and must never be locally restored");
 });
 
+test("placement on another owner's contracted Chunk is rejected before a preview delta", () => {
+  const statuses = [];
+  let applied = 0;
+  const gameState = {
+    playerProfile: {},
+    getSelectedPlaceableSlot: () => ({ slot: { resourceId: 41, blockId: 7, count: 1 }, index: 2 }),
+    getHotbarEquipmentChainReference: () => ({ kind: "block", blockId: 7 }),
+    savePlayerProfile() {},
+  };
+  const controller = createPlacementController({
+    gameState,
+    chunks: {
+      getBlockAtWorld: () => 0,
+      applyPendingDelta() { applied += 1; },
+    },
+    getHit: () => ({ hit: true, worldX: 4, worldY: 5, worldZ: 6, faceX: 1, faceY: 0, faceZ: 0 }),
+    getPlayerBounds: () => null,
+    blockDef: () => ({ name: "Stone" }),
+    isBlockingBlock: () => true,
+    isFluidBlock: () => false,
+    isBlockProtected: (block) => block.worldX === 5 && block.worldZ === 6,
+    blockAirId: 0,
+    onStatus: (message) => statuses.push(message),
+  });
+
+  assert.equal(controller.placePending(), null);
+  assert.equal(controller.pendingCount(), 0);
+  assert.equal(applied, 0);
+  assert.match(statuses.at(-1), /protected/i);
+});
+
 test("placement progress and target-facing pose are forwarded to the avatar renderer", () => {
   const player = {
     worldX: 0,

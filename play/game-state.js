@@ -12,9 +12,11 @@ import {
 import { resourceIdForBlock } from "../src/world/blocks.js";
 import {
   LAND_CONTRACT_ITEM_ID,
+  createLandContractPortfolio,
   createLandContractInventoryItem,
   isLandContractItem,
   normalizeLandContractBalance,
+  normalizeRegisteredLandContract,
 } from "./play-land-contract-item.js";
 
 export const HOTBAR_STORAGE_KEY = "nicechunk.play.hotbar.v2";
@@ -53,6 +55,9 @@ export function createPlayGameState({
     backpackAvailable: false,
     backpackStatusKnown: false,
     landContractBalance: normalizeLandContractBalance(),
+    registeredLandContracts: [],
+    registeredLandContractStatus: "idle",
+    registeredLandContractError: "",
     playerProfile: loadPlayerProfile(initialOwnerAddress),
     setOwnerAddress(nextOwnerAddress) {
       const nextOwner = normalizeOwnerAddress(nextOwnerAddress);
@@ -71,6 +76,9 @@ export function createPlayGameState({
       this.backpackAvailable = false;
       this.backpackStatusKnown = false;
       this.landContractBalance = normalizeLandContractBalance();
+      this.registeredLandContracts = [];
+      this.registeredLandContractStatus = "idle";
+      this.registeredLandContractError = "";
       this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
       notifyHotbarSelectionChange("owner-changed");
       return { changed: true, previousOwner, ownerAddress: nextOwner };
@@ -259,6 +267,34 @@ export function createPlayGameState({
     getLandContractInventoryItem() {
       return createLandContractInventoryItem(this.landContractBalance);
     },
+    getLandContractPortfolio() {
+      return createLandContractPortfolio({
+        balance: this.landContractBalance,
+        registeredContracts: this.registeredLandContracts,
+        owner: this.ownerAddress,
+        status: this.registeredLandContractStatus === "ready"
+          ? this.landContractBalance.status
+          : this.registeredLandContractStatus,
+        error: this.registeredLandContractError,
+      });
+    },
+    syncRegisteredLandContracts(foundations = [], { status = "ready", error = "" } = {}) {
+      const owner = this.ownerAddress;
+      const next = (Array.isArray(foundations) ? foundations : [])
+        .map(normalizeRegisteredLandContract)
+        .filter((contract) => contract && (!owner || contract.owner === owner));
+      const previousFingerprint = registeredLandContractFingerprint(this.registeredLandContracts);
+      const nextFingerprint = registeredLandContractFingerprint(next);
+      const nextStatus = String(status || "ready");
+      const nextError = String(error || "");
+      const changed = previousFingerprint !== nextFingerprint
+        || this.registeredLandContractStatus !== nextStatus
+        || this.registeredLandContractError !== nextError;
+      this.registeredLandContracts = next;
+      this.registeredLandContractStatus = nextStatus;
+      this.registeredLandContractError = nextError;
+      return { changed, contracts: next.slice(), status: nextStatus, error: nextError };
+    },
     getLandContractEquipment() {
       const index = this.hotbarSlots.findIndex((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID);
       return index >= 0 ? { index, slot: this.hotbarSlots[index] } : null;
@@ -272,14 +308,14 @@ export function createPlayGameState({
       for (let index = 0; index < this.hotbarSlots.length; index += 1) {
         const slot = this.hotbarSlots[index];
         if (slot?.itemId !== LAND_CONTRACT_ITEM_ID) continue;
-        if (next.known && next.total <= 0) {
+        if (next.known && (next.available ?? 0) <= 0) {
           this.hotbarSlots[index] = null;
           hotbarChanged = true;
           selectedRemoved ||= this.selectedHotbarSlot === index;
           continue;
         }
         if (next.known && (
-          slot.count !== next.total
+          slot.count !== (next.available ?? 0)
           || slot.availableCount !== (next.available ?? 0)
           || slot.reservedCount !== (next.reserved ?? 0)
           || slot.marketUser !== next.marketUser
@@ -426,7 +462,7 @@ export function createPlayGameState({
     },
     getSelectedLandContractSlot() {
       const slot = this.hotbarSlots[this.selectedHotbarSlot];
-      if (slot?.itemId !== LAND_CONTRACT_ITEM_ID || !this.landContractBalance.known || this.landContractBalance.total <= 0) return null;
+      if (slot?.itemId !== LAND_CONTRACT_ITEM_ID || !this.landContractBalance.known || (this.landContractBalance.available ?? 0) <= 0) return null;
       return { slot, index: this.selectedHotbarSlot };
     },
     getForgedInteraction(slot) {
@@ -479,7 +515,7 @@ export function createPlayGameState({
     },
     equipLandContractToHotbar(targetIndex = this.selectedHotbarSlot) {
       const item = this.getLandContractInventoryItem();
-      if (!item) return { ok: false, reason: "No land contract is available in this MarketUser PDA." };
+      if (!item || item.availableCount <= 0) return { ok: false, reason: "No available land contract is stored in this MarketUser PDA." };
       const existing = this.hotbarSlots.findIndex((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID);
       if (existing >= 0) {
         this.hotbarSlots[existing] = landContractHotbarSlot(item);
@@ -907,12 +943,31 @@ function landContractHotbarSlot(item) {
     itemId: LAND_CONTRACT_ITEM_ID,
     kind: "contract",
     label: "Blank Land Contract",
-    count: clampInt(item.count, 1, 0xffffffff),
+    count: clampInt(item.availableCount ?? item.count, 1, 0xffffffff),
     availableCount: clampInt(item.availableCount, 0, 0xffffffff),
     reservedCount: clampInt(item.reservedCount, 0, 0xffffffff),
     marketUser: String(item.marketUser || ""),
     source: "market-user",
   };
+}
+
+function registeredLandContractFingerprint(contracts = []) {
+  return contracts.map((contract) => [
+    contract.foundationId,
+    contract.owner,
+    contract.status,
+    contract.minX,
+    contract.minZ,
+    contract.width,
+    contract.depth,
+    contract.landContractCount,
+    contract.registeredChunks,
+    contract.totalChunks,
+    contract.sourcePda,
+    contract.updatedSlot,
+  ].join(":"))
+    .sort()
+    .join("|");
 }
 
 function normalizeU64String(value) {

@@ -399,7 +399,8 @@
       "submitting": "Отправка {count} блоков пакетами по чанкам.",
       "cancelled": "Выбор массовой добычи очищен.",
       "resultTitle": "Добыча завершена · {count} блоков",
-      "noDropsSaved": "Добыча не сохранена · учтены вместимость и вероятность выпадения"
+      "noDropsSaved": "Добыча не сохранена · учтены вместимость и вероятность выпадения",
+      "protected": "Выбор затрагивает {count} защищённых блоков. Отправка невозможна."
     },
     "minimap": "Мини-карта",
     "map": "Карта",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 ячеек",
       "contractPda": "PDA MarketUser",
       "equipToHotbar": "Поместить на панель",
-      "contractEquippedStatus": "Земельный контракт помещён в ячейку {slot}."
+      "contractEquippedStatus": "Земельный контракт помещён в ячейку {slot}.",
+      "contractPortfolio": "Земельные контракты",
+      "contractPortfolioAria": "Земельные контракты: {count} единиц. {action}",
+      "collapseContracts": "Свернуть список контрактов",
+      "expandContracts": "Развернуть список контрактов",
+      "contractPortfolioMeta": "Записей: {records} · без ячеек рюкзака",
+      "registeredContractTitle": "Земельный контракт №{id}",
+      "registeredContractAria": "{title}, {count} чанков, от Chunk {minX}, {minZ} до {maxX}, {maxZ}",
+      "registeredContractRange": "Chunks ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "Доступно: {available} · регистрируется: {reserved}",
+      "contractChunkCount": "Чанков: {count}",
+      "contractLoadFailed": "Не удалось обновить контракты: {reason}",
+      "retryContracts": "Повторить",
+      "noContracts": "Земельных контрактов нет. Купите пустой контракт для регистрации первого Chunk.",
+      "openContractMarket": "Открыть рынок контрактов",
+      "registeredContractSubtitle": "Единиц Chunk: {count} · PDA BuildSite",
+      "registeredContractTag": "Зарегистрированная земля",
+      "registeredContractDescription": "Эта независимая запись подтверждает контроль всех высотных колонок в диапазоне Chunks и не занимает ячейки рюкзака.",
+      "foundationId": "ID контракта",
+      "contractOwner": "Владелец",
+      "contractChunkRange": "Диапазон Chunks",
+      "contractBlockRange": "Диапазон блоков",
+      "contractDimensions": "Размеры",
+      "contractArea": "Площадь",
+      "contractAreaValue": "{area} блоков²",
+      "contractChunkUnits": "Единицы контракта",
+      "contractIndexProgress": "Индекс Chunk",
+      "contractStatus": "Статус",
+      "buildSitePda": "PDA BuildSite",
+      "contractTradeReady": "Стабильный ончейн-ID позволит будущей сделке точно ссылаться на этот участок.",
+      "contractStatusActive": "Активен",
+      "contractStatusIndexing": "Регистрируется",
+      "contractStatusCanceling": "Отменяется",
+      "contractStatusUnknown": "Неизвестно"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "Укажите участок местности внутри нужного чанка.",
       "selectFirst": "Коснитесь местности или нажмите F, чтобы выбрать первый чанк.",
       "selectCorner": "Переместите предпросмотр и выберите противоположный угол чанка.",
-      "alreadyLocked": "Область закреплена. Очистите её перед новым выбором."
+      "alreadyLocked": "Область закреплена. Очистите её перед новым выбором.",
+      "chunkProtected": "Этот Chunk защищён земельным контрактом и не может быть изменён."
     },
     "onboarding": {
       "features": {

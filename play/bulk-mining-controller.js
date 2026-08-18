@@ -53,6 +53,10 @@ export function createBulkMiningController({
       onStatus(text("main.bulkMining.selectSolid", "Select a mineable solid block."));
       return null;
     }
+    if (isBlockProtected(target)) {
+      onStatus(text("main.land.chunkProtected", "This Chunk is protected by a land contract and cannot be modified."));
+      return null;
+    }
     if (phase === "idle" || phase === "ready") {
       anchor = target;
       endpoint = target;
@@ -76,6 +80,10 @@ export function createBulkMiningController({
       onStatus(text("main.bulkMining.tooLarge", "Selection exceeds the {max}-block debug limit.", {
         max: safeMaxBlocks(),
       }));
+    } else if (protectedCount > 0) {
+      onStatus(text("main.bulkMining.protected", "Selection touches {count} protected blocks. No blocks can be submitted.", {
+        count: protectedCount,
+      }));
     } else if (!blocks.length) {
       onStatus(text("main.bulkMining.empty", "The selected volume contains no mineable blocks."));
     } else {
@@ -88,7 +96,7 @@ export function createBulkMiningController({
   }
 
   function confirm() {
-    if (!enabled || phase !== "ready" || overflow || !blocks.length) {
+    if (!enabled || phase !== "ready" || overflow || protectedCount > 0 || !blocks.length) {
       onStatus(text("main.bulkMining.incomplete", "Select two corners before confirming bulk mining."));
       return null;
     }
@@ -166,7 +174,7 @@ export function createBulkMiningController({
     }
     const bounds = selectionBounds();
     if (!bounds) return [];
-    const invalid = overflow || !blocks.length;
+    const invalid = overflow || protectedCount > 0 || !blocks.length;
     return [{
       worldX: bounds.minX,
       worldY: bounds.minY,
@@ -190,7 +198,7 @@ export function createBulkMiningController({
       count: blocks.length,
       overflow,
       protectedCount,
-      canConfirm: enabled && phase === "ready" && !overflow && blocks.length > 0,
+      canConfirm: enabled && phase === "ready" && !overflow && protectedCount === 0 && blocks.length > 0,
       maxBlocks: safeMaxBlocks(),
       bounds: selectionBounds(),
     };

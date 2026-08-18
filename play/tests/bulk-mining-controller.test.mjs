@@ -15,7 +15,7 @@ test("bulk mining exposes one 640-block selection limit to UI and chain submissi
   assert.equal(controller.snapshot().maxBlocks, 640);
 });
 
-test("two clicks create one bounded bulk submission and exclude protected blocks", () => {
+test("a bulk selection touching protected land rejects the entire submission", () => {
   const submitted = [];
   const blocks = new Map([
     ["0,10,0", 1],
@@ -28,7 +28,7 @@ test("two clicks create one bounded bulk submission and exclude protected blocks
     blockDef: (blockId) => ({ hardness: blockId ? 1 : 0, resourceId: blockId * 10, materialId: blockId }),
     isFluidBlock: () => false,
     isMineableBlock: (blockId) => blockId > 0,
-    isBlockProtected: (block) => block.worldX === 1 && block.worldZ === 1,
+    isBlockProtected: (block) => block.worldX === 1 && block.worldZ === 0,
     submitBlocks(selected, options) {
       submitted.push({ selected, options });
       return { txId: "bulk-1" };
@@ -43,16 +43,31 @@ test("two clicks create one bounded bulk submission and exclude protected blocks
   assert.equal(ready.phase, "ready");
   assert.equal(ready.count, 3);
   assert.equal(ready.protectedCount, 1);
-  assert.equal(ready.canConfirm, true);
+  assert.equal(ready.canConfirm, false);
   assert.equal(controller.overlays()[0].sizeX, 2);
   assert.equal(controller.overlays()[0].sizeY, 1);
   assert.equal(controller.overlays()[0].sizeZ, 2);
 
-  assert.deepEqual(controller.confirm(), { txId: "bulk-1" });
-  assert.equal(submitted.length, 1);
-  assert.equal(submitted[0].selected.length, 3);
-  assert.equal(submitted[0].options.authorization, "debug");
+  assert.equal(controller.confirm(), null);
+  assert.equal(submitted.length, 0);
+  assert.equal(controller.snapshot().phase, "ready");
+});
+
+test("a protected first corner is rejected before a bulk selection starts", () => {
+  const statuses = [];
+  const controller = createBulkMiningController({
+    chunks: chunkStore(new Map([["0,10,0", 1]])),
+    blockDef: () => ({ hardness: 1, resourceId: 10, materialId: 1 }),
+    isFluidBlock: () => false,
+    isMineableBlock: () => true,
+    isBlockProtected: () => true,
+    onStatus: (message) => statuses.push(message),
+  });
+
+  controller.setEnabled(true, { quiet: true });
+  assert.equal(controller.selectAtHit(hit(0, 10, 0)), null);
   assert.equal(controller.snapshot().phase, "idle");
+  assert.match(statuses.at(-1), /protected/i);
 });
 
 test("selection over the debug limit cannot be submitted", () => {

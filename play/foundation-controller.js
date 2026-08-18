@@ -49,7 +49,7 @@ export function createFoundationController({
     preview: () => preview,
     snapshot,
     overlays,
-    isBlockProtected: (block) => Boolean(index?.isBlockProtected?.(block)),
+    isBlockProtected: (block) => Boolean(index?.isBlockProtected?.(block, getWalletAddress?.())),
     refresh: refreshFoundations,
   };
 

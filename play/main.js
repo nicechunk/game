@@ -243,6 +243,7 @@ const elements = {
   backpackButton: document.querySelector("#backpackButton"),
   closeBackpack: document.querySelector("#closeBackpackButton"),
   backpackGrid: document.querySelector("#backpackGrid"),
+  backpackContracts: document.querySelector("#backpackContracts"),
   backpackCategories: document.querySelector("#backpackCategories"),
   backpackCategoryButtons: document.querySelectorAll("[data-backpack-category]"),
   backpackMeta: document.querySelector("#backpackMeta"),
@@ -912,6 +913,8 @@ async function boot() {
       smelting?.closePanel?.();
       inventory?.clearSelection?.({ silent: true });
     },
+    onRefreshLandContracts: refreshLandContractPortfolio,
+    onOpenContractsMarket: () => market?.openContracts?.(),
     onStatus: setStatus,
     translate: translateWithFallback,
   });
@@ -1122,7 +1125,11 @@ async function boot() {
     viewDistance,
     preloadMargin: PLAYABLE_PRELOAD_MARGIN,
     chunkSize: chunks.chunkSize || 16,
-    onChanged: () => landUi?.render?.({ force: true }),
+    onChanged: (result) => {
+      syncRegisteredLandContractState(result);
+      landUi?.render?.({ force: true });
+      renderGameUi();
+    },
     onStatus: setStatus,
     translate: translateWithFallback,
   });
@@ -1181,7 +1188,8 @@ async function boot() {
     blockAirId: BLOCK_ID.air,
     canMine: () => gameState.isBackpackAvailable() || "no-backpack",
     onMiningBlocked: (detail) => backpackCreation?.open({ ...detail, source: "mining" }),
-    isBlockProtected: (block) => foundationIndex.isBlockProtected(block),
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
+    translate: translateWithFallback,
     onStatus: setStatus,
     onChanged: renderGameUi,
     onSwingStart: (swing) => avatarSession?.startMiningSwing(swing),
@@ -1232,7 +1240,7 @@ async function boot() {
     isFluidBlock,
     isMineableBlock,
     blockAirId: BLOCK_ID.air,
-    isBlockProtected: (block) => foundationIndex.isBlockProtected(block),
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     submitBlocks: (blocks, { authorization } = {}) => mining?.queueBatchMine?.(blocks, { authorization }),
     onStatus: setStatus,
     onChanged: (snapshot) => debugController?.updateBulkMiningHud?.(snapshot),
@@ -1251,6 +1259,7 @@ async function boot() {
     isBlockingBlock,
     isFluidBlock,
     blockAirId: BLOCK_ID.air,
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     onStatus: setStatus,
     onChanged: renderGameUi,
     onPlacementStart: (pending) => avatarSession?.startPlacementAction(pending),
@@ -1278,6 +1287,7 @@ async function boot() {
     getPlayerYaw: () => player?.avatarYaw ?? player?.yaw ?? 0,
     getRenderer: () => renderer,
     ensureSelectedRuntime: () => avatarSession?.ensureSelectedForgedRuntime?.(),
+    isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     onStatus: setForgedPlacementStatus,
     onChanged: renderGameUi,
     onPlacementStart: (selected) => avatarSession?.startPlacementAction(selected),
@@ -1703,6 +1713,29 @@ function syncLandContractState() {
   return snapshot ? gameState.syncLandContractBalance?.(snapshot) : null;
 }
 
+function syncRegisteredLandContractState(result = null) {
+  const source = result?.ownedFoundations
+    ? result
+    : foundationSync?.snapshot?.() ?? {};
+  const status = source.ownedStatus
+    || (source.loading ? "loading" : source.error || source.reason ? "error" : "ready");
+  return gameState.syncRegisteredLandContracts?.(source.ownedFoundations ?? [], {
+    status,
+    error: status === "error" ? String(source.reason || source.error?.message || "foundation-sync-failed") : "",
+  });
+}
+
+async function refreshLandContractPortfolio() {
+  const [marketResult, foundationResult] = await Promise.all([
+    market?.refreshLandContracts?.({ quiet: true }) ?? Promise.resolve({ ok: false, reason: "market-unavailable" }),
+    foundationSync?.refresh?.({ force: true, quiet: true }) ?? Promise.resolve({ ok: false, reason: "foundation-sync-unavailable" }),
+  ]);
+  syncLandContractState();
+  syncRegisteredLandContractState(foundationResult);
+  renderGameUi();
+  return { market: marketResult, foundations: foundationResult };
+}
+
 function handleHotbarSelectionChange() {
   const selected = gameState.getSelectedLandContractSlot?.() ?? null;
   if (!selected) {
@@ -1800,6 +1833,7 @@ function setForgedPlacementStatus(reason, preview = null) {
     "top-face-required": "main.forgedPlacement.topFaceRequired",
     "out-of-range": "main.forgedPlacement.outOfRange",
     "player-overlap": "main.forgedPlacement.playerOverlap",
+    "foundation-protected": "main.land.chunkProtected",
     occupied: "main.forgedPlacement.occupied",
     selected: "main.forgedPlacement.selected",
   };

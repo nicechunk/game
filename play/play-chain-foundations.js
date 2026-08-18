@@ -34,6 +34,7 @@ export function createPlayChainFoundationSync({
     create,
     updateForFrame,
     snapshot,
+    ownedList,
   };
 
   function updateForFrame(now = performance.now()) {
@@ -48,12 +49,12 @@ export function createPlayChainFoundationSync({
     if (loadingPromise) return loadingPromise;
     const attemptAt = Number.isFinite(now) ? Number(now) : performance.now();
     if (!force && attemptAt < retryAfterAt) {
-      return { ok: false, cached: true, retryAt: retryAfterAt, foundations: index?.list?.() ?? [] };
+      return refreshResult({ ok: false, cached: true, retryAt: retryAfterAt });
     }
     const center = currentChunk();
     const key = chunkKey(center.chunkX, center.chunkZ);
     if (!force && key === lastCenterKey && attemptAt - lastRefreshAt < FOUNDATION_REFRESH_MS) {
-      return { ok: true, cached: true, foundations: index?.list?.() ?? [] };
+      return refreshResult({ ok: true, cached: true });
     }
     loadingPromise = performRefresh(center, { quiet, attemptAt }).finally(() => {
       loadingPromise = null;
@@ -119,7 +120,7 @@ export function createPlayChainFoundationSync({
       console.warn("[NiceChunk On-chain Foundation Sync]", failures[0]);
       if (!quiet) onStatus(text("main.land.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
     }
-    const result = {
+    const result = refreshResult({
       ok,
       partial: !ok && (nearbyLoaded || ownedLoaded),
       reason,
@@ -128,8 +129,8 @@ export function createPlayChainFoundationSync({
       owned: ownedFoundations.size,
       scannedChunks: chunks.length,
       failures: failures.length,
-      foundations: index?.list?.() ?? [],
-    };
+      ownedStatus: ownedLoaded ? "ready" : "error",
+    });
     onChanged(result);
     return result;
   }
@@ -140,14 +141,14 @@ export function createPlayChainFoundationSync({
     console.warn("[NiceChunk On-chain Foundation Sync]", error);
     if (!quiet) onStatus(text("main.land.syncFailed", "Foundation PDA sync failed: {reason}", { reason }));
     rebuildIndex();
-    return {
+    return refreshResult({
       ok: false,
       reason,
       error,
       retryAt: retryAfterAt,
       count: index?.size?.() ?? 0,
-      foundations: index?.list?.() ?? [],
-    };
+      ownedStatus: "error",
+    });
   }
 
   async function create(payload) {
@@ -177,7 +178,7 @@ export function createPlayChainFoundationSync({
       expiresAt: Date.now() + PENDING_FOUNDATION_MS,
     });
     rebuildIndex();
-    onChanged({ created: foundation, count: index?.size?.() ?? 0 });
+    onChanged(refreshResult({ created: foundation, count: index?.size?.() ?? 0, ownedStatus: "ready" }));
     globalThis.setTimeout(() => void refresh({ force: true, quiet: true }), 500);
     return { ...result, foundation, indexedOnChain: true };
   }
@@ -197,7 +198,11 @@ export function createPlayChainFoundationSync({
 
   function rebuildIndex() {
     const merged = new Map();
-    for (const foundation of ownedFoundations.values()) merged.set(foundation.id, foundation);
+    for (const foundation of ownedFoundations.values()) {
+      if (foundation.status === "active" && foundation.hasActiveGeometry !== false) {
+        merged.set(foundation.id, foundation);
+      }
+    }
     for (const foundation of nearbyFoundations.values()) {
       merged.set(foundation.id, mergeFoundationHash(foundation, merged.get(foundation.id)));
     }
@@ -256,6 +261,19 @@ export function createPlayChainFoundationSync({
       pending: pendingFoundations.size,
       count: index?.size?.() ?? 0,
       mode: "on-chain-chunk-index",
+      ownedFoundations: ownedList(),
+    };
+  }
+
+  function ownedList() {
+    return [...ownedFoundations.values()];
+  }
+
+  function refreshResult(result = {}) {
+    return {
+      ...result,
+      foundations: index?.list?.() ?? [],
+      ownedFoundations: ownedList(),
     };
   }
 
@@ -276,7 +294,7 @@ function normalizeVerifiedFoundation(input = {}, { owner = "", allowIndexing = f
     || !actualOwner
     || expectedOwner && actualOwner !== expectedOwner
     || input.accountVersion !== 3
-    || input.hasActiveGeometry === false
+    || status === "active" && input.hasActiveGeometry === false
     || status !== "active" && !(allowIndexing && (status === "indexing" || status === "canceling"))) {
     return null;
   }

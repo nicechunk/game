@@ -81,6 +81,31 @@ test("nearby manifest hashes override hashless owner scans for the same land", a
   assert.equal(indexed[0].contentHash, hash);
 });
 
+test("owned indexing contracts remain queryable without entering the active spatial index", async () => {
+  let indexed = [];
+  const active = foundation({ foundationId: "80" });
+  const indexing = foundation({
+    foundationId: "81",
+    status: "indexing",
+    hasActiveGeometry: false,
+    activeRevision: 0,
+  });
+  const sync = createPlayChainFoundationSync({
+    index: spatialIndexStub((records) => { indexed = records; }),
+    getWalletAddress: () => "owner",
+    loadChainModule: async () => ({
+      loadFoundationsForChunks: async () => [],
+      loadOwnedFoundations: async () => [indexing, active],
+    }),
+  });
+
+  const result = await sync.refresh({ force: true });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.ownedFoundations.map((record) => record.foundationId), ["81", "80"]);
+  assert.deepEqual(sync.ownedList().map((record) => record.foundationId), ["81", "80"]);
+  assert.deepEqual(indexed.map((record) => record.foundationId), ["80"]);
+});
+
 test("a transient FoundationChunk failure retains the last verified land set", async () => {
   let fail = false;
   let indexed = [];

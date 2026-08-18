@@ -48,7 +48,7 @@ test("MarketUser land contracts project into inventory without consuming backpac
   });
 });
 
-test("reserved contracts stay equipped until the authoritative total reaches zero", () => {
+test("reserved contracts remain visible but are removed from the usable hotbar", () => {
   withLocalStorage(() => {
     const selections = [];
     const state = createPlayGameState({
@@ -70,8 +70,9 @@ test("reserved contracts stay equipped until the authoritative total reaches zer
       marketUser: "MarketUserReserved111111111111111111111111",
     });
     assert.equal(state.getLandContractInventoryItem()?.count, 1);
-    assert.equal(state.hotbarSlots[2]?.itemId, LAND_CONTRACT_ITEM_ID);
-    assert.equal(state.getSelectedLandContractSlot()?.index, 2);
+    assert.equal(state.hotbarSlots[2], null);
+    assert.equal(state.getSelectedLandContractSlot(), null);
+    assert.equal(selections.at(-1)?.reason, "contract-balance-empty");
 
     const cleared = state.syncLandContractBalance({
       status: "joined",
@@ -79,12 +80,83 @@ test("reserved contracts stay equipped until the authoritative total reaches zer
       reservedBlankLandContracts: 0,
       marketUser: "MarketUserReserved111111111111111111111111",
     });
-    assert.equal(cleared.hotbarChanged, true);
-    assert.equal(cleared.removed, true);
+    assert.equal(cleared.hotbarChanged, false);
+    assert.equal(cleared.removed, false);
     assert.equal(state.getLandContractInventoryItem(), null);
     assert.equal(state.hotbarSlots.some((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID), false);
     assert.equal(state.selectedHotbarSlot, 0);
-    assert.equal(selections.at(-1)?.reason, "contract-balance-empty");
+  });
+});
+
+test("registered contracts remain independent portfolio assets after blank contracts are consumed", () => {
+  withLocalStorage(() => {
+    const owner = "WalletRegisteredContract111111111111111111111";
+    const state = createPlayGameState({ ownerAddress: owner });
+    state.syncLandContractBalance({
+      status: "joined",
+      blankLandContracts: 2,
+      reservedBlankLandContracts: 0,
+      marketUser: "MarketUserRegistered111111111111111111111",
+    });
+    const synced = state.syncRegisteredLandContracts([
+      {
+        owner,
+        foundationId: "41",
+        minX: -32,
+        minZ: 16,
+        width: 32,
+        depth: 16,
+        surfaceY: 12,
+        status: "active",
+        landContractCount: 2,
+        registeredChunks: "2",
+        totalChunks: "2",
+        sourcePda: "BuildSite41",
+      },
+      {
+        owner,
+        foundationId: "42",
+        minX: 0,
+        minZ: 0,
+        width: 16,
+        depth: 16,
+        surfaceY: 10,
+        status: "active",
+        landContractCount: 1,
+        registeredChunks: "1",
+        totalChunks: "1",
+        sourcePda: "BuildSite42",
+      },
+    ]);
+
+    const portfolio = state.getLandContractPortfolio();
+    assert.equal(synced.changed, true);
+    assert.equal(portfolio.totalContractUnits, 5);
+    assert.equal(portfolio.recordCount, 3);
+    assert.equal(portfolio.registeredContracts.length, 2);
+    assert.deepEqual(portfolio.registeredContracts[0], {
+      ...portfolio.registeredContracts[0],
+      foundationId: "41",
+      minChunkX: -2,
+      minChunkZ: 1,
+      maxChunkX: -1,
+      maxChunkZ: 1,
+      areaBlocks: 512,
+      landContractCount: 2,
+      transferableIdentity: "41",
+    });
+    assert.equal(state.backpackSlots.length, 0);
+
+    state.syncLandContractBalance({
+      status: "joined",
+      blankLandContracts: 0,
+      reservedBlankLandContracts: 0,
+      marketUser: "MarketUserRegistered111111111111111111111",
+    });
+    const consumed = state.getLandContractPortfolio();
+    assert.equal(consumed.blankContract, null);
+    assert.equal(consumed.totalContractUnits, 3);
+    assert.equal(consumed.recordCount, 2);
   });
 });
 

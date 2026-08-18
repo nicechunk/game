@@ -399,7 +399,8 @@
       "submitting": "{count} ブロックをチャンク単位で送信中です。",
       "cancelled": "一括採掘の選択を解除しました。",
       "resultTitle": "採掘完了 · {count} ブロック",
-      "noDropsSaved": "ドロップは保存されませんでした · 容量と抽選結果を適用済み"
+      "noDropsSaved": "ドロップは保存されませんでした · 容量と抽選結果を適用済み",
+      "protected": "選択範囲に保護されたブロックが {count} 個あります。送信できません。"
     },
     "minimap": "ミニマップ",
     "map": "マップ",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0 スロット",
       "contractPda": "MarketUser PDA",
       "equipToHotbar": "ホットバーに装備",
-      "contractEquippedStatus": "土地契約をホットバーのスロット {slot} に装備しました。"
+      "contractEquippedStatus": "土地契約をホットバーのスロット {slot} に装備しました。",
+      "contractPortfolio": "土地契約",
+      "contractPortfolioAria": "土地契約、{count} 契約単位。{action}",
+      "collapseContracts": "契約一覧を閉じる",
+      "expandContracts": "契約一覧を開く",
+      "contractPortfolioMeta": "{records} 件 · バックパック枠を使用しません",
+      "registeredContractTitle": "土地契約 #{id}",
+      "registeredContractAria": "{title}、{count} Chunk、Chunk {minX}, {minZ} から {maxX}, {maxZ}",
+      "registeredContractRange": "Chunk ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "使用可能 {available} · 登録中 {reserved}",
+      "contractChunkCount": "{count} Chunk",
+      "contractLoadFailed": "契約を更新できませんでした: {reason}",
+      "retryContracts": "再試行",
+      "noContracts": "土地契約がありません。空白契約を購入して最初の Chunk を登録してください。",
+      "openContractMarket": "契約市場を開く",
+      "registeredContractSubtitle": "{count} Chunk 単位 · BuildSite PDA",
+      "registeredContractTag": "登録済み土地",
+      "registeredContractDescription": "この独立契約は登録 Chunk 範囲内の全高度列に対する管理権を証明し、バックパック枠を使用しません。",
+      "foundationId": "契約 ID",
+      "contractOwner": "所有者",
+      "contractChunkRange": "Chunk 範囲",
+      "contractBlockRange": "ブロック範囲",
+      "contractDimensions": "寸法",
+      "contractArea": "面積",
+      "contractAreaValue": "{area} ブロック²",
+      "contractChunkUnits": "契約単位",
+      "contractIndexProgress": "Chunk インデックス",
+      "contractStatus": "状態",
+      "buildSitePda": "BuildSite PDA",
+      "contractTradeReady": "安定したオンチェーン ID により、将来の市場取引でこの土地を正確に参照できます。",
+      "contractStatusActive": "有効",
+      "contractStatusIndexing": "登録中",
+      "contractStatusCanceling": "取消中",
+      "contractStatusUnknown": "不明"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "選択したいチャンク内の地形を指定してください。",
       "selectFirst": "地形をタップするか F を押して最初のチャンクを選択します。",
       "selectCorner": "プレビューを動かし、反対側のチャンク角を選択してください。",
-      "alreadyLocked": "範囲は固定済みです。別の範囲を選ぶ前にクリアしてください。"
+      "alreadyLocked": "範囲は固定済みです。別の範囲を選ぶ前にクリアしてください。",
+      "chunkProtected": "この Chunk は土地契約で保護されているため変更できません。"
     },
     "onboarding": {
       "features": {

@@ -399,7 +399,8 @@
       "submitting": "{count}블록을 청크 단위로 제출 중입니다.",
       "cancelled": "일괄 채굴 선택을 지웠습니다.",
       "resultTitle": "채굴 완료 · {count}블록",
-      "noDropsSaved": "저장된 드롭 없음 · 배낭 용량과 드롭 확률 적용됨"
+      "noDropsSaved": "저장된 드롭 없음 · 배낭 용량과 드롭 확률 적용됨",
+      "protected": "선택 영역에 보호된 블록 {count}개가 포함되어 제출할 수 없습니다."
     },
     "minimap": "미니맵",
     "map": "지도",
@@ -556,7 +557,40 @@
       "contractBackpackSpaceValue": "0칸",
       "contractPda": "MarketUser PDA",
       "equipToHotbar": "단축바에 장착",
-      "contractEquippedStatus": "토지 계약을 단축바 {slot}번 칸에 장착했습니다."
+      "contractEquippedStatus": "토지 계약을 단축바 {slot}번 칸에 장착했습니다.",
+      "contractPortfolio": "토지 계약",
+      "contractPortfolioAria": "토지 계약, 계약 단위 {count}개. {action}",
+      "collapseContracts": "계약 목록 접기",
+      "expandContracts": "계약 목록 펼치기",
+      "contractPortfolioMeta": "기록 {records}개 · 배낭 슬롯 미사용",
+      "registeredContractTitle": "토지 계약 #{id}",
+      "registeredContractAria": "{title}, {count}개 Chunk, Chunk {minX}, {minZ}부터 {maxX}, {maxZ}까지",
+      "registeredContractRange": "Chunk ({minX}, {minZ}) → ({maxX}, {maxZ})",
+      "blankContractBalance": "사용 가능 {available}개 · 등록 중 {reserved}개",
+      "contractChunkCount": "Chunk {count}개",
+      "contractLoadFailed": "계약을 새로 고칠 수 없습니다: {reason}",
+      "retryContracts": "다시 시도",
+      "noContracts": "토지 계약이 없습니다. 빈 계약을 구매해 첫 Chunk를 등록하세요.",
+      "openContractMarket": "계약 시장 열기",
+      "registeredContractSubtitle": "Chunk 단위 {count}개 · BuildSite PDA",
+      "registeredContractTag": "등록된 토지",
+      "registeredContractDescription": "이 독립 계약 기록은 등록 Chunk 범위의 모든 높이 열에 대한 권한을 증명하며 배낭 슬롯을 사용하지 않습니다.",
+      "foundationId": "계약 ID",
+      "contractOwner": "소유자",
+      "contractChunkRange": "Chunk 범위",
+      "contractBlockRange": "블록 범위",
+      "contractDimensions": "크기",
+      "contractArea": "면적",
+      "contractAreaValue": "{area} 블록²",
+      "contractChunkUnits": "계약 단위",
+      "contractIndexProgress": "Chunk 인덱스",
+      "contractStatus": "상태",
+      "buildSitePda": "BuildSite PDA",
+      "contractTradeReady": "안정적인 온체인 ID를 유지하므로 향후 시장 거래에서 이 토지를 정확히 참조할 수 있습니다.",
+      "contractStatusActive": "활성",
+      "contractStatusIndexing": "등록 중",
+      "contractStatusCanceling": "취소 중",
+      "contractStatusUnknown": "알 수 없음"
     },
     "loading": {
       "eyebrow": "World Gateway",
@@ -1324,7 +1358,8 @@
       "selectTerrain": "선택할 청크 안의 지형을 가리키세요.",
       "selectFirst": "지형을 탭하거나 F를 눌러 첫 청크를 선택하세요.",
       "selectCorner": "미리보기를 옮긴 뒤 반대쪽 청크 모서리를 선택하세요.",
-      "alreadyLocked": "영역이 잠겼습니다. 다른 영역을 선택하려면 먼저 지우세요."
+      "alreadyLocked": "영역이 잠겼습니다. 다른 영역을 선택하려면 먼저 지우세요.",
+      "chunkProtected": "이 Chunk는 토지 계약으로 보호되어 수정할 수 없습니다."
     },
     "onboarding": {
       "features": {

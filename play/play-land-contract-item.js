@@ -1,5 +1,8 @@
 export const LAND_CONTRACT_ITEM_ID = "blank_land_contract";
 export const LAND_CONTRACT_INVENTORY_ID = "market-user-blank-land-contract";
+export const REGISTERED_LAND_CONTRACT_ITEM_ID = "registered_land_contract";
+export const REGISTERED_LAND_CONTRACT_INVENTORY_PREFIX = "registered-land-contract:";
+const LAND_CHUNK_SIZE = 16;
 
 export function normalizeLandContractBalance(snapshot = {}) {
   const status = String(snapshot?.status || "idle");
@@ -46,8 +49,116 @@ export function createLandContractInventoryItem(balance = {}) {
   });
 }
 
+export function createLandContractPortfolio({
+  balance = {},
+  registeredContracts = [],
+  owner = "",
+  status = "",
+  error = "",
+} = {}) {
+  const normalizedBalance = normalizeLandContractBalance({
+    status: balance.status,
+    blankLandContracts: balance.available ?? balance.blankLandContracts,
+    reservedBlankLandContracts: balance.reserved ?? balance.reservedBlankLandContracts,
+    marketUser: balance.marketUser,
+  });
+  const registered = (Array.isArray(registeredContracts) ? registeredContracts : [])
+    .map(normalizeRegisteredLandContract)
+    .filter(Boolean)
+    .sort((left, right) => compareFoundationIds(left.foundationId, right.foundationId));
+  const blankContract = createLandContractInventoryItem(normalizedBalance);
+  const registeredContractUnits = registered.reduce((total, contract) => total + contract.landContractCount, 0);
+  const indexingContractUnits = registered.reduce((total, contract) => (
+    contract.status === "active" ? total : total + contract.landContractCount
+  ), 0);
+  const unmatchedReservedContracts = Math.max(
+    0,
+    Math.max(0, normalizedBalance.reserved ?? 0) - indexingContractUnits,
+  );
+  const portfolioStatus = String(status || normalizedBalance.status || "idle");
+  const items = Object.freeze([
+    ...(blankContract ? [blankContract] : []),
+    ...registered,
+  ]);
+  return Object.freeze({
+    owner: String(owner || ""),
+    status: portfolioStatus,
+    error: String(error || ""),
+    known: normalizedBalance.known || portfolioStatus === "ready" || registered.length > 0,
+    loading: portfolioStatus === "loading" || portfolioStatus === "checking",
+    balance: normalizedBalance,
+    blankContract,
+    registeredContracts: Object.freeze(registered),
+    registeredContractUnits,
+    totalContractUnits: Math.max(0, normalizedBalance.available ?? 0)
+      + registeredContractUnits
+      + unmatchedReservedContracts,
+    recordCount: items.length,
+    items,
+  });
+}
+
+export function normalizeRegisteredLandContract(input = {}) {
+  const foundationId = normalizeFoundationId(input.foundationId);
+  const minX = safeInteger(input.minX);
+  const minZ = safeInteger(input.minZ);
+  const width = positiveSafeInteger(input.width);
+  const depth = positiveSafeInteger(input.depth);
+  if (!foundationId || minX === null || minZ === null || !width || !depth) return null;
+  const maxX = safeInteger(input.maxX) ?? minX + width - 1;
+  const maxZ = safeInteger(input.maxZ) ?? minZ + depth - 1;
+  if (!Number.isSafeInteger(maxX) || !Number.isSafeInteger(maxZ)) return null;
+  const calculatedChunks = Math.ceil(width / LAND_CHUNK_SIZE) * Math.ceil(depth / LAND_CHUNK_SIZE);
+  const landContractCount = positiveSafeInteger(input.landContractCount) || calculatedChunks;
+  const status = String(input.status || "active");
+  return Object.freeze({
+    id: `${REGISTERED_LAND_CONTRACT_INVENTORY_PREFIX}${foundationId}`,
+    itemId: REGISTERED_LAND_CONTRACT_ITEM_ID,
+    kind: "registered_land_contract",
+    label: "Registered Land Contract",
+    count: 1,
+    contractUnits: landContractCount,
+    landContractCount,
+    owner: String(input.owner || ""),
+    foundationId,
+    minX,
+    minZ,
+    maxX,
+    maxZ,
+    width,
+    depth,
+    minChunkX: Math.floor(minX / LAND_CHUNK_SIZE),
+    minChunkZ: Math.floor(minZ / LAND_CHUNK_SIZE),
+    maxChunkX: Math.floor(maxX / LAND_CHUNK_SIZE),
+    maxChunkZ: Math.floor(maxZ / LAND_CHUNK_SIZE),
+    areaBlocks: width * depth,
+    surfaceY: safeInteger(input.surfaceY) ?? 0,
+    status,
+    registeredChunks: String(input.registeredChunks ?? "0"),
+    totalChunks: String(input.totalChunks ?? landContractCount),
+    sourcePda: String(input.sourcePda || input.address || ""),
+    programId: String(input.programId || ""),
+    createdSlot: String(input.createdSlot || "0"),
+    updatedSlot: String(input.updatedSlot || "0"),
+    source: "build-site",
+    virtual: true,
+    backpackSlotsUsed: 0,
+    volumeMm3: 0,
+    massGrams: 0,
+    transferableIdentity: foundationId,
+  });
+}
+
+export function findLandContractPortfolioItem(portfolio, id) {
+  const expected = String(id || "");
+  return portfolio?.items?.find?.((item) => item.id === expected) ?? null;
+}
+
 export function isLandContractItem(item) {
-  return item?.itemId === LAND_CONTRACT_ITEM_ID || item?.id === LAND_CONTRACT_INVENTORY_ID;
+  return item?.itemId === LAND_CONTRACT_ITEM_ID
+    || item?.id === LAND_CONTRACT_INVENTORY_ID
+    || item?.itemId === REGISTERED_LAND_CONTRACT_ITEM_ID
+    || String(item?.id || "").startsWith(REGISTERED_LAND_CONTRACT_INVENTORY_PREFIX);
 }
 
 export function createLandContractIconElement({ size = 44, className = "" } = {}) {
@@ -79,4 +190,29 @@ function appendPath(svg, data, className) {
 function normalizeBalance(value) {
   const number = Number(value);
   return Number.isSafeInteger(number) && number >= 0 ? number : null;
+}
+
+function normalizeFoundationId(value) {
+  try {
+    const normalized = BigInt(value ?? 0);
+    return normalized > 0n && normalized <= 0xffffffffffffffffn ? normalized.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function compareFoundationIds(left, right) {
+  const leftId = BigInt(left ?? 0);
+  const rightId = BigInt(right ?? 0);
+  return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+}
+
+function safeInteger(value) {
+  const number = Math.trunc(Number(value));
+  return Number.isSafeInteger(number) ? number : null;
+}
+
+function positiveSafeInteger(value) {
+  const number = safeInteger(value);
+  return number !== null && number > 0 ? number : 0;
 }

@@ -196,3 +196,167 @@ test("land contracts open on demand and collapse without viewport overflow", asy
     await browser.close();
   }
 });
+
+test("backpack contract portfolio stays outside item slots and exposes registered parcel details", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const viewport of [
+      { width: 375, height: 812, mobile: true },
+      { width: 768, height: 800, mobile: true },
+      { width: 1280, height: 800, mobile: false },
+    ]) {
+      const context = await browser.newContext({
+        viewport: { width: viewport.width, height: viewport.height },
+        screen: { width: viewport.width, height: viewport.height },
+        isMobile: viewport.mobile,
+        hasTouch: viewport.mobile,
+      });
+      const page = await context.newPage();
+      await page.route(`${origin}/play/`, (route) => route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: sourceHtml,
+      }));
+      await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(async () => {
+        const [backpackModule, inventoryModule, contractModule] = await Promise.all([
+          import("/play/play-backpack-ui.js"),
+          import("/play/inventory-controller.js"),
+          import("/play/play-land-contract-item.js"),
+        ]);
+        const byId = (id) => document.getElementById(id);
+        const owner = "ContractOwner11111111111111111111111111111";
+        const portfolio = contractModule.createLandContractPortfolio({
+          owner,
+          status: "ready",
+          balance: {
+            status: "ready",
+            available: 2,
+            reserved: 1,
+            marketUser: "MarketUser111111111111111111111111111111",
+          },
+          registeredContracts: [
+            {
+              foundationId: "42",
+              owner,
+              minX: -32,
+              minZ: 48,
+              width: 32,
+              depth: 16,
+              surfaceY: 73,
+              landContractCount: 2,
+              registeredChunks: "2",
+              totalChunks: "2",
+              status: "active",
+              sourcePda: "BuildSite42Pda1111111111111111111111111111",
+            },
+            {
+              foundationId: "7",
+              owner,
+              minX: 16,
+              minZ: -16,
+              width: 16,
+              depth: 16,
+              surfaceY: 70,
+              landContractCount: 1,
+              registeredChunks: "0",
+              totalChunks: "1",
+              status: "indexing",
+              sourcePda: "BuildSite7Pda11111111111111111111111111111",
+            },
+          ],
+        });
+        const gameState = {
+          backpackSlots: [],
+          backpackCapacity: 50,
+          totalBackpackItems: () => 0,
+          totalBackpackMassGrams: () => 0,
+          isBackpackSlotEquipped: () => false,
+          getBackpackSlotEquipment: () => null,
+          getLandContractEquipment: () => null,
+          getLandContractPortfolio: () => portfolio,
+        };
+        const elements = {
+          hotbar: byId("hotbar"),
+          backpackPanel: byId("backpackPanel"),
+          backpackGrid: byId("backpackGrid"),
+          backpackContracts: byId("backpackContracts"),
+          backpackDetail: byId("backpackDetail"),
+          backpackMeta: byId("backpackMeta"),
+          backpackActions: byId("backpackActions"),
+          backpackCategoryButtons: document.querySelectorAll("[data-backpack-category]"),
+          selectAllBackpack: byId("selectAllBackpackButton"),
+          discardSelectedBackpack: byId("discardSelectedBackpackButton"),
+          cancelBackpackSelection: byId("cancelBackpackSelectionButton"),
+        };
+        elements.backpackPanel.hidden = false;
+        const backpackUi = backpackModule.createPlayBackpackUi({
+          elements,
+          gameState,
+          createVoxelItemIconCanvas: () => document.createElement("canvas"),
+          voxelItemLabel: (item) => item?.label || "Item",
+        });
+        const inventory = inventoryModule.createInventoryController({
+          elements,
+          gameState,
+          createVoxelItemIconCanvas: () => document.createElement("canvas"),
+        });
+        inventory.bind();
+        backpackUi.render({ force: true });
+      });
+
+      assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 50, `${viewport.width}px: contract assets changed the fixed backpack capacity`);
+      const summary = page.locator("#backpackContracts .backpack-contract-summary");
+      assert.equal(await summary.getAttribute("aria-expanded"), "false");
+      assert.match(await summary.textContent(), /Land Contracts/);
+      assert.match(await summary.textContent(), /5/);
+      const summaryBox = await summary.boundingBox();
+      assert.ok(summaryBox.width >= 40 && summaryBox.height >= 40, `${viewport.width}px: contract summary target is too small`);
+
+      await summary.press("Enter");
+      assert.equal(await summary.getAttribute("aria-expanded"), "true");
+      assert.equal(await page.locator("#backpackContractList [data-inventory-virtual-item]").count(), 3);
+      const registered = page.locator("[data-inventory-virtual-item='registered-land-contract:42']");
+      const registeredBox = await registered.boundingBox();
+      assert.ok(registeredBox.width >= 40 && registeredBox.height >= 40, `${viewport.width}px: registered contract target is too small`);
+      await registered.press("Space");
+      const detailText = await page.locator("#backpackDetail").textContent();
+      assert.match(detailText, /Land Contract #42/);
+      assert.match(detailText, /\(-2, 3\).*\(-1, 3\)/s);
+      assert.match(detailText, /X -32…-1 · Z 48…63/);
+      assert.match(detailText, /32 × 16 blocks/);
+      assert.match(detailText, /512 block²/);
+      assert.match(detailText, /2 \/ 2/);
+
+      const layout = await page.evaluate(() => {
+        const panel = document.querySelector("#backpackPanel").getBoundingClientRect();
+        const contracts = document.querySelector("#backpackContracts");
+        const contractBox = contracts.getBoundingClientRect();
+        const detail = document.querySelector("#backpackDetail").getBoundingClientRect();
+        const preview = document.querySelector("#backpackDetail .backpack-detail-preview").getBoundingClientRect();
+        const icon = document.querySelector("#backpackDetail .land-contract-icon").getBoundingClientRect();
+        const tradeNote = document.querySelector("#backpackDetail .backpack-contract-trade-note").getBoundingClientRect();
+        return {
+          panel: panel.toJSON(),
+          contracts: contractBox.toJSON(),
+          detail: detail.toJSON(),
+          preview: preview.toJSON(),
+          icon: icon.toJSON(),
+          tradeNote: tradeNote.toJSON(),
+          contractsOverflow: Math.max(0, contracts.scrollWidth - contracts.clientWidth),
+          pageOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
+        };
+      });
+      assert.equal(layout.contractsOverflow, 0, `${viewport.width}px: contract portfolio overflowed its column`);
+      assert.equal(layout.pageOverflow, 0, `${viewport.width}px: contract portfolio caused page overflow`);
+      assert.ok(layout.contracts.left >= layout.panel.left - 1, `${viewport.width}px: contract portfolio escaped left`);
+      assert.ok(layout.contracts.right <= layout.panel.right + 1, `${viewport.width}px: contract portfolio escaped right`);
+      assert.ok(layout.icon.left >= layout.preview.left - 1 && layout.icon.right <= layout.preview.right + 1, `${viewport.width}px: contract icon escaped its preview`);
+      assert.ok(layout.icon.top >= layout.preview.top - 1 && layout.icon.bottom <= layout.preview.bottom + 1, `${viewport.width}px: contract icon escaped vertically`);
+      assert.ok(layout.tradeNote.width >= layout.detail.width * 0.75, `${viewport.width}px: contract trade note collapsed into one detail column`);
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});

@@ -775,7 +775,7 @@ export function createPlayChainSession({
         return;
       }
       state.chainMode = "chain-ready";
-      const reason = result?.reason || "not-submitted";
+      const reason = readableChainReason(result?.reason || "not-submitted");
       logSubmissionFailure(action, pending, {
         stage: "adapter-result",
         reason,
@@ -784,6 +784,7 @@ export function createPlayChainSession({
       state.chainResults.set(pending.txId, { reason, result: result?.result });
       if (reason === "no-backpack") onBackpackRequired({ source: "chain", pending });
       const rolledBack = controls.rollbackTx?.(pending.txId);
+      if (isFoundationProtectedFailure(result?.reason, result?.result)) setStatus(reason);
       if (!rolledBack) {
         appendSubmissionState(action, pending, `${pending.txId} chain rejected (${reason}), but local pending was already resolved.`, "error", { reason });
       }
@@ -798,6 +799,7 @@ export function createPlayChainSession({
       });
       state.chainResults.set(pending.txId, { reason });
       const rolledBack = controls.rollbackTx?.(pending.txId);
+      if (isFoundationProtectedFailure(error)) setStatus(reason);
       if (!rolledBack) {
         appendSubmissionState(
           action,
@@ -1123,8 +1125,50 @@ function chainFailureError(failure) {
 }
 
 function readableError(error) {
+  if (isFoundationProtectedFailure(error)) {
+    return ui("main.land.chunkProtected", "This Chunk is protected by a land contract and cannot be modified.");
+  }
   const message = String(error?.message || error || "unknown error");
   return message.length > 180 ? `${message.slice(0, 177)}...` : message;
+}
+
+function readableChainReason(reason) {
+  return isFoundationProtectedFailure(reason)
+    ? ui("main.land.chunkProtected", "This Chunk is protected by a land contract and cannot be modified.")
+    : String(reason || "not-submitted");
+}
+
+function isFoundationProtectedFailure(...values) {
+  const pending = [...values];
+  const seen = new Set();
+  while (pending.length) {
+    const value = pending.shift();
+    if (value === null || value === undefined || seen.has(value)) continue;
+    if (Array.isArray(value)) {
+      seen.add(value);
+      pending.push(...value);
+      continue;
+    }
+    if (typeof value === "object") {
+      seen.add(value);
+      pending.push(
+        value.message,
+        value.reason,
+        value.code,
+        value.cause,
+        value.error,
+        value.logs,
+        value.nicechunkLogs,
+        value.programLogs,
+      );
+      continue;
+    }
+    const text = String(value).toLowerCase();
+    if (text === "foundation-protected"
+      || text.includes("foundationprotected")
+      || /custom program error:\s*0x0*18d5\b/.test(text)) return true;
+  }
+  return false;
 }
 
 function loadString(key) {

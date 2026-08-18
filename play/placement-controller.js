@@ -13,6 +13,7 @@ export function createPlacementController({
   onPending = () => {},
   onConfirm = () => {},
   onRollback = () => {},
+  isBlockProtected = () => false,
   translate = (_, fallback) => fallback,
   placementReach = 6,
 } = {}) {
@@ -174,6 +175,16 @@ export function createPlacementController({
       };
     }
     const target = placementTargetFromHitRaw(hit);
+    if (isBlockProtected(target)) {
+      return {
+        ok: false,
+        reason: text("main.land.chunkProtected", "This Chunk is protected by a land contract and cannot be modified."),
+        hit,
+        target,
+        blockId,
+        resourceId: slot.resourceId,
+      };
+    }
     const validation = validatePlacementTargetRaw(target, {
       chunks,
       getPlayerBounds,
