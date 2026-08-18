@@ -5,7 +5,7 @@ import { backpackCategoryForSlot, createPlayBackpackUi } from "../play-backpack-
 import { backpackPhysicalDetailRows } from "../inventory-controller.js";
 import { formatMassGrams, formatVolumeCm3 } from "../play-ui-format.js";
 
-test("PDA surface decorations stay visible in the Resources category", () => {
+test("all mined and refined records stay visible in the Resources category", () => {
   const cotton = {
     kind: "resource",
     resourceId: 23,
@@ -16,10 +16,16 @@ test("PDA surface decorations stay visible in the Resources category", () => {
 
   assert.equal(backpackCategoryForSlot(cotton, "Cotton"), "resources");
   assert.equal(backpackCategoryForSlot(cotton, "localized-cotton-name"), "resources");
+  assert.equal(backpackCategoryForSlot({ kind: "resource", blockId: 3 }, "Stone"), "resources");
+  assert.equal(backpackCategoryForSlot({ kind: "smelted_material", materialId: 101 }), "resources");
+  assert.equal(backpackCategoryForSlot({ kind: "material", materialId: 102 }), "resources");
 });
 
-test("ordinary solid resource records remain in the Blocks category", () => {
-  assert.equal(backpackCategoryForSlot({ kind: "resource", blockId: 3 }, "Stone"), "blocks");
+test("physical items, blank contracts, and registered land use separate categories", () => {
+  assert.equal(backpackCategoryForSlot({ kind: "forged", itemId: "iron_pickaxe" }), "items");
+  assert.equal(backpackCategoryForSlot({ kind: "food", itemId: "bread" }), "items");
+  assert.equal(backpackCategoryForSlot({ kind: "contract", itemId: "blank_land_contract" }), "contracts");
+  assert.equal(backpackCategoryForSlot({ kind: "registered_land_contract", itemId: "registered_land_contract" }), "land");
 });
 
 test("backpack physical values use grams, kilograms, and cubic centimeters", () => {
@@ -232,14 +238,29 @@ test("equipped backpack cells render a locked equipment marker", () => {
   }
 });
 
-test("blank and registered contracts render below all physical backpack capacity", () => {
+test("five inventory categories separate physical stacks, blank contracts, and registered land", () => {
   const originalDocument = globalThis.document;
+  const originalCustomEvent = globalThis.CustomEvent;
   const document = new FakeDocument();
   globalThis.document = document;
+  globalThis.CustomEvent = class CustomEvent {
+    constructor(type, init = {}) {
+      this.type = type;
+      this.detail = init.detail;
+    }
+  };
   try {
     const backpackGrid = document.createElement("div");
-    const backpackContracts = document.createElement("section");
     const backpackMeta = document.createElement("span");
+    const categoryButtons = ["backpack", "resources", "items", "contracts", "land"].map((category) => {
+      const button = document.createElement("button");
+      button.dataset.backpackCategory = category;
+      const label = document.createElement("span");
+      label.textContent = category;
+      const count = document.createElement("b");
+      button.append(label, count);
+      return button;
+    });
     const contract = {
       id: "market-user-blank-land-contract",
       itemId: "blank_land_contract",
@@ -262,26 +283,38 @@ test("blank and registered contracts render below all physical backpack capacity
       maxChunkX: -1,
       maxChunkZ: 1,
     };
+    const secondRegistered = {
+      ...registered,
+      id: "registered-land-contract:92",
+      foundationId: "92",
+      landContractCount: 1,
+      minChunkX: 4,
+      maxChunkX: 4,
+    };
     const portfolio = {
-      totalContractUnits: 9,
-      recordCount: 2,
       loading: false,
       error: "",
-      items: [contract, registered],
+      blankContract: contract,
+      registeredContracts: [registered, secondRegistered],
+      items: [contract, registered, secondRegistered],
     };
     const ui = createPlayBackpackUi({
       elements: {
         backpackGrid,
-        backpackContracts,
         backpackMeta,
         backpackPanel: { hidden: false },
-        backpackCategoryButtons: [],
+        backpackCategoryButtons: categoryButtons,
       },
       gameState: {
-        backpackSlots: [],
+        backpackSlots: [
+          { id: "stone", kind: "resource", resourceId: 3, count: 1, volumeMm3: 1000, massGrams: 2 },
+          { id: "pickaxe", kind: "forged", itemId: "iron_pickaxe", count: 1, volumeMm3: 1000, massGrams: 3 },
+        ],
         backpackCapacity: 5,
-        totalBackpackItems: () => 0,
-        totalBackpackMassGrams: () => "0",
+        totalBackpackItems: () => 2,
+        totalBackpackMassGrams: () => "5",
+        isBackpackSlotEquipped: () => false,
+        getBackpackSlotEquipment: () => null,
         getLandContractPortfolio: () => portfolio,
         getLandContractEquipment: () => null,
       },
@@ -291,31 +324,38 @@ test("blank and registered contracts render below all physical backpack capacity
 
     ui.render({ force: true });
 
-    assert.equal(backpackGrid.children.length, 5, "contracts must not add or consume physical backpack slots");
-    assert.equal(backpackGrid.children.every((cell) => !cell.dataset.inventoryVirtualItem), true);
-    assert.equal(backpackContracts.children.length, 1);
-    const summary = backpackContracts.children[0];
-    assert.equal(summary.tagName, "BUTTON");
-    assert.equal(summary.type, "button");
-    assert.equal(summary.attributes.get("aria-expanded"), "false");
-    assert.equal(summary.children[2].textContent, "9");
+    assert.equal(backpackGrid.children.length, 6, "the blank contract must not replace a physical capacity cell");
+    assert.equal(backpackGrid.children.filter((cell) => cell.classList.contains("empty")).length, 3);
+    assert.equal(backpackGrid.children.filter((cell) => cell.dataset.inventoryVirtualItem === contract.id).length, 1);
+    assert.equal(backpackGrid.children.some((cell) => cell.dataset.inventoryVirtualItem === registered.id), false);
+    assert.deepEqual(categoryButtons.map((button) => button.querySelector("b").textContent), ["3", "1", "1", "1", "2"]);
+    assert.equal(backpackMeta.children[0].textContent, "2 stacks");
+    assert.equal(backpackMeta.children[1].textContent, "2 / 5 slots · 2 items");
 
-    backpackContracts.emit("click", { target: summary });
+    categoryButtons[3].emit("click");
+    assert.equal(ui.activeCategory(), "contracts");
+    assert.equal(backpackGrid.children.length, 1);
+    assert.equal(backpackGrid.children[0].dataset.inventoryVirtualItem, contract.id);
+    assert.equal(backpackGrid.children[0].querySelector(".backpack-slot-count").textContent, "7");
 
-    assert.equal(backpackContracts.children.length, 2);
-    assert.equal(backpackContracts.children[0].attributes.get("aria-expanded"), "true");
-    const list = backpackContracts.children[1];
-    assert.equal(list.children.length, 2);
-    assert.equal(list.children[0].tagName, "BUTTON");
-    assert.equal(list.children[0].dataset.inventoryVirtualItem, contract.id);
-    assert.equal(list.children[1].dataset.inventoryVirtualItem, registered.id);
-    assert.equal(list.children[1].children[2].textContent, "2 chunks");
-    assert.equal(backpackMeta.children[0].textContent, "0 stacks");
-    assert.equal(backpackMeta.children[1].textContent, "0 / 5 slots · 0 items");
-    assert.equal(backpackMeta.children[2].textContent, "Weight: 0 g");
+    categoryButtons[4].emit("click");
+    assert.equal(ui.activeCategory(), "land");
+    assert.equal(backpackGrid.children.length, 2, "each foundation must occupy exactly one land cell");
+    assert.equal(backpackGrid.children[0].dataset.inventoryVirtualItem, registered.id);
+    assert.equal(backpackGrid.children[0].querySelector(".backpack-slot-count"), null, "registered land must not show contract-unit quantity");
+    assert.equal(backpackGrid.children[0].children[0].dataset.landContractIcon, "registered");
+    assert.equal(backpackGrid.children[1].dataset.inventoryVirtualItem, secondRegistered.id);
+
+    categoryButtons[1].emit("click");
+    assert.equal(backpackGrid.children.length, 5);
+    assert.equal(backpackGrid.children.filter((cell) => cell.classList.contains("empty")).length, 4);
+    assert.equal(backpackGrid.children[0].dataset.backpackItemCategory, "resources");
+    assert.equal(backpackMeta.children[1].textContent, "2 / 5 slots · 2 items", "filtering must not alter physical capacity usage");
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;
+    if (originalCustomEvent === undefined) delete globalThis.CustomEvent;
+    else globalThis.CustomEvent = originalCustomEvent;
   }
 });
 
@@ -346,6 +386,20 @@ class FakeElement {
 
   emit(type, event = {}) {
     for (const listener of this.listeners.get(type) ?? []) listener({ target: this, ...event });
+  }
+
+  dispatchEvent(event) {
+    this.emit(event.type, event);
+    return true;
+  }
+
+  querySelector(selector) {
+    if (selector === "b") return this.children.find((child) => child.tagName === "B") ?? null;
+    if (selector.startsWith(".")) {
+      const className = selector.slice(1);
+      return this.children.find((child) => child.classList?.contains(className)) ?? null;
+    }
+    return null;
   }
 
   closest(selector) {

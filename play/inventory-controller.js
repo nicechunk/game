@@ -103,9 +103,6 @@ export function createInventoryController({
     elements.backpackGrid?.addEventListener("click", handleBackpackClick);
     elements.backpackGrid?.addEventListener("keydown", handleBackpackKeyDown);
     elements.backpackGrid?.addEventListener("backpackfilterchange", handleBackpackFilterChange);
-    elements.backpackContracts?.addEventListener("click", handleBackpackClick);
-    elements.backpackContracts?.addEventListener("keydown", handleBackpackKeyDown);
-
     elements.selectAllBackpack?.addEventListener("click", selectAllBackpack);
     elements.discardSelectedBackpack?.addEventListener("click", discardSelectedBackpack);
     elements.cancelBackpackSelection?.addEventListener("click", clearSelection);
@@ -713,20 +710,13 @@ export function createInventoryController({
     });
     elements.backpackGrid?.querySelectorAll(".backpack-slot[data-inventory-virtual-item]").forEach((slot) => {
       const itemId = String(slot.dataset.inventoryVirtualItem || "");
-      const equipment = gameState.getLandContractEquipment?.() ?? null;
-      slot.classList.toggle("focused", itemId === focusedVirtualItemId);
-      slot.classList.toggle("equipped", Boolean(equipment));
-      slot.dataset.equipped = equipment ? "true" : "false";
-    });
-    elements.backpackContracts?.querySelectorAll("[data-inventory-virtual-item]").forEach((row) => {
-      const itemId = String(row.dataset.inventoryVirtualItem || "");
       const item = virtualContractItem(itemId);
       const equipment = item?.id === LAND_CONTRACT_INVENTORY_ID
         ? gameState.getLandContractEquipment?.() ?? null
         : null;
-      row.classList.toggle("focused", itemId === focusedVirtualItemId);
-      row.classList.toggle("equipped", Boolean(equipment));
-      row.dataset.equipped = equipment ? "true" : "false";
+      slot.classList.toggle("focused", itemId === focusedVirtualItemId);
+      slot.classList.toggle("equipped", Boolean(equipment));
+      slot.dataset.equipped = equipment ? "true" : "false";
     });
   }
 
@@ -975,7 +965,11 @@ export function createInventoryController({
 
     const preview = document.createElement("div");
     preview.className = "backpack-detail-preview land-contract-preview registered-land-contract-preview";
-    preview.append(createLandContractIconElement({ size: 112, className: "registered-contract-icon" }));
+    preview.append(createLandContractIconElement({
+      size: 112,
+      className: "registered-contract-icon",
+      variant: "registered",
+    }));
     const title = detailTitle(
       ui("main.backpack.registeredContractTitle", "Land Contract #{id}", { id: contract.foundationId }),
       ui("main.backpack.registeredContractSubtitle", "{count} Chunk units · BuildSite PDA", {

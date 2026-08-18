@@ -391,30 +391,21 @@
       </header>
       <div class="inventory-mode-view backpack-inventory-view" id="backpackInventoryView" role="tabpanel" aria-labelledby="inventoryModeButton">
         <div class="backpack-layout">
-          <nav class="backpack-categories" id="backpackCategories" aria-label="Inventory categories">
-            <button class="active" type="button" data-backpack-category="all" aria-pressed="true">
-              <i class="backpack-category-icon category-all" aria-hidden="true"></i><span>All</span><b>0</b>
-            </button>
-            <button type="button" data-backpack-category="blocks" aria-pressed="false">
-              <i class="backpack-category-icon category-blocks" aria-hidden="true"></i><span>Blocks</span><b>0</b>
-            </button>
-            <button type="button" data-backpack-category="tools" aria-pressed="false">
-              <i class="backpack-category-icon category-tools" aria-hidden="true"></i><span>Tools</span><b>0</b>
-            </button>
-            <button type="button" data-backpack-category="combat" aria-pressed="false">
-              <i class="backpack-category-icon category-combat" aria-hidden="true"></i><span>Combat</span><b>0</b>
+          <nav class="backpack-categories" id="backpackCategories" data-i18n-aria-label="main.backpack.categoriesAria" aria-label="Inventory categories">
+            <button class="active" type="button" data-backpack-category="backpack" aria-pressed="true">
+              <i class="backpack-category-icon category-backpack" aria-hidden="true"></i><span data-i18n="main.backpack.categoryBackpack">Backpack</span><b>0</b>
             </button>
             <button type="button" data-backpack-category="resources" aria-pressed="false">
-              <i class="backpack-category-icon category-resources" aria-hidden="true"></i><span>Resources</span><b>0</b>
+              <i class="backpack-category-icon category-resources" aria-hidden="true"></i><span data-i18n="main.backpack.categoryResources">Resources</span><b>0</b>
             </button>
-            <button type="button" data-backpack-category="food" aria-pressed="false">
-              <i class="backpack-category-icon category-food" aria-hidden="true"></i><span>Food</span><b>0</b>
+            <button type="button" data-backpack-category="items" aria-pressed="false">
+              <i class="backpack-category-icon category-items" aria-hidden="true"></i><span data-i18n="main.backpack.categoryItems">Items</span><b>0</b>
             </button>
-            <button type="button" data-backpack-category="materials" aria-pressed="false">
-              <i class="backpack-category-icon category-materials" aria-hidden="true"></i><span>Materials</span><b>0</b>
+            <button type="button" data-backpack-category="contracts" aria-pressed="false">
+              <i class="backpack-category-icon category-contracts" aria-hidden="true"></i><span data-i18n="main.backpack.categoryContracts">Contracts</span><b>0</b>
             </button>
-            <button type="button" data-backpack-category="misc" aria-pressed="false">
-              <i class="backpack-category-icon category-misc" aria-hidden="true"></i><span>Misc</span><b>0</b>
+            <button type="button" data-backpack-category="land" aria-pressed="false">
+              <i class="backpack-category-icon category-land" aria-hidden="true"></i><span data-i18n="main.backpack.categoryLand">Land</span><b>0</b>
             </button>
           </nav>
           <div class="backpack-inventory">
@@ -424,7 +415,6 @@
               <button id="cancelBackpackSelectionButton" type="button">Cancel</button>
             </div>
             <div class="backpack-grid" id="backpackGrid"></div>
-            <section class="backpack-contracts" id="backpackContracts" data-contract-state="loading" data-i18n-aria-label="main.backpack.contractPortfolio" aria-label="Land Contracts"></section>
           </div>
           <aside class="backpack-detail" id="backpackDetail">
             <strong>No item selected</strong>

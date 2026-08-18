@@ -6,21 +6,7 @@ import {
   isLandContractItem,
 } from "./play-land-contract-item.js";
 
-const DEFAULT_CATEGORY = "all";
-const NATURAL_RESOURCE_WORDS = Object.freeze([
-  "fiber",
-  "wood",
-  "leaves",
-  "organic",
-  "cactus",
-  "reed",
-  "moss",
-  "mushroom",
-  "plant",
-  "flower",
-  "coral",
-  "shell",
-]);
+const DEFAULT_CATEGORY = "backpack";
 
 export function createPlayBackpackUi({
   elements,
@@ -34,8 +20,7 @@ export function createPlayBackpackUi({
 } = {}) {
   let activeCategory = DEFAULT_CATEGORY;
   let categoriesBound = false;
-  let contractsBound = false;
-  let contractsExpanded = false;
+  let gridActionsBound = false;
   let contractRefreshPromise = null;
   const ui = (key, fallback, params = {}) => {
     try {
@@ -48,7 +33,7 @@ export function createPlayBackpackUi({
   };
 
   bindCategories();
-  bindContracts();
+  bindGridActions();
 
   return {
     render,
@@ -74,15 +59,12 @@ export function createPlayBackpackUi({
     });
   }
 
-  function bindContracts() {
-    if (contractsBound || !elements.backpackContracts) return;
-    contractsBound = true;
-    elements.backpackContracts.addEventListener("click", (event) => {
+  function bindGridActions() {
+    if (gridActionsBound || !elements.backpackGrid) return;
+    gridActionsBound = true;
+    elements.backpackGrid.addEventListener("click", (event) => {
       const action = event.target.closest?.("[data-contract-action]")?.dataset?.contractAction;
-      if (action === "toggle") {
-        contractsExpanded = !contractsExpanded;
-        render({ force: true });
-      } else if (action === "refresh") {
+      if (action === "refresh") {
         void refreshContracts();
       } else if (action === "market") {
         onOpenContractsMarket();
@@ -99,6 +81,13 @@ export function createPlayBackpackUi({
     const displayStacks = buildBackpackDisplayStacks(slots, {
       isStackable: (slot) => !gameState.isBackpackSlotEquipped?.(slot),
     });
+    const portfolio = gameState.getLandContractPortfolio?.() ?? null;
+    const blankContract = portfolio?.blankContract
+      ?? portfolio?.items?.find?.((item) => item?.kind === "contract")
+      ?? null;
+    const registeredLand = Array.isArray(portfolio?.registeredContracts)
+      ? portfolio.registeredContracts
+      : (portfolio?.items ?? []).filter((item) => item?.kind === "registered_land_contract");
     const inventoryEntryCount = displayStacks.length;
     if (elements.backpackMeta) {
       const stackMeta = document.createElement("span");
@@ -124,165 +113,121 @@ export function createPlayBackpackUi({
       });
       elements.backpackMeta.replaceChildren(stackMeta, itemMeta, weightMeta);
     }
-    updateCategoryButtons(displayStacks.map((stack) => stack.slot));
+    updateCategoryButtons(displayStacks, blankContract, registeredLand);
 
-    const entries = displayStacks;
-    const visible = activeCategory === DEFAULT_CATEGORY
-      ? entries
-      : entries.filter(({ slot }) => backpackCategory(slot) === activeCategory);
-    const cells = visible.map((stack, displayIndex) => backpackCell(stack, displayIndex));
-    const emptyDisplaySlots = Math.max(0, capacity - visible.length);
-    for (let offset = 0; offset < emptyDisplaySlots; offset += 1) {
-      cells.push(emptyBackpackCell(cells.length));
+    const physicalEntries = activeCategory === DEFAULT_CATEGORY
+      ? displayStacks
+      : displayStacks.filter(({ slot }) => backpackCategory(slot) === activeCategory);
+    const cells = physicalEntries.map((stack, displayIndex) => backpackCell(stack, displayIndex));
+    if ((activeCategory === DEFAULT_CATEGORY || activeCategory === "contracts") && blankContract) {
+      cells.push(virtualBackpackCell(blankContract));
     }
-    elements.backpackGrid.replaceChildren(...cells);
-    renderContractPortfolio();
-  }
-
-  function renderContractPortfolio() {
-    const root = elements.backpackContracts;
-    if (!root) return;
-    const portfolio = gameState.getLandContractPortfolio?.() ?? null;
-    const total = Math.max(0, Math.trunc(Number(portfolio?.totalContractUnits) || 0));
-    const summary = document.createElement("button");
-    summary.type = "button";
-    summary.className = "backpack-contract-summary";
-    summary.dataset.contractAction = "toggle";
-    summary.setAttribute("aria-expanded", contractsExpanded ? "true" : "false");
-    summary.setAttribute("aria-controls", "backpackContractList");
-    summary.setAttribute("aria-label", ui(
-      "main.backpack.contractPortfolioAria",
-      "Land contracts, {count} contract units. {action}",
-      {
-        count: total,
-        action: contractsExpanded
-          ? ui("main.backpack.collapseContracts", "Collapse contract list")
-          : ui("main.backpack.expandContracts", "Expand contract list"),
-      },
-    ));
-    const summaryIcon = createLandContractIconElement({ size: 36, className: "backpack-contract-summary-icon" });
-    const summaryCopy = document.createElement("span");
-    const summaryTitle = document.createElement("strong");
-    summaryTitle.textContent = ui("main.backpack.contractPortfolio", "Land Contracts");
-    const summaryMeta = document.createElement("small");
-    summaryMeta.textContent = ui(
-      "main.backpack.contractPortfolioMeta",
-      "{records} records · no backpack slots",
-      { records: Math.max(0, Math.trunc(Number(portfolio?.recordCount) || 0)) },
-    );
-    summaryCopy.append(summaryTitle, summaryMeta);
-    const summaryCount = document.createElement("b");
-    summaryCount.textContent = String(total);
-    const chevron = document.createElement("i");
-    chevron.className = "backpack-contract-chevron";
-    chevron.setAttribute("aria-hidden", "true");
-    summary.append(summaryIcon, summaryCopy, summaryCount, chevron);
-
-    if (!contractsExpanded) {
-      root.dataset.contractState = portfolio?.loading ? "loading" : "collapsed";
-      root.replaceChildren(summary);
-      return;
+    if (activeCategory === "land") {
+      cells.push(...registeredLand.map((contract) => virtualBackpackCell(contract)));
     }
 
-    const list = document.createElement("div");
-    list.className = "backpack-contract-list";
-    list.id = "backpackContractList";
-    if (portfolio?.loading || contractRefreshPromise) {
-      list.setAttribute("aria-busy", "true");
-      list.append(contractLoadingRow(), contractLoadingRow());
-      root.dataset.contractState = "loading";
+    const physicalCategory = [DEFAULT_CATEGORY, "resources", "items"].includes(activeCategory);
+    if (physicalCategory) {
+      const emptyDisplaySlots = Math.max(0, capacity - physicalEntries.length);
+      for (let offset = 0; offset < emptyDisplaySlots; offset += 1) {
+        cells.push(emptyBackpackCell(physicalEntries.length + offset));
+      }
+    } else if (portfolio?.loading || contractRefreshPromise) {
+      cells.push(contractLoadingCell(), contractLoadingCell());
     } else {
-      if (portfolio?.error) list.append(contractErrorRow(portfolio.error));
-      for (const contract of portfolio?.items ?? []) list.append(contractAssetRow(contract));
-      if (!portfolio?.items?.length) list.append(contractEmptyRow());
-      root.dataset.contractState = portfolio?.error ? "error" : portfolio?.items?.length ? "ready" : "empty";
+      if (portfolio?.error) cells.push(contractStateCell({ error: portfolio.error }));
+      if (!cells.length) cells.push(contractStateCell({ emptyCategory: activeCategory }));
     }
-    root.replaceChildren(summary, list);
+
+    elements.backpackGrid.dataset.backpackCategory = activeCategory;
+    elements.backpackGrid.setAttribute(
+      "aria-busy",
+      !physicalCategory && (portfolio?.loading || contractRefreshPromise) ? "true" : "false",
+    );
+    elements.backpackGrid.replaceChildren(...cells);
   }
 
-  function contractAssetRow(contract) {
+  function virtualBackpackCell(contract) {
     const registered = contract.kind === "registered_land_contract";
     const equipment = !registered ? gameState.getLandContractEquipment?.() ?? null : null;
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = `backpack-contract-row${registered ? " registered" : " blank"}`;
-    if (equipment) row.classList.add("equipped");
-    row.dataset.inventoryVirtualItem = String(contract.id);
-    row.dataset.backpackItemId = String(contract.id);
-    row.dataset.equipped = equipment ? "true" : "false";
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = `backpack-slot backpack-virtual-slot ${registered ? "registered-land-slot" : "blank-contract-slot"}`;
+    if (equipment) cell.classList.add("equipped");
+    cell.dataset.inventoryVirtualItem = String(contract.id);
+    cell.dataset.backpackItemId = String(contract.id);
+    cell.dataset.backpackItemCategory = registered ? "land" : "contracts";
+    cell.dataset.equipped = equipment ? "true" : "false";
     const titleText = registered
       ? ui("main.backpack.registeredContractTitle", "Land Contract #{id}", { id: contract.foundationId })
       : ui("main.market.blankLandContract", "Blank Land Contract");
-    const units = registered ? contract.landContractCount : contract.count;
-    row.setAttribute("aria-label", registered
+    cell.setAttribute("aria-label", registered
       ? ui("main.backpack.registeredContractAria", "{title}, {count} chunks, from Chunk {minX}, {minZ} to {maxX}, {maxZ}", {
         title: titleText,
-        count: units,
+        count: contract.landContractCount,
         minX: contract.minChunkX,
         minZ: contract.minChunkZ,
         maxX: contract.maxChunkX,
         maxZ: contract.maxChunkZ,
       })
-      : ui("main.backpack.contractAria", "{item}, contract balance {count}", { item: titleText, count: units }));
-    row.append(createLandContractIconElement({
-      size: 38,
+      : ui("main.backpack.contractAria", "{item}, contract balance {count}", { item: titleText, count: contract.count }));
+    cell.title = registered
+      ? `${titleText} · (${contract.minChunkX}, ${contract.minChunkZ}) → (${contract.maxChunkX}, ${contract.maxChunkZ})`
+      : `${titleText} · ×${contract.count}`;
+    const icon = createLandContractIconElement({
+      size: 48,
       className: registered ? "registered-contract-icon" : "blank-contract-icon",
-    }));
-    const copy = document.createElement("span");
+      variant: registered ? "registered" : "blank",
+    });
+    icon.classList.add("backpack-virtual-icon");
     const title = document.createElement("strong");
+    title.className = "backpack-slot-name";
     title.textContent = titleText;
-    const meta = document.createElement("small");
-    meta.textContent = registered
-      ? ui("main.backpack.registeredContractRange", "Chunks ({minX}, {minZ}) → ({maxX}, {maxZ})", {
-        minX: contract.minChunkX,
-        minZ: contract.minChunkZ,
-        maxX: contract.maxChunkX,
-        maxZ: contract.maxChunkZ,
-      })
-      : ui("main.backpack.blankContractBalance", "{available} available · {reserved} registering", {
-        available: contract.availableCount,
-        reserved: contract.reservedCount,
-      });
-    copy.append(title, meta);
-    const count = document.createElement("b");
-    count.textContent = registered
-      ? ui("main.backpack.contractChunkCount", "{count} chunks", { count: units })
-      : `×${units}`;
-    row.append(copy, count);
-    return row;
+    cell.append(icon, title);
+    if (!registered) {
+      const count = document.createElement("span");
+      count.className = "backpack-slot-count";
+      count.textContent = String(contract.count || 0);
+      cell.append(count);
+    }
+    if (equipment) {
+      const badge = document.createElement("span");
+      badge.className = "backpack-slot-equipped";
+      badge.textContent = ui("main.backpack.equipped", "Equipped");
+      cell.append(badge);
+    }
+    return cell;
   }
 
-  function contractLoadingRow() {
-    const row = document.createElement("span");
-    row.className = "backpack-contract-skeleton";
-    row.setAttribute("aria-hidden", "true");
-    return row;
+  function contractLoadingCell() {
+    const cell = document.createElement("span");
+    cell.className = "backpack-slot backpack-virtual-slot backpack-contract-loading";
+    cell.setAttribute("aria-label", ui("main.backpack.contractLoading", "Loading contracts and land"));
+    return cell;
   }
 
-  function contractErrorRow(reason) {
-    const row = document.createElement("div");
-    row.className = "backpack-contract-state error";
+  function contractStateCell({ error = "", emptyCategory = "" } = {}) {
+    const state = document.createElement("div");
+    state.className = `backpack-grid-state${error ? " error" : " empty"}`;
     const copy = document.createElement("span");
-    copy.textContent = ui("main.backpack.contractLoadFailed", "Contracts could not be refreshed: {reason}", { reason });
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.dataset.contractAction = "refresh";
-    retry.textContent = ui("main.backpack.retryContracts", "Retry");
-    row.append(copy, retry);
-    return row;
-  }
-
-  function contractEmptyRow() {
-    const row = document.createElement("div");
-    row.className = "backpack-contract-state empty";
-    const copy = document.createElement("span");
-    copy.textContent = ui("main.backpack.noContracts", "No land contracts yet. Buy a blank contract to register your first Chunk.");
+    if (error) {
+      copy.textContent = ui("main.backpack.contractLoadFailed", "Contracts could not be refreshed: {reason}", { reason: error });
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.dataset.contractAction = "refresh";
+      retry.textContent = ui("main.backpack.retryContracts", "Retry");
+      state.append(copy, retry);
+      return state;
+    }
+    copy.textContent = emptyCategory === "land"
+      ? ui("main.backpack.noRegisteredLand", "No registered land yet. Equip a blank contract to register Chunk territory.")
+      : ui("main.backpack.noBlankContracts", "No blank contracts. Buy one in the Contract market.");
     const market = document.createElement("button");
     market.type = "button";
     market.dataset.contractAction = "market";
     market.textContent = ui("main.backpack.openContractMarket", "Open contract market");
-    row.append(copy, market);
-    return row;
+    state.append(copy, market);
+    return state;
   }
 
   async function refreshContracts() {
@@ -297,9 +242,15 @@ export function createPlayBackpackUi({
     return contractRefreshPromise;
   }
 
-  function updateCategoryButtons(slots) {
-    const counts = new Map([[DEFAULT_CATEGORY, slots.length]]);
-    for (const slot of slots) {
+  function updateCategoryButtons(displayStacks, blankContract, registeredLand) {
+    const counts = new Map([
+      [DEFAULT_CATEGORY, displayStacks.length + (blankContract ? 1 : 0)],
+      ["resources", 0],
+      ["items", 0],
+      ["contracts", blankContract ? 1 : 0],
+      ["land", registeredLand.length],
+    ]);
+    for (const { slot } of displayStacks) {
       const category = backpackCategory(slot);
       counts.set(category, (counts.get(category) || 0) + 1);
     }
@@ -407,11 +358,7 @@ export function createPlayBackpackUi({
   }
 
   function backpackCategory(slot) {
-    if (isLandContractItem(slot)) return "misc";
-    const label = String(slot?.kind === "resource" && Number(slot.decorationId) <= 0
-      ? safeResourceName(slot.resourceId)
-      : "").toLowerCase();
-    return backpackCategoryForSlot(slot, label);
+    return backpackCategoryForSlot(slot);
   }
 
   function safeResourceName(resourceId) {
@@ -439,20 +386,12 @@ export function createPlayBackpackUi({
   }
 }
 
-export function backpackCategoryForSlot(slot, resourceLabel = "") {
+export function backpackCategoryForSlot(slot) {
   const kind = String(slot?.kind || "").toLowerCase();
-  const itemId = String(slot?.itemId || "").toLowerCase();
-  if (isLandContractItem(slot)) return "misc";
-  if (kind === "smelted_material" || kind === "material") return "materials";
-  if (kind === "tool" || kind === "forged" || itemId.includes("pickaxe") || itemId.includes("tool")) return "tools";
-  if (kind === "combat" || itemId.includes("sword") || itemId.includes("bow") || itemId.includes("shield")) return "combat";
-  if (kind === "food" || itemId.includes("food")) return "food";
-  if (kind === "resource") {
-    if (Number(slot?.decorationId) > 0) return "resources";
-    const label = String(resourceLabel || "").toLowerCase();
-    return NATURAL_RESOURCE_WORDS.some((word) => label.includes(word)) ? "resources" : "blocks";
-  }
-  return "misc";
+  if (kind === "registered_land_contract") return "land";
+  if (isLandContractItem(slot)) return "contracts";
+  if (["resource", "smelted_material", "material"].includes(kind)) return "resources";
+  return "items";
 }
 
 function formatMessage(template, params = {}) {

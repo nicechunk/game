@@ -4701,31 +4701,32 @@ body {
   color: currentColor;
 }
 
-.category-all::before {
+.category-backpack::before {
   content: "";
   position: absolute;
   left: 3px;
-  top: 3px;
-  width: 6px;
-  height: 6px;
-  border-radius: 2px;
-  background: currentColor;
-  box-shadow: 10px 0 currentColor, 0 10px currentColor, 10px 10px currentColor;
+  top: 7px;
+  width: 16px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-radius: 4px;
 }
 
-.category-blocks::before {
+.category-backpack::after {
   content: "";
   position: absolute;
-  left: 4px;
-  top: 4px;
-  width: 13px;
-  height: 13px;
+  left: 7px;
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
   border: 2px solid currentColor;
-  transform: rotate(30deg) skew(-7deg, -7deg);
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
 }
 
-.category-tools::before,
-.category-combat::before {
+.category-items::before {
   content: "";
   position: absolute;
   left: 10px;
@@ -4737,7 +4738,7 @@ body {
   transform: rotate(42deg);
 }
 
-.category-tools::after {
+.category-items::after {
   content: "";
   position: absolute;
   left: 3px;
@@ -4747,18 +4748,6 @@ body {
   border-radius: 3px;
   background: currentColor;
   transform: rotate(12deg);
-}
-
-.category-combat::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 15px;
-  width: 14px;
-  height: 3px;
-  border-radius: 3px;
-  background: currentColor;
-  transform: rotate(-48deg);
 }
 
 .category-resources::before {
@@ -4785,52 +4774,54 @@ body {
   transform: rotate(37deg);
 }
 
-.category-food::before {
+.category-contracts::before {
   content: "";
   position: absolute;
-  left: 3px;
-  top: 6px;
-  width: 16px;
-  height: 14px;
-  border-radius: 48% 48% 55% 55%;
-  background: currentColor;
+  left: 4px;
+  top: 2px;
+  width: 14px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-radius: 3px 3px 5px 3px;
 }
 
-.category-food::after {
+.category-contracts::after {
   content: "";
   position: absolute;
-  left: 11px;
-  top: 1px;
-  width: 3px;
-  height: 7px;
-  border-radius: 2px;
+  left: 7px;
+  top: 7px;
+  width: 8px;
+  height: 2px;
   background: currentColor;
-  transform: rotate(24deg);
+  box-shadow: 0 5px currentColor;
 }
 
-.category-materials::before {
+.category-land::before {
   content: "";
   position: absolute;
   left: 2px;
-  top: 6px;
+  top: 4px;
   width: 18px;
-  height: 11px;
+  height: 15px;
+  box-sizing: border-box;
   border: 2px solid currentColor;
-  border-radius: 3px;
-  transform: skew(-18deg);
+  clip-path: polygon(0 18%, 34% 0, 66% 18%, 100% 0, 100% 82%, 66% 100%, 34% 82%, 0 100%);
 }
 
-.category-misc::before {
+.category-land::after {
   content: "";
   position: absolute;
-  inset: 1px;
+  left: 10px;
+  top: 4px;
+  width: 2px;
+  height: 15px;
   background: currentColor;
-  clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 59%, 80% 98%, 50% 75%, 20% 98%, 30% 59%, 0 38%, 38% 35%);
 }
 
 .backpack-inventory {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 9px;
   padding: 10px;
   overflow: hidden;
@@ -5140,175 +5131,88 @@ body {
   image-rendering: pixelated;
 }
 
-.backpack-contracts {
-  min-width: 0;
-  border: 1px solid rgba(117, 234, 206, 0.54);
-  border-radius: 13px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 8% 0, rgba(235, 255, 247, 0.40), transparent 38%),
-    linear-gradient(145deg, rgba(18, 133, 126, 0.23), rgba(4, 79, 131, 0.22));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
-}
-
-.play-panel .backpack-contract-summary,
-.play-panel .backpack-contract-row {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  color: #efffff;
+.play-panel button.backpack-slot {
   font: inherit;
-  text-align: left;
 }
 
-.play-panel .backpack-contract-summary {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto 18px;
-  min-height: 50px;
-  align-items: center;
-  gap: 9px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, rgba(12, 130, 120, 0.72), rgba(7, 84, 153, 0.68));
-  cursor: pointer;
+.backpack-virtual-slot {
+  isolation: isolate;
+  border-color: rgba(118, 228, 197, 0.92);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(238, 255, 248, 0.96), rgba(177, 241, 222, 0.62) 44%, transparent 69%),
+    linear-gradient(145deg, rgba(211, 255, 241, 0.72), rgba(64, 177, 176, 0.35));
+  box-shadow:
+    inset 0 0 0 1px rgba(34, 178, 161, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 4px 10px rgba(0, 105, 130, 0.15);
 }
 
-.backpack-contract-summary > span,
-.backpack-contract-row > span {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
+.backpack-virtual-slot.registered-land-slot {
+  border-color: rgba(100, 201, 245, 0.96);
+  background:
+    linear-gradient(rgba(28, 137, 178, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 137, 178, 0.09) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(239, 253, 255, 0.98), rgba(171, 226, 248, 0.70) 46%, transparent 70%),
+    linear-gradient(145deg, rgba(216, 248, 255, 0.76), rgba(66, 157, 202, 0.36));
+  background-size: 9px 9px, 9px 9px, auto, auto;
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 126, 176, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 4px 11px rgba(0, 101, 161, 0.18);
 }
 
-.backpack-contract-summary strong,
-.backpack-contract-row strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.72rem;
-  font-weight: 950;
+.backpack-virtual-icon {
+  width: min(78%, 52px);
+  height: min(78%, 52px);
+  transform: translateY(-1px);
 }
 
-.backpack-contract-summary small,
-.backpack-contract-row small {
-  overflow: hidden;
-  color: rgba(225, 255, 249, 0.78);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.57rem;
-  font-weight: 750;
+.backpack-contract-loading {
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(179, 229, 237, 0.26) 30%, rgba(244, 255, 255, 0.92) 50%, rgba(179, 229, 237, 0.26) 70%);
+  background-size: 220% 100%;
+  animation: backpack-contract-loading 1.25s linear infinite;
 }
 
-.backpack-contract-summary > b {
-  min-width: 30px;
-  padding: 4px 8px;
-  border: 1px solid rgba(226, 255, 247, 0.46);
-  border-radius: 999px;
-  background: rgba(1, 55, 83, 0.36);
-  text-align: center;
-  font-size: 0.7rem;
-}
-
-.backpack-contract-chevron {
-  width: 9px;
-  height: 9px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg) translate(-2px, 2px);
-  transition: transform 160ms ease;
-}
-
-.backpack-contract-summary[aria-expanded="true"] .backpack-contract-chevron {
-  transform: rotate(225deg) translate(-2px, 2px);
-}
-
-.backpack-contract-list {
-  display: grid;
-  gap: 5px;
-  max-height: 184px;
-  padding: 6px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border-top: 1px solid rgba(189, 255, 239, 0.22);
-  scrollbar-width: thin;
-}
-
-.play-panel .backpack-contract-row {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  min-height: 50px;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 9px;
-  border: 1px solid rgba(216, 255, 246, 0.20);
-  border-radius: 10px;
-  background: rgba(2, 57, 89, 0.34);
-  cursor: pointer;
-}
-
-.play-panel .backpack-contract-row.registered {
-  background: linear-gradient(135deg, rgba(19, 113, 105, 0.42), rgba(8, 65, 112, 0.46));
-}
-
-.play-panel .backpack-contract-row > b {
-  color: #d9fff4;
-  white-space: nowrap;
-  font-size: 0.62rem;
-}
-
-.play-panel .backpack-contract-summary:hover,
-.play-panel .backpack-contract-row:hover {
-  filter: brightness(1.09);
-}
-
-.play-panel .backpack-contract-summary:focus-visible,
-.play-panel .backpack-contract-row:focus-visible,
-.play-panel .backpack-contract-state button:focus-visible {
-  outline: 2px solid #e7fff9;
-  outline-offset: -3px;
-}
-
-.play-panel .backpack-contract-row.focused {
-  border-color: rgba(239, 255, 251, 0.96);
-  box-shadow: inset 3px 0 0 #8effd6, 0 0 12px rgba(71, 255, 207, 0.22);
-}
-
-.backpack-contract-state {
+.backpack-grid-state {
+  grid-column: 1 / -1;
   display: flex;
-  min-height: 48px;
+  min-width: 0;
+  min-height: 72px;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 7px 9px;
-  border-radius: 10px;
-  color: rgba(235, 255, 251, 0.88);
-  background: rgba(1, 42, 72, 0.30);
-  font-size: 0.61rem;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(93, 202, 222, 0.42);
+  border-radius: 12px;
+  color: #194f72;
+  background: rgba(228, 251, 255, 0.56);
+  font-size: 0.68rem;
+  font-weight: 800;
   line-height: 1.35;
 }
 
-.backpack-contract-state.error {
-  border: 1px solid rgba(255, 193, 142, 0.44);
-  color: #fff2df;
+.backpack-grid-state.error {
+  border-color: rgba(220, 128, 76, 0.52);
+  color: #78452c;
+  background: rgba(255, 237, 216, 0.62);
 }
 
-.play-panel .backpack-contract-state button {
+.play-panel .backpack-grid-state button {
   min-width: max-content;
   min-height: 40px;
   padding: 0 12px;
-  border: 1px solid rgba(229, 255, 248, 0.54);
+  border: 1px solid rgba(35, 143, 168, 0.54);
   border-radius: 9px;
-  color: #f3fffc;
-  background: rgba(19, 151, 130, 0.58);
+  color: #fff;
+  background: linear-gradient(145deg, #20bdd8, #0879c9);
   font-size: 0.61rem;
   font-weight: 900;
 }
 
-.backpack-contract-skeleton {
-  min-height: 48px;
-  border-radius: 10px;
-  background: linear-gradient(100deg, rgba(205, 255, 244, 0.10) 30%, rgba(235, 255, 250, 0.30) 50%, rgba(205, 255, 244, 0.10) 70%);
-  background-size: 220% 100%;
-  animation: backpack-contract-loading 1.25s linear infinite;
+.play-panel .backpack-grid-state button:focus-visible {
+  outline: 2px solid #0879c9;
+  outline-offset: 2px;
 }
 
 @keyframes backpack-contract-loading {
@@ -5395,7 +5299,7 @@ body {
   scrollbar-width: thin;
 }
 
-@media (min-width: 761px) {
+@media (min-width: 901px), (min-width: 761px) and (pointer: fine) {
   .backpack-detail.has-item {
     display: flex;
     flex-direction: column;
@@ -5795,31 +5699,36 @@ body {
     padding: 7px;
   }
   .backpack-categories {
-    display: flex;
-    gap: 5px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
     padding: 5px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     border-radius: 13px;
-    scrollbar-width: none;
-  }
-  .backpack-categories::-webkit-scrollbar {
-    display: none;
   }
   .play-panel .backpack-categories button {
     display: grid;
-    grid-template-columns: 18px auto;
-    min-width: max-content;
-    min-height: 36px;
-    flex: 0 0 auto;
-    padding: 0 8px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 17px auto;
+    min-width: 0;
+    min-height: 45px;
+    justify-items: center;
+    gap: 1px;
+    padding: 3px 1px;
     border-radius: 9px;
-    font-size: 0.61rem;
+    font-size: 0.5rem;
+    text-align: center;
+  }
+  .play-panel .backpack-categories button span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .backpack-category-icon {
-    width: 18px;
-    height: 18px;
-    transform: scale(0.82);
+    width: 17px;
+    height: 17px;
+    transform: scale(0.76);
   }
   .backpack-categories button b {
     display: none;
@@ -5828,28 +5737,6 @@ body {
     gap: 6px;
     padding: 7px;
     border-radius: 13px;
-  }
-  .play-panel .backpack-contract-summary {
-    grid-template-columns: 32px minmax(0, 1fr) auto 15px;
-    min-height: 44px;
-    gap: 7px;
-    padding: 4px 8px;
-  }
-  .backpack-contract-summary strong,
-  .backpack-contract-row strong {
-    font-size: 0.64rem;
-  }
-  .backpack-contract-summary small,
-  .backpack-contract-row small {
-    font-size: 0.52rem;
-  }
-  .backpack-contract-list {
-    max-height: min(160px, 22dvh);
-    padding: 5px;
-  }
-  .play-panel .backpack-contract-row {
-    min-height: 44px;
-    padding-block: 3px;
   }
   .backpack-actions {
     gap: 4px;
@@ -5862,6 +5749,17 @@ body {
   .backpack-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 5px;
+  }
+  .backpack-grid-state {
+    min-height: 58px;
+    gap: 8px;
+    padding: 8px 9px;
+    font-size: 0.58rem;
+  }
+  .play-panel .backpack-grid-state button {
+    min-height: 36px;
+    padding-inline: 9px;
+    font-size: 0.55rem;
   }
   .backpack-slot .backpack-slot-number {
     left: 4px;
@@ -5965,10 +5863,7 @@ body {
   .backpack-slot {
     transition: none;
   }
-  .backpack-contract-chevron {
-    transition: none;
-  }
-  .backpack-contract-skeleton {
+  .backpack-contract-loading {
     animation: none;
   }
 }
@@ -6278,7 +6173,7 @@ body {
   100% { filter: brightness(1); }
 }
 
-@media (min-width: 761px) {
+@media (min-width: 901px), (min-width: 761px) and (pointer: fine) {
   .account-hud {
     position: fixed;
     width: min(366px, calc(100vw - 40px));
@@ -6495,7 +6390,7 @@ body {
   }
 }
 
-@media (min-width: 761px) and (max-width: 1599px) {
+@media (min-width: 901px) and (max-width: 1599px), (min-width: 761px) and (max-width: 1599px) and (pointer: fine) {
   .backpack-panel {
     left: 14px;
     width: min(1172px, calc(100vw - 272px));
@@ -6507,7 +6402,7 @@ body {
   }
 }
 
-@media (min-width: 761px) and (max-width: 1100px) {
+@media (min-width: 901px) and (max-width: 1100px), (min-width: 761px) and (max-width: 1100px) and (pointer: fine) {
   .backpack-layout {
     grid-template-columns: 94px minmax(0, 1fr) minmax(260px, 30vw);
   }
@@ -8588,6 +8483,32 @@ body {
   stroke: #9a6220;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.land-contract-icon-registered .land-contract-lines,
+.land-contract-icon-registered .land-contract-seal {
+  opacity: 0;
+}
+
+.land-contract-parcel {
+  fill: rgba(149, 229, 255, 0.88);
+  stroke: #126d85;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.land-contract-parcel-grid {
+  fill: none;
+  stroke: rgba(18, 109, 133, 0.62);
+  stroke-width: 1.5;
+}
+
+.land-contract-parcel-check {
+  fill: none;
+  stroke: #08734e;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
 }
 
 .market-contract-hero {

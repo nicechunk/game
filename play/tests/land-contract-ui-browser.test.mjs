@@ -197,7 +197,7 @@ test("land contracts open on demand and collapse without viewport overflow", asy
   }
 });
 
-test("backpack contract portfolio stays outside item slots and exposes registered parcel details", async () => {
+test("backpack categories render stacked contracts and independent registered land cells", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     for (const viewport of [
@@ -226,7 +226,7 @@ test("backpack contract portfolio stays outside item slots and exposes registere
         ]);
         const byId = (id) => document.getElementById(id);
         const owner = "ContractOwner11111111111111111111111111111";
-        const portfolio = contractModule.createLandContractPortfolio({
+        const readyPortfolio = contractModule.createLandContractPortfolio({
           owner,
           status: "ready",
           balance: {
@@ -266,11 +266,16 @@ test("backpack contract portfolio stays outside item slots and exposes registere
             },
           ],
         });
+        let portfolio = readyPortfolio;
+        let retryCalls = 0;
         const gameState = {
-          backpackSlots: [],
+          backpackSlots: [
+            { id: "stone", kind: "resource", resourceId: 3, blockId: 3, count: 1, volumeMm3: 1000, massGrams: 2 },
+            { id: "pickaxe", kind: "forged", itemId: "iron_pickaxe", count: 1, volumeMm3: 1000, massGrams: 3 },
+          ],
           backpackCapacity: 50,
-          totalBackpackItems: () => 0,
-          totalBackpackMassGrams: () => 0,
+          totalBackpackItems: () => 2,
+          totalBackpackMassGrams: () => 5,
           isBackpackSlotEquipped: () => false,
           getBackpackSlotEquipment: () => null,
           getLandContractEquipment: () => null,
@@ -280,7 +285,6 @@ test("backpack contract portfolio stays outside item slots and exposes registere
           hotbar: byId("hotbar"),
           backpackPanel: byId("backpackPanel"),
           backpackGrid: byId("backpackGrid"),
-          backpackContracts: byId("backpackContracts"),
           backpackDetail: byId("backpackDetail"),
           backpackMeta: byId("backpackMeta"),
           backpackActions: byId("backpackActions"),
@@ -295,6 +299,11 @@ test("backpack contract portfolio stays outside item slots and exposes registere
           gameState,
           createVoxelItemIconCanvas: () => document.createElement("canvas"),
           voxelItemLabel: (item) => item?.label || "Item",
+          onRefreshLandContracts: async () => {
+            retryCalls += 1;
+            portfolio = readyPortfolio;
+            return readyPortfolio;
+          },
         });
         const inventory = inventoryModule.createInventoryController({
           elements,
@@ -303,22 +312,73 @@ test("backpack contract portfolio stays outside item slots and exposes registere
         });
         inventory.bind();
         backpackUi.render({ force: true });
+        globalThis.__backpackCategoryHarness = {
+          renderState(state) {
+            if (state === "loading") {
+              portfolio = {
+                known: false,
+                loading: true,
+                error: "",
+                blankContract: null,
+                registeredContracts: [],
+                items: [],
+              };
+            } else if (state === "empty") {
+              portfolio = {
+                known: true,
+                loading: false,
+                error: "",
+                blankContract: null,
+                registeredContracts: [],
+                items: [],
+              };
+            } else if (state === "error") {
+              portfolio = {
+                known: false,
+                loading: false,
+                error: "RPC unavailable",
+                blankContract: null,
+                registeredContracts: [],
+                items: [],
+              };
+            } else {
+              portfolio = readyPortfolio;
+            }
+            backpackUi.render({ force: true });
+          },
+          retryCalls: () => retryCalls,
+        };
       });
 
-      assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 50, `${viewport.width}px: contract assets changed the fixed backpack capacity`);
-      const summary = page.locator("#backpackContracts .backpack-contract-summary");
-      assert.equal(await summary.getAttribute("aria-expanded"), "false");
-      assert.match(await summary.textContent(), /Land Contracts/);
-      assert.match(await summary.textContent(), /5/);
-      const summaryBox = await summary.boundingBox();
-      assert.ok(summaryBox.width >= 40 && summaryBox.height >= 40, `${viewport.width}px: contract summary target is too small`);
+      const categoryButtons = page.locator("#backpackCategories [data-backpack-category]");
+      assert.equal(await categoryButtons.count(), 5);
+      assert.deepEqual(await categoryButtons.locator("span").allTextContents(), ["Backpack", "Resources", "Items", "Contracts", "Land"]);
+      assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 51, `${viewport.width}px: the virtual blank contract should sit beside 50 physical capacity cells`);
+      assert.equal(await page.locator("#backpackGrid .backpack-slot[data-backpack-slot]").count(), 2);
+      assert.equal(await page.locator("#backpackGrid .backpack-slot.empty").count(), 48);
+      assert.equal(await page.locator("#backpackGrid [data-inventory-virtual-item='market-user-blank-land-contract']").count(), 1);
+      assert.match(await page.locator("#backpackMeta").textContent(), /2 \/ 50 slots · 2 items/);
 
-      await summary.press("Enter");
-      assert.equal(await summary.getAttribute("aria-expanded"), "true");
-      assert.equal(await page.locator("#backpackContractList [data-inventory-virtual-item]").count(), 3);
+      const contractsCategory = page.locator("#backpackCategories [data-backpack-category='contracts']");
+      await contractsCategory.press("Enter");
+      assert.equal(await contractsCategory.getAttribute("aria-pressed"), "true");
+      assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 1);
+      const blankContract = page.locator("#backpackGrid [data-inventory-virtual-item='market-user-blank-land-contract']");
+      assert.equal(await blankContract.locator(".backpack-slot-count").textContent(), "3");
+      await blankContract.press("Space");
+      assert.match(await page.locator("#backpackDetail").textContent(), /Blank Land Contract/);
+
+      const landCategory = page.locator("#backpackCategories [data-backpack-category='land']");
+      await landCategory.click();
+      assert.equal(await page.locator("#backpackGrid [data-inventory-virtual-item]").count(), 2, `${viewport.width}px: two foundations must render as two land cells`);
+      assert.equal(await page.locator("#backpackGrid .registered-land-slot .backpack-slot-count").count(), 0, "registered land must never show the consumed contract count as a stack badge");
+      assert.equal(await page.locator("#backpackGrid .land-contract-icon[data-land-contract-icon='registered']").count(), 2);
       const registered = page.locator("[data-inventory-virtual-item='registered-land-contract:42']");
       const registeredBox = await registered.boundingBox();
-      assert.ok(registeredBox.width >= 40 && registeredBox.height >= 40, `${viewport.width}px: registered contract target is too small`);
+      assert.ok(
+        registeredBox.width >= 40 && registeredBox.height >= 40,
+        `${viewport.width}px: registered contract target is too small (${registeredBox.width} × ${registeredBox.height})`,
+      );
       await registered.press("Space");
       const detailText = await page.locator("#backpackDetail").textContent();
       assert.match(detailText, /Land Contract #42/);
@@ -330,30 +390,50 @@ test("backpack contract portfolio stays outside item slots and exposes registere
 
       const layout = await page.evaluate(() => {
         const panel = document.querySelector("#backpackPanel").getBoundingClientRect();
-        const contracts = document.querySelector("#backpackContracts");
-        const contractBox = contracts.getBoundingClientRect();
+        const categories = document.querySelector("#backpackCategories").getBoundingClientRect();
+        const grid = document.querySelector("#backpackGrid");
+        const gridBox = grid.getBoundingClientRect();
         const detail = document.querySelector("#backpackDetail").getBoundingClientRect();
         const preview = document.querySelector("#backpackDetail .backpack-detail-preview").getBoundingClientRect();
         const icon = document.querySelector("#backpackDetail .land-contract-icon").getBoundingClientRect();
         const tradeNote = document.querySelector("#backpackDetail .backpack-contract-trade-note").getBoundingClientRect();
         return {
           panel: panel.toJSON(),
-          contracts: contractBox.toJSON(),
+          categories: categories.toJSON(),
+          grid: gridBox.toJSON(),
           detail: detail.toJSON(),
           preview: preview.toJSON(),
           icon: icon.toJSON(),
           tradeNote: tradeNote.toJSON(),
-          contractsOverflow: Math.max(0, contracts.scrollWidth - contracts.clientWidth),
+          gridOverflow: Math.max(0, grid.scrollWidth - grid.clientWidth),
           pageOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
         };
       });
-      assert.equal(layout.contractsOverflow, 0, `${viewport.width}px: contract portfolio overflowed its column`);
-      assert.equal(layout.pageOverflow, 0, `${viewport.width}px: contract portfolio caused page overflow`);
-      assert.ok(layout.contracts.left >= layout.panel.left - 1, `${viewport.width}px: contract portfolio escaped left`);
-      assert.ok(layout.contracts.right <= layout.panel.right + 1, `${viewport.width}px: contract portfolio escaped right`);
+      assert.equal(layout.gridOverflow, 0, `${viewport.width}px: land cells overflowed their grid`);
+      assert.equal(layout.pageOverflow, 0, `${viewport.width}px: inventory categories caused page overflow`);
+      assert.ok(layout.grid.left >= layout.panel.left - 1, `${viewport.width}px: land grid escaped left`);
+      assert.ok(layout.grid.right <= layout.panel.right + 1, `${viewport.width}px: land grid escaped right`);
+      assert.ok(layout.categories.left >= layout.panel.left - 1, `${viewport.width}px: categories escaped left`);
+      assert.ok(layout.categories.right <= layout.panel.right + 1, `${viewport.width}px: categories escaped right`);
       assert.ok(layout.icon.left >= layout.preview.left - 1 && layout.icon.right <= layout.preview.right + 1, `${viewport.width}px: contract icon escaped its preview`);
       assert.ok(layout.icon.top >= layout.preview.top - 1 && layout.icon.bottom <= layout.preview.bottom + 1, `${viewport.width}px: contract icon escaped vertically`);
       assert.ok(layout.tradeNote.width >= layout.detail.width * 0.75, `${viewport.width}px: contract trade note collapsed into one detail column`);
+
+      await page.evaluate(() => globalThis.__backpackCategoryHarness.renderState("loading"));
+      assert.equal(await page.locator("#backpackGrid").getAttribute("aria-busy"), "true");
+      assert.equal(await page.locator("#backpackGrid .backpack-contract-loading").count(), 2);
+
+      await page.evaluate(() => globalThis.__backpackCategoryHarness.renderState("empty"));
+      assert.match(await page.locator("#backpackGrid .backpack-grid-state").textContent(), /No registered land/);
+      await contractsCategory.click();
+      assert.match(await page.locator("#backpackGrid .backpack-grid-state").textContent(), /No blank contracts/);
+
+      await page.evaluate(() => globalThis.__backpackCategoryHarness.renderState("error"));
+      const retry = page.locator("#backpackGrid .backpack-grid-state.error [data-contract-action='refresh']");
+      assert.match(await page.locator("#backpackGrid .backpack-grid-state.error").textContent(), /RPC unavailable/);
+      await retry.click();
+      await page.waitForFunction(() => document.querySelectorAll("#backpackGrid [data-inventory-virtual-item]").length === 1);
+      assert.equal(await page.evaluate(() => globalThis.__backpackCategoryHarness.retryCalls()), 1);
       await context.close();
     }
   } finally {

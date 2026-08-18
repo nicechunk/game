@@ -243,7 +243,6 @@ const elements = {
   backpackButton: document.querySelector("#backpackButton"),
   closeBackpack: document.querySelector("#closeBackpackButton"),
   backpackGrid: document.querySelector("#backpackGrid"),
-  backpackContracts: document.querySelector("#backpackContracts"),
   backpackCategories: document.querySelector("#backpackCategories"),
   backpackCategoryButtons: document.querySelectorAll("[data-backpack-category]"),
   backpackMeta: document.querySelector("#backpackMeta"),

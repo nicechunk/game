@@ -161,9 +161,11 @@ export function isLandContractItem(item) {
     || String(item?.id || "").startsWith(REGISTERED_LAND_CONTRACT_INVENTORY_PREFIX);
 }
 
-export function createLandContractIconElement({ size = 44, className = "" } = {}) {
+export function createLandContractIconElement({ size = 44, className = "", variant = "blank" } = {}) {
+  const normalizedVariant = variant === "registered" ? "registered" : "blank";
   const root = document.createElement("span");
-  root.className = ["land-contract-icon", className].filter(Boolean).join(" ");
+  root.className = ["land-contract-icon", `land-contract-icon-${normalizedVariant}`, className].filter(Boolean).join(" ");
+  root.dataset.landContractIcon = normalizedVariant;
   root.setAttribute("aria-hidden", "true");
   root.style?.setProperty?.("--land-contract-icon-size", `${Math.max(24, Math.trunc(Number(size) || 44))}px`);
 
@@ -176,6 +178,11 @@ export function createLandContractIconElement({ size = 44, className = "" } = {}
   appendPath(svg, "M22 47h27v7H22a4 4 0 1 1 0-7Z", "land-contract-curl");
   appendPath(svg, "M24 20h17M24 27h17M24 34h8m6 0h3", "land-contract-lines");
   appendPath(svg, "m42 38 5 3-2 6-6-1-1-6 4-2Z", "land-contract-seal");
+  if (normalizedVariant === "registered") {
+    appendPath(svg, "M21 19h22v20H21Z", "land-contract-parcel");
+    appendPath(svg, "M32 19v20M21 29h22", "land-contract-parcel-grid");
+    appendPath(svg, "m25 30 5 5 10-12", "land-contract-parcel-check");
+  }
   root.append(svg);
   return root;
 }
