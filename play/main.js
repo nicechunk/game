@@ -321,6 +321,8 @@ const elements = {
   marketPanel: document.querySelector("#marketPanel"),
   marketBody: document.querySelector("#marketBody"),
   closeMarket: document.querySelector("#closeMarketButton"),
+  marketPrimaryTabs: document.querySelector("#marketPrimaryTabs"),
+  marketMobileMenu: document.querySelector("#marketMobileMenuButton"),
   marketTabs: document.querySelectorAll("[data-market-tab]"),
   marketTabPanels: document.querySelectorAll("[data-market-tab-panel]"),
   marketMobileViewTabs: document.querySelectorAll("[data-market-mobile-view]"),

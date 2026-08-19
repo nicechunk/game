@@ -514,7 +514,7 @@
             <strong id="marketPanelTitle" data-i18n="main.market.title">Market</strong>
           </span>
         </div>
-        <nav class="market-tabs" role="tablist" data-i18n-aria-label="main.market.tabs" aria-label="Market sections">
+        <nav class="market-tabs" id="marketPrimaryTabs" role="tablist" data-i18n-aria-label="main.market.tabs" aria-label="Market sections">
           <button class="market-tab active" type="button" role="tab" aria-selected="true" data-market-tab="browse"><i class="market-tab-icon market-tab-buy" aria-hidden="true"></i><span data-i18n="main.market.browseTab">Browse</span></button>
           <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="sell"><i class="market-tab-icon market-tab-sell" aria-hidden="true"></i><span data-i18n="main.market.sellTab">Sell</span></button>
           <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="orders"><i class="market-tab-icon market-tab-orders" aria-hidden="true"></i><span data-i18n="main.market.ordersTab">Orders</span></button>
@@ -523,6 +523,7 @@
           <span class="market-balance-pill" aria-live="polite"><small>SOL</small><strong id="marketSolBalance">--</strong></span>
           <span class="market-balance-pill market-balance-pill-nck" aria-live="polite"><small>NCK</small><strong id="marketNckBalance">--</strong></span>
           <button class="market-swap-open" id="marketSwapButton" type="button" data-i18n="main.market.swapAction">Swap</button>
+          <button class="market-mobile-menu-toggle" id="marketMobileMenuButton" type="button" data-i18n-aria-label="main.market.tabs" aria-label="Market sections" aria-controls="marketPrimaryTabs" aria-expanded="false" aria-haspopup="true"><span aria-hidden="true"></span></button>
           <button class="market-refresh" id="marketRefreshButton" type="button" data-i18n-aria-label="main.market.refresh" aria-label="Refresh market listings">↻</button>
           <button class="market-close" id="closeMarketButton" type="button" data-i18n-aria-label="main.market.close" aria-label="Close market">×</button>
         </div>

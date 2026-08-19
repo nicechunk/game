@@ -164,6 +164,7 @@ test("market header balances and Treasury Swap stay usable without overflow", as
       { width: 1280, height: 800, mobile: false },
       { width: 768, height: 900, mobile: true },
       { width: 375, height: 812, mobile: true },
+      { width: 320, height: 720, mobile: true },
     ]) {
       const context = await browser.newContext({
         viewport,
@@ -188,14 +189,40 @@ test("market header balances and Treasury Swap stay usable without overflow", as
       const headerLayout = await page.evaluate(() => {
         const header = document.querySelector(".market-terminal-header").getBoundingClientRect();
         const controls = [...document.querySelectorAll(".market-header-meta > *")]
+          .filter((node) => getComputedStyle(node).display !== "none")
           .map((node) => node.getBoundingClientRect());
+        const centers = controls.map((rect) => rect.top + (rect.height / 2));
         return {
           documentOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
           metaOverflow: Math.max(0, document.querySelector(".market-header-meta").scrollWidth - document.querySelector(".market-header-meta").clientWidth),
           outside: controls.some((rect) => rect.left < header.left - 1 || rect.right > header.right + 1),
+          controlsAligned: Math.max(...centers) - Math.min(...centers) <= 2,
+          primaryTabsDisplay: getComputedStyle(document.querySelector("#marketPrimaryTabs")).display,
+          mobileMenuDisplay: getComputedStyle(document.querySelector("#marketMobileMenuButton")).display,
         };
       });
-      assert.deepEqual(headerLayout, { documentOverflow: 0, metaOverflow: 0, outside: false }, `${viewport.width}px header overflow`);
+      assert.deepEqual(headerLayout, {
+        documentOverflow: 0,
+        metaOverflow: 0,
+        outside: false,
+        controlsAligned: true,
+        primaryTabsDisplay: viewport.mobile ? "none" : "grid",
+        mobileMenuDisplay: viewport.mobile ? "grid" : "none",
+      }, `${viewport.width}px header overflow`);
+
+      if (viewport.mobile) {
+        await page.locator("#marketMobileMenuButton").click();
+        assert.equal(await page.locator("#marketMobileMenuButton").getAttribute("aria-expanded"), "true");
+        assert.equal(await page.locator("#marketPrimaryTabs").evaluate((node) => getComputedStyle(node).display), "grid");
+        await page.locator('#marketPrimaryTabs [data-market-tab="sell"]').click();
+        assert.equal(await page.locator("#marketPanel").getAttribute("data-active-market-tab"), "sell");
+        assert.equal(await page.locator("#marketMobileMenuButton").getAttribute("aria-expanded"), "false");
+        assert.equal(await page.evaluate(() => document.activeElement?.id), "marketMobileMenuButton");
+        await page.locator("#marketMobileMenuButton").click();
+        await page.keyboard.press("Escape");
+        assert.equal(await page.locator("#marketMobileMenuButton").getAttribute("aria-expanded"), "false");
+        assert.equal(await page.evaluate(() => document.activeElement?.id), "marketMobileMenuButton");
+      }
 
       await page.locator("#marketSwapButton").click();
       await page.waitForSelector("#marketSwapDialog:not([hidden])");
@@ -379,7 +406,7 @@ test("market keeps every active chain listing and ignores local fake custody", a
       await globalThis.__marketHarness.market.refreshChainListings({ force: true, quiet: true });
     });
     await page.waitForFunction(() => document.querySelector("#marketSearchMeta")?.textContent.includes("106 listings"));
-    await page.locator('[data-market-tab="orders"]').click();
+    await selectMarketTab(page, "orders");
     const ownIds = await page.locator("#marketOrdersGrid .market-listing-card").evaluateAll((cards) => (
       cards.map((card) => card.dataset.listingId)
     ));
@@ -433,6 +460,8 @@ async function installMarketHarness(page, options = {}) {
       marketPanel: byId("marketPanel"),
       marketBody: byId("marketBody"),
       closeMarket: byId("closeMarketButton"),
+      marketPrimaryTabs: byId("marketPrimaryTabs"),
+      marketMobileMenu: byId("marketMobileMenuButton"),
       marketTabs: document.querySelectorAll("[data-market-tab]"),
       marketTabPanels: document.querySelectorAll("[data-market-tab-panel]"),
       marketMobileViewTabs: document.querySelectorAll("[data-market-mobile-view]"),
@@ -883,7 +912,7 @@ async function installMarketHarness(page, options = {}) {
 
 async function verifyTransactionProgress(page) {
   await verifyContractPurchaseProgress(page);
-  await page.locator('[data-market-tab="sell"]').click();
+  await selectMarketTab(page, "sell");
   await page.locator('[data-market-mobile-view="inventory"]').click();
   await page.locator("#marketInventoryGrid .market-inventory-item").click();
   await page.locator("#marketListingPrice").fill("3.5");
@@ -922,7 +951,7 @@ async function verifyTransactionProgress(page) {
   assert.equal(complete.toastVisible, true);
   assert.equal(complete.calls, 1);
 
-  await page.locator('[data-market-tab="browse"]').click();
+  await selectMarketTab(page, "browse");
   await page.locator('[data-market-mobile-view="listings"]').click();
   await verifyListingActionProgress(page, "buy", "buy", "success");
   await verifyListingActionProgress(page, "cancel", "cancel", "success", ".market-listing-card.own ");
@@ -933,7 +962,7 @@ async function verifyTransactionProgress(page) {
   await verifyRejectedSubmissionReason(page, "buy", "no-backpack", /Equip a backpack to buy this listing/);
   await verifyRejectedSubmissionReason(page, "cancel", "no-backpack", /Free one backpack slot before canceling this listing/, ".market-listing-card.own ");
 
-  await page.locator('[data-market-tab="sell"]').click();
+  await selectMarketTab(page, "sell");
   await page.locator('[data-market-mobile-view="inventory"]').click();
   await page.locator("#marketInventoryGrid .market-inventory-item").click();
   await page.locator("#marketListingPrice").fill("3.5");
@@ -944,7 +973,7 @@ async function verifyTransactionProgress(page) {
 }
 
 async function verifyContractPurchaseProgress(page) {
-  await page.locator('[data-market-tab="browse"]').click();
+  await selectMarketTab(page, "browse");
   await page.locator('[data-market-mobile-view="listings"]').click();
   await page.locator('[data-listing-id="treasury-blank-land-contract"] .market-listing-copy').click();
   await page.waitForSelector("#marketContractQuantity");
@@ -992,6 +1021,13 @@ async function verifyContractPurchaseProgress(page) {
   assert.equal(complete.calls, 1, "pending contract purchases must ignore repeated clicks");
   const projected = await page.evaluate(() => globalThis.__marketHarness.getContractSnapshots().at(-1));
   assert.equal(projected.blankLandContracts, 7, "the confirmed purchase must reach inventory even if reconciliation RPC fails");
+}
+
+async function selectMarketTab(page, tab) {
+  const tabs = page.locator("#marketPrimaryTabs");
+  const hidden = await tabs.evaluate((node) => getComputedStyle(node).display === "none");
+  if (hidden) await page.locator("#marketMobileMenuButton").click();
+  await page.locator(`#marketPrimaryTabs [data-market-tab="${tab}"]`).click();
 }
 
 async function verifyRejectedSubmissionReason(page, action, reason, expectedMessage, cardPrefix = "") {

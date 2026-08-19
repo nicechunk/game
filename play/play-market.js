@@ -101,7 +101,12 @@ export function createPlayMarket({
         state.selectedCurrency = MARKET_CURRENCIES.includes(elements.marketCurrencyFilter.value) ? elements.marketCurrencyFilter.value : "all";
         resetAndRender();
       });
-      elements.marketTabs?.forEach((button) => button.addEventListener("click", () => selectTab(button.dataset.marketTab || "browse")));
+      elements.marketMobileMenu?.addEventListener("click", toggleMobileMenu);
+      elements.marketTabs?.forEach((button) => button.addEventListener("click", () => {
+        const restoreMenuFocus = elements.marketPrimaryTabs?.classList.contains("mobile-open");
+        selectTab(button.dataset.marketTab || "browse");
+        setMobileMenuOpen(false, { restoreFocus: restoreMenuFocus });
+      }));
       elements.marketMobileViewTabs?.forEach((button) => button.addEventListener("click", () => {
         selectMobileView(button.dataset.marketMobileView || "listings");
       }));
@@ -132,6 +137,7 @@ export function createPlayMarket({
         if (event.target === elements.marketSwapDialog) closeSwap();
       });
       document.addEventListener("keydown", handleSwapKeydown);
+      document.addEventListener("keydown", handleMobileMenuKeydown, true);
     },
     render,
     refreshChainListings,
@@ -152,6 +158,7 @@ export function createPlayMarket({
 
   function openPanel() {
     if (!elements.marketPanel) return;
+    setMobileMenuOpen(false);
     state.returnToBackpack = Boolean(elements.backpackPanel && !elements.backpackPanel.hidden);
     if (state.returnToBackpack) onEnterMarket();
     state.mobileView = "listings";
@@ -187,6 +194,7 @@ export function createPlayMarket({
       return;
     }
     if (state.swapOpen && !state.operation) closeSwap({ restoreFocus: false });
+    setMobileMenuOpen(false);
     const shouldRestore = restoreBackpack && state.returnToBackpack;
     if (elements.marketPanel) elements.marketPanel.hidden = true;
     state.returnToBackpack = false;
@@ -203,6 +211,32 @@ export function createPlayMarket({
   function selectMobileView(viewName) {
     state.mobileView = viewName === "inventory" ? "inventory" : "listings";
     render();
+  }
+
+  function setMobileMenuOpen(open, { restoreFocus = false } = {}) {
+    const nextOpen = Boolean(open);
+    elements.marketPrimaryTabs?.classList.toggle("mobile-open", nextOpen);
+    elements.marketMobileMenu?.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+    if (restoreFocus) elements.marketMobileMenu?.focus();
+  }
+
+  function toggleMobileMenu() {
+    if (state.operation) return;
+    const open = !elements.marketPrimaryTabs?.classList.contains("mobile-open");
+    setMobileMenuOpen(open);
+    if (open && typeof globalThis.requestAnimationFrame === "function") {
+      globalThis.requestAnimationFrame(() => {
+        const active = [...(elements.marketTabs || [])].find((button) => button.dataset.marketTab === state.activeTab);
+        active?.focus();
+      });
+    }
+  }
+
+  function handleMobileMenuKeydown(event) {
+    if (event.key !== "Escape" || !elements.marketPrimaryTabs?.classList.contains("mobile-open")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setMobileMenuOpen(false, { restoreFocus: true });
   }
 
   function resetAndRender() {
@@ -336,6 +370,7 @@ export function createPlayMarket({
   }
 
   function openSwap() {
+    setMobileMenuOpen(false);
     if (!currentWalletAddress()) {
       showTradeToast(ui("main.market.swapWalletRequired", "Connect your game wallet before using Treasury Swap."), "warn");
       return;
@@ -619,6 +654,7 @@ export function createPlayMarket({
       panel.hidden = !active;
       panel.classList.toggle("active", active);
     });
+    if (elements.marketMobileMenu) elements.marketMobileMenu.disabled = Boolean(state.operation);
     if (elements.marketPanel) elements.marketPanel.dataset.activeMarketTab = state.activeTab;
   }
 
