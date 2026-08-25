@@ -1,3 +1,4 @@
+import chunkBuildWorkerUrl from "/chunk.js/chunk/chunk-build-worker.js?worker&url";
 import {
   BLOCK_ID,
   ChunkManager,
@@ -703,6 +704,7 @@ async function boot() {
   chunks = startupLogger.step("ChunkManager and workers", () => new ChunkManager({
     viewDistance,
     preloadMargin: PLAYABLE_PRELOAD_MARGIN,
+    workerUrl: chunkBuildWorkerUrl,
     workerCount: renderBudget.preferredWorkerCount(),
     deferInitialBuilds: true,
     deferContinuousBuildDispatch: true,

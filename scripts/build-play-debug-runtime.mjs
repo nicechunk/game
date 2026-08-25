@@ -201,9 +201,36 @@ if (entry.bytes > 20_000 || gameEntry.url === entry.url || !characterEntryRecord
   throw new Error("Play character verification must remain a small deferred-game entry.");
 }
 const styles = await Promise.all((playEntryRecord.css || []).map((file) => runtimeDescriptor(file, "style", "game")));
-const startupWorkers = (await readdir(resolve(runtimeRoot, "assets")))
+const startupWorkerCandidates = (await readdir(resolve(runtimeRoot, "assets")))
   .filter((file) => /^(?:chunk-build-worker|play-chain-pda-worker|play-minimap-worker)-.+\.js$/.test(file))
   .sort();
+const startupWorkers = [];
+const rejectedChunkWorkers = [];
+for (const file of startupWorkerCandidates) {
+  const missingImports = await missingModuleImports(resolve(runtimeRoot, "assets", file), runtimeRoot);
+  if (!missingImports.length) {
+    startupWorkers.push(file);
+    continue;
+  }
+  if (file.startsWith("chunk-build-worker-")) {
+    rejectedChunkWorkers.push({ file, missingImports });
+    continue;
+  }
+  throw new Error(`Startup worker ${file} has missing module imports: ${missingImports.join(", ")}`);
+}
+const chunkBuildWorkers = startupWorkers.filter((file) => file.startsWith("chunk-build-worker-"));
+if (chunkBuildWorkers.length !== 1) {
+  const rejected = rejectedChunkWorkers
+    .map(({ file, missingImports }) => `${file} -> ${missingImports.join(", ")}`)
+    .join("; ");
+  throw new Error(`Play runtime requires one self-contained Chunk worker; found ${chunkBuildWorkers.length}.${rejected ? ` Rejected: ${rejected}` : ""}`);
+}
+const runtimeJavaScript = await Promise.all((await collectFiles(runtimeRoot))
+  .filter((file) => file.endsWith(".js") && !startupWorkerCandidates.includes(file.slice(resolve(runtimeRoot, "assets").length + 1)))
+  .map((file) => readFile(file, "utf8")));
+if (!runtimeJavaScript.some((source) => source.includes(chunkBuildWorkers[0]))) {
+  throw new Error("The Play game bundle does not reference the validated Chunk worker.");
+}
 const startupFiles = [
   {
     url: `/assets/nicechunkChain.${version}.js`,
@@ -388,6 +415,51 @@ async function runtimeDescriptor(file, type, phase) {
     type,
     phase,
   };
+}
+
+async function missingModuleImports(entryPath, rootPath, visited = new Set()) {
+  const canonicalEntry = resolve(entryPath);
+  if (visited.has(canonicalEntry)) return [];
+  visited.add(canonicalEntry);
+  const source = await readFile(canonicalEntry, "utf8");
+  const missing = [];
+  for (const specifier of moduleSpecifiers(source)) {
+    if (!specifier.startsWith(".")) continue;
+    const cleanSpecifier = specifier.split(/[?#]/u, 1)[0];
+    const dependency = resolve(dirname(canonicalEntry), cleanSpecifier);
+    if (!dependency.startsWith(`${resolve(rootPath)}/`)) {
+      missing.push(specifier);
+      continue;
+    }
+    try {
+      const dependencyStat = await stat(dependency);
+      if (!dependencyStat.isFile()) {
+        missing.push(specifier);
+        continue;
+      }
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        missing.push(specifier);
+        continue;
+      }
+      throw error;
+    }
+    missing.push(...await missingModuleImports(dependency, rootPath, visited));
+  }
+  return [...new Set(missing)];
+}
+
+function moduleSpecifiers(source) {
+  const patterns = [
+    /\bimport(?!\s*\()\s*(?:[^"'()]*?\bfrom\s*)?["']([^"']+)["']/gu,
+    /\bexport\s+[^"']*?\bfrom\s*["']([^"']+)["']/gu,
+    /\bimport\s*\(\s*["']([^"']+)["']\s*\)/gu,
+  ];
+  const specifiers = [];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) specifiers.push(match[1]);
+  }
+  return specifiers;
 }
 
 function hasNamedExport(source, exportName) {
