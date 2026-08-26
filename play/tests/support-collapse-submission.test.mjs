@@ -1,43 +1,118 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Keypair, Transaction, TransactionInstruction } from "@solana/web3.js";
 
 import { reconcilePendingMineWithChainResult } from "../play-chain-mining-result.js";
 import {
-  partitionSupportCollapseBlocks,
-  submitSupportCollapseBatches,
+  assertAtomicSupportCollapseTransactionFits,
+  createAtomicSupportCollapsePlan,
+  submitSupportCollapseAtomically,
 } from "../../src/chain/supportCollapseSubmission.js";
 
-test("support collapse transactions never contain more than two terrain proofs", () => {
-  const blocks = Array.from({ length: 7 }, (_, index) => ({ x: index, y: 10, z: 0 }));
-  assert.deepEqual(partitionSupportCollapseBlocks(blocks).map((batch) => batch.length), [2, 2, 2, 1]);
+test("support collapse keeps primary and cross-chunk ranges in one atomic plan", () => {
+  const primary = chainBlock(block(15, -20, 0, 3, 30));
+  const collapse = [
+    chainBlock(block(15, -19, 0, 3, 30)),
+    chainBlock(block(16, -19, 0, 3, 30)),
+  ];
+
+  const plan = createAtomicSupportCollapsePlan(primary, collapse);
+
+  assert.equal(plan.blocks.length, 3);
+  assert.equal(plan.chunkCount, 2);
+  assert.deepEqual(plan.ranges.map((range) => range.mode), [2, 3, 3]);
+  assert.deepEqual(plan.ranges.map((range) => [range.chunkX, range.chunkZ]), [[0, 0], [0, 0], [1, 0]]);
+  assert.deepEqual(plan.ranges.slice(1).map((range) => range.supportAnchor), [
+    { x: 15, y: -20, z: 0 },
+    { x: 15, y: -19, z: 0 },
+  ]);
 });
 
-test("an over-budget pair retries as single-block transactions", async () => {
-  const blocks = [{ x: 1 }, { x: 2 }, { x: 3 }];
-  const calls = [];
-  const outcome = await submitSupportCollapseBatches(blocks, async (batch) => {
-    calls.push(batch.map((block) => block.x));
-    if (batch.length > 1) throw new Error("exceeded CUs meter");
-    return { signature: `sig-${batch[0].x}` };
-  });
-
-  assert.deepEqual(calls, [[1, 2], [1], [2], [3]]);
-  assert.deepEqual(outcome.confirmed.map((entry) => entry.block.x), [1, 2, 3]);
-  assert.equal(outcome.failures.length, 0);
-  assert.equal(outcome.retryErrors.length, 1);
+test("support collapse rejects disconnected blocks instead of authorizing a second mine", () => {
+  assert.throws(
+    () => createAtomicSupportCollapsePlan(
+      { x: 0, y: -20, z: 0, blockId: 3 },
+      [{ x: 4, y: -20, z: 0, blockId: 3 }],
+    ),
+    /one face-connected structure/,
+  );
 });
 
-test("two independent retry failures stop a batch-wide RPC failure from fanning out", async () => {
-  const blocks = [{ x: 1 }, { x: 2 }, { x: 3 }, { x: 4 }];
+test("support collapse submits exactly once and confirms every planned block", async () => {
+  const primary = { x: 1, y: -20, z: 0, blockId: 3 };
+  const collapse = [{ x: 1, y: -19, z: 0, blockId: 3 }, { x: 1, y: -18, z: 0, blockId: 3 }];
+  const plan = createAtomicSupportCollapsePlan(primary, collapse);
   let calls = 0;
-  const outcome = await submitSupportCollapseBatches(blocks, async () => {
+
+  const outcome = await submitSupportCollapseAtomically(plan, async (ranges) => {
     calls += 1;
-    throw new Error("session expired");
+    assert.equal(ranges, plan.ranges);
+    return { signature: "atomic-signature" };
   });
 
-  assert.equal(calls, 3);
-  assert.equal(outcome.failures.length, 2);
-  assert.deepEqual(outcome.aborted.map((entry) => entry.block.x), [3, 4]);
+  assert.equal(calls, 1);
+  assert.equal(outcome.result.signature, "atomic-signature");
+  assert.deepEqual(outcome.confirmedBlocks, plan.blocks);
+});
+
+test("an atomic submission failure is never retried or reduced", async () => {
+  const plan = createAtomicSupportCollapsePlan(
+    { x: 1, y: -20, z: 0, blockId: 3 },
+    [{ x: 1, y: -19, z: 0, blockId: 3 }],
+  );
+  let calls = 0;
+
+  await assert.rejects(() => submitSupportCollapseAtomically(plan, async () => {
+    calls += 1;
+    throw new Error("compute budget exceeded");
+  }), /compute budget exceeded/);
+
+  assert.equal(calls, 1);
+});
+
+test("capacity failures reject the complete collapse instead of truncating it", () => {
+  const primary = { x: 0, y: -20, z: 0, blockId: 3 };
+  const collapse = Array.from({ length: 4 }, (_unused, index) => ({
+    x: 0,
+    y: -19 + index,
+    z: 0,
+    blockId: 3,
+  }));
+
+  assert.throws(
+    () => createAtomicSupportCollapsePlan(primary, collapse, { maxBlocks: 4 }),
+    (error) => error?.reason === "block-limit" && error?.blockCount === 5,
+  );
+  assert.throws(
+    () => createAtomicSupportCollapsePlan(primary, collapse, { maxEstimatedWork: 1 }),
+    (error) => error?.reason === "compute-limit",
+  );
+  assert.throws(
+    () => createAtomicSupportCollapsePlan(
+      { x: 0, y: -20, z: 0, blockId: 3 },
+      Array.from({ length: 48 }, (_unused, index) => ({
+        x: index + 1,
+        y: -20,
+        z: 0,
+        blockId: 3,
+      })),
+    ),
+    (error) => error?.reason === "chunk-limit" && error?.chunkCount === 4 && error?.limit === 3,
+  );
+});
+
+test("packet validation rejects an oversized atomic transaction before signing", () => {
+  const feePayer = Keypair.generate().publicKey;
+  const transaction = new Transaction().add(new TransactionInstruction({
+    programId: Keypair.generate().publicKey,
+    keys: [{ pubkey: feePayer, isSigner: true, isWritable: true }],
+    data: Buffer.alloc(1_200),
+  }));
+
+  assert.throws(
+    () => assertAtomicSupportCollapseTransactionFits(transaction, { feePayer }),
+    (error) => error?.reason === "packet-limit" && error?.limit === 1232,
+  );
 });
 
 test("local confirmation removes only blocks actually committed on chain", () => {

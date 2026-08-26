@@ -1702,6 +1702,10 @@
       "outOfReach": "配置先が範囲外です。",
       "occupied": "配置先は使用されています。",
       "intersectsPlayer": "プレイヤーの体内にはブロックを配置できません。"
+    },
+    "supportCollapse": {
+      "blockLimit": "支持を失った構造が640ブロックのアトミック上限を超えています。ブロックは採掘されませんでした。",
+      "chunkLimit": "支持を失った構造が3チャンクを超えています。ブロックは採掘されませんでした。"
     }
   },
   "resourceSimulator": {

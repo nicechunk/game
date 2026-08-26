@@ -1702,6 +1702,10 @@
       "outOfReach": "배치 대상이 범위를 벗어났습니다.",
       "occupied": "배치 대상 위치가 이미 차 있습니다.",
       "intersectsPlayer": "플레이어 몸 안에는 블록을 배치할 수 없습니다."
+    },
+    "supportCollapse": {
+      "blockLimit": "지지력을 잃은 구조물이 640블록 원자적 처리 한도를 초과했습니다. 채굴된 블록은 없습니다.",
+      "chunkLimit": "지지력을 잃은 구조물이 3개 청크를 초과합니다. 채굴된 블록은 없습니다."
     }
   },
   "resourceSimulator": {

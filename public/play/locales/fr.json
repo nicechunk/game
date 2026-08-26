@@ -1702,6 +1702,10 @@
       "outOfReach": "La cible de placement est hors de portée.",
       "occupied": "La cible de placement est occupée.",
       "intersectsPlayer": "Impossible de placer un bloc dans le corps du joueur."
+    },
+    "supportCollapse": {
+      "blockLimit": "La structure non soutenue dépasse la limite atomique de 640 blocs. Aucun bloc n'a été miné.",
+      "chunkLimit": "La structure non soutenue traverse plus de 3 chunks. Aucun bloc n'a été miné."
     }
   },
   "resourceSimulator": {

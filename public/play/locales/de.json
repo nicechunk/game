@@ -1702,6 +1702,10 @@
       "outOfReach": "Das Platzierungsziel ist außer Reichweite.",
       "occupied": "Das Platzierungsziel ist belegt.",
       "intersectsPlayer": "Ein Block kann nicht im Körper der Spielfigur platziert werden."
+    },
+    "supportCollapse": {
+      "blockLimit": "Die ungestützte Struktur überschreitet das atomare Limit von 640 Blöcken. Es wurde nichts abgebaut.",
+      "chunkLimit": "Die ungestützte Struktur erstreckt sich über mehr als 3 Chunks. Es wurde nichts abgebaut."
     }
   },
   "resourceSimulator": {

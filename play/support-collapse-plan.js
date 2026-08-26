@@ -1,10 +1,11 @@
 import { BLOCK_FLAGS, BLOCK_ID, worldToChunk } from "../chunk.js/play.js";
+import {
+  blockSupportProfile,
+  SUPPORT_COLLAPSE_MAX_BLOCKS,
+  SUPPORT_COLLAPSE_MAX_CHUNKS,
+} from "../src/world/blockSupport.js";
 import { isPlacedWorldBlock } from "./placed-block-state.js";
 
-const DEFAULT_HORIZONTAL_RADIUS = 7;
-const DEFAULT_DOWN_REACH = 8;
-const DEFAULT_UP_REACH = 20;
-const DEFAULT_MAX_BLOCKS = 48;
 const DEFAULT_REWARD_NUMERATOR = 3;
 const DEFAULT_REWARD_DENOMINATOR = 10;
 
@@ -22,37 +23,47 @@ export function createSupportCollapseMiningPlanner({
   blockDef,
   isFluidBlock,
   isMineableBlock,
+  supportProfile = blockSupportProfile,
   blockAirId = BLOCK_ID.air,
   minWorldY = -32,
-  horizontalRadius = DEFAULT_HORIZONTAL_RADIUS,
-  downReach = DEFAULT_DOWN_REACH,
-  upReach = DEFAULT_UP_REACH,
-  maxBlocks = DEFAULT_MAX_BLOCKS,
+  maxBlocks = SUPPORT_COLLAPSE_MAX_BLOCKS,
+  maxChunks = SUPPORT_COLLAPSE_MAX_CHUNKS,
 } = {}) {
-  const limit = Math.max(1, Math.trunc(maxBlocks || DEFAULT_MAX_BLOCKS));
+  const blockLimit = Math.max(1, Math.trunc(maxBlocks || SUPPORT_COLLAPSE_MAX_BLOCKS));
+  const chunkLimit = Math.max(1, Math.trunc(maxChunks || SUPPORT_COLLAPSE_MAX_CHUNKS));
   return function supportCollapsePlanForHit(hit) {
     const primary = normalizeBlock(hit, chunks, blockDef);
     if (!primary || !isSupportCandidateBlock(primary.blockId, blockDef, isFluidBlock, isMineableBlock, blockAirId)) return null;
     if (isPlacedWorldBlock(chunks, primary.worldX, primary.worldY, primary.worldZ, blockAirId)) return null;
 
-    const collapseBlocks = collectSupportCollapseBlocks(primary, {
+    const collapse = collectSupportCollapseBlocks(primary, {
       chunks,
       blockDef,
       isFluidBlock,
       isMineableBlock,
+      supportProfile,
       blockAirId,
       minWorldY,
-      horizontalRadius,
-      downReach,
-      upReach,
-      maxBlocks: limit,
+      maxBlocks: blockLimit,
+      maxChunks: chunkLimit,
     });
-    if (!collapseBlocks.length) return null;
+    if (collapse.blockedReason) {
+      return {
+        kind: "support-collapse-blocked",
+        blocks: [primary],
+        collapseBlocks: [],
+        rewardBlocks: [],
+        blockedReason: collapse.blockedReason,
+        blockedLimit: collapse.blockedLimit,
+        requiredDamage: 3,
+      };
+    }
+    if (!collapse.blocks.length) return null;
     return {
       kind: "support-collapse",
-      blocks: [primary, ...collapseBlocks],
-      collapseBlocks,
-      rewardBlocks: selectSupportCollapseRewardBlocks(collapseBlocks),
+      blocks: [primary, ...collapse.blocks],
+      collapseBlocks: collapse.blocks,
+      rewardBlocks: selectSupportCollapseRewardBlocks(collapse.blocks),
       requiredDamage: 3,
     };
   };
@@ -61,100 +72,37 @@ export function createSupportCollapseMiningPlanner({
 function collectSupportCollapseBlocks(originBlock, options) {
   const plannedRemoved = new Set([blockKey(originBlock)]);
   const collapsed = [];
-  const bounds = supportCollapseBounds(originBlock, options);
-  let changed = true;
-  while (changed && collapsed.length < options.maxBlocks) {
-    changed = false;
-    const starts = supportCollapseCandidateStarts(plannedRemoved, bounds, options);
-    const scanned = new Set();
-    for (const start of starts) {
-      if (scanned.has(blockKey(start)) || plannedRemoved.has(blockKey(start))) continue;
-      const component = traceSupportComponent(start, plannedRemoved, bounds, scanned, options);
-      if (!component.blocks.length || component.supported) continue;
-      for (const block of component.blocks) {
-        const key = blockKey(block);
-        if (plannedRemoved.has(key)) continue;
-        plannedRemoved.add(key);
-        collapsed.push(block);
-        changed = true;
-        if (collapsed.length >= options.maxBlocks) break;
-      }
-      if (collapsed.length >= options.maxBlocks) break;
-    }
-  }
-  return collapsed;
-}
-
-function supportCollapseBounds(originBlock, options) {
-  return {
-    minX: originBlock.worldX - options.horizontalRadius,
-    maxX: originBlock.worldX + options.horizontalRadius,
-    minY: originBlock.worldY - options.downReach,
-    maxY: originBlock.worldY + options.upReach,
-    minZ: originBlock.worldZ - options.horizontalRadius,
-    maxZ: originBlock.worldZ + options.horizontalRadius,
-  };
-}
-
-function supportCollapseCandidateStarts(plannedRemoved, bounds, options) {
-  const starts = [];
-  const seen = new Set();
-  for (const removedKey of plannedRemoved) {
-    const removed = worldPositionFromKey(removedKey);
-    if (!removed) continue;
+  const removedQueue = [originBlock];
+  const chunks = new Set([originBlock.chunkId]);
+  for (let cursor = 0; cursor < removedQueue.length; cursor += 1) {
+    const removed = removedQueue[cursor];
     for (const [dx, dy, dz] of FACE_OFFSETS) {
       const block = supportCollapseBlockAt(
         removed.worldX + dx,
         removed.worldY + dy,
         removed.worldZ + dz,
         plannedRemoved,
-        bounds,
         options,
       );
       if (!block) continue;
       const key = blockKey(block);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      starts.push(block);
+      if (plannedRemoved.has(key) || isBlockSupported(block, plannedRemoved, options)) continue;
+      if (plannedRemoved.size >= options.maxBlocks) {
+        return { blocks: [], blockedReason: "block-limit", blockedLimit: options.maxBlocks };
+      }
+      chunks.add(block.chunkId);
+      if (chunks.size > options.maxChunks) {
+        return { blocks: [], blockedReason: "chunk-limit", blockedLimit: options.maxChunks };
+      }
+      plannedRemoved.add(key);
+      collapsed.push(block);
+      removedQueue.push(block);
     }
   }
-  return starts;
+  return { blocks: collapsed, blockedReason: "", blockedLimit: 0 };
 }
 
-function traceSupportComponent(start, plannedRemoved, bounds, scanned, options) {
-  const queue = [start];
-  const blocks = [];
-  const local = new Set([blockKey(start)]);
-  for (let cursor = 0; cursor < queue.length; cursor += 1) {
-    const block = queue[cursor];
-    const key = blockKey(block);
-    scanned.add(key);
-    blocks.push(block);
-    if (isSupportAnchoredBlock(block, options)) return { blocks: [], supported: true };
-
-    for (const [dx, dy, dz] of FACE_OFFSETS) {
-      const nx = block.worldX + dx;
-      const ny = block.worldY + dy;
-      const nz = block.worldZ + dz;
-      if (!isWithinBounds(nx, ny, nz, bounds)) {
-        return { blocks: [], supported: true };
-      }
-      const next = supportCollapseBlockAt(nx, ny, nz, plannedRemoved, bounds, options);
-      if (!next) {
-        if (isSupportAnchorCell(nx, ny, nz, plannedRemoved, options)) return { blocks: [], supported: true };
-        continue;
-      }
-      const nextKey = blockKey(next);
-      if (local.has(nextKey)) continue;
-      local.add(nextKey);
-      queue.push(next);
-    }
-  }
-  return { blocks, supported: false };
-}
-
-function supportCollapseBlockAt(worldX, worldY, worldZ, plannedRemoved, bounds, options) {
-  if (!isWithinBounds(worldX, worldY, worldZ, bounds)) return null;
+function supportCollapseBlockAt(worldX, worldY, worldZ, plannedRemoved, options) {
   const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
   if (plannedRemoved.has(key)) return null;
   if (isPlacedWorldBlock(options.chunks, worldX, worldY, worldZ, options.blockAirId)) return null;
@@ -163,16 +111,69 @@ function supportCollapseBlockAt(worldX, worldY, worldZ, plannedRemoved, bounds, 
   return blockFromWorld(options.chunks, options.blockDef, worldX, worldY, worldZ, blockId);
 }
 
-function isSupportAnchorCell(worldX, worldY, worldZ, plannedRemoved, options) {
+function isBlockSupported(block, plannedRemoved, options) {
+  if (block.worldY <= Math.trunc(Number(options.minWorldY) || -32)) return true;
+  if (isSupportCell(block.worldX, block.worldY - 1, block.worldZ, plannedRemoved, options)) return true;
+
+  const profile = options.supportProfile?.(block.blockId) ?? {};
+  if (profile.gravity) return false;
+  const initialSpan = Math.max(0, Math.trunc(Number(profile.horizontalSpan) || 0));
+  if (!initialSpan) return false;
+
+  const queue = [{ block, remaining: initialSpan }];
+  const bestRemaining = new Map([[blockKey(block), initialSpan]]);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor];
+    if (current.block !== block && isSupportCell(
+      current.block.worldX,
+      current.block.worldY - 1,
+      current.block.worldZ,
+      plannedRemoved,
+      options,
+    )) return true;
+    if (current.remaining <= 0) continue;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const next = supportTransmissionBlockAt(
+        current.block.worldX + dx,
+        current.block.worldY,
+        current.block.worldZ + dz,
+        plannedRemoved,
+        options,
+      );
+      if (!next) continue;
+      const nextProfile = options.supportProfile?.(next.blockId) ?? {};
+      if (nextProfile.gravity) continue;
+      const nextRemaining = Math.min(
+        current.remaining - 1,
+        Math.max(0, Math.trunc(Number(nextProfile.horizontalSpan) || 0)),
+      );
+      const key = blockKey(next);
+      if (nextRemaining < 0 || (bestRemaining.get(key) ?? -1) >= nextRemaining) continue;
+      bestRemaining.set(key, nextRemaining);
+      queue.push({ block: next, remaining: nextRemaining });
+    }
+  }
+  return false;
+}
+
+function supportTransmissionBlockAt(worldX, worldY, worldZ, plannedRemoved, options) {
+  const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
+  if (plannedRemoved.has(key)) return null;
+  if (isPlacedWorldBlock(options.chunks, worldX, worldY, worldZ, options.blockAirId)) {
+    return blockFromWorld(options.chunks, options.blockDef, worldX, worldY, worldZ, options.chunks.getBlockAtWorld(worldX, worldY, worldZ));
+  }
+  const blockId = Math.trunc(Number(options.chunks?.getBlockAtWorld?.(worldX, worldY, worldZ)) || options.blockAirId);
+  if (!isSupportCandidateBlock(blockId, options.blockDef, options.isFluidBlock, options.isMineableBlock, options.blockAirId)) return null;
+  return blockFromWorld(options.chunks, options.blockDef, worldX, worldY, worldZ, blockId);
+}
+
+function isSupportCell(worldX, worldY, worldZ, plannedRemoved, options) {
   const key = `${Math.trunc(worldX)},${Math.trunc(worldY)},${Math.trunc(worldZ)}`;
   if (plannedRemoved.has(key)) return false;
   if (isPlacedWorldBlock(options.chunks, worldX, worldY, worldZ, options.blockAirId)) return true;
   const blockId = Math.trunc(Number(options.chunks?.getBlockAtWorld?.(worldX, worldY, worldZ)) || options.blockAirId);
-  return blockId === BLOCK_ID.bedrock;
-}
-
-function isSupportAnchoredBlock(block, options) {
-  return block.worldY <= Math.trunc(Number(options.minWorldY) || -32);
+  if (blockId === BLOCK_ID.bedrock) return true;
+  return isSupportCandidateBlock(blockId, options.blockDef, options.isFluidBlock, options.isMineableBlock, options.blockAirId);
 }
 
 function isSupportCandidateBlock(blockId, blockDef, isFluidBlock, isMineableBlock, blockAirId) {
@@ -234,22 +235,6 @@ function blockFromWorld(chunks, blockDef, worldX, worldY, worldZ, blockId, sourc
   };
 }
 
-function isWithinBounds(worldX, worldY, worldZ, bounds) {
-  return worldX >= bounds.minX && worldX <= bounds.maxX &&
-    worldY >= bounds.minY && worldY <= bounds.maxY &&
-    worldZ >= bounds.minZ && worldZ <= bounds.maxZ;
-}
-
 function blockKey(block) {
   return `${Math.trunc(block.worldX ?? block.x)},${Math.trunc(block.worldY ?? block.y)},${Math.trunc(block.worldZ ?? block.z)}`;
-}
-
-function worldPositionFromKey(key) {
-  const values = String(key).split(",").map(Number);
-  if (values.length !== 3 || !values.every(Number.isFinite)) return null;
-  return {
-    worldX: Math.trunc(values[0]),
-    worldY: Math.trunc(values[1]),
-    worldZ: Math.trunc(values[2]),
-  };
 }

@@ -1702,6 +1702,10 @@
       "outOfReach": "El objetivo de colocación está fuera de alcance.",
       "occupied": "El objetivo de colocación está ocupado.",
       "intersectsPlayer": "No se puede colocar un bloque dentro del cuerpo del jugador."
+    },
+    "supportCollapse": {
+      "blockLimit": "La estructura sin soporte supera el límite atómico de 640 bloques. No se extrajo ningún bloque.",
+      "chunkLimit": "La estructura sin soporte cruza más de 3 chunks. No se extrajo ningún bloque."
     }
   },
   "resourceSimulator": {

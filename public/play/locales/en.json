@@ -1702,6 +1702,10 @@
       "outOfReach": "Placement target is out of reach.",
       "occupied": "Placement target is occupied.",
       "intersectsPlayer": "Cannot place a block inside the player body."
+    },
+    "supportCollapse": {
+      "blockLimit": "The unsupported structure exceeds the 640-block atomic limit. Nothing was mined.",
+      "chunkLimit": "The unsupported structure crosses more than 3 chunks. Nothing was mined."
     }
   },
   "resourceSimulator": {

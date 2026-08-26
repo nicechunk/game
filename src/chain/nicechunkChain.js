@@ -24,12 +24,18 @@ import {
 } from "../localGameWallet.js";
 import { createNicechunkRpcFetch, getNicechunkRpcUrl, reportRpcError, rpcConfigChangedEventName } from "../rpcConfig.js";
 import { assertNicechunkWalletNetwork, solanaClusterLabel } from "../solanaNetwork.js";
-import { submitSupportCollapseBatches } from "./supportCollapseSubmission.js";
+import {
+  assertAtomicSupportCollapseTransactionFits,
+  createAtomicSupportCollapsePlan,
+  submitSupportCollapseAtomically,
+} from "./supportCollapseSubmission.js";
 import { PLAYER_SKILL_IDS } from "./playerSkillLevels.js";
 import {
   BULK_MINING_BATCH_SIZE,
   BULK_MINING_MAX_SELECTION_BLOCKS,
   BULK_MINING_RANGE_MODE_DEBUG,
+  BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE,
+  BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY,
   encodeBulkMiningRangePayload,
   partitionBulkMiningRanges,
   submitBulkMiningRanges,
@@ -312,7 +318,6 @@ const transactionBlockHeightPollMs = 1_000;
 const transactionConfirmationTimeoutMs = 60_000;
 const treeFellMaxChunkCount = 4;
 const treeFellLeafRadius = 2;
-const supportCollapseMaxOnChainBlocks = 48;
 const bulkMiningModeDebug = 1;
 const chunkDeltaCacheTtlMs = 60_000;
 const gameplaySessionStatusCacheTtlMs = 60_000;
@@ -3724,7 +3729,6 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
     ]);
     if (alreadyBroken) return { submitted: false, reason: "already-mined" };
     if (!equippedBackpack?.publicKey) return { submitted: false, reason: "no-backpack" };
-    const availableSlots = availableBackpackSlots(equippedBackpack);
     if (!canBackpackAcceptSlot(equippedBackpack, {
       kind: "block",
       quantity: 1,
@@ -3741,14 +3745,7 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
     const backpackBefore = miningBackpackSnapshot(equippedBackpack);
     const primaryKey = minedBlockKey(canonicalBlock);
     const collapseBlocks = await resolveCanonicalCollapseBlocks(options.collapseBlocks, primaryKey);
-    const rewardKeySet = new Set((options.rewardBlocks ?? []).map((rewardBlock) => minedBlockKey(rewardBlock)));
-    // A reward instruction can append the block plus up to two lossy secondary
-    // drops. Reserve one base slot for the clicked block across the sequence.
-    const availableRewardSlots = Math.max(0, Math.floor((availableSlots - 1) / 3));
-    const rewardBlocks = collapseBlocks
-      .filter((collapseBlock) => rewardKeySet.has(minedBlockKey(collapseBlock)))
-      .slice(0, availableRewardSlots);
-    const selectedRewardKeySet = new Set(rewardBlocks.map((rewardBlock) => minedBlockKey(rewardBlock)));
+    const atomicPlan = createAtomicSupportCollapsePlan(canonicalBlock, collapseBlocks, { chunkSize });
 
     const chunks = dedupeChunks([
       { chunkX: blockChunkX(canonicalBlock.x), chunkZ: blockChunkZ(canonicalBlock.z) },
@@ -3762,9 +3759,6 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
       await addTransactionSolSpend(solSpend, conn, initSignature, session.keypair.publicKey);
     }
 
-    // A canonical terrain verification currently costs roughly 560k-625k CU.
-    // Commit the clicked block first, then collapse blocks in pairs so no
-    // transaction can contain the three verifications that exceed 1.4M CU.
     const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
     const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
       payer: session.keypair.publicKey,
@@ -3773,29 +3767,31 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
       ruleIndexes: precisionGatheringRuleIndexes,
       connection: conn,
     });
-    const primaryTx = new Transaction();
-    primaryTx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
-    if (baselineInstruction) primaryTx.add(baselineInstruction);
-    primaryTx.add(createMineBlockWithRewardsInstruction({
-      authority: session.keypair.publicKey,
-      block: canonicalBlock,
-      owner: provider.publicKey,
-      backpack: equippedBackpack.publicKey,
-      actionId: miningActionId,
-      expectedBlockId: canonicalBlock.blockId,
-      context,
-    }));
-    addEquipmentDurabilityInstructions(primaryTx, {
+    const transaction = new Transaction();
+    transaction.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
+    if (baselineInstruction) transaction.add(baselineInstruction);
+    for (const range of atomicPlan.ranges) {
+      transaction.add(createRangeMineWithRewardsInstruction({
+        authority: session.keypair.publicKey,
+        range,
+        owner: provider.publicKey,
+        backpack: equippedBackpack.publicKey,
+        actionId: miningActionId,
+        mode: range.mode,
+        context,
+      }));
+    }
+    addEquipmentDurabilityInstructions(transaction, {
       authority: session.keypair.publicKey,
       owner: provider.publicKey,
       damage: options.durabilityDamage,
     });
-    const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(primaryTx, {
+    const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(transaction, {
       provider,
       session,
       position: playerPositionForResourceMine(canonicalBlock, options),
     });
-    primaryTx.add(createSyncPlayerSkillsInstruction({
+    transaction.add(createSyncPlayerSkillsInstruction({
       payer: session.keypair.publicKey,
       owner: provider.publicKey,
       sourceAccounts: [
@@ -3805,50 +3801,28 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
       ],
       miningCoordinate: canonicalBlock,
     }));
-    const primarySignature = await signAndSendKeypairTransaction(session.keypair, primaryTx, conn);
-    await addTransactionSolSpend(solSpend, conn, primarySignature, session.keypair.publicKey);
-
-    const collapseOutcome = await submitSupportCollapseBatches(collapseBlocks, async (batch) => {
-      const tx = new Transaction();
-      tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
-      for (const collapseBlock of batch) {
-        const mineWithReward = selectedRewardKeySet.has(minedBlockKey(collapseBlock));
-        tx.add(mineWithReward
-          ? createMineBlockWithRewardsInstruction({
-              authority: session.keypair.publicKey,
-              block: collapseBlock,
-              owner: provider.publicKey,
-              backpack: equippedBackpack.publicKey,
-              actionId: miningActionId,
-              expectedBlockId: collapseBlock.blockId,
-              context,
-            })
-          : createMineBlockInstruction({
-              authority: session.keypair.publicKey,
-              block: collapseBlock,
-              owner: provider.publicKey,
-              expectedBlockId: collapseBlock.blockId,
-              context,
-            }));
-      }
-      const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
-      await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
-      return { signature };
+    const packetBytes = assertAtomicSupportCollapseTransactionFits(transaction, {
+      feePayer: session.keypair.publicKey,
     });
-    const confirmedCollapseBlocks = collapseOutcome.confirmed.map((entry) => entry.block);
-    const confirmedCollapseKeys = new Set(confirmedCollapseBlocks.map(minedBlockKey));
-    const confirmedRewardBlocks = rewardBlocks.filter((rewardBlock) => confirmedCollapseKeys.has(minedBlockKey(rewardBlock)));
-    const failedCollapseBlocks = [...collapseOutcome.failures, ...collapseOutcome.aborted]
-      .map(supportCollapseFailureRecord);
-    const signatures = [
-      primarySignature,
-      ...collapseOutcome.confirmed.map((entry) => entry.result?.signature),
-    ].filter((signature, index, list) => signature && list.indexOf(signature) === index);
+    const outcome = await submitSupportCollapseAtomically(atomicPlan, async () => ({
+      signature: await signAndSendKeypairTransaction(session.keypair, transaction, conn),
+    }));
+    const signature = outcome.result.signature;
+    await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
     chunks.forEach((chunk) => invalidateChunkDeltaCache(chunk.chunkX, chunk.chunkZ));
+    const backpackAfter = await loadBackpackAccountForOwner(
+      equippedBackpack.publicKey.toBase58(),
+      provider.publicKey,
+      conn,
+    ).catch(() => null);
+    const storedRewards = await storedBackpackRewardsSince(
+      backpackAfter,
+      backpackBefore.backpackPreviousResources,
+    );
     return {
       submitted: true,
-      signature: signatures.at(-1) ?? primarySignature,
-      signatures,
+      signature,
+      signatures: [signature],
       ...solSpendResult(solSpend),
       ...backpackBefore,
       playerPositionSaved,
@@ -3856,13 +3830,17 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
       block: canonicalBlock,
       blockId: canonicalBlock.blockId,
       type: canonicalBlock.type,
-      confirmedBlocks: [canonicalBlock, ...confirmedCollapseBlocks],
-      collapseBlocks: confirmedCollapseBlocks,
-      rewardBlocks: confirmedRewardBlocks,
+      confirmedBlocks: outcome.confirmedBlocks,
+      collapseBlocks: outcome.collapseBlocks,
+      rewardBlocks: storedRewards,
+      storedRewardCount: storedRewards.reduce((sum, reward) => sum + reward.count, 0),
+      storedRewards,
+      lossyRewards: true,
       plannedCollapseBlockCount: collapseBlocks.length,
-      failedCollapseBlocks,
-      partialCollapse: failedCollapseBlocks.length > 0,
-      retriedCollapseBatchCount: collapseOutcome.retryErrors.length,
+      atomicRangeCount: atomicPlan.ranges.length,
+      estimatedComputeWork: atomicPlan.estimatedWork,
+      transactionPacketBytes: packetBytes,
+      partialCollapse: false,
       programId: context.chunkProgramId.toBase58(),
     };
   } catch (error) {
@@ -5766,15 +5744,19 @@ async function resolveCanonicalCollapseBlocks(blocks = [], primaryKey = "") {
   const candidates = [];
   const seen = new Set([primaryKey]);
   for (const block of blocks ?? []) {
-    if (candidates.length >= supportCollapseMaxOnChainBlocks) break;
-    if (!Number.isFinite(block?.x) || !Number.isFinite(block?.y) || !Number.isFinite(block?.z)) continue;
+    if (!Number.isFinite(block?.x) || !Number.isFinite(block?.y) || !Number.isFinite(block?.z)) {
+      throw new TypeError("support-collapse contains an invalid block coordinate");
+    }
     const key = minedBlockKey(block);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     candidates.push(block);
   }
   const resolved = await Promise.all(candidates.map((block) => resolveCanonicalMinedBlock(block)));
-  return resolved.filter((block) => isCanonicalMineableBlockId(block.blockId));
+  if (resolved.some((block) => !isCanonicalMineableBlockId(block.blockId))) {
+    throw new Error("support-collapse contains an unmineable canonical block");
+  }
+  return resolved;
 }
 
 function minedBlockKey(block) {
@@ -7275,7 +7257,9 @@ export function createRangeMineWithRewardsInstruction({
 }) {
   if (!owner) throw new Error("owner is required for range mining");
   if (!backpack) throw new Error("backpack is required for range mining");
-  if (mode !== BULK_MINING_RANGE_MODE_DEBUG) throw new Error("unsupported range mining mode");
+  if (![BULK_MINING_RANGE_MODE_DEBUG, BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY, BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE].includes(mode)) {
+    throw new Error("unsupported range mining mode");
+  }
   const normalizedActionId = normalizeMiningActionId(actionId);
   const payload = encodeBulkMiningRangePayload(range, { mode });
   const data = Buffer.alloc(9 + payload.length);
@@ -7321,6 +7305,11 @@ export function createRangeMineWithRewardsInstruction({
       { pubkey: materialPhysics, isSigner: false, isWritable: false },
       { pubkey: playerSkills, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ...(
+        mode === BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE
+          ? [{ pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false }]
+          : []
+      ),
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
   });

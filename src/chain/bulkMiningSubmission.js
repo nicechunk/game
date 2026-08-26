@@ -1,6 +1,8 @@
 export const BULK_MINING_BATCH_SIZE = 2;
 export const BULK_MINING_MAX_SELECTION_BLOCKS = 640;
 export const BULK_MINING_RANGE_MODE_DEBUG = 1;
+export const BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY = 2;
+export const BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE = 3;
 export const BULK_MINING_RANGE_MAX_PALETTE_SIZE = 8;
 // These conservative weights are derived from Devnet CU probes against the
 // canonical world generator. Guaranteed-deep cells avoid surface generation.
@@ -11,6 +13,7 @@ export const BULK_MINING_RANGE_NON_DEEP_BLOCK_WORK = 1_500;
 export const BULK_MINING_RANGE_NON_DEEP_COLUMN_WORK = 80_000;
 export const BULK_MINING_RANGE_MAX_COMPUTE_SPLIT_DEPTH = 4;
 const BULK_MINING_RANGE_HEADER_BYTES = 15;
+const SUPPORT_COLLAPSE_ANCHOR_BYTES = 10;
 
 export function partitionBulkMiningRanges(blocks, {
   chunkSize = 16,
@@ -59,9 +62,21 @@ export function partitionBulkMiningRanges(blocks, {
 
 export function encodeBulkMiningRangePayload(range, {
   mode = BULK_MINING_RANGE_MODE_DEBUG,
+  supportAnchor = range?.supportAnchor ?? null,
 } = {}) {
   const normalized = normalizedRange(range);
-  if (mode !== BULK_MINING_RANGE_MODE_DEBUG) throw new Error("unsupported bulk mining range mode");
+  if (![BULK_MINING_RANGE_MODE_DEBUG, BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY, BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE].includes(mode)) {
+    throw new Error("unsupported bulk mining range mode");
+  }
+  if (mode === BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY && normalized.blocks.length !== 1) {
+    throw new Error("support-collapse primary range requires exactly one block");
+  }
+  const normalizedAnchor = mode === BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE
+    ? normalizeSupportAnchor(supportAnchor)
+    : null;
+  if (mode === BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE && !normalizedAnchor) {
+    throw new Error("support-collapse range requires a prior support anchor");
+  }
   if (normalized.volume < 1 || normalized.volume > BULK_MINING_MAX_SELECTION_BLOCKS) {
     throw new Error(`bulk mining range requires 1-${BULK_MINING_MAX_SELECTION_BLOCKS} cells`);
   }
@@ -103,7 +118,10 @@ export function encodeBulkMiningRangePayload(range, {
   );
   const paletteOffset = BULK_MINING_RANGE_HEADER_BYTES + bitmap.length;
   const packedIndexesOffset = paletteOffset + 1 + palette.length;
-  const payload = new Uint8Array(packedIndexesOffset + packedPaletteIndexes.length);
+  const anchorOffset = packedIndexesOffset + packedPaletteIndexes.length;
+  const payload = new Uint8Array(
+    anchorOffset + (normalizedAnchor ? SUPPORT_COLLAPSE_ANCHOR_BYTES : 0),
+  );
   const view = new DataView(payload.buffer);
   payload[0] = mode;
   view.setInt32(1, normalized.minX, true);
@@ -116,7 +134,20 @@ export function encodeBulkMiningRangePayload(range, {
   payload[paletteOffset] = palette.length;
   payload.set(palette, paletteOffset + 1);
   payload.set(packedPaletteIndexes, packedIndexesOffset);
+  if (normalizedAnchor) {
+    view.setInt32(anchorOffset, normalizedAnchor.x, true);
+    view.setInt16(anchorOffset + 4, normalizedAnchor.y, true);
+    view.setInt32(anchorOffset + 6, normalizedAnchor.z, true);
+  }
   return payload;
+}
+
+function normalizeSupportAnchor(source) {
+  const x = finiteInteger(source?.x ?? source?.worldX);
+  const y = finiteInteger(source?.y ?? source?.worldY);
+  const z = finiteInteger(source?.z ?? source?.worldZ);
+  if (x === null || y === null || z === null || y < -0x8000 || y > 0x7fff) return null;
+  return { x, y, z };
 }
 
 export async function submitBulkMiningRanges(ranges, submitRange) {

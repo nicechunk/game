@@ -1702,6 +1702,10 @@
       "outOfReach": "放置目標超出距離。",
       "occupied": "放置目標已被佔用。",
       "intersectsPlayer": "不能在角色身體內放置方塊。"
+    },
+    "supportCollapse": {
+      "blockLimit": "失去支撐的結構超過 640 方塊原子交易上限，本次沒有挖掘任何方塊。",
+      "chunkLimit": "失去支撐的結構跨越超過 3 個 Chunk，本次沒有挖掘任何方塊。"
     }
   },
   "resourceSimulator": {

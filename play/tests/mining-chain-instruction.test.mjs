@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ComputeBudgetProgram, Keypair, SystemProgram, Transaction } from "@solana/web3.js";
+import {
+  ComputeBudgetProgram,
+  Keypair,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 
 import { partitionBulkMiningRanges } from "../../src/chain/bulkMiningSubmission.js";
+import { createAtomicSupportCollapsePlan } from "../../src/chain/supportCollapseSubmission.js";
 import {
   createBatchMineWithRewardsInstruction,
   createFellTreeWithRewardsInstruction,
@@ -186,4 +193,107 @@ test("split mining ranges can reuse one action id and reject a missing id", () =
     block: { x: 0, y: 8, z: 0, blockId: 3 },
     expectedBlockId: 3,
   }), /actionId must be a nonzero unsigned 64-bit integer/);
+});
+
+test("a cross-chunk support collapse compiles as one Solana transaction", () => {
+  const accounts = miningAccounts();
+  const primary = { x: 15, y: -20, z: 0, blockId: 4 };
+  const collapse = [
+    { x: 15, y: -19, z: 0, blockId: 4 },
+    { x: 16, y: -19, z: 0, blockId: 4 },
+  ];
+  const plan = createAtomicSupportCollapsePlan(primary, collapse);
+  const instructions = plan.ranges.map((range) => createRangeMineWithRewardsInstruction({
+    ...accounts,
+    range,
+    mode: range.mode,
+  }));
+  assert.deepEqual(instructions.map((instruction) => instruction.data.readUInt8(9)), [2, 3, 3]);
+  assert.deepEqual(instructions.map((instruction) => instruction.keys.length), [14, 15, 15]);
+  assert.ok(instructions.slice(1).every((instruction) => (
+    instruction.keys[14].pubkey.equals(SYSVAR_INSTRUCTIONS_PUBKEY)
+  )));
+  assert.deepEqual(instructions.slice(1).map((instruction) => ({
+    x: instruction.data.readInt32LE(instruction.data.length - 10),
+    y: instruction.data.readInt16LE(instruction.data.length - 6),
+    z: instruction.data.readInt32LE(instruction.data.length - 4),
+  })), plan.ranges.slice(1).map((range) => range.supportAnchor));
+
+  const baselineInstruction = createSyncPlayerSkillsInstruction({
+    payer: accounts.authority,
+    owner: accounts.owner,
+    sourceAccounts: [instructions[0].keys[3].pubkey],
+  });
+  const syncInstruction = createSyncPlayerSkillsInstruction({
+    payer: accounts.authority,
+    owner: accounts.owner,
+    sourceAccounts: [
+      instructions[0].keys[3].pubkey,
+      instructions[0].keys[1].pubkey,
+      accounts.backpack,
+    ],
+    miningCoordinate: primary,
+  });
+  const transaction = new Transaction({
+    feePayer: accounts.authority,
+    recentBlockhash: accounts.owner.toBase58(),
+  }).add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+    baselineInstruction,
+    ...instructions,
+    syncInstruction,
+  );
+
+  const serialized = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+  assert.ok(serialized.length <= 1232);
+  assert.equal(plan.blocks.length, 3);
+});
+
+test("the maximum three-chunk support collapse still fits one legacy packet", () => {
+  const accounts = miningAccounts();
+  const blocks = [];
+  outer: for (let y = -20; y < -15; y += 1) {
+    for (let z = 0; z < 3; z += 1) {
+      for (let x = 0; x < 48; x += 1) {
+        blocks.push({ x, y, z, blockId: 4 });
+        if (blocks.length === 640) break outer;
+      }
+    }
+  }
+  const [primary, ...collapse] = blocks;
+  const plan = createAtomicSupportCollapsePlan(primary, collapse);
+  const instructions = plan.ranges.map((range) => createRangeMineWithRewardsInstruction({
+    ...accounts,
+    range,
+    mode: range.mode,
+  }));
+  const baselineInstruction = createSyncPlayerSkillsInstruction({
+    payer: accounts.authority,
+    owner: accounts.owner,
+    sourceAccounts: [instructions[0].keys[3].pubkey],
+  });
+  const syncInstruction = createSyncPlayerSkillsInstruction({
+    payer: accounts.authority,
+    owner: accounts.owner,
+    sourceAccounts: [
+      instructions[0].keys[3].pubkey,
+      instructions[0].keys[1].pubkey,
+      accounts.backpack,
+    ],
+    miningCoordinate: primary,
+  });
+  const transaction = new Transaction({
+    feePayer: accounts.authority,
+    recentBlockhash: accounts.owner.toBase58(),
+  }).add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+    baselineInstruction,
+    ...instructions,
+    syncInstruction,
+  );
+
+  const serialized = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+  assert.equal(plan.chunkCount, 3);
+  assert.equal(plan.blocks.length, 640);
+  assert.ok(serialized.length <= 1232, `three-chunk collapse is ${serialized.length} bytes`);
 });

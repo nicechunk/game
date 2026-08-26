@@ -79,6 +79,16 @@ export function createMiningController({
     const def = blockDef(targetHit.blockId);
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
     const miningPlan = miningPlanForHit(targetHit, def);
+    if (miningPlan.blockedReason) {
+      const key = miningPlan.blockedReason === "chunk-limit"
+        ? "main.supportCollapse.chunkLimit"
+        : "main.supportCollapse.blockLimit";
+      const fallback = miningPlan.blockedReason === "chunk-limit"
+        ? `The unsupported structure crosses more than ${miningPlan.blockedLimit} chunks. No blocks were mined.`
+        : `The unsupported structure exceeds ${miningPlan.blockedLimit} blocks. No blocks were mined.`;
+      onStatus(translate(key, fallback));
+      return null;
+    }
     if (miningPlan.blocks?.some?.((block) => isBlockProtected(block)) || isBlockProtected(targetHit)) {
       onStatus(protectedChunkMessage());
       return null;
@@ -590,6 +600,8 @@ export function createMiningController({
       blocks,
       collapseBlocks: uniqueMiningBlocks((external.collapseBlocks ?? []).map(normalizeMiningBlock).filter(Boolean)),
       rewardBlocks: rewardBlocks.length ? rewardBlocks : blocks,
+      blockedReason: String(external.blockedReason || ""),
+      blockedLimit: Math.max(0, Math.trunc(Number(external.blockedLimit) || 0)),
       requiredDamage: fallback.requiredDamage,
     };
   }
