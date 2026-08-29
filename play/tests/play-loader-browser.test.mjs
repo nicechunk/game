@@ -139,7 +139,7 @@ test("Loader opens the full RPC settings flow, restores on dismiss, and retries 
     await page.waitForFunction(() => !document.querySelector("#nc-loader"));
     const result = await page.evaluate(() => ({
       attempts: globalThis.__characterAttempts,
-      key: localStorage.getItem("nicechunk.heliusApiKey"),
+      key: sessionStorage.getItem("nicechunk.heliusApiKey"),
     }));
     assert.equal(result.attempts, 2);
     assert.equal(result.key, "loader-test-helius-key");
@@ -260,7 +260,7 @@ function createFixture() {
               panel.hidden = false;
               form.onsubmit = (event) => {
                 event.preventDefault();
-                localStorage.setItem("nicechunk.heliusApiKey", document.querySelector("#fixtureRpcKey").value);
+                sessionStorage.setItem("nicechunk.heliusApiKey", document.querySelector("#fixtureRpcKey").value);
                 panel.hidden = true;
                 resolve({ action: "saved", mode: "helius" });
               };

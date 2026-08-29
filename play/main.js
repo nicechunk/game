@@ -90,6 +90,9 @@ import {
   enforcePlayCharacterAccess,
   hasVerifiedPlayCharacterAccess,
 } from "./play-character-access-gate.js";
+import { migrateHeliusApiKeyFromLocalStorage } from "/src/rpcConfig.js";
+
+migrateHeliusApiKeyFromLocalStorage();
 
 const params = new URLSearchParams(location.search);
 const initialWalletSession = getWalletSession();
