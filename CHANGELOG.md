@@ -14,6 +14,8 @@ from an npm package release.
 
 ### Fixed
 
+- Kept reconstructed hammer contact joints consistent when restoring saved
+  forged equipment in gameplay, using the pinned native Chunk.js engine.
 - Updated the Chunk.js submodule to make shape capacity advisory while retaining
   material-proof integrity checks. Forging receipts distinguish input validation
   from capacity enforcement; live unrestricted forging also requires the matching
