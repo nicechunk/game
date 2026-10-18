@@ -172,8 +172,8 @@ export function createPlayGameState({
         const normalized = normalizeForgedHotbarSlot({
           ...backpackSlot,
           ...slot,
-          bytes: designUnchanged ? slot.bytes : [],
-          code: designUnchanged ? slot.code : "",
+          bytes: backpackSlot.bytes?.length ? backpackSlot.bytes : designUnchanged ? slot.bytes : [],
+          code: backpackSlot.bytes?.length ? "" : designUnchanged ? slot.code : "",
           designHash: backpackSlot.designHash,
           chainBackpack: backpackSlot.chainBackpack,
           chainIndex: backpackSlot.chainIndex,
@@ -1048,6 +1048,7 @@ function normalizeSmeltedSlot(slot) {
 }
 
 function normalizeForgedBackpackSlot(slot) {
+  const model = normalizeForgedHotbarSlot({ ...slot, itemId: FORGED_ITEM_ID });
   return {
     id: String(slot.id || `chain-forged-${slot.chainIndex ?? 0}-${slot.chainItemId || slot.itemCode || 0}`),
     kind: "forged",
@@ -1056,6 +1057,7 @@ function normalizeForgedBackpackSlot(slot) {
     className: String(slot.className || "Forged"),
     count: pdaAwareSlotCount(slot, MATERIAL_STACK_LIMIT),
     designHash: clampInt(slot.designHash, 0, 0xffffffff),
+    bytes: model?.bytes ?? [],
     pendingTxId: null,
     pending: false,
     ...normalizePdaItemFields(slot),

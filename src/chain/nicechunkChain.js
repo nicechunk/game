@@ -4367,6 +4367,21 @@ export async function setPlayerEquipmentSlotsOnChain(changes = []) {
     }
     const backpackIndex = findBackpackReferenceIndex(backpack, reference);
     if (backpackIndex < 0) throw new Error("equipment-backpack-item-not-found");
+    const backpackSlot = backpack.slots[backpackIndex];
+    // A purchased item may have no model in the browser's forge library. Use
+    // the immutable ForgedItem data hydrated by this fresh Backpack read.
+    const modelBytes = Buffer.from(backpackSlot.modelBytes?.length
+      ? backpackSlot.modelBytes
+      : reference.modelBytes);
+    const forged = backpackSlot.category === backpackItemCategoryForged
+      && backpackSlot.itemCode === backpackForgedItemCode;
+    if (forged && (modelBytes.length < 14
+      || modelBytes.length > playerEquipmentModelCodeMaxBytes
+      || modelBytes[0] >> 4 !== 15
+      || forgeDesignHashFromCodeBytes(modelBytes) !== (Number(backpackSlot.metadata) >>> 0))) {
+      throw new Error("equipment-model-unavailable");
+    }
+    reference.modelBytes = modelBytes;
     await submitInstruction(createTransferPlayerEquipmentSlotInstruction({
       authority: provider.publicKey,
       playerProfile,
@@ -4374,15 +4389,15 @@ export async function setPlayerEquipmentSlotsOnChain(changes = []) {
       backpack: new PublicKey(backpack.publicKey),
       slot: change.slot,
       backpackIndex,
-      modelBytes: reference.modelBytes,
+      modelBytes,
     }));
     changedBackpacks.add(backpack.publicKey);
     simulatedSlots[change.slot] = simulatedEquipmentSlotFromBackpack(
-      backpack.slots?.[backpackIndex],
+      backpackSlot,
       backpack.publicKey,
       backpackIndex,
       change.slot,
-      reference.modelBytes,
+      modelBytes,
     );
   }
 

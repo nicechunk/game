@@ -7,6 +7,62 @@ import { resolveGuardianEquipmentFromChain } from "../play-guardian-equipment.js
 const OWNER = "WalletEquipmentOwner111111111111111111111111";
 const BACKPACK = "BackpackEquipment111111111111111111111111";
 
+test("purchased equipment retains its on-chain model without a local forge library", () => {
+  withLocalStorage(() => {
+    const modelBytes = validNcf1Bytes();
+    const mutations = [];
+    const state = createPlayGameState({
+      ownerAddress: OWNER,
+      onEquipmentChange: (mutation) => mutations.push(mutation),
+    });
+    state.mergeChainBackpackSlots([chainTool({
+      chainItemId: "7517507680304288235",
+      designHash: fnv1a32(modelBytes),
+      bytes: modelBytes,
+    })]);
+
+    const equipped = state.equipBackpackSlotToHotbar(state.backpackSlots[0].id, 2);
+
+    assert.equal(equipped.ok, true);
+    assert.deepEqual(equipped.slot.bytes, modelBytes);
+    assert.deepEqual(mutations[0].changes[0].reference.modelBytes, modelBytes);
+    assert.equal(mutations[0].changes[0].reference.chainItemId, "7517507680304288235");
+    assert.match(equipped.slot.code, /^NCF1\./);
+  });
+});
+
+test("a backpack refresh hydrates an existing empty-model equipment shortcut", () => {
+  withLocalStorage(() => {
+    const modelBytes = validNcf1Bytes();
+    const tool = chainTool({ designHash: fnv1a32(modelBytes) });
+    const state = createPlayGameState({ ownerAddress: OWNER });
+    state.mergeChainBackpackSlots([tool]);
+    const equipped = state.equipBackpackSlotToHotbar(state.backpackSlots[0].id, 2);
+    assert.deepEqual(equipped.slot.bytes, []);
+
+    state.mergeChainBackpackSlots([{ ...tool, bytes: Uint8Array.from(modelBytes) }]);
+
+    assert.deepEqual(state.hotbarSlots[2].bytes, modelBytes);
+    assert.deepEqual(state.getHotbarEquipmentChainReference(2).modelBytes, modelBytes);
+  });
+});
+
+test("a mismatched backpack model cannot become equipment payload", () => {
+  withLocalStorage(() => {
+    const modelBytes = validNcf1Bytes();
+    const state = createPlayGameState({ ownerAddress: OWNER });
+    state.mergeChainBackpackSlots([chainTool({
+      designHash: (fnv1a32(modelBytes) ^ 1) >>> 0,
+      bytes: modelBytes,
+    })]);
+    const equipped = state.equipBackpackSlotToHotbar(state.backpackSlots[0].id, 2);
+
+    assert.equal(equipped.ok, true);
+    assert.deepEqual(equipped.slot.bytes, []);
+    assert.deepEqual(state.getHotbarEquipmentChainReference(2).modelBytes, []);
+  });
+});
+
 test("chain-backed equip and unequip operations emit exact PDA references", () => {
   withLocalStorage(() => {
     const mutations = [];

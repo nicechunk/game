@@ -14,6 +14,9 @@ from an npm package release.
 
 ### Fixed
 
+- Preserved immutable NCF1 model data when equipping purchased forged items.
+  Equipment saves refresh the model and item identity from chain state, so buyers
+  do not need the creator's local forge library and stale backpack indexes recover.
 - Kept reconstructed hammer contact joints consistent when restoring saved
   forged equipment in gameplay, using the pinned native Chunk.js engine.
 - Updated the Chunk.js submodule to make shape capacity advisory while retaining
