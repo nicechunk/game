@@ -12,6 +12,12 @@ from an npm package release.
 
 ## Unreleased
 
+### Fixed
+
+- Restored Enter and numpad Enter to open chat during gameplay, preserving
+  message submission, text fields, and IME composition. World-delta confirmation
+  remains available through its explicit action button.
+
 ### Added
 
 - Public project overview and real gameplay capture.

@@ -68,6 +68,7 @@ export function createPlayInputActions({
   }
 
   function onKeyDown(event) {
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
     const debugController = getDebugController();
     if (event.code === "Slash" && !isTextInputActive()) {
       event.preventDefault();
@@ -94,6 +95,12 @@ export function createPlayInputActions({
       }
     }
     if (isTextInputActive()) return;
+    if (event.key === "Enter" || event.code === "Enter" || event.code === "NumpadEnter") {
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      event.preventDefault();
+      openDebugCommandLine("");
+      return;
+    }
     if (event.code === "KeyE" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleFirstPersonCamera();
@@ -114,7 +121,6 @@ export function createPlayInputActions({
       }
     }
     if (event.code === "KeyF") useSelectedHotbarAction();
-    if (event.code === "Enter") confirmLastWorldDelta();
     if (event.code === "Backspace") {
       event.preventDefault();
       rollbackLastWorldDelta();
