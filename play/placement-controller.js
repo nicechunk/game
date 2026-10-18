@@ -16,13 +16,16 @@ export function createPlacementController({
   isBlockProtected = () => false,
   translate = (_, fallback) => fallback,
   placementReach = 6,
+  maxPendingPlacements = 64,
 } = {}) {
   const pendingTx = [];
+  const inventoryReservations = new Map();
+  const sourceQuantities = new Map();
   let txSerial = 1;
 
   function placePending() {
-    if (pendingTx.length) {
-      onStatus(text("main.placement.inFlight", "A block placement is already being confirmed on chain."));
+    if (pendingTx.length >= maxPendingPlacements) {
+      onStatus(text("main.placement.queueFull", "The placement queue is full. Wait for a queued block to confirm."));
       return null;
     }
     const selected = gameState.getSelectedPlaceableSlot?.();
@@ -42,6 +45,24 @@ export function createPlacementController({
     const sourceReference = gameState.getHotbarEquipmentChainReference?.(selected.index);
     if (!sourceReference || sourceReference.kind !== "block" || sourceReference.blockId !== blockId) {
       onStatus(text("main.placement.sourceUnavailable", "The selected resource is not linked to an authoritative chain inventory slot."));
+      return null;
+    }
+    const sourceKey = placementSourceKey(sourceReference);
+    const quantity = Math.max(0, Math.trunc(Number(selected.slot.count) || 0));
+    // Keep confirmed spends reserved until an inventory read reflects them.
+    // A slow or failed PDA refresh must not make spent blocks usable again.
+    let visibleSpends = Math.max(0, (sourceQuantities.get(sourceKey) ?? quantity) - quantity);
+    for (const [reservedTxId, reservation] of inventoryReservations) {
+      if (!visibleSpends) break;
+      if (reservation.sourceKey === sourceKey && reservation.confirmed) {
+        inventoryReservations.delete(reservedTxId);
+        visibleSpends--;
+      }
+    }
+    sourceQuantities.set(sourceKey, quantity);
+    const reserved = [...inventoryReservations.values()].filter((entry) => entry.sourceKey === sourceKey).length;
+    if (reserved >= quantity) {
+      onStatus(text("main.placement.stockReserved", "The remaining blocks in this stack are already queued."));
       return null;
     }
 
@@ -64,8 +85,8 @@ export function createPlacementController({
       sourceReference: cloneSourceReference(sourceReference),
     };
     pendingTx.push(pending);
+    inventoryReservations.set(txId, { sourceKey, pending });
     onPlacementStart(pending);
-    onPending(pending);
     onChanged();
     onStatus(text("main.placement.pending", "Pending place {txId}: {block} at {x}, {y}, {z}.", {
       txId,
@@ -74,6 +95,7 @@ export function createPlacementController({
       y: target.worldY,
       z: target.worldZ,
     }));
+    onPending(pending);
     return pending;
   }
 
@@ -99,6 +121,8 @@ export function createPlacementController({
       return null;
     }
     chunks.confirmPendingDelta(pending.txId);
+    const reservation = inventoryReservations.get(pending.txId);
+    if (reservation) reservation.confirmed = true;
     gameState.playerProfile.placedBlocks = (gameState.playerProfile.placedBlocks || 0) + 1;
     gameState.playerProfile.confirmedPlacements = (gameState.playerProfile.confirmedPlacements || 0) + 1;
     gameState.savePlayerProfile();
@@ -129,6 +153,7 @@ export function createPlacementController({
       onStatus(text("main.placement.noPendingRollback", "No pending placement to rollback."));
       return null;
     }
+    inventoryReservations.delete(pending.txId);
     chunks.rollbackPendingDelta(pending.txId);
     gameState.syncHotbarResourceSlots?.();
     gameState.playerProfile.rolledBackPlacements = (gameState.playerProfile.rolledBackPlacements || 0) + 1;
@@ -209,6 +234,14 @@ export function createPlacementController({
     rollbackLast,
     rollbackTx,
     previewForHit,
+    validateQueuedTx(txId) {
+      const pending = pendingTx.find((entry) => entry.txId === txId);
+      if (!pending) return { ok: false, reason: "placement-no-longer-pending" };
+      const anchor = chunks.getBlockAtWorld(pending.anchorWorldX, pending.anchorWorldY, pending.anchorWorldZ);
+      if (anchor == null || anchor === blockAirId) return { ok: false, reason: "placement-anchor-unavailable" };
+      if (isBlockProtected(pending)) return { ok: false, reason: "placement-protected" };
+      return { ok: true };
+    },
     pendingCount: () => pendingTx.length,
     pendingSnapshot: () => pendingTx.map((entry) => ({
       ...entry,
@@ -224,6 +257,14 @@ export function createPlacementController({
   function text(key, fallback, params = {}) {
     return translate(key, fallback, params) || fallback;
   }
+}
+
+function placementSourceKey(reference) {
+  return JSON.stringify([
+    reference.backpackAddress, reference.sourceType, reference.equipmentSlot,
+    reference.sourceItemId || reference.backpackIndex, reference.blockId,
+    reference.proof?.worldX, reference.proof?.worldY, reference.proof?.worldZ,
+  ]);
 }
 
 function cloneSourceReference(reference) {

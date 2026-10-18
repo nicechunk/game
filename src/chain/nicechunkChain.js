@@ -1,5 +1,6 @@
 import { Buffer } from "buffer";
 import bs58 from "bs58";
+import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
@@ -5593,15 +5594,17 @@ async function loadAuthoritativePlacementSource({ owner, reference, expectedBloc
   const backpackBefore = miningBackpackSnapshot(decodedBackpack);
 
   if (sourceType === "backpack") {
-    if (backpackIndex >= decodedBackpack.itemCount) return null;
-    const offset = backpackHeaderLength + backpackIndex * backpackSlotRecordLength;
+    const resolvedIndex = resolvePlacementBackpackSlotIndex(decodedBackpack.slots, reference,
+      (slot) => isMatchingPlacementBlockSlot(slot, expectedBlockId));
+    if (resolvedIndex < 0) return null;
+    const offset = backpackHeaderLength + resolvedIndex * backpackSlotRecordLength;
     const expectedSlot = Buffer.from(backpackData.subarray(offset, offset + backpackSlotRecordLength));
     const slot = decodeBackpackSlot(expectedSlot, 0);
     if (!isMatchingPlacementBlockSlot(slot, expectedBlockId)) return null;
     return {
       sourceType,
       sourceKind: PLACEMENT_SOURCE_BACKPACK,
-      sourceIndex: backpackIndex,
+      sourceIndex: resolvedIndex,
       backpack,
       backpackBefore,
       expectedSlot,

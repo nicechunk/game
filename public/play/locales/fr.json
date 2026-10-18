@@ -1701,7 +1701,9 @@
       "clearFace": "Le placement nécessite une face de bloc dégagée.",
       "outOfReach": "La cible de placement est hors de portée.",
       "occupied": "La cible de placement est occupée.",
-      "intersectsPlayer": "Impossible de placer un bloc dans le corps du joueur."
+      "intersectsPlayer": "Impossible de placer un bloc dans le corps du joueur.",
+      "queueFull": "La file de placement est pleine. Attendez la confirmation d’un bloc.",
+      "stockReserved": "Les blocs restants de cette pile sont déjà dans la file."
     },
     "supportCollapse": {
       "blockLimit": "La structure non soutenue dépasse la limite atomique de 640 blocs. Aucun bloc n'a été miné.",

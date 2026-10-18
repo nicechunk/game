@@ -26,6 +26,7 @@ export function createActionOverlayBuilder({
       }
 
       const pendingKeys = appendPendingMiningOverlays(overlays, now);
+      appendPendingPlacementOverlays(overlays, now);
 
       if (hit?.hit) {
         const placementPreview = getPlacement()?.previewForHit?.(hit);
@@ -53,6 +54,20 @@ export function createActionOverlayBuilder({
       return overlays;
     },
   };
+
+  function appendPendingPlacementOverlays(overlays, now) {
+    const wave = 0.5 + 0.5 * Math.sin(now * 0.008);
+    for (const entry of getPlacement()?.pendingSnapshot?.() ?? []) {
+      overlays.push({
+        worldX: entry.worldX,
+        worldY: entry.worldY,
+        worldZ: entry.worldZ,
+        expand: 0.006,
+        fillColor: [0.35, 0.78, 1, 0.08 + wave * 0.42],
+        lineColor: [0.5, 0.9, 1, 0.25 + wave * 0.75],
+      });
+    }
+  }
 
   function appendPendingMiningOverlays(overlays, now) {
     const pendingKeys = new Set();

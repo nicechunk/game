@@ -1701,7 +1701,9 @@
       "clearFace": "放置需要一个未被遮挡的方块表面。",
       "outOfReach": "放置目标超出距离。",
       "occupied": "放置目标已被占用。",
-      "intersectsPlayer": "不能在角色身体内放置方块。"
+      "intersectsPlayer": "不能在角色身体内放置方块。",
+      "queueFull": "放置队列已满，请等待队列中的方块确认。",
+      "stockReserved": "这组材料剩余的方块已全部加入放置队列。"
     },
     "supportCollapse": {
       "blockLimit": "失去支撑的结构超过 640 方块原子交易上限，本次没有挖掘任何方块。",

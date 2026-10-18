@@ -1701,7 +1701,9 @@
       "clearFace": "La colocación necesita una cara de bloque despejada.",
       "outOfReach": "El objetivo de colocación está fuera de alcance.",
       "occupied": "El objetivo de colocación está ocupado.",
-      "intersectsPlayer": "No se puede colocar un bloque dentro del cuerpo del jugador."
+      "intersectsPlayer": "No se puede colocar un bloque dentro del cuerpo del jugador.",
+      "queueFull": "La cola de colocación está llena. Espera a que se confirme un bloque.",
+      "stockReserved": "Los bloques restantes de esta pila ya están en la cola."
     },
     "supportCollapse": {
       "blockLimit": "La estructura sin soporte supera el límite atómico de 640 bloques. No se extrajo ningún bloque.",

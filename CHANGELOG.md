@@ -14,6 +14,10 @@ from an npm package release.
 
 ### Fixed
 
+- Queued continuous block placements while submitting transactions in order.
+  Unconfirmed blocks pulse in the world and their event cards show queued,
+  submitting, confirmed, or failed states. Inventory reservations prevent
+  queueing more blocks than the selected stack contains.
 - Restored Enter and numpad Enter to open chat during gameplay, preserving
   message submission, text fields, and IME composition. World-delta confirmation
   remains available through its explicit action button.

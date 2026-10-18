@@ -1,5 +1,6 @@
 import { createPlayChainAdapter } from "./play-chain-adapter.js";
 import { createPlayChainEventFeed } from "./play-chain-event-feed.js";
+import { createPlacementSubmissionQueue } from "./play-placement-queue.js";
 import {
   hydrateChainTransactionFailure,
   logChainSubmissionFailure,
@@ -82,6 +83,15 @@ export function createPlayChainSession({
     getPlayerPosition,
     getBackpackSnapshot,
     appendEvent: appendChainEvent,
+  });
+  const placementQueue = createPlacementSubmissionQueue({
+    submit: (pending, controls) => submitPendingToChain("place", pending, controls),
+    onError: (pending, controls, error) => {
+      const reason = readableError(error);
+      state.chainResults.set(pending.txId, { reason });
+      controls.rollbackTx?.(pending.txId);
+      appendSubmissionState("place", pending, `${pending.txId} failed: ${reason}`, "error", { reason });
+    },
   });
 
   const api = {
@@ -572,9 +582,9 @@ export function createPlayChainSession({
   function handlePendingPlace(pending, controls = {}) {
     if (!pending) return;
     state.lastProof = proofFromPending(pending, "placement-pending", "place");
-    appendChainEvent(`Pending placement x=${pending.worldX} y=${pending.worldY} z=${pending.worldZ} block=${pending.blockId} from resource=${pending.resourceId}.`);
+    appendSubmissionState("place", pending, `Queued placement at ${pending.worldX},${pending.worldY},${pending.worldZ}.`, "pending", { phase: "queued" });
     render();
-    submitPendingToChain("place", pending, controls);
+    void placementQueue.enqueue(pending, controls);
   }
 
   function handleConfirmedPlace(pending) {
@@ -582,9 +592,9 @@ export function createPlayChainSession({
     const chainResult = takeChainResult(pending.txId);
     state.lastProof = proofFromPending(pending, "placement-confirmed", "place");
     if (chainResult?.signature) {
-      appendChainEvent(`Placement confirmed on chain ${shortSignature(chainResult.signature)} for ${pending.worldX},${pending.worldY},${pending.worldZ}.`);
+      appendSubmissionState("place", pending, `Placement confirmed on chain ${shortSignature(chainResult.signature)} for ${pending.worldX},${pending.worldY},${pending.worldZ}.`, "confirmed", { signature: chainResult.signature });
     } else {
-      appendChainEvent(`Confirmed placement ${pending.txId}; integer placement tuple preserved for chain adapter.`);
+      appendSubmissionState("place", pending, `Confirmed placement ${pending.txId}; integer placement tuple preserved for chain adapter.`, "confirmed");
     }
     render();
   }
@@ -593,9 +603,9 @@ export function createPlayChainSession({
     if (!pending) return;
     const chainResult = takeChainResult(pending.txId);
     state.lastProof = proofFromPending(pending, "placement-rollback", "place");
-    appendChainEvent(chainResult?.reason
+    appendSubmissionState("place", pending, chainResult?.reason
       ? `Rolled back placement ${pending.txId}; chain rejected proof: ${chainResult.reason}.`
-      : `Rolled back placement ${pending.txId}; block delta removed and backpack stack restored.`);
+      : `Rolled back placement ${pending.txId}; unconfirmed block preview removed.`, "error", { reason: chainResult?.reason });
     render();
   }
 
@@ -696,6 +706,14 @@ export function createPlayChainSession({
 
   async function submitPendingToChain(action, pending, controls = {}) {
     if (!pending?.txId) return;
+    if (action === "place") {
+      const validation = controls.validateTx?.(pending.txId);
+      if (validation && !validation.ok) {
+        state.chainResults.set(pending.txId, { reason: validation.reason });
+        controls.rollbackTx?.(pending.txId);
+        return;
+      }
+    }
     if (!chainAdapter.isEnabled()) {
       state.chainMode = "local-preview";
       const reason = "chain-submission-disabled";
@@ -757,7 +775,7 @@ export function createPlayChainSession({
         pending.chainSignature = result.signature;
         pending.chainPlayerPositionSaved = Boolean(result.result?.playerPositionSaved);
         pending.chainResult = result.result ?? null;
-        const confirmed = controls.confirmTx?.(pending.txId);
+        const confirmed = await controls.confirmTx?.(pending.txId);
         if (!confirmed) {
           state.chainResults.delete(pending.txId);
           appendSubmissionState(
@@ -889,7 +907,14 @@ export function createPlayChainSession({
 
   function appendSubmissionState(action, pending, message, eventState, options = {}) {
     if (action === "mine") return appendChainEvent(message, miningEventOptions(pending, eventState, options));
-    return appendChainEvent(message);
+    return appendChainEvent(message, {
+      kind: "placement", state: eventState, eventId: pending.txId,
+      eyebrow: eventState === "confirmed" ? "ON CHAIN" : eventState === "error" ? "PLACEMENT FAILED"
+        : options.phase === "queued" ? "QUEUED" : "SUBMITTING",
+      title: `Place block at ${pending.worldX}, ${pending.worldY}, ${pending.worldZ}`,
+      detail: options.reason || (options.signature ? shortSignature(options.signature) : message),
+      holdUntilResolved: eventState === "pending",
+    });
   }
 
   function takeChainResult(txId) {

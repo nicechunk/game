@@ -51,7 +51,8 @@ test("a valid resource placement starts one hand action at the committed preview
   assert.equal(starts[0], pending);
   assert.equal(pendingDeltas.length, 1);
   assert.equal(pending.sourceReference.sourceType, "equipment");
-  assert.equal(controller.placePending(), null, "a second placement must not start while the first is in flight");
+  // This target is already occupied by the first preview. Other targets may
+  // join the queue before the first chain transaction confirms.
   assert.equal(controller.confirmLast(), null, "manual confirmation cannot bypass chain finality");
   assert.equal(controller.pendingCount(), 1);
   assert.equal(controller.confirmTx(pending.txId, { chainResolution: true }), pending);

@@ -1701,7 +1701,9 @@
       "clearFace": "Placement needs a clear block face.",
       "outOfReach": "Placement target is out of reach.",
       "occupied": "Placement target is occupied.",
-      "intersectsPlayer": "Cannot place a block inside the player body."
+      "intersectsPlayer": "Cannot place a block inside the player body.",
+      "queueFull": "The placement queue is full. Wait for a queued block to confirm.",
+      "stockReserved": "The remaining blocks in this stack are already queued."
     },
     "supportCollapse": {
       "blockLimit": "The unsupported structure exceeds the 640-block atomic limit. Nothing was mined.",

@@ -1701,7 +1701,9 @@
       "clearFace": "Zum Platzieren wird eine freie Blockfläche benötigt.",
       "outOfReach": "Das Platzierungsziel ist außer Reichweite.",
       "occupied": "Das Platzierungsziel ist belegt.",
-      "intersectsPlayer": "Ein Block kann nicht im Körper der Spielfigur platziert werden."
+      "intersectsPlayer": "Ein Block kann nicht im Körper der Spielfigur platziert werden.",
+      "queueFull": "Die Platzierungswarteschlange ist voll. Warte auf eine Bestätigung.",
+      "stockReserved": "Die übrigen Blöcke dieses Stapels sind bereits eingereiht."
     },
     "supportCollapse": {
       "blockLimit": "Die ungestützte Struktur überschreitet das atomare Limit von 640 Blöcken. Es wurde nichts abgebaut.",

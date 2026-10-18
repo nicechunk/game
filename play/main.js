@@ -1269,7 +1269,13 @@ async function boot() {
     onPending: (pending) => {
       lastWorldDeltaKind = "place";
       chainSession?.handlePendingPlace(pending, {
-        confirmTx: (txId) => placement?.confirmTx?.(txId, { chainResolution: true }),
+        validateTx: (txId) => placement?.validateQueuedTx?.(txId),
+        confirmTx: async (txId) => {
+          const confirmed = placement?.confirmTx?.(txId, { chainResolution: true });
+          if (!confirmed) return null;
+          await refreshPdaBackpackAfterAction(confirmed).catch(() => null);
+          return confirmed;
+        },
         rollbackTx: (txId) => placement?.rollbackTx?.(txId, { chainResolution: true }),
       });
     },
@@ -1277,7 +1283,6 @@ async function boot() {
       chainSession?.handleConfirmedPlace(pending);
       chainChunkDeltas?.invalidateChunkForWorld(pending.worldX, pending.worldZ);
       chainChunkDeltas?.requestSync({ reason: "place-confirm", quiet: true });
-      refreshPdaBackpackAfterAction(pending);
     },
     onRollback: (pending) => chainSession?.handleRollbackPlace(pending),
     translate: translateWithFallback,
@@ -2058,8 +2063,9 @@ function refreshPdaBackpackAfterAction(pending) {
   if (pending.chainAction === "place") {
     refreshes.push(chainPlayer?.refresh?.({ force: true, quiet: true }));
   }
-  Promise.allSettled(refreshes.filter(Boolean)).then((results) => {
+  return Promise.allSettled(refreshes.filter(Boolean)).then((results) => {
     if (results.some((result) => result.status === "fulfilled" && result.value?.ok)) renderGameUi();
+    return results;
   });
 }
 
