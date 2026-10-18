@@ -14,6 +14,10 @@ from an npm package release.
 
 ### Fixed
 
+- Updated the Chunk.js submodule to make shape capacity advisory while retaining
+  material-proof integrity checks. Forging receipts distinguish input validation
+  from capacity enforcement; live unrestricted forging also requires the matching
+  gameplay-program upgrade.
 - Queued continuous block placements while submitting transactions in order.
   Unconfirmed blocks pulse in the world and their event cards show queued,
   submitting, confirmed, or failed states. Inventory reservations prevent

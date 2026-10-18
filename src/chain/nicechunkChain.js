@@ -4093,6 +4093,8 @@ export async function forgeEquipmentOnChain({
     consumedIndexes: inputIndexes,
     verificationMode: "material-parameters-v1",
     materialParametersVerifiedOnChain: true,
+    materialCapacityEnforced: false,
+    materialInputsVerifiedOnChain: true,
     destination: "backpack",
     programId: gameContext.backpackProgramId.toBase58(),
   };
