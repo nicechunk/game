@@ -14,6 +14,8 @@ from an npm package release.
 
 ### Fixed
 
+- Preserve sub-grid forged shapes in gameplay and equipment previews with the
+  pinned engine's fine-position runtime meshes.
 - Hydrated immutable forged models during ordinary equipped-backpack reads, so
   market inventory, purchased equipment and hotbar icons restore their appearance
   without the creator's local forge library.
