@@ -66,6 +66,7 @@ export function createPlayDebugController({
   }
 
   function closeCommandLine() {
+    elements.commandInput?.blur?.();
     if (elements.commandForm) elements.commandForm.hidden = true;
     if (elements.commandInput) elements.commandInput.value = "";
     canvas?.focus?.();

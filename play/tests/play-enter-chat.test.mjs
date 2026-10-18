@@ -8,7 +8,7 @@ try {
   const page = await browser.newPage();
   await page.route(`${server.baseUrl}/chat-keyboard`, (route) => route.fulfill({
     contentType: "text/html",
-    body: '<canvas tabindex="0"></canvas><form id="chat" hidden><input id="message"></form><input id="other">',
+    body: '<canvas></canvas><form id="chat" hidden><input id="message"></form><input id="other">',
   }));
   await page.goto(`${server.baseUrl}/chat-keyboard`);
   await page.evaluate(async () => {
@@ -41,6 +41,7 @@ try {
   assert.equal(await page.evaluate(() => opened), 1, "submitting must not reopen chat on the same key event");
 
   await page.keyboard.press("NumpadEnter");
+  assert.equal(await page.locator("#message").evaluate((input) => document.activeElement === input), true);
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("#chat").evaluate((form) => form.hidden), true);
   await page.keyboard.press("/");
