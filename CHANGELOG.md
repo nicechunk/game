@@ -14,6 +14,9 @@ from an npm package release.
 
 ### Fixed
 
+- Hydrated immutable forged models during ordinary equipped-backpack reads, so
+  market inventory, purchased equipment and hotbar icons restore their appearance
+  without the creator's local forge library.
 - Preserved immutable NCF1 model data when equipping purchased forged items.
   Equipment saves refresh the model and item identity from chain state, so buyers
   do not need the creator's local forge library and stale backpack indexes recover.

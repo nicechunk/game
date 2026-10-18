@@ -4,6 +4,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import {
   deriveForgedItemPda,
   getNicechunkConnection,
+  getEquippedBackpackStatus,
   setPlayerEquipmentSlotsOnChain,
 } from "../../src/chain/nicechunkChain.js";
 
@@ -77,6 +78,13 @@ test("equipment submission recovers purchased models from immutable chain data",
       blockhash: Keypair.generate().publicKey.toBase58(), lastValidBlockHeight: 100,
     }));
     t.mock.method(conn, "getSignatureStatuses", async () => ({ value: [{ err: null, confirmationStatus: "confirmed" }] }));
+    storage.set(`nicechunk.equippedBackpack.v1.${owner.toBase58()}`, JSON.stringify({
+      backpack: backpack.toBase58(), backpackId: "1", programId: programId.toBase58(),
+    }));
+    const status = await getEquippedBackpackStatus();
+    assert.equal(status.equipped, true);
+    assert.deepEqual(status.backpack.slots[0].modelBytes, [...modelBytes],
+      "the normal UI backpack status read must include purchased appearance before any equipment transaction");
     const change = (bytes) => [{ slot: 2, reference: {
       sourceType: "backpack", backpackAddress: backpack.toBase58(), backpackIndex: 0,
       chainItemId: itemId.toString(), itemCode: 8, itemPda: itemPda.toBase58(), modelBytes: bytes,

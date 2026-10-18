@@ -3986,6 +3986,7 @@ export async function getEquippedBackpackStatus({ prompt = false } = {}) {
   if (!equippedBackpack?.publicKey) {
     return { walletAvailable: Boolean(provider), owner: owner.toBase58(), equipped: false, backpack: null };
   }
+  await hydrateBackpackForgedItems(equippedBackpack, getNicechunkConnection());
   return { walletAvailable: Boolean(provider), owner: owner.toBase58(), equipped: true, backpack: equippedBackpack };
 }
 
