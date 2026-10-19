@@ -33,6 +33,8 @@ Validation artifacts, SBF replays, deployment receipts and public checks are rec
 
 The batch inventory path uses bounded reusable scratch buffers. Its outcomes are compared byte-for-byte with the previous storage algorithm across 400 randomized fragmented inventories. It retains existing ownership, canonical-address, material-physics and custody checks.
 
-### Full mining transaction and Skills
+### Bare-hand skill policy
 
-Skills must recognize authenticated Chunk bare-hand mining (tag **22**) and surface pebble pickup (tag **23**) when the browser submits its final mining-coordinate synchronization. This compatibility fix is deployed on Devnet at slot **512754451**. Full transaction regression includes baseline Skills synchronization, mining, the player position update when present, and final Skills synchronization; testing the mining instruction alone does not cover this transaction. See the [failure reproduction and upgrade verification](leaf-skills-proof-fix-20261019.md).
+Bare-hand collection grants **no skill XP or levels**. The browser omits both the Skills baseline and final synchronization. Chunk does not create, read or update PlayerProgress/PlayerSkills for these actions, and bare-hand inventory rewards do not advance the Backpack mining sequence or pre-mine snapshot. A later synchronization cannot convert these actions into gathering, exploration, travel or burden XP. Bare hands use the baseline gathering volume and drop chance without reading skill levels; Twig remains a fixed 30% drop.
+
+Authenticated legacy Skills synchronization following bare-hand mining (tag **22**) or surface pebble pickup (tag **23**) succeeds as a no-op, including when an older paid mining event is pending. Equipped mining retains its normal Skills synchronization and contract durability debit. Regression includes the complete transaction and a zero-Skills new-player path through crafting an axe and earning XP on the first equipped harvest. See the [no-XP implementation and deployment report](bare-hands-no-skills-20261019.md).

@@ -1,5 +1,7 @@
 # Leaf harvesting Skills proof fix — 2026-10-19
 
+Historical integration fix. The subsequent [bare-hand no-XP policy](bare-hands-no-skills-20261019.md) makes authenticated bare-hand Skills synchronization a no-op and removes it from the active client transaction.
+
 ## Failure
 
 The reported `0x1dcd` is **7629 / Skills::InvalidMiningProof**. The Chunk mining instruction completed inside simulation, then the final Skills instruction rejected the proof. The complete transaction rolled back.

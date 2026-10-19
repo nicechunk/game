@@ -3284,6 +3284,34 @@ function finalizedBuildingResult({
   };
 }
 
+export async function createResourceMiningSkillInstructions({
+  miningTool,
+  payer,
+  owner,
+  backpack,
+  block,
+  connection,
+  context = gameContext,
+}) {
+  if (miningTool?.kind === "bare-hands") return { baseline: null, sync: null };
+  const progress = derivePlayerProgressPdaForContext(owner, context)[0];
+  return {
+    baseline: await createPlayerSkillsBaselineInstructionIfNeeded({
+      payer,
+      owner,
+      sourceAccounts: [progress],
+      ruleIndexes: precisionGatheringRuleIndexes,
+      connection,
+    }),
+    sync: createSyncPlayerSkillsInstruction({
+      payer,
+      owner,
+      sourceAccounts: [progress, derivePlayerProfilePda(owner)[0], backpack],
+      miningCoordinate: block,
+    }),
+  };
+}
+
 export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {}) {
   if (!isNicechunkChainSyncEnabled()) {
     return { submitted: false, reason: "chain-sync-disabled" };
@@ -3333,13 +3361,14 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
     const solSpend = createSolSpendSummary();
     const initSignature = await ensureMiningAccountsInitialized(conn, session.keypair, blockChunkX(canonicalBlock.x), blockChunkZ(canonicalBlock.z), context);
     await addTransactionSolSpend(solSpend, conn, initSignature, session.keypair.publicKey);
-    const chunkProgress = derivePlayerProgressPdaForContext(provider.publicKey, context)[0];
-    const baselineInstruction = await createPlayerSkillsBaselineInstructionIfNeeded({
+    const { baseline: baselineInstruction, sync: skillSyncInstruction } = await createResourceMiningSkillInstructions({
+      miningTool: options?.miningTool,
       payer: session.keypair.publicKey,
       owner: provider.publicKey,
-      sourceAccounts: [chunkProgress],
-      ruleIndexes: precisionGatheringRuleIndexes,
+      backpack: equippedBackpack.publicKey,
+      block: canonicalBlock,
       connection: conn,
+      context,
     });
     tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
     if (baselineInstruction) tx.add(baselineInstruction);
@@ -3358,16 +3387,7 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       session,
       position: playerPositionForResourceMine(canonicalBlock, options),
     });
-    tx.add(createSyncPlayerSkillsInstruction({
-      payer: session.keypair.publicKey,
-      owner: provider.publicKey,
-      sourceAccounts: [
-        chunkProgress,
-        derivePlayerProfilePda(provider.publicKey)[0],
-        equippedBackpack.publicKey,
-      ],
-      miningCoordinate: canonicalBlock,
-    }));
+    if (skillSyncInstruction) tx.add(skillSyncInstruction);
 
     const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
     await addTransactionSolSpend(solSpend, conn, signature, session.keypair.publicKey);
@@ -7141,6 +7161,7 @@ function attachMiningTool(instruction, { owner, miningTool, context = gameContex
     const offset = context.isUnifiedGame && instruction.programId.equals(context.programId) ? 1 : 0;
     if (instruction.data[offset] !== 8) throw new Error("Bare hands only support a single natural target");
     instruction.data[offset] = miningTool.action === "pick-pebble" ? 23 : 22;
+    instruction.keys[3].isWritable = false;
     if (instruction.data[offset] === 23) {
       const x = instruction.data.readInt32LE(offset+9), z = instruction.data.readInt32LE(offset+15);
       instruction.keys.push({pubkey: deriveSurfacePickedPda(blockChunkX(x),blockChunkZ(z),context)[0],isSigner:false,isWritable:true});
