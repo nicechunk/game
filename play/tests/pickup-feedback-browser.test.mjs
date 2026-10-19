@@ -24,8 +24,7 @@ test('native pickup pulse covers the real pebble, preserves hand selection, and 
    const {PLAY_RENDER_OPTIONS}=await import('/play/play-render-options.js');
    const {STARTER_AXE_BYTES}=await import('/src/data/starterTools.js');
    const {setForgedItemRuntime}=await import('/play/forged-item-interaction.js');
-   const {createForgeRuntimeAsset}=await import('/chunk.js/forge/forge-runtime-cache.js');
-   const {decodeNcf1}=await import('/chunk.js/forge/forge-core.js');
+   const {ForgeRuntimeCache}=await import('/chunk.js/forge/forge-runtime-cache.js');
    const check=(ok,message)=>{if(!ok)throw Error(message);};
    const manager=new ChunkManager({useWorkers:false,viewDistance:1,preloadMargin:0,shadows:false,surfaceDecorationRules:DEFAULT_SURFACE_DECORATION_RULES});
    const chunk=manager.ensureChunk(63,61);manager.rebuildDirtyChunks(10000);
@@ -38,7 +37,8 @@ test('native pickup pulse covers the real pebble, preserves hand selection, and 
    check(plan?.surfaceDecoration,'verified world pebble fixture unavailable');
    const state=createPlayGameState();
    state.hotbarSlots[1]={itemId:'forged_item',kind:'forged',custodySource:'equipment',equipmentSlot:1,itemPda:'Axe111',bytes:[...STARTER_AXE_BYTES],durability:50,maxDurability:100};
-   setForgedItemRuntime(state.hotbarSlots[1],createForgeRuntimeAsset(decodeNcf1(STARTER_AXE_BYTES,{requireCanonical:true})));
+   setForgedItemRuntime(state.hotbarSlots[1],new ForgeRuntimeCache().restore(STARTER_AXE_BYTES));
+   state.selectHotbarSlot(1);check(state.getSelectedToolSlot(),'fixture must contain a usable verified tool');
    state.selectHotbarSlot(3);
    const controller=createMiningController({gameState:state,chunks:manager,getHit:()=>hit,getBareHandPlan:sync.bareHandPlan,blockDef,
     isFluidBlock:()=>false,isMineableBlock:()=>true,blockAirId:0,onSurfacePicked:sync.markPicked,

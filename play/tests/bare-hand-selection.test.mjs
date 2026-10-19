@@ -5,15 +5,15 @@ import {createMiningController} from '../mining-controller.js';
 import {createActionOverlayBuilder} from '../play-action-overlays.js';
 import {STARTER_AXE_BYTES} from '../../src/data/starterTools.js';
 import {setForgedItemRuntime} from '../forged-item-interaction.js';
-import {decodeNcf1} from '../../chunk.js/forge/forge-core.js';
-import {createForgeRuntimeAsset} from '../../chunk.js/forge/forge-runtime-cache.js';
-const runtime=createForgeRuntimeAsset(decodeNcf1(STARTER_AXE_BYTES,{requireCanonical:true}));
+import {ForgeRuntimeCache} from '../../chunk.js/forge/forge-runtime-cache.js';
+const runtime=new ForgeRuntimeCache().restore(STARTER_AXE_BYTES);
 
 function stateWithTool() {
  const state=createPlayGameState();
  state.hotbarSlots[1]={itemId:'forged_item',kind:'forged',custodySource:'equipment',equipmentSlot:1,itemPda:'Axe111',chainItemId:'1',
   bytes:[...STARTER_AXE_BYTES],durability:50,maxDurability:100};
  setForgedItemRuntime(state.hotbarSlots[1],runtime);
+ state.selectHotbarSlot(1);assert.ok(state.getSelectedToolSlot(),'fixture must contain a usable verified tool');
  state.selectHotbarSlot(3);
  return state;
 }
