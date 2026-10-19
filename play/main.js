@@ -1566,8 +1566,9 @@ function frame(now) {
   markFrameProbe(frameProbe, "chunk-rebuild");
   pruneGpuChunksForFrame(now);
   markFrameProbe(frameProbe, "gpu-prune");
-  const terrainVisibleChunks = chunks.getVisibleChunks(camera);
-  const visibleBuildingChunks = buildingChunksInView();
+  const renderFrameReady = renderer.canPrepareFrame();
+  const terrainVisibleChunks = renderFrameReady ? chunks.getVisibleChunks(camera) : [];
+  const visibleBuildingChunks = renderFrameReady ? buildingChunksInView() : [];
   const visibleChunks = terrainVisibleChunks.concat(visibleBuildingChunks);
   renderBudget?.noteWorldVisible?.(terrainVisibleChunks.length > 0);
   if (terrainVisibleChunks.length) chunks.setContinuousBuildDispatch?.(true);
@@ -1579,12 +1580,13 @@ function frame(now) {
   const uploadChunks = renderBudget?.uploadCandidatesForFrame?.(now, visibleChunks, movingNow) ?? visibleChunks;
   // Residency is independent of the draw set. Per-member uploads keep region
   // storage intact; render() still enforces the current radius and frustum.
-  const uploadStats = renderer.prepareChunksForRender(uploadChunks, {
+  const uploadStats = renderFrameReady ? renderer.prepareChunksForRender(uploadChunks, {
     maxUploads: renderBudget?.frameUploadBudget?.() ?? 1,
     deferRegionUploads: renderBudget?.shouldDeferRegionUploads?.(movingNow) ?? movingNow,
     cameraState: camera,
     residencyChunks: initialWorldCovered ? chunks.chunks.values() : [],
-  });
+    allowBackgroundUploads: !movingNow,
+  }) : { uploaded: 0, pendingUploads: renderer.pendingUploadSince.size, frameDeferred: true };
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);
   markFrameProbe(frameProbe, "action-hit");
@@ -1599,9 +1601,9 @@ function frame(now) {
   const forgedPlacementPreview = forgedPlacement?.previewEntity?.(lastHit);
   if (forgedPlacementPreview) frameAvatars.push(forgedPlacementPreview);
   updateViewEnvironment(now);
-  const worldReadiness = initialWorldCovered ? null : measurePlayWorldReadiness(chunks, renderer, camera);
+  const worldReadiness = initialWorldCovered || !renderFrameReady ? null : measurePlayWorldReadiness(chunks, renderer, camera);
   let renderStats;
-  if (shouldDeferCoveredWorld(worldReadiness)) {
+  if (!renderFrameReady || shouldDeferCoveredWorld(worldReadiness)) {
     renderer.sealDeferredUploads();
     renderStats = { ...renderer.stats, renderDeferred: true, cpuDrawSubmitMs: 0 };
   } else {
