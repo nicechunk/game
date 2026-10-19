@@ -80,8 +80,8 @@ export function createPlayChainAdapter({
         }
       : {};
     const mineOptions = mineShouldSavePlayerPosition(block)
-      ? { ...backpackOptions, durabilityDamage: pending.chainToolDamage, playerPosition: playerPositionProof(getPlayerPosition) }
-      : { ...backpackOptions, durabilityDamage: pending.chainToolDamage };
+      ? { ...backpackOptions, miningTool: pending.miningTool, playerPosition: playerPositionProof(getPlayerPosition) }
+      : { ...backpackOptions, miningTool: pending.miningTool };
     const isTreeFell = pending.miningKind === "tree-fell" && Array.isArray(pending.blocks) && pending.blocks.length > 1;
     const isSupportCollapse = pending.miningKind === "support-collapse" && Array.isArray(pending.collapseBlocks) && pending.collapseBlocks.length > 0;
     const isDebugBulkMine = pending.miningKind === "debug-bulk"
@@ -93,6 +93,7 @@ export function createPlayChainAdapter({
       if (typeof module.recordBulkMineOnChain !== "function") return skipped("record-bulk-mine-unavailable");
       const result = await module.recordBulkMineOnChain(pending.blocks.map(blockFromPending), {
         ...backpackOptions,
+        miningTool: pending.miningTool,
         mode: "debug",
       });
       return normalizeChainResult(result);

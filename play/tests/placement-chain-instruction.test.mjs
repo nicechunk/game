@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Keypair, SystemProgram } from "@solana/web3.js";
+import { ComputeBudgetInstruction, ComputeBudgetProgram, Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 
 import {
   PLACEMENT_SOURCE_EQUIPMENT,
   createMinePlacedBlockWithRewardsInstruction,
   createPlaceBlockInstruction,
+  createPlaceBlockTransaction,
   decodeChunkPlacedDeltas,
   deriveChunkBrokenPda,
   deriveChunkPlacedPda,
@@ -82,6 +83,35 @@ test("block placement submits an exact inventory slot snapshot to ChunkPlaced", 
   }), /exactly one block face/);
 });
 
+test("a complete placement reserves enough compute for forest support and target validation", () => {
+  const owner = Keypair.generate().publicKey;
+  const expectedSlot = Buffer.alloc(80, 0x5a);
+  const transaction = createPlaceBlockTransaction({
+    authority: owner,
+    owner,
+    backpack: Keypair.generate().publicKey,
+    target: { x: 1005, y: 109, z: 1017 },
+    anchor: { x: 1004, y: 109, z: 1017 },
+    sourceKind: PLACEMENT_SOURCE_EQUIPMENT,
+    sourceIndex: 2,
+    expectedSlot,
+  });
+  transaction.feePayer = owner;
+  transaction.recentBlockhash = Keypair.generate().publicKey.toBase58();
+
+  // Decode the actual wire transaction, including its budget prefix. A full
+  // Devnet simulation of this target costs 1,332,489 CU; the previous 700k
+  // budget exhausted before the inventory CPI was reached.
+  const wire = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+  const decoded = Transaction.from(wire);
+  assert.equal(decoded.instructions.length, 2);
+  assert.equal(decoded.instructions[0].programId.equals(ComputeBudgetProgram.programId), true);
+  assert.equal(ComputeBudgetInstruction.decodeSetComputeUnitLimit(decoded.instructions[0]).units, 1_400_000);
+  assert.equal(decoded.instructions[1].data[0], 14);
+  assert.equal(decoded.instructions[1].data.subarray(23).equals(expectedSlot), true);
+  assert.ok(wire.length <= 1_232, "the budgeted placement must fit one Solana packet");
+});
+
 test("placed-block mining addresses the sparse placement PDA and exact block id", () => {
   const authority = Keypair.generate().publicKey;
   const owner = Keypair.generate().publicKey;
@@ -94,16 +124,17 @@ test("placed-block mining addresses the sparse placement PDA and exact block id"
     block,
     actionId: 9n,
     expectedBlockId: 14,
+    miningTool: { kind: "equipment", equipmentSlot: 2, itemPda: Keypair.generate().publicKey },
   });
 
-  assert.equal(instruction.data.length, 21);
+  assert.equal(instruction.data.length, 22);
   assert.equal(instruction.data.readUInt8(0), 16);
   assert.equal(instruction.data.readBigUInt64LE(1), 9n);
   assert.equal(instruction.data.readInt32LE(9), block.x);
   assert.equal(instruction.data.readInt16LE(13), block.y);
   assert.equal(instruction.data.readInt32LE(15), block.z);
   assert.equal(instruction.data.readUInt16LE(19), 14);
-  assert.equal(instruction.keys.length, 12);
+  assert.equal(instruction.keys.length, 14);
   assert.equal(instruction.keys[4].pubkey.toBase58(), deriveChunkPlacedPda(1, -1)[0].toBase58());
   assert.equal(instruction.keys[8].pubkey.toBase58(), backpack.toBase58());
 });

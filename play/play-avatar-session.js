@@ -241,13 +241,6 @@ export function createPlayAvatarSession({
         payloadBytes: payloadSource?.length ? Uint8Array.from(payloadSource) : null,
       }));
     }
-    if (gameState?.isUsableMiningToolSlot?.(slot)) {
-      return cachedEquipment("tool:basic_iron_pickaxe", () => ({
-        rightHand: "pickaxe",
-        miningTool: true,
-        equipmentId: "basic_iron_pickaxe",
-      }));
-    }
     if (slot?.itemId === "resource_block" && Number.isFinite(slot.blockId) && slot.count > 0) {
       const blockId = Math.trunc(slot.blockId);
       return cachedEquipment(`block:${blockId}`, () => ({

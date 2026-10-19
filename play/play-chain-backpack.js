@@ -1,3 +1,4 @@
+import { STARTER_AXE_BYTES } from "../src/data/starterTools.js";
 import { DEFAULT_CHUNK_SIZE, blockDef } from "/chunk.js/play.js";
 import {
   deriveSmeltingMaterialProperties,
@@ -410,7 +411,7 @@ function chainItemSlot(slot, index, address) {
     kind: forged ? "forged" : "smelted_material",
     itemId: forged ? "forged_item" : "chain_material",
     materialId,
-    label: forged ? `Forged Item #${chainItemId}` : material ? humanize(material.id) : `Material ${itemCode}`,
+    label: forged ? (Array.isArray(slot.modelBytes) && JSON.stringify(slot.modelBytes) === JSON.stringify(STARTER_AXE_BYTES) ? "Basic Stone Axe" : `Forged Item #${chainItemId}`) : material ? humanize(material.id) : `Material ${itemCode}`,
     className: forged ? "Forged" : material ? humanize(material.class) : category === CHAIN_ITEM_CATEGORY_MATERIAL ? "Material" : "Item",
     count: Math.max(1, Math.trunc(Number(slot.quantity) || 1)),
     pending: false,

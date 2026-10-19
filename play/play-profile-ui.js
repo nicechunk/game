@@ -1,4 +1,4 @@
-import { DEFAULT_PICKAXE_DURABILITY } from "./game-state.js";
+import { DEFAULT_FORGED_DURABILITY } from "./game-state.js";
 import { escapeHtml, shortAddress } from "./play-ui-format.js";
 import { createAvatarPreviewRenderer } from "/chunk.js/play.js";
 import { t } from "/src/i18n.js";
@@ -24,7 +24,7 @@ export function createPlayProfileUi({
   getPlayerPosition,
   getPendingCount,
   getChainSnapshot = () => null,
-  getAvatarEquipment = () => ({ rightHand: "pickaxe" }),
+  getAvatarEquipment = () => ({ rightHand: "empty" }),
 } = {}) {
   let selectedProfileTab = "attributes";
   let selectedSkillId = PLAYER_SKILL_DEFINITIONS[0]?.id ?? "";
@@ -139,7 +139,7 @@ export function createPlayProfileUi({
     if (!elements.profilePanel || elements.profilePanel.hidden || selectedProfileTab !== "attributes") return;
     scheduleAvatarPreview({
       modelCode: code,
-      equipment: getAvatarEquipment?.() ?? { rightHand: "pickaxe" },
+      equipment: getAvatarEquipment?.() ?? { rightHand: "empty" },
     });
   }
 
@@ -522,7 +522,6 @@ export function createPlayProfileUi({
   }
 
   function rightHandDetail(slot) {
-    if (slot.itemId === "iron_pickaxe") return ui("main.profile.equipment.pickaxeDetail", "A reliable mining tool. Hits are validated by the physical tool sweep in chunk.js.");
     if (slot.itemId === "forged_item") return ui("main.profile.equipment.forgedDetail", "A forged tool using the same physical collision and coordinate proof path.");
     if (slot.itemId === "resource_block") {
       const resource = Number.isFinite(slot.resourceId) ? resourceName(slot.resourceId) : ui("main.profile.equipment.resource", "Resource");
@@ -643,8 +642,9 @@ export function createPlayProfileUi({
   }
 
   function equipmentDurability(slot) {
+    if (slot?.durabilityKnown === false) return null;
     if (!slot || !Number.isFinite(Number(slot.durability))) return null;
-    const max = Math.max(1, Math.trunc(Number(slot.maxDurability) || DEFAULT_PICKAXE_DURABILITY));
+    const max = Math.max(1, Math.trunc(Number(slot.maxDurability) || DEFAULT_FORGED_DURABILITY));
     const current = Math.max(0, Math.min(max, Math.trunc(Number(slot.durability) || 0)));
     return { current, max, ratio: current / max };
   }
@@ -657,7 +657,7 @@ export function createPlayProfileUi({
 
   function equipmentStats(slot) {
     if (!slot) return [];
-    if (slot.itemId === "iron_pickaxe" || slot.itemId === "forged_item") {
+    if (slot.itemId === "forged_item") {
       return [
         [ui("main.profile.equipment.collision", "Collision"), ui("main.profile.equipment.physicalSweep", "Physical sweep")],
         [ui("main.profile.equipment.miningHits", "Mining hits"), "3"],
@@ -797,7 +797,7 @@ export function createPlayProfileUi({
     const appearance = chain.chainPlayer?.appearance || {};
     scheduleAvatarPreview({
       modelCode: appearance.modelCode || profile.modelCode || "NCM:peasant_guy:v1",
-      equipment: getAvatarEquipment?.() ?? { rightHand: "pickaxe" },
+      equipment: getAvatarEquipment?.() ?? { rightHand: "empty" },
     });
   }
 

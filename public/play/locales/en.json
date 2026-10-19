@@ -1234,7 +1234,10 @@
       "processReady": "Process ready",
       "statusReadyCold": "Ready to process on-chain without fuel.",
       "outputTooLarge": "The output exceeds one on-chain record. Reduce the batch size.",
-      "backpackOutputFull": "The backpack cannot hold this output. Free inventory space or consume a complete input stack."
+      "backpackOutputFull": "The backpack cannot hold this output. Free inventory space or consume a complete input stack.",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "Blue Flower",
       "flowerWhite": "White Flower",
       "cotton": "Cotton",
-      "flowerPink": "Pink Flower"
+      "flowerPink": "Pink Flower",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "Equipment saved on chain ({signature}).",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "The unsupported structure exceeds the 640-block atomic limit. Nothing was mined.",
       "chunkLimit": "The unsupported structure crosses more than 3 chunks. Nothing was mined."
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "Blasting Charge",
           "description": "A compact resin-bound mining charge for controlled multi-block excavation. Its NiceChunk formulation is intentionally fictional."
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

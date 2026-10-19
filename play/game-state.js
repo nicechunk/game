@@ -26,7 +26,7 @@ export const BACKPACK_CAPACITY = 50;
 export const BACKPACK_MAX_CAPACITY = 99;
 export const HOTBAR_SLOT_COUNT = 9;
 export const BACKPACK_HOTBAR_INDEX = HOTBAR_SLOT_COUNT - 1;
-export const DEFAULT_PICKAXE_DURABILITY = 999;
+export const DEFAULT_FORGED_DURABILITY = 999;
 export const RESOURCE_STACK_LIMIT = 999;
 export const MATERIAL_STACK_LIMIT = 99;
 
@@ -185,7 +185,7 @@ export function createPlayGameState({
           durability: backpackSlot.durabilityCurrent,
           maxDurability: backpackSlot.durabilityMax,
         }, {
-          defaultDurability: DEFAULT_PICKAXE_DURABILITY,
+          defaultDurability: DEFAULT_FORGED_DURABILITY,
           ownerAddress: this.ownerAddress,
         });
         if (!normalized || JSON.stringify(normalized) !== JSON.stringify(slot)) {
@@ -580,18 +580,24 @@ export function createPlayGameState({
     isUsableMiningToolSlot(slot) {
       return isUsableMiningToolSlot(slot);
     },
-    damageSelectedTool(amount) {
-      const selected = this.getSelectedToolSlot();
-      if (!selected) return null;
-      selected.slot.durability = Math.max(0, Math.trunc(selected.slot.durability || 0) - Math.max(1, Math.trunc(amount || 1)));
-      this.saveHotbarSlots();
-      return selected;
-    },
-    restoreToolDamage(slotIndex, amount) {
-      const slot = this.hotbarSlots[slotIndex];
-      if (!isMiningToolSlot(slot)) return;
-      slot.durability = Math.min(slot.maxDurability || DEFAULT_PICKAXE_DURABILITY, Math.trunc(slot.durability || 0) + Math.max(1, Math.trunc(amount || 1)));
-      this.saveHotbarSlots();
+    applyAuthoritativeMiningDurability(receipt) {
+      const current = receipt?.durabilityCurrent;
+      const maximum = receipt?.durabilityMax;
+      if (!Number.isInteger(current) || !Number.isInteger(maximum)
+          || current < 0 || maximum < 1 || current > maximum || maximum > 0xffffffff) return false;
+      let changed = false;
+      for (const slot of this.hotbarSlots) {
+        const matches = receipt.kind === "equipment" && slot?.itemId === FORGED_ITEM_ID
+            && slot.custodySource === "equipment" && slot.equipmentSlot === receipt.equipmentSlot
+            && slot.itemPda === receipt.itemPda;
+        if (!matches) continue;
+        changed ||= slot.durability !== current || slot.maxDurability !== maximum || !slot.durabilityKnown;
+        slot.durability = current;
+        slot.maxDurability = maximum;
+        slot.durabilityKnown = true;
+      }
+      if (changed) this.saveHotbarSlots();
+      return changed;
     },
     addBackpackResource({ resourceId, blockId, count = 1, pendingTxId = null, yieldBps = 10000, volumeMilliLiters = 1000 }) {
       return null;
@@ -690,8 +696,7 @@ export function createPlayGameState({
 
 export function createPlayHotbarItems() {
   return Object.freeze({
-    iron_pickaxe: { kind: "tool", itemId: "iron_pickaxe", label: "Pickaxe", maxDurability: DEFAULT_PICKAXE_DURABILITY },
-    forged_item: { kind: "forged", itemId: FORGED_ITEM_ID, label: "Forged Tool", maxDurability: DEFAULT_PICKAXE_DURABILITY },
+    forged_item: { kind: "forged", itemId: FORGED_ITEM_ID, label: "Forged Tool", maxDurability: DEFAULT_FORGED_DURABILITY },
     resource_block: { kind: "resource", itemId: "resource_block", label: "Block", action: "placeBlock" },
     [LAND_CONTRACT_ITEM_ID]: { kind: "contract", itemId: LAND_CONTRACT_ITEM_ID, label: "Blank Land Contract", action: "openLandConstruction" },
     backpack: { kind: "backpack", itemId: "backpack", label: "Backpack" },
@@ -700,7 +705,6 @@ export function createPlayHotbarItems() {
 
 export function createDefaultHotbarSlots() {
   const slots = Array.from({ length: HOTBAR_SLOT_COUNT }, () => null);
-  slots[0] = { itemId: "iron_pickaxe", durability: DEFAULT_PICKAXE_DURABILITY, maxDurability: DEFAULT_PICKAXE_DURABILITY };
   slots[BACKPACK_HOTBAR_INDEX] = { itemId: "backpack", locked: true };
   return slots;
 }
@@ -723,7 +727,7 @@ function loadHotbarSlots(ownerAddress = "") {
     ? normalizeHotbarSlots(parsed, { ownerAddress: owner })
     : createDefaultHotbarSlots();
   const migration = consumeLegacyForgedHotbarItems(slots, {
-    defaultDurability: DEFAULT_PICKAXE_DURABILITY,
+    defaultDurability: DEFAULT_FORGED_DURABILITY,
     ownerAddress: owner,
   });
   const slotCountChanged = Array.isArray(parsed) && parsed.length !== HOTBAR_SLOT_COUNT;
@@ -741,7 +745,7 @@ function legacyGlobalHotbarForOwner(ownerAddress) {
   ));
   if (!hasOwnedShortcut) return null;
   return legacy.map((slot) => {
-    if (slot?.itemId === "iron_pickaxe" || slot?.itemId === "backpack") return slot;
+    if (slot?.itemId === "backpack") return slot;
     if (slot?.itemId === FORGED_ITEM_ID && normalizeOwnerAddress(slot.owner) === owner) return slot;
     return null;
   });
@@ -769,12 +773,6 @@ export function normalizeHotbarSlots(slots, { ownerAddress = "" } = {}) {
     }
   }
   removeDuplicateBackpackShortcuts(normalized);
-  if (!normalized.some((slot) => slot?.itemId === "iron_pickaxe")) {
-    const pickaxeIndex = !normalized[0] ? 0 : normalized.findIndex((slot) => !slot);
-    if (pickaxeIndex >= 0) {
-      normalized[pickaxeIndex] = { itemId: "iron_pickaxe", durability: DEFAULT_PICKAXE_DURABILITY, maxDurability: DEFAULT_PICKAXE_DURABILITY };
-    }
-  }
   return normalized;
 }
 
@@ -891,17 +889,12 @@ function preferredHotbarIndex(slots) {
 function normalizeHotbarSlot(slot, { ownerAddress = "" } = {}) {
   if (!slot || typeof slot !== "object") return null;
   if (slot.itemId === "blueprint_tool" || slot.kind === "blueprint") return null;
-  if (slot.itemId === "iron_pickaxe") {
-    const maxDurability = clampInt(slot.maxDurability ?? DEFAULT_PICKAXE_DURABILITY, 1, 9999);
-    return {
-      itemId: "iron_pickaxe",
-      durability: clampInt(slot.durability ?? maxDurability, 0, maxDurability),
-      maxDurability,
-    };
-  }
+  // Retire the synthetic grant, including copies restored from browser storage.
+  // Actual crafted tools are represented by FORGED_ITEM_ID and keep their PDA.
+  if (slot.itemId === "iron_pickaxe") return null;
   if (slot.itemId === FORGED_ITEM_ID) {
     const normalized = normalizeForgedHotbarSlot(slot, {
-      defaultDurability: DEFAULT_PICKAXE_DURABILITY,
+      defaultDurability: DEFAULT_FORGED_DURABILITY,
       ownerAddress,
     });
     if (ownerAddress && normalized?.owner && normalizeOwnerAddress(normalized.owner) !== ownerAddress) return null;
@@ -1079,7 +1072,7 @@ function hotbarSlotFromBackpack(slot, ownerAddress, modelBytes = null) {
       maxDurability: slot.durabilityMax,
       ...(bytes?.length ? { bytes, code: "" } : {}),
     }, {
-      defaultDurability: DEFAULT_PICKAXE_DURABILITY,
+      defaultDurability: DEFAULT_FORGED_DURABILITY,
       ownerAddress,
     });
     return withEquipmentSource(normalized, {
@@ -1336,12 +1329,14 @@ function isPlaceableHotbarSlot(slot) {
 }
 
 function isMiningToolSlot(slot) {
-  return Boolean(slot && (slot.itemId === "iron_pickaxe" || isForgedHotbarSlot(slot)));
+  return isForgedHotbarSlot(slot);
 }
 
 function isUsableMiningToolSlot(slot) {
-  if (!isMiningToolSlot(slot) || Math.trunc(slot.durability || 0) <= 0) return false;
-  return slot.itemId === "iron_pickaxe" || isForgedMiningToolReady(slot);
+  if (!isMiningToolSlot(slot)) return false;
+  if (!isCustodiedEquipmentSlot(slot) || !slot.itemPda) return false;
+  if (!Number.isFinite(slot.durability) || slot.durability < 3) return false;
+  return isForgedMiningToolReady(slot);
 }
 
 function loadPlayerProfile(ownerAddress = "") {

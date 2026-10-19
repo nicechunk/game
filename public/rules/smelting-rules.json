@@ -4473,5 +4473,31 @@
       },
       "mergeYieldBps": 10000
     }
+  ],
+  "starterRecipes": [
+    {
+      "id": "basic_stone_axe",
+      "recipeId": 9001,
+      "executor": "game.backpack.tag17",
+      "inputs": [
+        {
+          "key": "gravel",
+          "amount": 1
+        },
+        {
+          "key": "twig",
+          "amount": 2
+        }
+      ],
+      "output": {
+        "kind": "forged",
+        "quantity": 1,
+        "durabilityCurrent": 99,
+        "durabilityMax": 99
+      },
+      "fuelRequired": false,
+      "stationRequired": false,
+      "skillLevelRequired": 0
+    }
   ]
 }

@@ -749,7 +749,7 @@ export function createPlaySmelting({
       inputPlan,
       properties,
       outputQuantity: outputQuantityResult.value,
-      outputVolumeMm3: outputVolumeResult.value,
+      outputVolumeMm3: recipe?.recipeKind === "starter" ? Math.min(750000, smeltingInputPlanVolumeMm3(inputPlan)) : outputVolumeResult.value,
       outputOverflow,
       backpackSpaceReady,
       skillLevel,
@@ -798,6 +798,7 @@ export function createPlaySmelting({
       return ui("main.smelting.submitComplete", "Smelting confirmed on-chain: {signature}", { signature: shortSignature(state.result.signature) });
     }
     if (state.running) return ui("main.smelting.submitting", "Submitting on-chain...");
+    if (view.recipe?.recipeKind === "starter" && view.ready) return ui("main.starter.axeRecipe", "1 pebble + 2 twigs → stone axe (99 durability). No fuel needed. Equip the axe from your backpack.");
     if (!view.inputSlots.length) return ui("main.smelting.statusNoInput", "Select a mined resource.");
     if (!selectionUsesPlan(view.inputPlan, view.inputSlots)) {
       return ui("main.smelting.statusRecipeIncomplete", "Recipe candidate {recipe}: missing or extra inputs.", {
@@ -1482,6 +1483,7 @@ function smeltingCapacitySlotKey(slot) {
 
 export function maxSmeltingSelectableServings(recipe, slots = []) {
   const available = Math.max(0, maxSmeltingRecipeServings(recipe, slots));
+  if (recipe?.recipeKind === "starter") return Math.min(1, available);
   if (!recipe || available < 1 || recipe.recipeKind === "merge") return available;
   const recordLimit = smeltingInputRecordLimit(recipe);
   let lower = 0;

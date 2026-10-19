@@ -27,7 +27,7 @@ test("the default hotbar does not grant blueprints", () => {
 
   assert.equal(slots.length, 9);
   assert.equal(slots.filter((slot) => slot?.itemId === "blueprint_tool").length, 0);
-  assert.equal(slots[0]?.itemId, "iron_pickaxe");
+  assert.equal(slots[0], null);
   assert.deepEqual(slots[BACKPACK_HOTBAR_INDEX], { itemId: "backpack", locked: true });
 });
 
@@ -75,8 +75,8 @@ test("a full hotbar is not changed to inject blueprints", () => {
   const normalized = normalizeHotbarSlots(slots);
 
   assert.equal(normalized.filter((slot) => slot?.itemId === "blueprint_tool").length, 0);
-  assert.equal(normalized.filter((slot) => slot?.itemId === "resource_block").length, 7);
-  assert.equal(normalized[0]?.itemId, "iron_pickaxe");
+  assert.equal(normalized.filter((slot) => slot?.itemId === "resource_block").length, 8);
+  assert.equal(normalized[0]?.itemId, "resource_block");
   assert.equal(normalized[BACKPACK_HOTBAR_INDEX]?.itemId, "backpack");
 });
 

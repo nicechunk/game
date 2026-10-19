@@ -183,7 +183,8 @@ test("remote forged and block equipment is verified against the public equipment
     resolveGuardianEquipmentFromChain({ rightHand: "block", blockId: 4 }, snapshot),
     { rightHand: "empty" },
   );
-  assert.equal(resolveGuardianEquipmentFromChain({ rightHand: "pickaxe" }, snapshot).rightHand, "pickaxe");
+  assert.deepEqual(resolveGuardianEquipmentFromChain({ rightHand: "pickaxe" }, snapshot), { rightHand: "empty" });
+  assert.deepEqual(resolveGuardianEquipmentFromChain({ rightHand: "pickaxe" }), { rightHand: "empty" });
 
   const legacySnapshot = {
     initialized: true,

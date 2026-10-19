@@ -1234,7 +1234,10 @@
       "processReady": "加工已就绪",
       "statusReadyCold": "可以在无燃料的情况下提交链上加工。",
       "outputTooLarge": "产出超过单个链上记录的上限，请减少批次数量。",
-      "backpackOutputFull": "背包无法容纳本次产出，请腾出空间或完整消耗一个输入堆叠。"
+      "backpackOutputFull": "背包无法容纳本次产出，请腾出空间或完整消耗一个输入堆叠。",
+      "materials": {
+        "basic_stone_axe": "基础石斧"
+      }
     },
     "materialGrade": {
       "crude": "粗制",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "蓝花",
       "flowerWhite": "白花",
       "cotton": "棉花",
-      "flowerPink": "粉红花"
+      "flowerPink": "粉红花",
+      "twig": "树枝"
     },
     "equipment": {
       "chainSaved": "装备已保存至链上（{signature}）。",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "失去支撑的结构超过 640 方块原子交易上限，本次没有挖掘任何方块。",
       "chunkLimit": "失去支撑的结构跨越超过 3 个 Chunk，本次没有挖掘任何方块。"
+    },
+    "resource": {
+      "twig": "树枝"
+    },
+    "starter": {
+      "axeRecipe": "1个碎石 + 2根树枝 → 1把基础石斧 · 耐久99。打开背包 → 熔炼，无需燃料、建造设施或技能等级。制作后从背包装备石斧。持工具成功采集由合约扣3点耐久；徒手采集不扣工具耐久。"
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "爆破药包",
           "description": "以树脂粘结的紧凑型矿用药包，用于受控的多方块开挖；NiceChunk 配方为刻意虚构的游戏设定。"
+        },
+        "basic_stone_axe": {
+          "name": "基础石斧",
+          "description": "1个碎石 + 2根树枝 → 1把基础石斧 · 耐久99。打开背包 → 熔炼，无需燃料、建造设施或技能等级。制作后从背包装备石斧。持工具成功采集由合约扣3点耐久；徒手采集不扣工具耐久。"
         }
       }
     },

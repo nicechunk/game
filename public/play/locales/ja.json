@@ -1234,7 +1234,10 @@
       "processReady": "加工準備完了",
       "statusReadyCold": "燃料なしでオンチェーン加工を実行できます。",
       "outputTooLarge": "出力がオンチェーンの1レコード上限を超えています。バッチ数を減らしてください。",
-      "backpackOutputFull": "バックパックに出力を収納できません。空きを作るか、入力スタックをすべて消費してください。"
+      "backpackOutputFull": "バックパックに出力を収納できません。空きを作るか、入力スタックをすべて消費してください。",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "青い花",
       "flowerWhite": "白い花",
       "cotton": "綿花",
-      "flowerPink": "ピンクの花"
+      "flowerPink": "ピンクの花",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "装備をチェーンに保存しました（{signature}）。",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "支持を失った構造が640ブロックのアトミック上限を超えています。ブロックは採掘されませんでした。",
       "chunkLimit": "支持を失った構造が3チャンクを超えています。ブロックは採掘されませんでした。"
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "発破装薬",
           "description": "複数ブロックを制御掘削するための樹脂結合型コンパクト採掘装薬です。NiceChunk の配合は意図的に架空のものです。"
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

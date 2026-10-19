@@ -1234,7 +1234,10 @@
       "processReady": "Procédé prêt",
       "statusReadyCold": "Prêt pour le traitement sur la chaîne sans combustible.",
       "outputTooLarge": "La sortie dépasse la limite d'un enregistrement sur la chaîne. Réduisez la taille du lot.",
-      "backpackOutputFull": "Le sac ne peut pas contenir ce résultat. Libérez de l'espace ou consommez une pile d'entrée complète."
+      "backpackOutputFull": "Le sac ne peut pas contenir ce résultat. Libérez de l'espace ou consommez une pile d'entrée complète.",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "Fleur bleue",
       "flowerWhite": "Fleur blanche",
       "cotton": "Coton",
-      "flowerPink": "Fleur rose"
+      "flowerPink": "Fleur rose",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "Équipement enregistré sur la chaîne ({signature}).",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "La structure non soutenue dépasse la limite atomique de 640 blocs. Aucun bloc n'a été miné.",
       "chunkLimit": "La structure non soutenue traverse plus de 3 chunks. Aucun bloc n'a été miné."
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "Charge de minage",
           "description": "Une charge minière compacte liée à la résine pour l'excavation contrôlée de plusieurs blocs. Sa formule NiceChunk est volontairement fictive."
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

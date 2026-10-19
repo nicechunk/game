@@ -16,6 +16,8 @@ export function createMiningController({
   isFluidBlock,
   isMineableBlock,
   getMiningPlan = null,
+  getBareHandPlan = () => null,
+  onSurfacePicked = () => {},
   blockAirId,
   onStatus = () => {},
   onChanged = () => {},
@@ -63,12 +65,14 @@ export function createMiningController({
     }
 
     const selectedTool = gameState.getSelectedToolSlot();
-    if (!selectedTool) {
-      onStatus("Select a usable mining tool in the hotbar before mining.");
+    const barePlan = !selectedTool ? getBareHandPlan(rayHit) : null;
+    const miningTool = barePlan ? { kind: "bare-hands", action: barePlan.kind === "surface-pebble" ? "pick-pebble" : "gather" } : miningToolReference(selectedTool?.slot);
+    if (!miningTool) {
+      onStatus("With empty hands, collect surface pebbles or strike natural leaves. Craft a stone axe in Smelting, or buy a tool at the market.");
       return null;
     }
-
-    const targetSelection = selectMiningTarget(rayHit);
+    const targetSelection = barePlan && rayHit?.hit && isHitInMiningReach(rayHit)
+      ? { hit: rayHit } : barePlan ? { hit: null } : selectMiningTarget(rayHit);
     if (!targetSelection.hit?.hit) {
       return null;
     }
@@ -78,7 +82,7 @@ export function createMiningController({
 
     const def = blockDef(targetHit.blockId);
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
-    const miningPlan = miningPlanForHit(targetHit, def);
+    const miningPlan = barePlan || miningPlanForHit(targetHit, def);
     if (miningPlan.blockedReason) {
       const key = miningPlan.blockedReason === "chunk-limit"
         ? "main.supportCollapse.chunkLimit"
@@ -102,7 +106,8 @@ export function createMiningController({
       blockId: targetHit.blockId,
       resourceId,
       blockName: def.name,
-      selectedToolIndex: selectedTool.index,
+      selectedToolIndex: selectedTool?.index ?? -1,
+      miningTool,
       requiredDamage: miningPlan.requiredDamage,
       miningPlan,
       previousToolBoxes: null,
@@ -126,6 +131,13 @@ export function createMiningController({
       const reason = typeof miningPermission === "string" ? miningPermission : "no-backpack";
       onStatus("Mining is locked until you create a backpack.");
       onMiningBlocked({ reason });
+      return null;
+    }
+
+    const selectedTool = gameState.getSelectedToolSlot();
+    const miningTool = miningToolReference(selectedTool?.slot);
+    if (!miningTool) {
+      onStatus("Equip an on-chain mining tool before mining.");
       return null;
     }
 
@@ -162,6 +174,8 @@ export function createMiningController({
       blockId: first.blockId,
       resourceId: first.resourceId || def.resourceId,
       miningKind: "debug-bulk",
+      miningTool,
+      toolSlotIndex: selectedTool.index,
       batchAuthorization: "debug",
       lossyRewards: true,
       storedRewardCount: null,
@@ -176,7 +190,6 @@ export function createMiningController({
         worldZ: block.worldZ,
         blockId: blockAirId,
       })),
-      toolDamageBySlot: [],
       requiredDamage: 0,
       gatheringYieldBps: 0,
       resourceVolumeMilliLiters: 0,
@@ -238,6 +251,8 @@ export function createMiningController({
   }
 
   function toolCollisionHitForProgress(swing, toProgress) {
+    if (swing.miningTool?.kind === "bare-hands") return toProgress >= 0.64
+      ? {hit:true,pointX:swing.hit.worldX+0.5,pointY:swing.hit.worldY+0.5,pointZ:swing.hit.worldZ+0.5} : {hit:false};
     const endProgress = clamp01(toProgress);
     const startProgress = Math.max(collisionStartProgress, Math.min(endProgress, Number(swing.previousToolProgress) || collisionStartProgress));
     let previousBoxes = swing.previousToolBoxes;
@@ -337,7 +352,7 @@ export function createMiningController({
     }
     if (isBlockPending(hit)) return null;
     const selectedTool = gameState.hotbarSlots[swing.selectedToolIndex];
-    if (!gameState.isUsableMiningToolSlot?.(selectedTool)) {
+    if (swing.miningTool?.kind !== "bare-hands" && !gameState.isUsableMiningToolSlot?.(selectedTool)) {
       onStatus("Mining tool is no longer usable.");
       return null;
     }
@@ -351,17 +366,13 @@ export function createMiningController({
     const key = damageKey(hit);
     const now = performance.now();
     prunePartialDamage(now, key);
-    const damageState = partialDamageState(key, now);
+    const tool = swing.miningTool?.kind === "bare-hands" ? (!gameState.getSelectedToolSlot() ? swing.miningTool : null) : miningToolReference(selectedTool);
+    if (JSON.stringify(tool) !== JSON.stringify(swing.miningTool)) return null;
+    const damageState = partialDamageState(key, now, JSON.stringify(tool));
     const nextDamage = damageState.damage + 1;
     const requiredDamage = Math.max(1, swing.requiredDamage || requiredDamageForBlock(hit.blockId, def));
     damageState.damage = nextDamage;
     damageState.lastTouchedAt = now;
-    damageState.toolDamageBySlot.set(
-      swing.selectedToolIndex,
-      (damageState.toolDamageBySlot.get(swing.selectedToolIndex) ?? 0) + 1,
-    );
-    selectedTool.durability = Math.max(0, Math.trunc(selectedTool.durability || 0) - 1);
-    gameState.saveHotbarSlots();
     const damageInfo = {
       hit: cloneHit(hit),
       blockName: def.name,
@@ -390,20 +401,8 @@ export function createMiningController({
       volumeMilliLiters,
     });
 
-    const toolDamageBySlot = Array.from(damageState.toolDamageBySlot, ([slotIndex, amount]) => ({
-      slotIndex,
-      amount,
-    }));
-    const chainToolDamage = toolDamageBySlot.flatMap(({ slotIndex, amount }) => {
-      const tool = gameState.hotbarSlots[slotIndex];
-      return tool?.itemId === "forged_item"
-        && tool.custodySource === "equipment"
-        && Number.isInteger(tool.equipmentSlot)
-        ? [{ equipmentSlot: tool.equipmentSlot, amount }]
-        : [];
-    });
     blockDamage.delete(key);
-    const pendingDeltas = planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
+    const pendingDeltas = swing.miningPlan?.kind === "surface-pebble" ? [] : planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
     const pending = {
       txId,
       worldX: hit.worldX,
@@ -419,9 +418,7 @@ export function createMiningController({
       rewardGroups: rewardGroups.map((group) => ({ ...group })),
       pendingDeltas,
       toolSlotIndex: swing.selectedToolIndex,
-      toolDamage: nextDamage,
-      toolDamageBySlot,
-      chainToolDamage,
+      miningTool: { ...swing.miningTool },
       requiredDamage,
       gatheringYieldBps: yieldBps,
       resourceVolumeMilliLiters: volumeMilliLiters,
@@ -458,6 +455,7 @@ export function createMiningController({
       blockId: blockAirId,
     })) ?? [], txId);
     chunks.confirmPendingDelta(txId);
+    if (pending.miningKind === "surface-pebble") onSurfacePicked(pending);
     pendingTx.splice(index, 1);
     const confirmedItems = (pending.rewardGroups ?? []).reduce((sum, group) => sum + Math.max(0, Math.trunc(group.count || 0)), 0);
     gameState.playerProfile.confirmedMines += Math.max(1, Math.trunc(pending.minedBlockCount || 1));
@@ -481,14 +479,6 @@ export function createMiningController({
     if (!pending) {
       onStatus("No pending delta to rollback.");
       return null;
-    }
-    const damageEntries = Array.isArray(pending.toolDamageBySlot) && pending.toolDamageBySlot.length
-      ? pending.toolDamageBySlot
-      : Number.isInteger(pending.toolSlotIndex) && Number(pending.toolDamage) > 0
-        ? [{ slotIndex: pending.toolSlotIndex, amount: pending.toolDamage }]
-        : [];
-    for (const entry of damageEntries) {
-      gameState.restoreToolDamage(entry.slotIndex, entry.amount);
     }
     gameState.playerProfile.rolledBackMines += 1;
     gameState.playerProfile.minedBlocks = Math.max(0, gameState.playerProfile.minedBlocks - Math.max(1, Math.trunc(pending.minedBlockCount || 1)));
@@ -545,13 +535,13 @@ export function createMiningController({
     return Math.max(1, Math.trunc(defaultRequiredDamage));
   }
 
-  function partialDamageState(key, now) {
+  function partialDamageState(key, now, toolKey) {
     const existing = blockDamage.get(key);
-    if (existing) return existing;
+    if (existing?.toolKey === toolKey) return existing;
     const state = {
       damage: 0,
       lastTouchedAt: now,
-      toolDamageBySlot: new Map(),
+      toolKey,
     };
     blockDamage.set(key, state);
     return state;
@@ -733,3 +723,11 @@ function clamp(value, min, max) {
 
 const scratchTargetBox = {};
 const scratchCollisionResult = {};
+
+function miningToolReference(slot) {
+  if (slot?.itemId === "forged_item" && slot.custodySource === "equipment"
+      && Number.isInteger(slot.equipmentSlot) && slot.equipmentSlot >= 0 && slot.equipmentSlot < 9 && slot.itemPda) {
+    return { kind: "equipment", equipmentSlot: slot.equipmentSlot, itemPda: String(slot.itemPda) };
+  }
+  return null;
+}

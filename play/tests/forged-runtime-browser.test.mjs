@@ -89,6 +89,8 @@ try {
     const equippedForgePart = avatar.parts.find((part) => part.forgeDesignHash === designHash);
     const payloadBytes = Uint8Array.from(rawBytes);
     const guardian = await import("/play/play-guardian.js");
+    const retiredDefaultPacket = guardian.guardianEquipmentFromAvatarEquipment({ rightHand: "pickaxe" });
+    const retiredDefaultEquipment = guardian.equipmentFromGuardianEvent({ rightHandKind: 1, rightHandVariant: 1 });
     const equipmentPacket = guardian.guardianEquipmentFromAvatarEquipment({
       rightHand: "pickaxe",
       forged: true,
@@ -178,6 +180,9 @@ try {
     const rotatedExactIconHash = canvasHash(exactIcon);
     localGameState.hotbarSlots[0] = null;
     const unequippedLocalMesh = await avatarSession.syncModelFromProfile({ force: true });
+    const emptyHand = avatarSession.selectedEquipment().rightHand;
+    localGameState.hotbarSlots[0] = { itemId: "iron_pickaxe", durability: 999 };
+    const retiredDefaultHand = avatarSession.selectedEquipment().rightHand;
     localGameState.hotbarSlots[0] = {
       itemId: "forged_item",
       designHash: noGripDesignHash,
@@ -194,6 +199,10 @@ try {
       restoredAvatarParts: avatar.parts.filter((part) => part.forgeDesignHash === designHash).length,
       restoredCollisionParts: avatar.collisionParts.filter((part) => part.equipmentId === "forged_pickaxe").length,
       equipmentKind: equipmentPacket.rightHandKind,
+      retiredDefaultPacketKind: retiredDefaultPacket.rightHandKind,
+      retiredDefaultEquipmentHand: retiredDefaultEquipment.rightHand,
+      emptyHand,
+      retiredDefaultHand,
       payloadBytes: equipmentPacket.payloadBytes?.length ?? 0,
       dedicatedKindForged: dedicatedKind.forged,
       dedicatedKindPayloadBytes: dedicatedKind.payloadBytes?.length ?? 0,
@@ -258,6 +267,10 @@ try {
   assert.equal(result.restoredAvatarParts, 1);
   assert.equal(result.restoredCollisionParts, 1);
   assert.equal(result.equipmentKind, 3);
+  assert.equal(result.retiredDefaultPacketKind, 0);
+  assert.equal(result.retiredDefaultEquipmentHand, "empty");
+  assert.equal(result.emptyHand, "empty");
+  assert.equal(result.retiredDefaultHand, "empty");
   assert.equal(result.payloadBytes, result.rawBytes);
   assert.equal(result.dedicatedKindForged, true);
   assert.equal(result.dedicatedKindPayloadBytes, result.rawBytes);

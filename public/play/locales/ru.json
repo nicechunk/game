@@ -1234,7 +1234,10 @@
       "processReady": "Обработка готова",
       "statusReadyCold": "Готово к ончейн-обработке без топлива.",
       "outputTooLarge": "Результат превышает лимит одной ончейн-записи. Уменьшите размер партии.",
-      "backpackOutputFull": "Рюкзак не вмещает результат. Освободите место или полностью израсходуйте одну входную стопку."
+      "backpackOutputFull": "Рюкзак не вмещает результат. Освободите место или полностью израсходуйте одну входную стопку.",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "Синий цветок",
       "flowerWhite": "Белый цветок",
       "cotton": "Хлопок",
-      "flowerPink": "Розовый цветок"
+      "flowerPink": "Розовый цветок",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "Экипировка сохранена в сети ({signature}).",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "Неподдерживаемая структура превышает атомарный лимит в 640 блоков. Ничего не добыто.",
       "chunkLimit": "Неподдерживаемая структура пересекает более 3 чанков. Ничего не добыто."
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "Взрывной заряд",
           "description": "Компактный шахтный заряд на смоляной связке для управляемой разработки нескольких блоков. Его формула NiceChunk намеренно вымышленная."
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

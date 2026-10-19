@@ -1183,6 +1183,8 @@ async function boot() {
     getToolCollisionFrame: currentToolCollisionFrame,
     getToolTargetingSolution: currentToolTargetingSolution,
     getMiningPlan: combinedMiningPlan,
+    getBareHandPlan: (hit) => surfaceDecorationSync?.bareHandPlan(hit),
+    onSurfacePicked: (pending) => surfaceDecorationSync?.markPicked(pending),
     blockDef,
     isFluidBlock,
     isMineableBlock,
@@ -1212,7 +1214,8 @@ async function boot() {
           blockId: pending.blockId,
         },
       }));
-      if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
+      if (pending.miningKind === "surface-pebble") { /* no terrain edit */ }
+      else if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
       else guardian?.sendDig(pending, 1);
       chainSession?.handlePendingMine(pending, {
         confirmTx: (txId) => mining?.confirmTx?.(txId),
@@ -1220,9 +1223,10 @@ async function boot() {
       });
     },
     onConfirm: (pending) => {
+      chainPlayer?.applyMiningResult?.(pending.chainResult);
       forgetMiningHit(pending);
-      effects?.emitConfirmedBlockFracture?.(pending);
-      guardian?.sendConfirmedMine(pending);
+      if (pending.miningKind !== "surface-pebble") effects?.emitConfirmedBlockFracture?.(pending);
+      if (pending.miningKind !== "surface-pebble") guardian?.sendConfirmedMine(pending);
       chainSession?.handleConfirmedMine(pending);
       invalidateMiningChunks(pending);
       chainChunkDeltas?.requestSync({ reason: "mine-confirm", quiet: true });

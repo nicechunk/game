@@ -1,3 +1,4 @@
+import { STARTER_AXE_RECIPE, STARTER_AXE_CODE, STARTER_AXE_BYTES } from "../src/data/starterTools.js";
 import { BLOCK_ID, RESOURCE_ID, blockDef } from "/chunk.js/play.js";
 import {
   SMELTING_MATERIAL_ATTRIBUTE_KEYS,
@@ -25,7 +26,7 @@ import {
 export { smeltingRecipeChainIdentity } from "./smelting-recipe-selection.js";
 
 export const SMELTING_RULE_SET = smeltingRules.ruleSet;
-export const SMELTING_RECIPES = Object.freeze(smeltingRules.materials);
+export const SMELTING_RECIPES = Object.freeze([STARTER_AXE_RECIPE, ...smeltingRules.materials]);
 export const SMELTING_FUELS = Object.freeze(smeltingRules.fuels);
 export const SMELTING_HEAT_TIERS = Object.freeze(smeltingRules.heatTiers);
 
@@ -136,6 +137,8 @@ export function smeltingRecipeForSelectedSlots(slots = []) {
     { length: Math.min(99, smeltingSlotQuantity(slot)) },
     () => smeltingInputKeyForSlot(slot),
   )).filter(Boolean);
+  const counts = createSmeltingInputCounts(keys);
+  if (counts.size===2 && counts.get("gravel")>=1 && counts.get("twig")>=2) return {recipe:STARTER_AXE_RECIPE,score:{exact:true}};
   const match = findBestSmeltingRecipeForKeys(keys);
   if (!match?.recipe || !match.score?.exact) return null;
   return {
@@ -224,6 +227,9 @@ export function smeltingRawKeyBlockId(key) {
 }
 
 export function smeltingMaterialPreviewItem(materialOrId, overrides = {}) {
+  if ((typeof materialOrId==="string" ? materialOrId : materialOrId?.id)==="basic_stone_axe") return {
+    kind:"forged",itemId:"forged_item",code:STARTER_AXE_CODE,bytes:[...STARTER_AXE_BYTES],label:"Basic Stone Axe",durabilityCurrent:99,durabilityMax:99,...overrides,
+  };
   const material = typeof materialOrId === "string" ? smeltingMaterialById(materialOrId) : materialOrId;
   return {
     kind: "smelted_material",

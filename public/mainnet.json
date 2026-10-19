@@ -3,7 +3,7 @@
   "app": {
     "id": "nicechunk",
     "name": "NICECHUNK",
-    "version": "0.1.69",
+    "version": "0.1.72",
     "minClientVersion": "0.1.21",
     "network": "mainnet"
   },
@@ -137,6 +137,18 @@
           ]
         }
       ]
+    },
+    "starterTools": {
+      "twigBlockId": 54,
+      "leafTwigDropChanceBps": 3000,
+      "bareHandTargets": [
+        "surface-pebbles",
+        "surface-gravel",
+        "natural-leaves"
+      ],
+      "recipeId": 9001,
+      "recipeExecutor": "backpack:17",
+      "axeInitialDurability": 99
     }
   },
   "resources": {

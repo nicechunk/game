@@ -107,6 +107,10 @@ const blockDensityKgM3 = {
 };
 
 export const blockAtlas = [
+  block({id:"NCK_54",key:"twig",name:"Twig",category:"organic",source:"Natural leaves · 30% per removed leaf",tags:["Starter tools","Leaf drop","No fuel"],
+    description:"A dry brown branch with one fork and pale broken tips. Natural broadleaf and pine leaves each have an independent, fixed 30% coordinate roll for one twig. Bare hands can strike leaves; replaying a removed leaf cannot reroll its drop. Each twig holds 250 cm³ of wood (about 162.5 g at 650 kg/m³); its visual bounds include air. Two twigs and one surface pebble make a basic stone axe with 99 durability in the backpack Smelting tab, without fuel or a built station.",
+    colors:["#95643e","#b47e4d","#d4b181"],densityKgM3:650,dimensionsM:{width:0.04,height:0.30,depth:0.03},physical:{densityKgM3:650,dimensionsM:{width:0.04,height:0.30,depth:0.03},volumeM3:0.00025,massKg:0.1625},composition:plantTissue,
+    signals:{temperature:50,humidity:30,altitude:55,slope:10,rarity:8}}),
   block({
     id: "NCK_01",
     key: "grass",

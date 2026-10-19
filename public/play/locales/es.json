@@ -1234,7 +1234,10 @@
       "processReady": "Proceso listo",
       "statusReadyCold": "Listo para procesar en cadena sin combustible.",
       "outputTooLarge": "La salida supera el límite de un registro en cadena. Reduce el tamaño del lote.",
-      "backpackOutputFull": "La mochila no puede contener esta salida. Libera espacio o consume una pila de entrada completa."
+      "backpackOutputFull": "La mochila no puede contener esta salida. Libera espacio o consume una pila de entrada completa.",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "Flor azul",
       "flowerWhite": "Flor blanca",
       "cotton": "Algodón",
-      "flowerPink": "Flor rosa"
+      "flowerPink": "Flor rosa",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "Equipo guardado en cadena ({signature}).",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "La estructura sin soporte supera el límite atómico de 640 bloques. No se extrajo ningún bloque.",
       "chunkLimit": "La estructura sin soporte cruza más de 3 chunks. No se extrajo ningún bloque."
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "Carga de voladura",
           "description": "Una carga minera compacta ligada con resina para excavaciones controladas de varios bloques. Su fórmula de NiceChunk es deliberadamente ficticia."
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

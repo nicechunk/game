@@ -5,6 +5,7 @@ export const resourceDropRuleSet = "nicechunk-resource-drops-v2";
 // Visual bounds include air and surrounding feature geometry. Backpack volume
 // records only the material that can actually be recovered from one mine action.
 export const resourceDropSizeProfiles = {
+  twig: sizeProfile([0.04, 0.30, 0.03], [0.04, 0.30, 0.03], [250_000, 250_000]),
   lava: sizeProfile([0.1, 0.08, 0.1], [0.38, 0.24, 0.38], [80_000, 500_000]),
   ice: sizeProfile([0.16, 0.08, 0.16], [0.72, 0.42, 0.72], [100_000, 1_000_000]),
   toxicWater: sizeProfile([0.12, 0.12, 0.12], [0.42, 0.42, 0.42], [100_000, 750_000]),
@@ -20,6 +21,9 @@ export const resourceDropSizeProfiles = {
 };
 
 export const resourceDropRules = [
+  // Fixed on-chain leaf roll (salt 0x54574947); no exploration multiplier.
+  rule("leaves", "twig", 3000, -511, 511, -511, 511, 38),
+  rule("pineLeaves", "twig", 3000, -511, 511, -511, 511, 38),
   rule("basalt", "lava", 35, -96, 8, 10, 511, 1),
   rule("ash", "lava", 20, -64, 12, 4, 511, 2),
   rule("deepStone", "lava", 10, -128, -18, 55, 511, 3),

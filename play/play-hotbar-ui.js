@@ -139,6 +139,7 @@ export function createPlayHotbarUi({
 
   function hotbarSlotAmount(slot) {
     if (!slot) return "";
+    if (slot.durabilityKnown === false) return "—";
     if (Number.isFinite(slot.durability)) return String(Math.max(0, Math.trunc(slot.durability || 0)));
     if (slot.itemId === "backpack") return `${gameState.totalBackpackItems()}`;
     return Number.isFinite(slot.count) ? String(slot.count) : "";

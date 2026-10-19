@@ -48,29 +48,21 @@ test("failed mining removes pending state without touching world geometry", () =
   assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
 });
 
-test("failed mining restores durability to every tool used on the target", () => {
-  const harness = createHarness({ toolCount: 2 });
-
+test("partial hits, cancellation and confirmation never calculate local durability", () => {
+  const harness = createHarness();
   mineOnce(harness);
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
   mineOnce(harness);
-  harness.gameState.selectedToolIndex = 1;
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
+  assert.equal(harness.controller.pendingCount(), 0);
   mineOnce(harness);
   const pending = harness.controller.pendingSnapshot()[0];
-
-  assert.deepEqual(pending.toolDamageBySlot, [
-    { slotIndex: 0, amount: 2 },
-    { slotIndex: 1, amount: 1 },
-  ]);
-  assert.equal(harness.gameState.hotbarSlots[0].durability, 18);
-  assert.equal(harness.gameState.hotbarSlots[1].durability, 19);
-
-  harness.controller.rollbackTx(pending.txId);
-
   assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
-  assert.equal(harness.gameState.hotbarSlots[1].durability, 20);
+  harness.controller.confirmTx(pending.txId);
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
 });
 
-test("confirmed forged-tool mining records authoritative Equipment PDA durability damage", () => {
+test("forged-tool mining sends only an equipment reference, never a damage amount", () => {
   const harness = createHarness({
     toolFactory: (index) => ({
       itemId: "forged_item",
@@ -79,14 +71,15 @@ test("confirmed forged-tool mining records authoritative Equipment PDA durabilit
       maxDurability: 20,
       custodySource: "equipment",
       equipmentSlot: index + 2,
+      itemPda: "11111111111111111111111111111112",
     }),
   });
 
   mineThreeTimes(harness);
 
-  assert.deepEqual(harness.controller.pendingSnapshot()[0].chainToolDamage, [
-    { equipmentSlot: 2, amount: 3 },
-  ]);
+  assert.deepEqual(harness.controller.pendingSnapshot()[0].miningTool,
+    { kind: "equipment", equipmentSlot: 2, itemPda: "11111111111111111111111111111112" });
+  assert.equal(harness.controller.pendingSnapshot()[0].toolDamage, undefined);
 });
 
 test("confirmed mining applies and commits the air delta exactly once", () => {
@@ -281,7 +274,8 @@ function createHarness({
   hitProvider = null,
   targeting = { reachable: true, yaw: 0.4, pitchOffset: 0 },
   toolCount = 1,
-  toolFactory = () => ({ kind: "tool", durability: 20, maxDurability: 20 }),
+  toolFactory = (index) => ({ itemId: "forged_item", kind: "forged", durability: 20, maxDurability: 20,
+    custodySource: "equipment", equipmentSlot: index, itemPda: `1111111111111111111111111111111${index + 2}` }),
   getMiningPlan = null,
   extraBlocks = [],
   isBlockProtected = () => false,
@@ -302,7 +296,7 @@ function createHarness({
     savePlayerProfile() {},
     restoreToolDamage(index, amount) {
       const slot = this.hotbarSlots[index];
-      slot.durability = Math.min(slot.maxDurability, slot.durability + amount);
+      throw new Error("Local durability refunds are forbidden");
     },
   };
   const chunks = {

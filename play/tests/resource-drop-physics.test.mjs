@@ -7,6 +7,7 @@ import { resourceDropRules, resourceDropSizeProfiles } from "../../src/data/reso
 
 const physicsDocument = JSON.parse(fs.readFileSync(new URL("../../config/material_physics_v2.json", import.meta.url), "utf8"));
 const expectedVolumeRanges = {
+  twig: [250_000, 250_000],
   lava: [80_000, 500_000],
   ice: [100_000, 1_000_000],
   toxicWater: [100_000, 750_000],
