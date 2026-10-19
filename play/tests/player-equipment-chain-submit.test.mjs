@@ -71,9 +71,13 @@ test("equipment submission recovers purchased models from immutable chain data",
     t.mock.method(conn, "getAccountInfo", async (address) => address.equals(backpack)
       ? { owner: programId, data: backpackData }
       : null);
-    t.mock.method(conn, "getMultipleAccountsInfo", async (addresses) => addresses.map((address) => (
+    const itemAccounts = (addresses) => addresses.map((address) => (
       address.equals(itemPda) && modelAvailable ? { owner: programId, data: forgedData } : null
-    )));
+    ));
+    t.mock.method(conn, "getMultipleAccountsInfo", async (addresses) => itemAccounts(addresses));
+    t.mock.method(conn, "getMultipleAccountsInfoAndContext", async (addresses) => ({
+      context: { slot: 99 }, value: itemAccounts(addresses),
+    }));
     t.mock.method(conn, "getLatestBlockhash", async () => ({
       blockhash: Keypair.generate().publicKey.toBase58(), lastValidBlockHeight: 100,
     }));
