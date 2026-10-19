@@ -60,11 +60,11 @@ test("clear-air renderer keeps original detail, water, picking and context resto
       }
       const chunks = [{ id: "stone", chunkX: 0, chunkZ: 2, chunkSize: 16, mesh: quad(3, 10), meshVersion: 1, version: 1 },
         { id: "water", chunkX: 0, chunkZ: 2, chunkSize: 16, visualMesh: quad(17, 8), visualMeshVersion: 1, version: 1 }];
-      const draw = async () => {
+      const draw = async (drawChunks=chunks) => {
         for(let attempt=0;attempt<120;attempt++) {
-          const upload=renderer.prepareChunksForRender(chunks);
-          const stats=renderer.render(camera,chunks);
-          if(!renderer.uploadValidationFence && !upload.pendingUploads && stats.visibleChunks>0)return stats;
+          const upload=renderer.prepareChunksForRender(drawChunks);
+          const stats=renderer.render(camera,drawChunks);
+          if(!stats.renderDeferred && !renderer.uploadValidationFence && !upload.pendingUploads && stats.visibleChunks>0)return stats;
           await new Promise(requestAnimationFrame);
         }
         throw new Error('asynchronous terrain upload did not complete');
@@ -74,8 +74,21 @@ test("clear-air renderer keeps original detail, water, picking and context resto
         gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes); return Array.from(bytes);
       }
       await draw(); const waterPixel = pixel();
-      renderer.render(camera, [chunks[0]]); const stonePixel = pixel();
+      await draw([chunks[0]]); const stonePixel = pixel();
       check(JSON.stringify(waterPixel) !== JSON.stringify(stonePixel), "transparent water must still contribute color");
+      async function stoneWithLight(flags, ao) {
+        const data=new DataView(chunks[0].mesh.vertices.buffer);
+        for(let v=0;v<4;v++){data.setUint16(v*20+18,flags,true);data.setUint8(v*20+11,ao);}
+        chunks[0].version++;chunks[0].meshVersion++;
+        await draw([chunks[0]]);return pixel();
+      }
+      const occluded=await stoneWithLight(128,0),open=await stoneWithLight(0xff80,255);
+      check(JSON.stringify(occluded)===JSON.stringify(open),"stale sky/sun/AO masks still cast a dark area");
+      const sunDirection=renderer.lighting.sunDirection;
+      renderer.lighting.sunDirection=[0,0,-1];const lit=await stoneWithLight(128,0);
+      renderer.lighting.sunDirection=[0,0,1];const unlit=await stoneWithLight(128,0);
+      check(lit.slice(0,3).reduce((a,b)=>a+b)>unlit.slice(0,3).reduce((a,b)=>a+b),"normal-based sunlight direction was removed: "+JSON.stringify({lit,unlit}));
+      renderer.lighting.sunDirection=sunDirection;
       renderer.lighting.fogNearFar = [1, 2]; renderer.lighting.fogColor = [1, 1, 1]; await draw(); const near = pixel();
       renderer.lighting.fogNearFar = [10000, 20000]; renderer.lighting.fogColor = [1, 0, 1]; await draw(); const far = pixel();
       check(JSON.stringify(near) === JSON.stringify(far), "legacy fog inputs still affect pixels");
@@ -91,6 +104,9 @@ test("clear-air renderer keeps original detail, water, picking and context resto
         check(renderer.cloudLayer && renderer.skyGradient && renderer.sunDisc,
           "cloud and sky effects must remain available");
         check(renderer.projectedShadowLayer === null, "disabled shadows must not allocate GPU resources");
+        for(const program of [renderer.program,renderer.solidProgram])check(
+          renderer.gl.getUniformLocation(program,"uCaveAmbientFloor")===null,
+          "sky occlusion remains in compiled no-shadow programs");
         check(renderer.renderProjectedShadows([{id:"test-caster"}], null, null).drawCalls === 0,
           "disabled avatar shadows must not draw");
         check(renderer.textureArray.quality === "balanced" && renderer.textureArray.mipLevels > 1, "filtered textures were not restored");
