@@ -1,4 +1,5 @@
 import { prunePlayRenderChunks } from "./play-render-lifecycle.js";
+import { PLAY_RENDER_OPTIONS } from "./play-render-options.js";
 import chunkBuildWorkerUrl from "/chunk.js/chunk/chunk-build-worker.js?worker&url";
 import {
   BLOCK_ID,
@@ -798,6 +799,7 @@ async function boot() {
   });
   syncCameraToPlayer(1 / 60, { force: true });
   renderer = new WebGL2VoxelRenderer(elements.canvas, {
+    ...PLAY_RENDER_OPTIONS,
     viewDistance,
     textureTileSize: PLAYABLE_TEXTURE_TILE_SIZE,
     textureSeed: PLAYABLE_WORLD_SEED,
@@ -1454,7 +1456,7 @@ async function boot() {
   playerSession?.bindPositionPersistence();
   playerSession?.savePlayerPosition(performance.now(), { force: true });
   fps.reset(performance.now());
-  setStatus(`Running seed ${PLAYABLE_WORLD_SEED}. Canonical terrain + baked TextureArray + visual water/cloud/trees + low-cost 3D grass/flower detail layer. View distance ${viewDistance}, mesh budget ${meshBudgetMs}ms, workers ${chunks.workerCount}.`);
+  setStatus(`Running seed ${PLAYABLE_WORLD_SEED}. Performance rendering: clear air, simple water, bounded render resolution. View distance ${viewDistance}, mesh budget ${meshBudgetMs}ms, workers ${chunks.workerCount}.`);
   globalThis.NiceChunkLoading?.taskStart?.("chunks");
   chainFrameSync.scheduleStartupChunkDeltaSync({
     onSync: (promise) => {
@@ -2284,13 +2286,8 @@ function updateViewEnvironment(now) {
   const cz = camera.worldZ + camera.localOffsetZ;
   const environment = computePlayViewEnvironment({
     viewDistance: distance, chunkSize: size, preloadMargin: chunks.preloadMargin,
-    fov: camera.fov, aspect: camera.aspect,
-    // Streaming holes are handled by the loader and build scheduler. Shrinking
-    // the fog to an incomplete square ring can put it in front of the player.
     cameraOffsetBlocks: Math.hypot(cx - px, cz - pz),
   });
-  renderer.lighting.fogNearFar[0] = environment.fogNearFar[0];
-  renderer.lighting.fogNearFar[1] = environment.fogNearFar[1];
   renderer.viewEnvironment = environment;
   camera.far = environment.cameraFar;
 }

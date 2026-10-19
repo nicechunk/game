@@ -4,21 +4,14 @@ import { computeViewEnvironment, computePlayViewEnvironment, loadedTerrainRadius
 import { createUnderwaterLighting, createWorldLighting } from "../../chunk.js/renderer/lighting.js";
 
 for (const viewDistance of [2, 7, 20]) {
-  test(`fog ends inside the rendered horizon at view ${viewDistance}`, () => {
+  test(`clear-air clipping contains the selected range at view ${viewDistance}`, () => {
     const env = computeViewEnvironment({ viewDistance, cameraOffsetBlocks: 10 });
-    assert.ok(env.fogNearFar[0] < env.fogNearFar[1]);
-    assert.ok(env.fogNearFar[1] + 10 < viewDistance * 16);
-    assert.ok(env.cameraFar > env.fogNearFar[1]);
-    const close = computeViewEnvironment({ viewDistance, cameraOffsetBlocks: 10, loadedRadiusBlocks: 32 });
-    assert.ok(close.fogNearFar[1] <= env.fogNearFar[1], "unloaded transition may only reduce the horizon");
+    assert.equal(env.fogEnabled, false);
+    assert.equal(env.fogNearFar, undefined);
+    assert.equal(env.preloadDistance, viewDistance + 2);
+    assert.ok(env.cameraFar > (viewDistance + 2) * 16 * Math.SQRT2 + 10);
   });
 }
-
-test("fog horizon shrinks immediately as the camera moves behind the player", () => {
-  const a = computeViewEnvironment({ viewDistance: 7, cameraOffsetBlocks: 0 });
-  const b = computeViewEnvironment({ viewDistance: 7, cameraOffsetBlocks: 9 });
-  assert.ok(Math.abs(a.fogNearFar[1] - b.fogNearFar[1] - 9 * a.fogDepthProjectionScale) < 1e-8);
-});
 
 test("loaded horizon uses committed rings and negative chunk coordinates", () => {
   const chunks = new Map();
@@ -28,35 +21,24 @@ test("loaded horizon uses committed rings and negative chunk coordinates", () =>
   assert.equal(loadedTerrainRadiusBlocks(chunks, -8, -8, 7), 8);
 });
 
-test("joining at a chunk boundary cannot fog out the player while adjacent chunks stream",()=>{
-  const chunks=new Map([['50,50',{mesh:{},meshVersion:1}]]);
-  const loaded=loadedTerrainRadiusBlocks(chunks,800,800,7);
-  assert.equal(loaded,0,'the spawn at a chunk boundary has no complete loaded ring');
-  for(const aspect of [390/844,16/9]) {
-    const common={viewDistance:7,cameraOffsetBlocks:8,aspect};
-    assert.equal(computeViewEnvironment({...common,loadedRadiusBlocks:loaded}).fogNearFar[1],4,
-      'the old coupling reproduced the white-out');
-    const joining=computePlayViewEnvironment({...common,loadedRadiusBlocks:loaded});
-    const complete=computePlayViewEnvironment({...common,loadedRadiusBlocks:112});
-    assert.deepEqual(joining.fogNearFar,complete.fogNearFar);
-    assert.ok(joining.fogNearFar[0]>16,'nearby terrain and the player must remain visible');
+test("joining at a chunk boundary cannot restore fog while adjacent chunks stream", () => {
+  const chunks = new Map([["50,50", { mesh: {}, meshVersion: 1 }]]);
+  const loaded = loadedTerrainRadiusBlocks(chunks, 800, 800, 7);
+  assert.equal(loaded, 0);
+  for (const aspect of [390 / 844, 16 / 9, 3.2]) {
+    const common = { viewDistance: 7, cameraOffsetBlocks: 8, aspect };
+    const joining = computePlayViewEnvironment({ ...common, loadedRadiusBlocks: loaded });
+    const complete = computePlayViewEnvironment({ ...common, loadedRadiusBlocks: 112 });
+    assert.deepEqual(joining, complete);
+    assert.equal(joining.fogEnabled, false);
+    assert.equal(joining.fogNearFar, undefined);
   }
 });
 
-test("underwater blending cannot push fog beyond a short render horizon", () => {
-  const lighting = createWorldLighting({ fogNear: 10, fogFar: 20 });
-  for (const blend of [0, 0.25, 0.5, 1]) {
-    const water = createUnderwaterLighting(lighting, blend);
-    assert.ok(water.fogNearFar[0] <= 10);
-    assert.ok(water.fogNearFar[1] <= 20);
-  }
-});
-
-
-test("fog reaches full opacity before the loaded horizon at projected screen corners", () => {
-  for(const aspect of [9/19,1,16/9,3.2])for(const viewDistance of [2,7,20]) {
-    const fov=58,offset=8,env=computeViewEnvironment({viewDistance,cameraOffsetBlocks:offset,fov,aspect});
-    const tv=Math.tan(fov*Math.PI/360),radialAtFog=env.fogNearFar[1]*Math.hypot(1,tv*aspect,tv);
-    assert.ok(radialAtFog+offset<viewDistance*16,`fog must cover frustum corners aspect=${aspect} view=${viewDistance}`);
-  }
+test("underwater keeps its environmental tint without changing camera clipping", () => {
+  const lighting = createWorldLighting();
+  const surface = computePlayViewEnvironment({ viewDistance: 7 });
+  const water = createUnderwaterLighting(lighting, 1);
+  assert.notDeepEqual(water.clearColor, lighting.clearColor);
+  assert.equal(surface.fogEnabled, false);
 });
