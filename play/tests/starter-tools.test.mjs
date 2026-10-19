@@ -7,6 +7,9 @@ import {STARTER_AXE_BYTES,STARTER_AXE_CODE} from '../../src/data/starterTools.js
 import {decodeNcf1} from '../../chunk.js/forge/forge-core.js';
 import {createForgeRuntimeAsset} from '../../chunk.js/forge/forge-runtime-cache.js';
 import {resourceDropRules} from '../../src/data/resourceDropRules.js';
+import {STARTER_AXE_RECIPE} from '../../src/data/starterTools.js';
+import {BLOCK_ID, RESOURCE_ID, blockDef} from '../../chunk.js/world/block-registry.js';
+import {createResourceDropPreviewMesh} from '../../chunk.js/chunk/chunk-mesher.js';
 const owner=Keypair.generate().publicKey,backpack=Keypair.generate().publicKey;
 const options={owner,authority:owner,backpack,block:{x:5,y:100,z:5},expectedBlockId:23,actionId:1n,miningTool:{kind:'bare-hands',action:'gather'}};
 test('bare leaf and pebble instructions have no Equipment or local durability envelope',()=>{
@@ -40,10 +43,15 @@ test('starter axe has a canonical grip and real four-part geometry',()=>{
 test('leaf resource rules advertise 30 percent and 250 cm3 without changing existing material ids',()=>{
  const rules=resourceDropRules.filter(r=>r.dropKey==='twig');assert.equal(rules.length,2);for(const r of rules){assert.equal(r.chanceBps,3000);assert.equal(r.minVolumeMm3,250000);assert.equal(r.maxVolumeMm3,250000);}
 });
-function harness(kind='bare-leaves',damage=3,getSkillEffects){
+test('stone fragments have a distinct identity, model and exact starter recipe',()=>{
+ assert.equal(BLOCK_ID.gravel,6);assert.equal(BLOCK_ID.stoneFragment,55);assert.equal(blockDef(55).resourceId,RESOURCE_ID.stoneFragment);
+ assert.deepEqual(STARTER_AXE_RECIPE.rawInputs,[{key:'stoneFragment',amount:1},{key:'twig',amount:2}]);
+ const mesh=createResourceDropPreviewMesh({blockId:55});assert.ok(mesh.triangleCount>0);assert.ok(mesh.vertices.length>0);
+});
+function harness(kind='bare-leaves',damage=3,getSkillEffects,rewardBlocks){
  const hit={hit:true,worldX:0,worldY:1,worldZ:0,blockId:23,resourceId:10};let picked=0;
  const state={hotbarSlots:[],getSelectedToolSlot:()=>null,playerProfile:{minedBlocks:0,confirmedMines:0,resourcesCollected:0},savePlayerProfile(){},isUsableMiningToolSlot:()=>false};
- const deltas=[];const controller=createMiningController({gameState:state,chunks:{getBlockAtWorld:()=>23,applyPendingDelta:(d)=>deltas.push(...d),confirmPendingDelta(){}},getHit:()=>hit,blockDef:()=>({name:'leaves',resourceId:10,hardness:1}),isFluidBlock:()=>false,isMineableBlock:()=>true,blockAirId:0,getBareHandPlan:()=>({kind,blocks:[hit],requiredDamage:damage}),onSurfacePicked:()=>picked++,getSkillEffects});
+ const deltas=[];const controller=createMiningController({gameState:state,chunks:{getBlockAtWorld:()=>23,applyPendingDelta:(d)=>deltas.push(...d),confirmPendingDelta(){}},getHit:()=>hit,blockDef:()=>({name:'leaves',resourceId:10,hardness:1}),isFluidBlock:()=>false,isMineableBlock:()=>true,blockAirId:0,getBareHandPlan:()=>({kind,blocks:[hit],requiredDamage:damage,rewardBlocks}),onSurfacePicked:()=>picked++,getSkillEffects});
  return {controller,deltas,picked:()=>picked};
 }
 function strike(c){const swing=c.minePending();assert.ok(swing);c.update(swing.endsAt+1);}
@@ -58,4 +66,8 @@ test('bare-hand reward preview uses baseline volume without reading skill effect
  const h=harness('bare-leaves',3,()=>{throw Error('bare hands must not read skill effects');});
  strike(h.controller);strike(h.controller);strike(h.controller);
  const pending=h.controller.pendingSnapshot()[0];assert.equal(pending.gatheringYieldBps,5000);assert.equal(pending.resourceVolumeMilliLiters,500);
+});
+test('surface pickup previews only one stone fragment and never its supporting terrain',()=>{
+ const h=harness('surface-pebble',1,()=>{throw Error('no Skills');},[{worldX:0,worldY:2,worldZ:0,blockId:55,resourceId:30}]);strike(h.controller);
+ const pending=h.controller.pendingSnapshot()[0];assert.deepEqual(pending.rewardGroups,[{blockId:55,resourceId:30,count:1}]);assert.deepEqual(pending.pendingDeltas,[]);
 });

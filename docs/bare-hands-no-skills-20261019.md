@@ -2,7 +2,7 @@
 
 ## Active policy
 
-- Bare-hand leaf collection and surface pebble/Gravel collection grant no skill XP or levels.
+- Bare-hand leaf collection and loose surface stone pickup grant no skill XP or levels. The later [Stone Fragment correction](surface-stone-fragments-20261019.md) restricts bare hands to those targets; terrain Gravel requires equipment.
 - The active client sends neither a Skills baseline nor a final Skills synchronization for bare hands and makes no Skills-state query for this transaction. Its reward preview uses baseline gathering volume.
 - Chunk does not create, read or mutate PlayerProgress/PlayerSkills for bare actions. The legacy account positions remain available as unused readonly compatibility slots.
 - Game Backpack reward opcodes 18 and 19 use the existing authenticated Chunk-PDA authority and inventory/mass validation, while omitting mining-event recording. Inventory is awarded normally; the pre-mine mass, last mining action and mining sequence are preserved.

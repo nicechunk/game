@@ -55,6 +55,7 @@ export const WorldMapBlock = Object.freeze({
   FlowerBlue: 52,
   FlowerPink: 53,
   Twig: 54,
+  StoneFragment: 55,
 });
 
 export const RESOURCE_ID = Object.freeze({
@@ -88,6 +89,7 @@ export const RESOURCE_ID = Object.freeze({
   flowerBlue: 27,
   flowerPink: 28,
   twig: 29,
+  stoneFragment: 30,
 });
 
 export const BiomeType = Object.freeze({
@@ -164,6 +166,7 @@ export const WORLD_MAP_BLOCK_DEBUG_COLOR = Object.freeze({
   [WorldMapBlock.FlowerBlue]: "#4b77d1",
   [WorldMapBlock.FlowerPink]: "#dd7fa5",
   [WorldMapBlock.Twig]: "#95643e",
+  [WorldMapBlock.StoneFragment]: "#858983",
 });
 
 export const WORLD_MAP_BLOCK_RENDER_TYPE = Object.freeze({
@@ -221,6 +224,7 @@ export const WORLD_MAP_BLOCK_RENDER_TYPE = Object.freeze({
   [WorldMapBlock.FlowerBlue]: "flowerBlue",
   [WorldMapBlock.FlowerPink]: "flowerPink",
   [WorldMapBlock.Twig]: "twig",
+  [WorldMapBlock.StoneFragment]: "stoneFragment",
 });
 
 export const WORLD_MAP_BLOCK_RESOURCE_ID = Object.freeze({
@@ -279,6 +283,7 @@ export const WORLD_MAP_BLOCK_RESOURCE_ID = Object.freeze({
   [WorldMapBlock.FlowerBlue]: RESOURCE_ID.flowerBlue,
   [WorldMapBlock.FlowerPink]: RESOURCE_ID.flowerPink,
   [WorldMapBlock.Twig]: RESOURCE_ID.twig,
+  [WorldMapBlock.StoneFragment]: RESOURCE_ID.stoneFragment,
 });
 
 export function renderTypeForBlock(block) {

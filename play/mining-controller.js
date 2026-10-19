@@ -396,7 +396,7 @@ export function createMiningController({
     const volumeMilliLiters = Math.max(1, Math.floor(1000 * yieldBps / 10000));
     const planBlocks = currentPlanBlocks(swing, hit);
     const plannedRewardBlocks = swing.miningPlan?.rewardBlocks?.length ? swing.miningPlan.rewardBlocks : planBlocks;
-    const rewardGroups = rewardGroupsForBlocks(uniqueMiningBlocks([hit, ...plannedRewardBlocks]), {
+    const rewardGroups = rewardGroupsForBlocks(uniqueMiningBlocks(swing.miningPlan?.kind === "surface-pebble" ? plannedRewardBlocks : [hit, ...plannedRewardBlocks]), {
       yieldBps,
       volumeMilliLiters,
     });

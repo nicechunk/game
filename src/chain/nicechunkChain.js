@@ -409,6 +409,7 @@ const WorldMapBlock = Object.freeze({
   FlowerBlue: 52,
   FlowerPink: 53,
   Twig: 54,
+  StoneFragment: 55,
 });
 
 function isCanonicalMineableBlockId(blockId) {
@@ -459,6 +460,7 @@ const blockIdByRenderType = new Map([
   ["pineTrunk", WorldMapBlock.PineTrunk],
   ["pineLeaves", WorldMapBlock.PineLeaves],
   ["twig", WorldMapBlock.Twig],
+  ["stoneFragment", WorldMapBlock.StoneFragment],
   ["deadWood", WorldMapBlock.DeadWood],
   ["giantRoot", WorldMapBlock.GiantRoot],
   ["grassPlant", WorldMapBlock.GrassPlant],
@@ -3350,7 +3352,7 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       kind: "block",
       quantity: 1,
       metadata: 0,
-      resource: { blockId: options?.miningTool?.action === "pick-pebble" ? WorldMapBlock.Gravel : canonicalBlock.blockId },
+      resource: { blockId: options?.miningTool?.action === "pick-pebble" ? WorldMapBlock.StoneFragment : canonicalBlock.blockId },
     })) {
       return { submitted: false, reason: "backpack-full" };
     }
