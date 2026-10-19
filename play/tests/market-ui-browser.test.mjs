@@ -33,7 +33,7 @@ test("market renders chain item icons, mobile views, and transaction progress", 
         body: sourceHtml,
       }));
       await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
-      await installMarketHarness(page);
+      await installMarketHarness(page, { heldOperationTypes: ["contract", "listing", "buy", "cancel"] });
       if (viewport.mobile) {
         const headerLayouts = await page.evaluate(() => {
           const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect().toJSON();
@@ -107,7 +107,10 @@ test("market renders chain item icons, mobile views, and transaction progress", 
         .first()
         .locator("xpath=ancestor::article[contains(@class, 'market-listing-card')]//div[contains(@class, 'market-listing-copy')]")
         .click();
-      await page.waitForTimeout(viewport.mobile ? 220 : 20);
+      await page.waitForFunction(() => {
+        const bounds = document.querySelector("#marketListingDetail")?.getBoundingClientRect();
+        return bounds && Math.max(0, Math.min(bounds.bottom, innerHeight) - Math.max(bounds.top, 0)) >= 100;
+      }, null, { timeout: 10_000 });
       const detail = await page.evaluate(() => {
         const readRows = (selector) => Object.fromEntries([...document.querySelectorAll(`${selector} [data-market-detail-key]`)].map((row) => [
           row.dataset.marketDetailKey,
@@ -179,7 +182,7 @@ test("market header balances and Treasury Swap stay usable without overflow", as
         body: sourceHtml,
       }));
       await page.goto(`${origin}/play/`, { waitUntil: "domcontentloaded" });
-      await installMarketHarness(page);
+      await installMarketHarness(page, { heldOperationTypes: ["swap"] });
       await page.locator("#marketButton").click({ force: true });
       await page.waitForFunction(() => document.querySelector("#marketSolBalance")?.textContent === "1.2345");
       assert.equal(await page.locator("#marketNckBalance").textContent(), "87.6543");
@@ -257,14 +260,19 @@ test("market header balances and Treasury Swap stay usable without overflow", as
       await page.locator("#marketSwapAmount").fill("0.1");
       await page.evaluate(() => globalThis.__marketHarness.expireNextSwapQuote());
       await page.locator("#marketSwapSubmit").click();
-      await page.waitForFunction(() => document.querySelector("#marketSwapSubmit")?.getAttribute("aria-busy") === "true");
-      assert.equal(await page.locator("#marketSwapSubmit").isDisabled(), true);
       await page.waitForFunction(() => globalThis.__marketHarness.getOperationCalls().swap === 1);
+      const pendingSwap = await page.evaluate(() => ({
+        busy: document.querySelector("#marketSwapSubmit")?.getAttribute("aria-busy"),
+        disabled: document.querySelector("#marketSwapSubmit")?.disabled,
+      }));
+      assert.deepEqual(pendingSwap, { busy: "true", disabled: true });
+      await page.evaluate(() => globalThis.__marketHarness.releaseOperation("swap"));
       await page.waitForFunction(() => document.querySelector("#marketTradeToastMessage")?.textContent.includes("rate changed"));
       await page.waitForFunction(() => document.querySelector("#marketSwapSubmit")?.disabled === false);
       assert.equal(await page.locator("#marketSwapSubmit").isDisabled(), false, "fresh quote should be immediately retryable");
       await page.locator("#marketSwapSubmit").click();
       await page.waitForFunction(() => globalThis.__marketHarness.getOperationCalls().swap === 2);
+      await page.evaluate(() => globalThis.__marketHarness.releaseOperation("swap"));
       await page.waitForFunction(() => document.querySelector("#marketTradeToastMessage")?.textContent.includes("Swapped 0.1 SOL for 4 NCK"));
       await context.close();
     }
@@ -448,6 +456,7 @@ async function installMarketHarness(page, options = {}) {
     marketJoined = true,
     includeLocalOnlySlot = false,
     inventoryItemCount = 1,
+    heldOperationTypes = [],
   }) => {
     const [{ createPlayMarket }, chunk] = await Promise.all([
       import("/play/play-market.js"),
@@ -625,7 +634,14 @@ async function installMarketHarness(page, options = {}) {
     let failListingReads = Boolean(failInitialListingRead);
     let holdInitialListingRead = !failInitialListingRead;
     let releaseInitialListingRead = null;
-    const delayOperation = () => new Promise((resolve) => setTimeout(resolve, 360));
+    const operationWaiters = new Map();
+    const delayOperation = (type) => heldOperationTypes.includes(type)
+      ? new Promise((resolve) => {
+        const waiters = operationWaiters.get(type) || [];
+        waiters.push(resolve);
+        operationWaiters.set(type, waiters);
+      })
+      : new Promise((resolve) => setTimeout(resolve, 360));
     const chainModule = {
       fetchMarketWalletBalancesOnChain: async () => ({
         owner: "BuyerWalletAddress",
@@ -673,7 +689,7 @@ async function installMarketHarness(page, options = {}) {
       },
       swapWithTreasuryOnChain: async ({ direction, amount }) => {
         operationCalls.swap += 1;
-        await delayOperation();
+        await delayOperation("swap");
         if (expireNextSwapQuote) {
           expireNextSwapQuote = false;
           swapRevision += 1;
@@ -737,13 +753,13 @@ async function installMarketHarness(page, options = {}) {
       }),
       joinMarketOnChain: async () => {
         operationCalls.join += 1;
-        await delayOperation();
+        await delayOperation("join");
         joinedMarket = true;
         return { submitted: true, signature: "MarketJoinSignature123456789" };
       },
       createMarketListingOnChain: async () => {
         operationCalls.listing += 1;
-        await delayOperation();
+        await delayOperation("listing");
         if (submissionFailures.listing) {
           const reason = submissionFailures.listing;
           submissionFailures.listing = "";
@@ -753,7 +769,7 @@ async function installMarketHarness(page, options = {}) {
       },
       buyMarketListingOnChain: async () => {
         operationCalls.buy += 1;
-        await delayOperation();
+        await delayOperation("buy");
         if (failNextBuy) {
           failNextBuy = false;
           throw new Error("simulated purchase rejection");
@@ -767,7 +783,7 @@ async function installMarketHarness(page, options = {}) {
       },
       buyLandContractsOnChain: async ({ quantity }) => {
         operationCalls.contract += 1;
-        await delayOperation();
+        await delayOperation("contract");
         blankLandContracts += quantity;
         return {
           submitted: true,
@@ -785,7 +801,7 @@ async function installMarketHarness(page, options = {}) {
       },
       cancelMarketListingOnChain: async () => {
         operationCalls.cancel += 1;
-        await delayOperation();
+        await delayOperation("cancel");
         if (submissionFailures.cancel) {
           const reason = submissionFailures.cancel;
           submissionFailures.cancel = "";
@@ -865,6 +881,11 @@ async function installMarketHarness(page, options = {}) {
     globalThis.__marketHarness = {
       market,
       getOperationCalls: () => ({ ...operationCalls }),
+      releaseOperation: (type) => {
+        const release = operationWaiters.get(type)?.shift();
+        if (!release) throw new Error(`No pending fake market operation: ${type}`);
+        release();
+      },
       getContractSnapshots: () => contractSnapshots.map((snapshot) => ({ ...snapshot })),
       failNextContractRefresh: () => { failNextMembershipRead = true; },
       failNextBuy: () => { failNextBuy = true; },
@@ -917,7 +938,7 @@ async function verifyTransactionProgress(page) {
   await page.locator("#marketInventoryGrid .market-inventory-item").click();
   await page.locator("#marketListingPrice").fill("3.5");
   await page.locator("#marketCreateListing").click();
-  await page.waitForTimeout(60);
+  await waitForOperationCall(page, "listing", 1);
   const pending = await page.evaluate(() => ({
     disabled: document.querySelector("#marketCreateListing")?.disabled,
     busy: document.querySelector("#marketCreateListing")?.getAttribute("aria-busy"),
@@ -935,7 +956,8 @@ async function verifyTransactionProgress(page) {
     calls: 1,
   });
   await page.evaluate(() => document.querySelector("#marketCreateListing")?.click());
-  await page.waitForTimeout(520);
+  assert.equal(await page.evaluate(() => globalThis.__marketHarness.getOperationCalls().listing), 1);
+  await releaseAndWaitForOperation(page, "listing", "#marketCreateListing", "success");
   const complete = await page.evaluate(() => ({
     disabled: document.querySelector("#marketCreateListing")?.disabled,
     busy: document.querySelector("#marketCreateListing")?.getAttribute("aria-busy"),
@@ -968,7 +990,8 @@ async function verifyTransactionProgress(page) {
   await page.locator("#marketListingPrice").fill("3.5");
   await page.evaluate(() => globalThis.__marketHarness.failNextSubmission("listing", "no-backpack"));
   await page.locator("#marketCreateListing").click();
-  await page.waitForTimeout(520);
+  await waitForOperationCall(page, "listing", 2);
+  await releaseAndWaitForOperation(page, "listing", "#marketCreateListing", "error");
   assert.match(await page.locator("#marketTradeToastMessage").textContent(), /Listing unavailable/);
 }
 
@@ -981,7 +1004,7 @@ async function verifyContractPurchaseProgress(page) {
   assert.equal(await page.locator("#marketContractTotal strong").textContent(), "30 NCK");
   await page.evaluate(() => globalThis.__marketHarness.failNextContractRefresh());
   await page.locator('button[data-market-action="buy-contract"]').click();
-  await page.waitForTimeout(60);
+  await waitForOperationCall(page, "contract", 1);
 
   const pending = await page.evaluate(() => {
     const button = document.querySelector('button[data-market-action="buy-contract"]');
@@ -1003,7 +1026,8 @@ async function verifyContractPurchaseProgress(page) {
     calls: 1,
   });
   await page.evaluate(() => document.querySelector('button[data-market-action="buy-contract"]')?.click());
-  await page.waitForTimeout(520);
+  assert.equal(await page.evaluate(() => globalThis.__marketHarness.getOperationCalls().contract), 1);
+  await releaseAndWaitForOperation(page, "contract", 'button[data-market-action="buy-contract"]', "success");
 
   const complete = await page.evaluate(() => ({
     disabled: document.querySelector('button[data-market-action="buy-contract"]')?.disabled,
@@ -1032,17 +1056,20 @@ async function selectMarketTab(page, tab) {
 
 async function verifyRejectedSubmissionReason(page, action, reason, expectedMessage, cardPrefix = "") {
   const selector = `#marketListingGrid ${cardPrefix}button[data-market-action="${action}"]`;
+  const expectedCalls = await page.evaluate((action) => globalThis.__marketHarness.getOperationCalls()[action] + 1, action);
   await page.evaluate(({ action, reason }) => globalThis.__marketHarness.failNextSubmission(action, reason), { action, reason });
   await page.locator(selector).first().click();
-  await page.waitForTimeout(520);
+  await waitForOperationCall(page, action, expectedCalls);
+  await releaseAndWaitForOperation(page, action, selector, "error");
   assert.equal(await page.locator("#marketTradeToast").getAttribute("data-tone"), "error");
   assert.match(await page.locator("#marketTradeToastMessage").textContent(), expectedMessage);
 }
 
 async function verifyListingActionProgress(page, action, counter, expectedTone, cardPrefix = "") {
   const selector = `#marketListingGrid ${cardPrefix}button[data-market-action="${action}"]`;
+  const expectedCalls = expectedTone === "error" ? 2 : 1;
   await page.locator(selector).first().click();
-  await page.waitForTimeout(60);
+  await waitForOperationCall(page, counter, expectedCalls);
   const pending = await page.evaluate(({ selector, counter }) => {
     const button = document.querySelector(selector);
     return {
@@ -1060,11 +1087,12 @@ async function verifyListingActionProgress(page, action, counter, expectedTone, 
     pendingClass: true,
     allActionsDisabled: true,
     toastTone: "pending",
-    calls: expectedTone === "error" ? 2 : 1,
+    calls: expectedCalls,
   });
 
   await page.evaluate((selector) => document.querySelector(selector)?.click(), selector);
-  await page.waitForTimeout(520);
+  assert.equal(await page.evaluate((counter) => globalThis.__marketHarness.getOperationCalls()[counter], counter), expectedCalls);
+  await releaseAndWaitForOperation(page, counter, selector, expectedTone);
   const complete = await page.evaluate(({ selector, counter }) => {
     const button = document.querySelector(selector);
     return {
@@ -1080,6 +1108,20 @@ async function verifyListingActionProgress(page, action, counter, expectedTone, 
     busy: "false",
     pendingClass: false,
     toastTone: expectedTone,
-    calls: expectedTone === "error" ? 2 : 1,
+    calls: expectedCalls,
   });
+}
+
+async function waitForOperationCall(page, type, expectedCalls) {
+  await page.waitForFunction(({ type, expectedCalls }) => (
+    globalThis.__marketHarness.getOperationCalls()[type] === expectedCalls
+  ), { type, expectedCalls }, { timeout: 10_000 });
+}
+
+async function releaseAndWaitForOperation(page, type, selector, expectedTone) {
+  await page.evaluate((type) => globalThis.__marketHarness.releaseOperation(type), type);
+  await page.waitForFunction(({ selector, expectedTone }) => (
+    document.querySelector(selector)?.getAttribute("aria-busy") === "false"
+      && document.querySelector("#marketTradeToast")?.dataset.tone === expectedTone
+  ), { selector, expectedTone }, { timeout: 10_000 });
 }
