@@ -1456,7 +1456,7 @@ async function boot() {
   playerSession?.bindPositionPersistence();
   playerSession?.savePlayerPosition(performance.now(), { force: true });
   fps.reset(performance.now());
-  setStatus(`Running seed ${PLAYABLE_WORLD_SEED}. Performance rendering: clear air, simple water, bounded render resolution. View distance ${viewDistance}, mesh budget ${meshBudgetMs}ms, workers ${chunks.workerCount}.`);
+  setStatus(`Running seed ${PLAYABLE_WORLD_SEED}. Clear air, detailed water, clouds and filtered material textures. View distance ${viewDistance}, mesh budget ${meshBudgetMs}ms, workers ${chunks.workerCount}.`);
   globalThis.NiceChunkLoading?.taskStart?.("chunks");
   chainFrameSync.scheduleStartupChunkDeltaSync({
     onSync: (promise) => {

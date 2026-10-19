@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { chromium } from "playwright";
 
-test("performance renderer keeps clear terrain, water, picking and context restoration", async () => {
+test("clear-air renderer keeps original detail, water, picking and context restoration", async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 3 });
@@ -14,6 +14,7 @@ test("performance renderer keeps clear terrain, water, picking and context resto
     }));
     await page.goto(origin + "/performance-render-fixture");
     const result = await page.evaluate(async () => {
+      Object.defineProperty(performance, 'now', {value:()=>10000});
       const { PLAY_RENDER_OPTIONS } = await import("/play/play-render-options.js");
       const { WebGL2VoxelRenderer } = await import("/chunk.js/renderer/webgl2-renderer.js");
       const { createCameraState } = await import("/chunk.js/renderer/camera.js");
@@ -29,7 +30,7 @@ test("performance renderer keeps clear terrain, water, picking and context resto
       for (const [width, height] of [[1920, 1080], [3840, 2160], [390, 844], [844, 390]]) {
         canvas.style.width = width + "px"; canvas.style.height = height + "px";
         renderer.resize(); camera.aspect = canvas.width / canvas.height;
-        check(canvas.width * canvas.height <= PLAY_RENDER_OPTIONS.maxRenderPixels, "pixel cap exceeded");
+        check(canvas.width === Math.floor(width * 1.75) && canvas.height === Math.floor(height * 1.75), "original desktop DPR was not restored");
         const ray = screenRayDirection(camera, width * .72, height * .41, canvas);
         const oldSize = [canvas.width, canvas.height];
         // Changing only backing resolution must not move the world-space input ray.
@@ -56,7 +57,7 @@ test("performance renderer keeps clear terrain, water, picking and context resto
       const draw = () => { renderer.prepareChunksForRender(chunks); return renderer.render(camera, chunks); };
       function pixel() {
         const gl = renderer.gl, bytes = new Uint8Array(4);
-        gl.readPixels(160, 90, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes); return Array.from(bytes);
+        gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes); return Array.from(bytes);
       }
       draw(); const waterPixel = pixel();
       renderer.render(camera, [chunks[0]]); const stonePixel = pixel();
@@ -71,11 +72,13 @@ test("performance renderer keeps clear terrain, water, picking and context resto
           for (let i = 0; i < gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i++) {
             const name = gl.getActiveUniform(program, i).name;
             check(!/fog/i.test(name), "fog uniform survived compilation: " + name);
-            check(!/uWater|uTime/.test(name), "animated water work survived performance compilation: " + name);
           }
         }
-        check(!renderer.cloudLayer && !renderer.skyGradient && !renderer.sunDisc && !renderer.projectedShadowLayer,
-          "disabled decorative passes must not allocate resources");
+        check(renderer.cloudLayer && renderer.skyGradient && renderer.sunDisc && renderer.projectedShadowLayer,
+          "original visual passes must remain available");
+        check(renderer.textureArray.quality === "balanced" && renderer.textureArray.mipLevels > 1, "filtered textures were not restored");
+        check(renderer.options.waterEffects && renderer.gl.getUniformLocation(renderer.program, "uTime") !== null, "detailed animated water was not restored");
+        check(renderer.gpuTimer === null, "GPU timer must be opt-in during gameplay");
       };
       checkPrograms();
       const extension = renderer.gl.getExtension("WEBGL_lose_context"); check(extension, "context loss extension unavailable");
@@ -91,8 +94,8 @@ test("performance renderer keeps clear terrain, water, picking and context resto
       check(renderer.resourceLedger.snapshot().bufferBytes === 0, "buffers leaked");
       return { sizes, waterPixel, stonePixel, near, far, stats };
     });
-    assert.equal(result.sizes[0].backing[0], 1280);
-    assert.equal(result.sizes[0].backing[1], 720);
+    assert.equal(result.sizes[0].backing[0], 3360);
+    assert.equal(result.sizes[0].backing[1], 1890);
     assert.ok(result.stats.terrainDrawCalls > 0);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
