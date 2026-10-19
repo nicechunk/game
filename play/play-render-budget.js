@@ -122,7 +122,7 @@ export function createPlayRenderBudget({
   }
 
   function allowBackgroundUploads(now = performance.now()) {
-    return state.worldCovered && normalizedFps() >= 24;
+    return state.worldCovered;
   }
 
   function frameBackgroundUploadBudget(now = performance.now()) {

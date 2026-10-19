@@ -50,6 +50,7 @@ test('actual locomotion trickles bounded residency and low FPS backs off',()=>{
  assert.ok(budget.frameBackgroundUploadBudget(1000).maxCpuMs<1);
  moving=false;assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,6);
  fps=30;assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,1);
- fps=20;assert.equal(budget.allowBackgroundUploads(1000),false);
- assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,0);
+ fps=20;assert.equal(budget.allowBackgroundUploads(1000),true,'slow frames must not permanently starve the next boundary');
+ assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,1);
+ assert.ok(budget.frameBackgroundUploadBudget(1000).maxCpuMs<=.35);
 });
