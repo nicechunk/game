@@ -1,7 +1,7 @@
 // Fixed recipe and canonical model shared by the UI and custody display.
 export const STARTER_AXE_RECIPE_ID = 9001;
 export const STARTER_AXE_DURABILITY = 99;
-export { STARTER_AXE_CODE, STARTER_AXE_BYTES, LEGACY_STARTER_AXE_CODE, LEGACY_STARTER_AXE_BYTES, isStarterAxeModelBytes } from "../../chunk.js/forge/starter-axe.js";
+export { STARTER_AXE_CODE, STARTER_AXE_BYTES, SHORT_STARTER_AXE_CODE, SHORT_STARTER_AXE_BYTES, LEGACY_STARTER_AXE_CODE, LEGACY_STARTER_AXE_BYTES, isStarterAxeModelBytes } from "../../chunk.js/forge/starter-axe.js";
 
 export const STARTER_AXE_RECIPE = Object.freeze({
   id: "basic_stone_axe", class: "tool", recipeKind: "starter", recipeId: STARTER_AXE_RECIPE_ID, recipeTableId: 900,
