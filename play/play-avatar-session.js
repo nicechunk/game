@@ -333,7 +333,10 @@ export function createPlayAvatarSession({
     const player = getPlayer();
     if (!player) return;
     const now = performance.now();
-    const aimYaw = Number(swing?.aimYaw);
+    // Bare-hand actions have no equipped-tool targeting solution. Face the
+    // captured click target instead; null is a missing angle, never yaw zero.
+    const targetAim = Number.isFinite(swing?.aimYaw) ? null : miningAimForHit(swing?.hit, player);
+    const aimYaw = targetAim?.yaw ?? swing?.aimYaw;
     if (Number.isFinite(aimYaw)) {
       player.miningAimYaw = normalizeAngle(aimYaw);
       player.avatarYaw = player.miningAimYaw;
@@ -342,10 +345,26 @@ export function createPlayAvatarSession({
     } else {
       player.miningAimYaw = null;
     }
-    player.miningAimPitch = Number.isFinite(Number(swing?.aimPitch)) ? Number(swing.aimPitch) : 0;
+    const aimPitch = targetAim?.pitch ?? swing?.aimPitch;
+    player.miningAimPitch = Number.isFinite(aimPitch) ? aimPitch : 0;
     player.miningSwingStartedAt = now;
     player.miningSwingDurationMs = miningSwingDurationMs;
     player.miningSwingUntil = now + miningSwingDurationMs;
+  }
+
+  function miningAimForHit(hit, player) {
+    if (!hit || ![hit.worldX, hit.worldY, hit.worldZ].every(Number.isFinite)) return null;
+    const [playerX, playerY, playerZ] = getPlayerWorldFloat() ?? [];
+    if (![playerX, playerY, playerZ].every(Number.isFinite)) return null;
+    const dx = hit.worldX + 0.5 - playerX;
+    const dz = hit.worldZ + 0.5 - playerZ;
+    const horizontal = Math.hypot(dx, dz);
+    const currentYaw = Number.isFinite(player.avatarYaw) ? player.avatarYaw : player.yaw;
+    const shoulderY = playerY + playerBodyHeight * 0.62;
+    return {
+      yaw: horizontal > 1e-6 ? Math.atan2(-dx, -dz) : currentYaw,
+      pitch: clamp(Math.atan2(hit.worldY + 0.5 - shoulderY, horizontal), -1.2, 1.2),
+    };
   }
 
   function startPlacementAction(placement = null) {
