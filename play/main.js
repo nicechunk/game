@@ -765,6 +765,7 @@ async function boot() {
     defaultCollisionBox: DEFAULT_PLAYER_COLLISION_BOX,
     isMobileViewport,
     config: {
+      shadows: PLAY_RENDER_OPTIONS.shadows,
       blockSizeMeters: BLOCK_SIZE_METERS,
       avatarFootOffset: AVATAR_FOOT_OFFSET,
       avatarHeightBlocks: AVATAR_HEIGHT_BLOCKS,

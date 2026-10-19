@@ -57,6 +57,7 @@ export function createPlayerMotionController({
     firstPersonCameraBackDistance: 0.16,
     firstPersonPitchMin: -0.92,
     firstPersonPitchMax: 0.42,
+    shadows: true,
     ...config,
   };
   let cameraFocusReady = false;
@@ -84,6 +85,7 @@ export function createPlayerMotionController({
   const focusCameraCollision = {};
   let lastSafeCamera = null;
   const cameraSafety = { safe: false, radius: cfg.cameraCollisionRadius, focusClipped: false, fallback: false };
+  const cameraOcclusionCache = new Map();
 
 
   return {
@@ -269,7 +271,6 @@ export function createPlayerMotionController({
       }
     }
     const [px, py, pz] = playerWorldFloat();
-    const shadowWorldY = groundYAt(px, pz, { maxTopY: py + cfg.groundSnapUp });
     const landingOffset = landingVisualOffset();
     avatar.worldX = player.worldX;
     avatar.worldY = player.worldY;
@@ -289,17 +290,22 @@ export function createPlayerMotionController({
       placementProgress,
       placementAimPitch: placementRemaining > 0 ? (Number(player.placementAimPitch) || 0) : 0,
     };
-    avatar.shadowWorldY = shadowWorldY;
-    avatar.shadowCasterHeight = cfg.avatarHeightBlocks;
-    avatar.shadowRadiusX = Math.max(0.34, cfg.playerRadius * 0.92);
-    avatar.shadowRadiusZ = Math.max(0.30, cfg.playerRadius * 0.78);
-    avatar.shadowAlpha = 0.44;
+    if(cfg.shadows) {
+      avatar.shadowWorldY = groundYAt(px, pz, { maxTopY: py + cfg.groundSnapUp });
+      avatar.shadowCasterHeight = cfg.avatarHeightBlocks;
+      avatar.shadowRadiusX = Math.max(0.34, cfg.playerRadius * 0.92);
+      avatar.shadowRadiusZ = Math.max(0.30, cfg.playerRadius * 0.78);
+      avatar.shadowAlpha = 0.44;
+    } else avatar.shadowAlpha = 0;
   }
 
   function syncCameraToPlayer(dt = 1 / 60, { force = false } = {}) {
     const player = getPlayer?.();
     const camera = getCamera?.();
     if (!player || !camera) return;
+    // The focus, desired-eye and smoothed-eye sweeps overlap. World data cannot
+    // change within this synchronous call; never reuse answers on the next call.
+    cameraOcclusionCache.clear();
     const [px, py, pz] = playerWorldFloat();
     const firstPerson = isFirstPersonCameraEnabled();
     const pitchMin = firstPerson ? cfg.firstPersonPitchMin : cfg.cameraPitchMin;
@@ -455,9 +461,13 @@ export function createPlayerMotionController({
   }
 
   function cameraBlockedAt(worldX, worldY, worldZ) {
+    const key=`${worldX}:${worldY}:${worldZ}`;
+    if(cameraOcclusionCache.has(key))return cameraOcclusionCache.get(key);
     const chunks = getChunks?.();
-    if (chunks?.isCameraOccluderAtWorld) return chunks.isCameraOccluderAtWorld(worldX, worldY, worldZ);
-    return isBlockingBlock(collisionBlockAt(worldX, worldY, worldZ));
+    const blocked=chunks?.isCameraOccluderAtWorld
+      ?chunks.isCameraOccluderAtWorld(worldX, worldY, worldZ)
+      :isBlockingBlock(collisionBlockAt(worldX, worldY, worldZ));
+    cameraOcclusionCache.set(key,blocked);return blocked;
   }
 
   function setCameraWorldFloat(x, y, z) {
