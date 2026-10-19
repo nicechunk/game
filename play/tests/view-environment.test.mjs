@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { computeViewEnvironment, loadedTerrainRadiusBlocks } from "../play-view-distance.js";
+import { computeViewEnvironment, computePlayViewEnvironment, loadedTerrainRadiusBlocks } from "../play-view-distance.js";
 import { createUnderwaterLighting, createWorldLighting } from "../../chunk.js/renderer/lighting.js";
 
 for (const viewDistance of [2, 7, 20]) {
@@ -26,6 +26,21 @@ test("loaded horizon uses committed rings and negative chunk coordinates", () =>
   assert.equal(loadedTerrainRadiusBlocks(chunks, -8, -8, 7), 24);
   chunks.delete("0,0");
   assert.equal(loadedTerrainRadiusBlocks(chunks, -8, -8, 7), 8);
+});
+
+test("joining at a chunk boundary cannot fog out the player while adjacent chunks stream",()=>{
+  const chunks=new Map([['50,50',{mesh:{},meshVersion:1}]]);
+  const loaded=loadedTerrainRadiusBlocks(chunks,800,800,7);
+  assert.equal(loaded,0,'the spawn at a chunk boundary has no complete loaded ring');
+  for(const aspect of [390/844,16/9]) {
+    const common={viewDistance:7,cameraOffsetBlocks:8,aspect};
+    assert.equal(computeViewEnvironment({...common,loadedRadiusBlocks:loaded}).fogNearFar[1],4,
+      'the old coupling reproduced the white-out');
+    const joining=computePlayViewEnvironment({...common,loadedRadiusBlocks:loaded});
+    const complete=computePlayViewEnvironment({...common,loadedRadiusBlocks:112});
+    assert.deepEqual(joining.fogNearFar,complete.fogNearFar);
+    assert.ok(joining.fogNearFar[0]>16,'nearby terrain and the player must remain visible');
+  }
 });
 
 test("underwater blending cannot push fog beyond a short render horizon", () => {

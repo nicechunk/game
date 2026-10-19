@@ -141,7 +141,9 @@ export function createPlayStartupLogger({ enabled = true, prefix = DEFAULT_PREFI
         triangles: renderStats?.triangles || 0,
       });
     }
-    if ((renderStats?.visibleChunks || 0) > 0 && !milestones.has("first-world")) {
+    const terrainDrawn=renderStats?.terrainDrawCalls===undefined
+      ?(renderStats?.visibleChunks||0)>0:renderStats.terrainDrawCalls>0;
+    if (terrainDrawn && !milestones.has("first-world")) {
       milestones.add("first-world");
       loadingApi()?.worldReady?.();
       mark("first visible world frame", {

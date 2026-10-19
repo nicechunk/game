@@ -27,7 +27,12 @@ export function computeViewEnvironment({
   };
 }
 
-/** Largest completely committed square ring, inspected at low frequency. */
+/** Live gameplay fog follows the selected view, never transient streaming gaps. */
+export function computePlayViewEnvironment(options = {}) {
+  return computeViewEnvironment({...options,loadedRadiusBlocks:Infinity});
+}
+
+/** Largest completely committed square ring, available for load diagnostics. */
 export function loadedTerrainRadiusBlocks(chunks, playerX, playerZ, viewDistance, chunkSize = 16) {
   const size = Math.max(1, Number(chunkSize) || 16);
   const cx = Math.floor(playerX / size), cz = Math.floor(playerZ / size);

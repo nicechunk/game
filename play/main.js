@@ -53,7 +53,7 @@ import { createPlayGuardian } from "./play-guardian.js";
 import { applyGuardianConnectionState } from "./play-guardian-connection.js";
 import { createGuardianAppearanceMeshCache } from "./play-guardian-appearance.js";
 import { createNameChatOverlay } from "./play-name-chat-overlay.js";
-import { computeViewEnvironment, loadedTerrainRadiusBlocks } from "./play-view-distance.js";
+import { computePlayViewEnvironment } from "./play-view-distance.js";
 import { createProfileSkillEffects } from "./play-skill-effects.js";
 import { applyPlayerMovementSpeeds, PLAYER_MOVEMENT_CONFIG } from "./play-movement-speed.js";
 import { hasSpawnParam, parsePoseText, spawnCoord, spawnCoordOrNull } from "./pose-utils.js";
@@ -555,9 +555,6 @@ let statusQuietTimer = 0;
 let lastFrameMinimapAt = 0;
 let minimapUpdatePending = false;
 let firstMinimapUpdatePending = true;
-let viewEnvironmentReadyAt = -Infinity;
-let readyTerrainRadius = Infinity;
-let readyTerrainX = 0, readyTerrainZ = 0;
 let onboardingHighlightedBlock = null;
 const constructionActions = Object.freeze({
   selectAtHit: (hit) => dispatchLandConstructionAction("selectAtHit", hit),
@@ -2199,7 +2196,6 @@ function setViewDistance(nextValue) {
   chunks.setViewDistance(next, { preloadMargin: PLAYABLE_PRELOAD_MARGIN });
   renderer.options.viewDistance = next;
   camera.far = viewFarPlane(next);
-  viewEnvironmentReadyAt = -Infinity;
   updateViewEnvironment(performance.now());
   void foundationSync?.refresh?.({ force: true, quiet: true });
   void buildingSync?.refresh?.({ force: true, quiet: true });
@@ -2276,7 +2272,7 @@ function currentViewDistance() {
 }
 
 function viewFarPlane(distance) {
-  return computeViewEnvironment({ viewDistance: distance, preloadMargin: PLAYABLE_PRELOAD_MARGIN }).cameraFar;
+  return computePlayViewEnvironment({ viewDistance: distance, preloadMargin: PLAYABLE_PRELOAD_MARGIN }).cameraFar;
 }
 
 function updateViewEnvironment(now) {
@@ -2284,17 +2280,14 @@ function updateViewEnvironment(now) {
   const [px, , pz] = playerWorldFloat();
   const distance = currentViewDistance();
   const size = chunks.chunkSize || 16;
-  if (now - viewEnvironmentReadyAt >= 250) {
-    readyTerrainRadius = loadedTerrainRadiusBlocks(chunks.chunks, px, pz, distance, size);
-    readyTerrainX = px; readyTerrainZ = pz;
-    viewEnvironmentReadyAt = now;
-  }
   const cx = camera.worldX + camera.localOffsetX;
   const cz = camera.worldZ + camera.localOffsetZ;
-  const environment = computeViewEnvironment({
+  const environment = computePlayViewEnvironment({
     viewDistance: distance, chunkSize: size, preloadMargin: chunks.preloadMargin,
     fov: camera.fov, aspect: camera.aspect,
-    cameraOffsetBlocks: Math.hypot(cx - px, cz - pz), loadedRadiusBlocks: Math.max(0, readyTerrainRadius - Math.hypot(px - readyTerrainX, pz - readyTerrainZ)),
+    // Streaming holes are handled by the loader and build scheduler. Shrinking
+    // the fog to an incomplete square ring can put it in front of the player.
+    cameraOffsetBlocks: Math.hypot(cx - px, cz - pz),
   });
   renderer.lighting.fogNearFar[0] = environment.fogNearFar[0];
   renderer.lighting.fogNearFar[1] = environment.fogNearFar[1];
