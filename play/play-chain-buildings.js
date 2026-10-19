@@ -16,7 +16,9 @@ export function createPlayChainBuildingSync({
   getFoundationVersion = null,
   getPlayerPosition = () => [0, 0, 0],
   viewDistance = DEFAULT_VIEW_DISTANCE_CHUNKS,
+  getViewDistance = () => viewDistance,
   preloadMargin = DEFAULT_PRELOAD_MARGIN_CHUNKS,
+  getPreloadMargin = () => preloadMargin,
   chunkSize = DEFAULT_CHUNK_SIZE,
   refreshFoundations = async () => ({ ok: false }),
   loadChainModule = loadPlayChainModule,
@@ -71,6 +73,7 @@ export function createPlayChainBuildingSync({
     const foundations = foundationsForCurrentView();
     const foundationKey = foundationsRevisionKey(foundations);
     if (!force && hasSuccessfulRefresh && !refreshFailed
+      && contextKey === lastContextKey
       && foundationKey === lastFoundationKey
       && attemptAt - lastRefreshAt < BUILDING_REFRESH_MS) {
       lastContextKey = contextKey;
@@ -187,11 +190,11 @@ export function createPlayChainBuildingSync({
   }
 
   function normalizedViewDistance() {
-    return Math.max(1, Math.trunc(Number(viewDistance) || DEFAULT_VIEW_DISTANCE_CHUNKS));
+    return Math.max(1, Math.trunc(Number(getViewDistance?.()) || DEFAULT_VIEW_DISTANCE_CHUNKS));
   }
 
   function normalizedPreloadMargin() {
-    return Math.max(0, Math.trunc(Number(preloadMargin) || 0));
+    return Math.max(0, Math.trunc(Number(getPreloadMargin?.()) || 0));
   }
 
   function normalizedChunkSize() {

@@ -164,6 +164,12 @@ export async function submitBulkMiningRanges(ranges, submitRange) {
       const result = await submitRange(range);
       for (const block of range.blocks) confirmed.push({ block, result, retried: retryDepth > 0 });
     } catch (error) {
+      if (error?.nicechunkSubmissionUncertain) {
+        error.nicechunkConfirmedBlocks = confirmed.map((entry) => entry.block);
+        error.nicechunkUncertainBlocks = range.blocks.slice();
+        error.nicechunkAbortedBlocks = queue.flatMap((entry) => entry.range.blocks);
+        throw error;
+      }
       retryErrors.push({ batch: range, error });
       if (
         retryDepth < BULK_MINING_RANGE_MAX_COMPUTE_SPLIT_DEPTH
@@ -395,6 +401,12 @@ export async function submitBulkMiningBatches(batches, submitBatch) {
       for (const block of batch.blocks) confirmed.push({ block, result, retried: false });
       continue;
     } catch (batchError) {
+      if (batchError?.nicechunkSubmissionUncertain) {
+        batchError.nicechunkConfirmedBlocks = confirmed.map((entry) => entry.block);
+        batchError.nicechunkUncertainBlocks = batch.blocks.slice();
+        batchError.nicechunkAbortedBlocks = queue.slice(batchIndex + 1).flatMap((entry) => entry.blocks);
+        throw batchError;
+      }
       retryErrors.push({ batch, error: batchError });
       if (batch.blocks.length === 1) {
         failures.push({ block: batch.blocks[0], error: batchError });
@@ -408,6 +420,11 @@ export async function submitBulkMiningBatches(batches, submitBatch) {
           confirmed.push({ block, result, retried: true });
           recoveredCount += 1;
         } catch (error) {
+          if (error?.nicechunkSubmissionUncertain) {
+            error.nicechunkConfirmedBlocks = confirmed.map((entry) => entry.block);
+            error.nicechunkUncertainBlocks = [block];
+            throw error;
+          }
           failures.push({ block, error });
         }
       }

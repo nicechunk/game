@@ -1,0 +1,286 @@
+{
+  "protocolVersion": 1,
+  "capability": "Y_OFFSET32_V1",
+  "flag": 8,
+  "byteOrder": "little-endian",
+  "worldRange": {
+    "minY": -32,
+    "maxY": 320
+  },
+  "positionPrecision": 64,
+  "chunkSize": 16,
+  "cases": [
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": -32,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -31.75,
+        "z": -33.25
+      },
+      "digHex": null,
+      "batchHex": null,
+      "moveHex": null,
+      "suppressed": true
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": -31,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -30.75,
+        "z": -33.25
+      },
+      "digHex": null,
+      "batchHex": null,
+      "moveHex": null,
+      "suppressed": true
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": -17,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -16.75,
+        "z": -33.25
+      },
+      "digHex": null,
+      "batchHex": null,
+      "moveHex": null,
+      "suppressed": true
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": -1,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -0.75,
+        "z": -33.25
+      },
+      "digHex": null,
+      "batchHex": null,
+      "moveHex": null,
+      "suppressed": true
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": 0,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 0.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f00000f0300",
+      "batchHex": "2202010062610f00000f0300020062610e00000e0300",
+      "moveHex": "106261a0031000b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": 1,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 1.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f01000f0300",
+      "batchHex": "2202010062610f01000f0300020062610e01000e0300",
+      "moveHex": "106261a0035000b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": 319,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 319.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f3f010f0300",
+      "batchHex": "2202010062610f3f010f0300020062610e3f010e0300",
+      "moveHex": "106261a003d04fb00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "legacy-positive",
+      "blockPosition": {
+        "x": -17,
+        "y": 320,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 320,
+        "z": -33.25
+      },
+      "digHex": "20010062610f40010f0300",
+      "batchHex": "2202010062610f40010f0300020062610e40010e0300",
+      "moveHex": "106261a0030050b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": -32,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -31.75,
+        "z": -33.25
+      },
+      "digHex": "20010062610f00000f0300",
+      "batchHex": "2202010062610f00000f0300020062610e00000e0300",
+      "moveHex": "106261a0031000b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": -31,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -30.75,
+        "z": -33.25
+      },
+      "digHex": "20010062610f01000f0300",
+      "batchHex": "2202010062610f01000f0300020062610e01000e0300",
+      "moveHex": "106261a0035000b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": -17,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -16.75,
+        "z": -33.25
+      },
+      "digHex": "20010062610f0f000f0300",
+      "batchHex": "2202010062610f0f000f0300020062610e0f000e0300",
+      "moveHex": "106261a003d003b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": -1,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": -0.75,
+        "z": -33.25
+      },
+      "digHex": "20010062610f1f000f0300",
+      "batchHex": "2202010062610f1f000f0300020062610e1f000e0300",
+      "moveHex": "106261a003d007b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": 0,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 0.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f20000f0300",
+      "batchHex": "2202010062610f20000f0300020062610e20000e0300",
+      "moveHex": "106261a0031008b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": 1,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 1.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f21000f0300",
+      "batchHex": "2202010062610f21000f0300020062610e21000e0300",
+      "moveHex": "106261a0035008b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": 319,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 319.25,
+        "z": -33.25
+      },
+      "digHex": "20010062610f5f010f0300",
+      "batchHex": "2202010062610f5f010f0300020062610e5f010e0300",
+      "moveHex": "106261a003d057b00300000100",
+      "suppressed": false
+    },
+    {
+      "mode": "offset32-v1",
+      "blockPosition": {
+        "x": -17,
+        "y": 320,
+        "z": -33
+      },
+      "movePosition": {
+        "x": -17.5,
+        "y": 320,
+        "z": -33.25
+      },
+      "digHex": "20010062610f60010f0300",
+      "batchHex": "2202010062610f60010f0300020062610e60010e0300",
+      "moveHex": "106261a0030058b00300000100",
+      "suppressed": false
+    }
+  ]
+}

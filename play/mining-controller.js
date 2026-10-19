@@ -437,11 +437,11 @@ export function createMiningController({
     return confirmPendingAt(pendingTx.length - 1);
   }
 
-  function confirmTx(txId) {
-    return confirmPendingAt(pendingTx.findIndex((pending) => pending.txId === txId));
+  function confirmTx(txId, confirmation = null) {
+    return confirmPendingAt(pendingTx.findIndex((pending) => pending.txId === txId), confirmation);
   }
 
-  function confirmPendingAt(index) {
+  function confirmPendingAt(index, confirmation = null) {
     const pending = index >= 0 ? pendingTx[index] : null;
     if (!pending) {
       onStatus("No pending delta to confirm.");
@@ -454,13 +454,24 @@ export function createMiningController({
       worldZ: block.worldZ,
       blockId: blockAirId,
     })) ?? [], txId);
-    chunks.confirmPendingDelta(txId);
+    chunks.confirmPendingDelta(txId, confirmation ?? pending.chainConfirmation ?? {});
     pendingTx.splice(index, 1);
     const confirmedItems = (pending.rewardGroups ?? []).reduce((sum, group) => sum + Math.max(0, Math.trunc(group.count || 0)), 0);
     gameState.playerProfile.confirmedMines += Math.max(1, Math.trunc(pending.minedBlockCount || 1));
     gameState.playerProfile.resourcesCollected += confirmedItems;
     gameState.savePlayerProfile();
     onConfirm(pending);
+    onChanged();
+    return pending;
+  }
+
+  function deferToAuthorityTx(txId) {
+    const index = pendingTx.findIndex((entry) => entry.txId === txId);
+    if (index < 0) return null;
+    const pending = pendingTx.splice(index, 1)[0];
+    chunks.rollbackPendingDelta(txId);
+    // Removing speculative geometry is not a rollback of the chain transaction.
+    // Reward/equipment state is restored by authoritative PDA refreshes.
     onChanged();
     return pending;
   }
@@ -508,6 +519,7 @@ export function createMiningController({
     update,
     confirmLast,
     confirmTx,
+    deferToAuthorityTx,
     rollbackLast,
     rollbackTx,
     activeSwing: () => activeSwing ? { ...activeSwing, hit: { ...activeSwing.hit } } : null,

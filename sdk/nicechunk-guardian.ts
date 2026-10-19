@@ -529,3 +529,14 @@ function assertGuardianPort(port: number): void {
     throw new Error("Guardian port must be an integer from 1 to 65535");
   }
 }
+
+// Realtime wire capability and Y quantization are shared with the browser
+// client. Registry account layout above remains unchanged.
+export {
+  GUARDIAN_Y_OFFSET32_V1,
+  GUARDIAN_MIN_Y,
+  GUARDIAN_MAX_Y,
+  GUARDIAN_POSITION_PRECISION,
+  encodeGuardianY,
+  decodeGuardianY,
+} from "./guardian-wire.js";

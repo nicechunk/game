@@ -127,6 +127,8 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
       });
 
       const warm = await sync.preloadPersistentCache();
+      if (chunk.chainDeltas.size !== 0 || sync.snapshot().pendingSnapshots !== 1) throw new Error("Persistent restore bypassed the shared frame queue");
+      sync.applyQueuedDeltas({ budgetMs: 10, maxDeltas: 100 });
       const afterWarm = {
         blockId: [...chunk.chainDeltas.values()][0]?.blockId,
         replaceCalls: calls.replace,

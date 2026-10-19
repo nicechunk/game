@@ -1,12 +1,20 @@
 import { BLOCK_ID, chunkId, worldToChunk } from "/chunk.js/play.js";
+import { fetchChunkAccountBatch } from "./play-chain-rpc-batch.js";
+import { runChunkBatchPool, optionalContextSlot, pushChunkSnapshotHeap, popChunkSnapshotHeap, rebuildChunkSnapshotHeap, yieldChunkSyncTask } from "./play-chain-batch-scheduler.js";
 import { loadPlayChainModule } from "./play-chain-adapter.js";
 import {
   canonicalizeChunkSnapshot,
+  canonicalizeChunkSnapshotAsync,
   createPlayChainChunkCache,
   sameCanonicalChunkSnapshot,
 } from "./play-chain-chunk-cache.js";
 
-const DEFAULT_BATCH_SIZE = 50;
+const DEFAULT_BATCH_SIZE = 8;
+const MAX_RPC_BATCHES_PER_SYNC = 8;
+const MAX_PENDING_SNAPSHOTS = 512;
+const BACKGROUND_PENDING_SNAPSHOT_LIMIT = MAX_PENDING_SNAPSHOTS - 64;
+const SNAPSHOT_SERVICE_TIERS = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2];
+export const CHUNK_FRESHNESS_TTL_MS = Object.freeze({ near: 15_000, middle: 45_000, far: 120_000 });
 const SYNC_COOLDOWN_MS = 900;
 const ERROR_RETRY_MS = 15_000;
 const RPC_BATCH_TIMEOUT_MS = 12_000;
@@ -43,6 +51,8 @@ export function createPlayChainChunkDeltaSync({
   loadChainModule = loadPlayChainModule,
   persistentCache = null,
   persistentScopeHint = null,
+  now = () => Date.now(),
+  freshnessTtlMs = CHUNK_FRESHNESS_TTL_MS,
 } = {}) {
   const chunkBatchSize = Math.max(1, Math.min(50, Math.trunc(Number(batchSize) || DEFAULT_BATCH_SIZE)));
   const state = {
@@ -60,10 +70,17 @@ export function createPlayChainChunkDeltaSync({
     totalDeltaCount: 0,
     appliedDeltaCount: 0,
     totalRpcCalls: 0,
-    pendingSnapshots: [],
+    pendingSnapshots: [[], [], []],
     pendingSnapshotHead: 0,
     pendingSnapshotById: new Map(),
     pendingDeltaCount: 0,
+    snapshotVirtualTime: [0, 0, 0],
+    snapshotServiceCursor: 0,
+    pendingSnapshotsByTier: [0, 0, 0],
+    snapshotQuantaByTier: [0, 0, 0],
+    snapshotPriorityCenter: "",
+    snapshotPriorityRebuilds: 0,
+    snapshotPreparationQuanta: 0,
     snapshotCache: new Map(),
     snapshotCacheDeltaCount: 0,
     snapshotSerial: 1,
@@ -73,7 +90,14 @@ export function createPlayChainChunkDeltaSync({
     rpcWorkerTaskSerial: 1,
     rpcWorkerRequests: new Map(),
     lastRpcTransport: "main",
-    lastRpcContextSlot: 0,
+    lastRpcContextSlot: null,
+    verifiedAtById: new Map(),
+    activeSyncController: null,
+    syncContextKey: "",
+    freshnessInvalidations: 0,
+    staleWorkerMessages: 0,
+    maxApplySliceMs: 0,
+    preparedEntries: 0,
     lastRpcEndpoint: "",
     persistentCacheScope: "",
     persistentCacheWarmPromise: null,
@@ -103,6 +127,8 @@ export function createPlayChainChunkDeltaSync({
     applyQueuedDeltas,
     clearLocalCache,
     invalidateChunk,
+    invalidateFreshness,
+    cancelActiveSync,
     invalidateChunkForWorld,
     snapshot,
   };
@@ -134,19 +160,34 @@ export function createPlayChainChunkDeltaSync({
       persistentCacheHits: state.persistentCacheHits,
       persistentCacheApplied: state.persistentCacheApplied,
       unchangedSnapshots: state.unchangedSnapshotCount,
+      freshnessTtlMs,
+      verifiedChunks: state.verifiedAtById.size,
+      freshnessInvalidations: state.freshnessInvalidations,
+      staleWorkerMessages: state.staleWorkerMessages,
+      maxApplySliceMs: state.maxApplySliceMs,
+      preparedEntries: state.preparedEntries,
+      maxConcurrentRequests: RPC_BATCH_CONCURRENCY,
+      maxBatchesPerSync: MAX_RPC_BATCHES_PER_SYNC,
+      preparationEntriesPerBatchStep: 64,
+      preparationWorkFactor: 32,
+      snapshotPriorityRebuilds: state.snapshotPriorityRebuilds,
+      snapshotPreparationQuanta: state.snapshotPreparationQuanta,
+      pendingSnapshotsByTier: [...state.pendingSnapshotsByTier],
+      snapshotPreparationQuantaByTier: [...state.snapshotQuantaByTier],
       persistentCache: durableCache.snapshot?.() ?? null,
     };
   }
 
   function clearLocalCache({ clearRenderDeltas = false, clearPersistent = false } = {}) {
     const persistentScope = state.persistentCacheScope;
-    state.syncEpoch += 1;
+    cancelActiveSync("cache-clear");
     state.syncedChunkIds.clear();
+    state.verifiedAtById.clear();
     state.queued = false;
     state.queuedForce = false;
     state.lastError = "";
     state.lastInvalidAccountCount = 0;
-    state.lastRpcContextSlot = 0;
+    state.lastRpcContextSlot = null;
     state.lastRpcEndpoint = "";
     state.persistentCacheWarmPromise = null;
     state.snapshotCache.clear();
@@ -170,22 +211,34 @@ export function createPlayChainChunkDeltaSync({
     return state.persistentClearPromise ?? Promise.resolve();
   }
 
+  function cancelActiveSync(reason = "context-change") {
+    state.syncEpoch += 1;
+    state.activeSyncController?.abort(reason);
+    clearPendingSnapshots();
+    for (const [taskId, request] of state.rpcWorkerRequests) {
+      state.rpcWorker?.postMessage?.({ type: "cancelChunkPdas", taskId, syncEpoch: request.syncEpoch });
+      clearTimeout(request.timer);
+      request.resolve(false);
+    }
+    state.rpcWorkerRequests.clear();
+  }
+
+  function invalidateFreshness({ reason = "external-change" } = {}) {
+    state.freshnessInvalidations += 1;
+    state.verifiedAtById.clear();
+    state.syncedChunkIds.clear();
+    state.lastReason = reason;
+  }
+
   function invalidateChunk(idOrChunk) {
     const id = typeof idOrChunk === "string" ? idOrChunk : chunkId(idOrChunk?.chunkX ?? 0, idOrChunk?.chunkZ ?? 0);
     state.syncedChunkIds.delete(id);
+    state.verifiedAtById.delete(id);
     supersedePendingSnapshot(id);
-    const loaded = chunks?.chunks?.get?.(id);
-    if (loaded?.chainDeltas?.size) {
-      storeSnapshotCache({
-        id,
-        chunkX: loaded.chunkX,
-        chunkZ: loaded.chunkZ,
-        token: state.snapshotSerial++,
-        deltas: Array.from(loaded.chainDeltas.values()),
-      }, { needsRefresh: true });
-    } else {
-      deleteSnapshotCache(id);
-    }
+    // Do not turn local optimistic or unobserved confirmed geometry into a
+    // verified account cache. Existing pure-RPC data remains a stale preview.
+    const cached = state.snapshotCache.get(id);
+    if (cached) cached.needsRefresh = true;
   }
 
   function invalidateChunkForWorld(worldX, worldZ) {
@@ -229,7 +282,10 @@ export function createPlayChainChunkDeltaSync({
   function requestSync({ force = false, reason = "auto", quiet = true } = {}) {
     if (!chunks) return Promise.resolve({ ok: false, reason: "chunks-unavailable" });
     if (!chainPdaReadEnabled()) return Promise.resolve({ ok: false, reason: "chunk-pda-read-disabled" });
-    if (force) state.syncedChunkIds.clear();
+    const contextKey = `${chunks.centerChunkX ?? 0}:${chunks.centerChunkZ ?? 0}:${chunks.viewDistance ?? chunks.viewDistanceChunks ?? ""}`;
+    if (state.syncContextKey && state.syncContextKey !== contextKey) cancelActiveSync("view-change");
+    state.syncContextKey = contextKey;
+    if (force) invalidateFreshness({ reason });
     if (state.loading) {
       state.queued = true;
       state.queuedForce ||= force;
@@ -261,7 +317,7 @@ export function createPlayChainChunkDeltaSync({
       return { ok: false, reason: "already-loading" };
     }
 
-    const targets = collectTargetChunks({ force });
+    const targets = collectTargetChunks({ force }).slice(0, chunkBatchSize * MAX_RPC_BATCHES_PER_SYNC);
     state.lastRequestedChunks = targets.length;
     state.lastReason = reason;
     if (!targets.length) {
@@ -276,15 +332,17 @@ export function createPlayChainChunkDeltaSync({
     state.lastInvalidAccountCount = 0;
     const startedAt = performance.now();
     const syncEpoch = state.syncEpoch;
+    const controller = new AbortController();
+    state.activeSyncController = controller;
     let deltaCount = 0;
     let batchCount = 0;
     let invalidAccountCount = 0;
     let firstInvalidAccountError = "";
     let failedBatchCount = 0;
     let firstBatchError = "";
-    let minimumContextSlot = 0;
+    let minimumContextSlot = null;
     let expectedOwner = "";
-    let observedContextSlot = 0;
+    let observedContextSlot = null;
     try {
       const module = await loadChainModule();
       if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
@@ -303,7 +361,7 @@ export function createPlayChainChunkDeltaSync({
       }
 
       const rpcEndpoint = String(connection?.rpcEndpoint || connection?._rpcEndpoint || "");
-      if (state.lastRpcEndpoint && state.lastRpcEndpoint !== rpcEndpoint) state.lastRpcContextSlot = 0;
+      if (state.lastRpcEndpoint && state.lastRpcEndpoint !== rpcEndpoint) state.lastRpcContextSlot = null;
       state.lastRpcEndpoint = rpcEndpoint;
       configurePersistentCacheScope(module, connection);
       if (state.persistentCacheWarmPromise) await state.persistentCacheWarmPromise;
@@ -318,55 +376,46 @@ export function createPlayChainChunkDeltaSync({
       batchCount = batches.length;
       if (!quiet) appendEvent(`Chunk PDA sync: ${targets.length} chunks in ${batchCount} RPC batches of ${chunkBatchSize}.`);
 
-      const workerBatchResults = await fetchBatchesViaWorker(batches, connection, module, minimumContextSlot).catch(() => null);
+      const consumed = new Set();
+      const consume = async (batchResult, batchIndex) => {
+        if (syncEpoch !== state.syncEpoch || controller.signal.aborted || consumed.has(batchIndex)) return;
+        consumed.add(batchIndex);
+        state.totalRpcCalls += 1;
+        if (!batchResult?.ok) {
+          failedBatchCount += 1;
+          firstBatchError ||= readableError(batchResult?.error || "chunk PDA batch failed");
+          return;
+        }
+        await consumeDecodedBatch(batches[batchIndex], batchResult.infos, batchResult.contextSlot, batchResult);
+      };
+      const usedWorker = await fetchBatchesViaWorker(batches, connection, module, minimumContextSlot, consume, syncEpoch).catch(() => false);
       if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
-      if (workerBatchResults) {
-        state.lastRpcTransport = "worker";
-        state.totalRpcCalls += batches.length;
-        for (let batchIndex = 0; batchIndex < batches.length; batchIndex += 1) {
-          const batchResult = workerBatchResults[batchIndex];
-          if (!batchResult?.ok) {
-            failedBatchCount += 1;
-            firstBatchError ||= readableError(batchResult?.error || "chunk PDA worker batch failed");
-            continue;
-          }
-          if (!await consumeDecodedBatch(batches[batchIndex], batchResult.infos, batchResult.contextSlot)) return supersededSyncResult();
-        }
-      } else {
+      if (usedWorker) state.lastRpcTransport = "worker";
+      else {
         state.lastRpcTransport = "main";
-        for (let waveStart = 0; waveStart < batches.length; waveStart += RPC_BATCH_CONCURRENCY) {
-          const wave = batches.slice(waveStart, waveStart + RPC_BATCH_CONCURRENCY);
-          const pubkeyGroups = await Promise.all(wave.map((batch) => derivePubkeysForBatch(
-            batch,
-            deriveChunkBrokenPda,
-            deriveChunkPlacedPda,
-          )));
-          if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
-          state.totalRpcCalls += pubkeyGroups.length;
-          const infoResults = await Promise.allSettled(pubkeyGroups.map((pubkeys) => withTimeout(
-            fetchMultipleAccountsWithContext(connection, pubkeys, minimumContextSlot),
-            RPC_BATCH_TIMEOUT_MS,
-            `chunk PDA RPC batch timed out after ${Math.round(RPC_BATCH_TIMEOUT_MS / 1000)}s`,
-          )));
-          if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
-          for (let waveIndex = 0; waveIndex < wave.length; waveIndex += 1) {
-            const infoResult = infoResults[waveIndex];
-            if (infoResult.status !== "fulfilled") {
-              failedBatchCount += 1;
-              firstBatchError ||= readableError(infoResult.reason);
-              continue;
-            }
-            if (!await consumeDecodedBatch(wave[waveIndex], infoResult.value.infos, infoResult.value.contextSlot)) return supersededSyncResult();
-          }
-          if (waveStart + RPC_BATCH_CONCURRENCY < batches.length) await yieldToFrame();
-        }
+        const remaining = batches.map((batch, batchIndex) => ({ batch, batchIndex })).filter(({ batchIndex }) => !consumed.has(batchIndex));
+        await runChunkBatchPool(remaining, {
+          concurrency: RPC_BATCH_CONCURRENCY,
+          signal: controller.signal,
+          fetchBatch: async ({ batch }) => {
+            const pubkeys = await derivePubkeysForBatch(batch, deriveChunkBrokenPda, deriveChunkPlacedPda);
+            if (controller.signal.aborted) return { ok: false, error: "cancelled" };
+            if (rpcEndpoint && typeof fetch === "function") return fetchChunkAccountBatch({ rpcUrl: rpcEndpoint, pubkeys: pubkeys.map((key) => key?.toBase58?.() ?? String(key)), requestId: state.rpcWorkerTaskSerial++, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot: minimumContextSlot, signal: controller.signal });
+            // In-process/custom embedders may expose only the SDK interface.
+            // Production HTTP fallback uses the same abortable transport as Worker.
+            const result = await withTimeout(fetchMultipleAccountsWithContext(connection, pubkeys, minimumContextSlot), RPC_BATCH_TIMEOUT_MS, "chunk PDA RPC batch timed out");
+            return { ok: true, ...result };
+          },
+          onResult: async (result, index) => consume(result, remaining[index].batchIndex),
+        });
       }
+      if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
 
       state.lastSyncAt = performance.now();
       state.lastBatchCount = batchCount;
       state.lastDeltaCount = deltaCount;
       state.lastInvalidAccountCount = invalidAccountCount;
-      state.lastRpcContextSlot = Math.max(state.lastRpcContextSlot, observedContextSlot);
+      if (observedContextSlot !== null) state.lastRpcContextSlot = Math.max(state.lastRpcContextSlot ?? observedContextSlot, observedContextSlot);
       state.totalDeltaCount += deltaCount;
       if (invalidAccountCount || failedBatchCount) {
         const issues = [];
@@ -409,6 +458,7 @@ export function createPlayChainChunkDeltaSync({
       if (!quiet) onStatus(`Chunk PDA sync failed: ${reasonText}.`);
       return { ok: false, reason: reasonText };
     } finally {
+      if (state.activeSyncController === controller) state.activeSyncController = null;
       state.loading = false;
       if (state.queued) {
         const queuedForce = state.queuedForce;
@@ -422,9 +472,12 @@ export function createPlayChainChunkDeltaSync({
       return { ok: false, reason: "sync-superseded", requestedChunks: targets.length, batchCount, deltaCount };
     }
 
-    async function consumeDecodedBatch(batch, infos, contextSlot = 0) {
-      const slot = Math.max(0, Math.trunc(Number(contextSlot) || 0));
-      if (minimumContextSlot > 0 && slot < minimumContextSlot) {
+    async function consumeDecodedBatch(batch, infos, contextSlot = null, metadata = {}) {
+      // Account bytes were observed successfully before this yielding CPU work.
+      // Decode/canonicalization must not extend their network freshness.
+      const verifiedAt = now();
+      const slot = optionalContextSlot(contextSlot);
+      if (minimumContextSlot !== null && (slot === null || slot < minimumContextSlot)) {
         failedBatchCount += 1;
         firstBatchError ||= `RPC context slot ${slot || "missing"} is older than ${minimumContextSlot}`;
         return true;
@@ -435,20 +488,27 @@ export function createPlayChainChunkDeltaSync({
       });
       if (syncEpoch !== state.syncEpoch) return false;
       for (const decodedSnapshot of decodedBatch.snapshots) {
-        const snapshot = canonicalizeSnapshot(decodedSnapshot);
+        const snapshot = { ...await canonicalizeChunkSnapshotAsync(decodedSnapshot, { chunkSize: chunks.chunkSize || 16 }), canonicalPrepared: true, source: "rpc", snapshotCommitment: metadata.commitment || "finalized", readStartedAt: metadata.readStartedAt ?? verifiedAt, verifiedAt, syncEpoch };
+        const requested = batch.find((target) => target.id === snapshot.id);
+        if (requested?.instance && requested.instance !== chunks?.chunks?.get?.(snapshot.id)) continue;
         const loaded = chunks?.chunks?.get?.(snapshot.id);
         const cached = state.snapshotCache.get(snapshot.id);
         if (cached && sameCanonicalChunkSnapshot(cached, snapshot)) {
           const acknowledged = !loaded || chunks.acknowledgeChainSnapshotForChunk?.(snapshot.id, {
             snapshotToken: cached.token,
             snapshotSlot: snapshot.contextSlot,
+            snapshotCommitment: snapshot.snapshotCommitment,
+            source: snapshot.source,
+            readStartedAt: snapshot.readStartedAt,
           });
           if (acknowledged) {
             const refreshed = storeSnapshotCache({
               ...cached,
-              contextSlot: Math.max(cached.contextSlot, snapshot.contextSlot),
+              ...snapshot,
+              contextSlot: snapshot.contextSlot,
             });
             state.syncedChunkIds.add(snapshot.id);
+            state.verifiedAtById.set(snapshot.id, snapshot.verifiedAt);
             state.unchangedSnapshotCount += 1;
             queuePersistentWrite(refreshed);
             deltaCount += snapshot.deltas.length;
@@ -463,7 +523,7 @@ export function createPlayChainChunkDeltaSync({
       }
       invalidAccountCount += decodedBatch.errors.length;
       firstInvalidAccountError ||= decodedBatch.errors[0]?.error || "";
-      observedContextSlot = Math.max(observedContextSlot, slot);
+      if (slot !== null) observedContextSlot = Math.max(observedContextSlot ?? slot, slot);
       return true;
     }
   }
@@ -471,121 +531,221 @@ export function createPlayChainChunkDeltaSync({
   function collectTargetChunks({ force = false } = {}) {
     const manager = chunks;
     const result = [];
+    for (const id of state.verifiedAtById.keys()) if (!manager?.chunks?.has?.(id)) { state.verifiedAtById.delete(id); state.syncedChunkIds.delete(id); }
     for (const chunk of manager?.chunks?.values?.() ?? []) {
       if (!chunk) continue;
       if (!force && state.pendingSnapshotById.has(chunk.id)) continue;
       const cached = state.snapshotCache.get(chunk.id);
-      if (!force && cached && chunk.chainRevision === 0 && chunk.chainSnapshotToken !== cached.token) {
-        queueChainSnapshot({ ...cached, expectedChainRevision: 0 }, { updateCache: false });
+      if (!force && cached && !cached.needsRefresh && chunk.chainRevision === 0 && chunk.chainSnapshotToken !== cached.token) {
+        queueChainSnapshot({ ...cached, source: "memory", expectedChainRevision: 0 }, { updateCache: false });
         state.syncedChunkIds.add(chunk.id);
         continue;
       }
       if (!force && state.syncedChunkIds.has(chunk.id)) {
-        if (cached && chunk.chainSnapshotToken === cached.token && !cached.needsRefresh) continue;
+        if (chunk.chainSnapshotToken && (!cached || chunk.chainSnapshotToken === cached.token && !cached.needsRefresh) && !freshnessExpired(chunk)) continue;
         state.syncedChunkIds.delete(chunk.id);
       }
       result.push({
         id: chunk.id,
         chunkX: chunk.chunkX,
         chunkZ: chunk.chunkZ,
+        instance: chunk,
         expectedChainRevision: Math.max(0, Math.trunc(Number(chunk.chainRevision) || 0)),
       });
     }
-    result.sort((a, b) => chunkPriority(a, manager) - chunkPriority(b, manager));
-    return result;
+    result.sort((a, b) => chunkPriority(a, manager) - chunkPriority(b, manager) || (state.verifiedAtById.get(a.id) ?? -Infinity) - (state.verifiedAtById.get(b.id) ?? -Infinity));
+    // Reserve admission capacity for near corrections. A wide view must not
+    // repeatedly read far accounts which the bounded application queue then
+    // discards. Deferred targets remain stale and are eligible as work drains.
+    let projectedPending = state.pendingSnapshotById.size;
+    return result.filter((target) => {
+      if (state.pendingSnapshotById.has(target.id)) return true;
+      if (snapshotServiceTier(target) !== 0 && projectedPending >= BACKGROUND_PENDING_SNAPSHOT_LIMIT) return false;
+      projectedPending++;
+      return true;
+    });
   }
 
   function queueChainSnapshot(snapshot, { updateCache = true } = {}) {
     if (!snapshot?.id) return;
+    refreshSnapshotPriorities();
     supersedePendingSnapshot(snapshot.id);
     const canonical = canonicalizeSnapshot(snapshot);
     const queued = {
       ...snapshot,
       ...canonical,
       token: Math.max(1, Math.trunc(Number(snapshot.token) || state.snapshotSerial++)),
-      contextSlot: Math.max(0, Math.trunc(Number(snapshot.contextSlot) || 0)),
+      contextSlot: optionalContextSlot(snapshot.contextSlot),
+      source: snapshot.source || "rpc",
+      snapshotCommitment: snapshot.snapshotCommitment,
+      readStartedAt: snapshot.readStartedAt,
+      verifiedAt: snapshot.verifiedAt,
+      syncEpoch: snapshot.syncEpoch ?? state.syncEpoch,
+      instance: snapshot.instance ?? chunks?.chunks?.get?.(snapshot.id),
+      queuedAt: snapshot.queuedAt ?? now(),
+      priority: chunkPriority(snapshot, chunks),
+      serviceTier: snapshotServiceTier(snapshot),
+      estimatedWork: Math.max(1, Math.min(8, Math.ceil(canonical.deltas.length / 64))),
       superseded: false,
       cacheOnApply: updateCache,
     };
-    state.pendingSnapshots.push(queued);
+    queued.virtualFinish = state.snapshotVirtualTime[queued.serviceTier] + queued.estimatedWork;
+    pushChunkSnapshotHeap(state.pendingSnapshots[queued.serviceTier], queued);
     state.pendingSnapshotById.set(queued.id, queued);
+    state.pendingSnapshotsByTier[queued.serviceTier]++;
     state.pendingDeltaCount += queued.deltas.length;
+    // Paused/hidden tabs must not accumulate every superseded immutable snapshot.
+    if (state.pendingSnapshots.reduce((count, heap) => count + heap.length, 0) > Math.max(256, state.pendingSnapshotById.size * 2 + 64)) {
+      for (const heap of state.pendingSnapshots) heap.length = 0;
+      for (const item of state.pendingSnapshotById.values()) state.pendingSnapshots[item.serviceTier].push(item);
+      for (const heap of state.pendingSnapshots) rebuildChunkSnapshotHeap(heap);
+    }
+    while (state.pendingSnapshotById.size > MAX_PENDING_SNAPSHOTS || state.pendingDeltaCount > SNAPSHOT_CACHE_DELTA_LIMIT) {
+      let farthest = null;
+      for (const item of state.pendingSnapshotById.values()) if (!farthest || item.priority > farthest.priority) farthest = item;
+      if (!farthest) break;
+      supersedePendingSnapshot(farthest.id);
+      state.syncedChunkIds.delete(farthest.id);
+    }
   }
 
-  function applyQueuedDeltas({ budgetMs = DEFAULT_APPLY_BUDGET_MS, maxDeltas = DEFAULT_APPLY_MAX_DELTAS } = {}) {
-    if (!chunks || !pendingSnapshotCount()) return {
-      applied: 0,
-      appliedSnapshots: 0,
-      changedChunks: 0,
-      pending: state.pendingDeltaCount,
-      pendingSnapshots: pendingSnapshotCount(),
-      elapsedMs: 0,
-    };
+  function freshnessExpired(chunk) {
+    const verifiedAt = state.verifiedAtById.get(chunk.id);
+    const distance = Math.max(Math.abs(chunk.chunkX - (chunks.centerChunkX || 0)), Math.abs(chunk.chunkZ - (chunks.centerChunkZ || 0)));
+    const ttl = distance <= 2 ? freshnessTtlMs.near : distance <= 6 ? freshnessTtlMs.middle : freshnessTtlMs.far;
+    return verifiedAt === undefined || now() - verifiedAt >= ttl;
+  }
+
+  function snapshotServiceTier(snapshot) {
+    const distance = Math.max(Math.abs(snapshot.chunkX - (chunks?.centerChunkX || 0)), Math.abs(snapshot.chunkZ - (chunks?.centerChunkZ || 0)));
+    return distance <= 2 ? 0 : distance <= 6 ? 1 : 2;
+  }
+
+  function refreshSnapshotPriorities() {
+    const center = `${chunks?.centerChunkX || 0},${chunks?.centerChunkZ || 0}`;
+    if (center === state.snapshotPriorityCenter) return;
+    state.snapshotPriorityCenter = center;
+    for (const heap of state.pendingSnapshots) heap.length = 0;
+    state.pendingSnapshotsByTier.fill(0);
+    // At most 512 pending snapshots: movement refresh is bounded independently
+    // of the number of deltas. Reprice outstanding virtual work, not work already
+    // served, so moving toward a chunk cannot leave it behind the old center.
+    for (const snapshot of state.pendingSnapshotById.values()) {
+      const tier = snapshotServiceTier(snapshot);
+      const outstanding = Math.max(0, snapshot.virtualFinish - state.snapshotVirtualTime[snapshot.serviceTier]);
+      snapshot.virtualFinish = state.snapshotVirtualTime[tier] + outstanding;
+      snapshot.serviceTier = tier;
+      snapshot.priority = chunkPriority(snapshot, chunks);
+      state.pendingSnapshots[tier].push(snapshot);
+      state.pendingSnapshotsByTier[tier]++;
+    }
+    for (const heap of state.pendingSnapshots) rebuildChunkSnapshotHeap(heap);
+    state.snapshotPriorityRebuilds++;
+  }
+
+  function takeSnapshotPreparation() {
+    // Shares belong to distance tiers, not individual tasks: adding hundreds of
+    // far chunks cannot dilute the near tier's eight of thirteen quanta. Empty
+    // tiers donate their share. Virtual service rotates fairly within each tier.
+    for (let count = 0; count < SNAPSHOT_SERVICE_TIERS.length; count++) {
+      const tier = SNAPSHOT_SERVICE_TIERS[state.snapshotServiceCursor];
+      state.snapshotServiceCursor = (state.snapshotServiceCursor + 1) % SNAPSHOT_SERVICE_TIERS.length;
+      if (state.pendingSnapshots[tier].length) return popChunkSnapshotHeap(state.pendingSnapshots[tier]);
+    }
+    return null;
+  }
+
+  function requeueSnapshotPreparation(snapshot, processed) {
+    // A fixed preparation quantum is the scheduling unit within each tier.
+    // Waiting large tasks accrue priority as that tier's virtual time advances.
+    snapshot.virtualFinish = Math.max(state.snapshotVirtualTime[snapshot.serviceTier], snapshot.virtualFinish)
+      + Math.max(1, processed) / 64;
+    pushChunkSnapshotHeap(state.pendingSnapshots[snapshot.serviceTier], snapshot);
+  }
+
+  function applyQueuedDeltas({ budgetMs = DEFAULT_APPLY_BUDGET_MS, maxDeltas = DEFAULT_APPLY_MAX_DELTAS, maxPreparationEntries = null } = {}) {
     const startedAt = performance.now();
     const budget = Math.max(0.1, Number(budgetMs) || DEFAULT_APPLY_BUDGET_MS);
     const limit = Math.max(1, Math.trunc(Number(maxDeltas) || DEFAULT_APPLY_MAX_DELTAS));
-    let applied = 0;
-    let appliedSnapshots = 0;
-    let changedChunks = 0;
-    let staleSnapshots = 0;
-    let laggingSnapshots = 0;
-
-    while (state.pendingSnapshotHead < state.pendingSnapshots.length) {
-      const snapshot = state.pendingSnapshots[state.pendingSnapshotHead];
-      if (!snapshot || snapshot.superseded) {
-        state.pendingSnapshotHead += 1;
+    const preparationLimit = Math.max(64, Math.trunc(Number(maxPreparationEntries) || limit * 32));
+    let applied = 0, appliedSnapshots = 0, changedChunks = 0, staleSnapshots = 0, laggingSnapshots = 0, preparedEntries = 0;
+    chunks?.expireRemoteDeltas?.(now());
+    refreshSnapshotPriorities();
+    // Rotate after every bounded quantum. A large task can use spare frame work
+    // without holding the head until its entire atomic snapshot is prepared.
+    let inspected = 0;
+    while (state.pendingSnapshotById.size && inspected++ < preparationLimit) {
+      if (inspected > 1 && performance.now() - startedAt >= budget) break;
+      const snapshot = takeSnapshotPreparation();
+      if (!snapshot) break;
+      if (snapshot.superseded) continue;
+      if (snapshot.syncEpoch !== state.syncEpoch) { supersedePendingSnapshot(snapshot.id); continue; }
+      const loaded = chunks?.chunks?.get?.(snapshot.id);
+      if (snapshot.instance && loaded && snapshot.instance !== loaded) { supersedePendingSnapshot(snapshot.id); staleSnapshots++; continue; }
+      state.snapshotVirtualTime[snapshot.serviceTier] = Math.max(state.snapshotVirtualTime[snapshot.serviceTier], snapshot.virtualFinish);
+      let result;
+      try {
+        if (loaded?.prepareChainSnapshot && chunks.commitPreparedChainSnapshotForChunk) {
+          if (!snapshot.preparation) snapshot.preparation = loaded.prepareChainSnapshot(snapshot.deltas, snapshotOptions(snapshot));
+          const step = snapshot.preparation.step({ maxEntries: Math.min(64, Math.max(1, preparationLimit - preparedEntries)), budgetMs: Math.max(0.05, budget - (performance.now() - startedAt)) });
+          preparedEntries += step.processed;
+          state.snapshotPreparationQuanta++;
+          state.snapshotQuantaByTier[snapshot.serviceTier]++;
+          if (!step.done) {
+            requeueSnapshotPreparation(snapshot, step.processed);
+            if (preparedEntries >= preparationLimit || performance.now() - startedAt >= budget) break;
+            continue;
+          }
+          result = chunks.commitPreparedChainSnapshotForChunk(snapshot.id, snapshot.preparation);
+        } else {
+          // Compatibility adapter for simple embedding hosts; production ChunkManager
+          // always supplies staged preparation. Atomic legacy commits are bounded
+          // by the on-chain 2048+2048 record cap and measured separately.
+          result = chunks.replaceChainDeltasForChunk(snapshot.id, snapshot.deltas, snapshotOptions(snapshot));
+        }
+      } catch (error) {
+        result = { applied: false, reason: readableError(error) };
+      }
+      if (result?.reason === "stale-world-revision" && loaded?.chainRevision === snapshot.expectedChainRevision) {
+        snapshot.preparation = null;
+        requeueSnapshotPreparation(snapshot, 64);
+        if (preparedEntries >= preparationLimit || performance.now() - startedAt >= budget) break;
         continue;
       }
-      if (appliedSnapshots > 0 && applied + snapshot.deltas.length > limit) break;
-      state.pendingSnapshotHead += 1;
-      if (state.pendingSnapshotById.get(snapshot.id) === snapshot) state.pendingSnapshotById.delete(snapshot.id);
-      state.pendingDeltaCount = Math.max(0, state.pendingDeltaCount - snapshot.deltas.length);
-
-      const result = chunks.replaceChainDeltasForChunk(snapshot.id, snapshot.deltas, {
-        expectedChainRevision: snapshot.expectedChainRevision,
-        snapshotToken: snapshot.token,
-        snapshotSlot: snapshot.contextSlot,
-      });
+      supersedePendingSnapshot(snapshot.id);
       if (result?.reason === "chunk-unloaded") {
         if (snapshot.cacheOnApply) queuePersistentWrite(storeSnapshotCache(snapshot));
-        state.syncedChunkIds.add(snapshot.id);
       } else if (!result?.applied) {
         state.syncedChunkIds.delete(snapshot.id);
         const cached = state.snapshotCache.get(snapshot.id);
         if (cached) cached.needsRefresh = true;
-        staleSnapshots += 1;
+        staleSnapshots++;
       } else {
-        const cached = storeSnapshotCache({
-          ...snapshot,
-          deltas: result.effectiveDeltas,
-        }, { needsRefresh: result.retainedUnobserved > 0 || (!snapshot.cacheOnApply && snapshot.needsRefresh) });
-        if (snapshot.cacheOnApply) queuePersistentWrite(cached);
+        // Cache the unmodified, validated account pair, never protected/remote overlays.
+        const cached = storeSnapshotCache(snapshot, { needsRefresh: result.retainedUnobserved > 0 || snapshot.source !== "rpc" });
+        if (snapshot.cacheOnApply && snapshot.source === "rpc") queuePersistentWrite(cached);
         state.syncedChunkIds.add(snapshot.id);
-        if (result.retainedUnobserved > 0) laggingSnapshots += 1;
-        if (result.changed) changedChunks += 1;
+        if (snapshot.source === "rpc") state.verifiedAtById.set(snapshot.id, snapshot.verifiedAt);
+        if (snapshot.source === "persistent") state.persistentCacheApplied++;
+        if (result.retainedUnobserved > 0) laggingSnapshots++;
+        if (result.changed) changedChunks++;
       }
       applied += snapshot.deltas.length;
-      appliedSnapshots += 1;
-      if (performance.now() - startedAt >= budget) break;
+      appliedSnapshots++;
+      if (preparedEntries >= preparationLimit || performance.now() - startedAt >= budget || applied >= limit) break;
     }
-
-    compactPendingSnapshots();
+    if (!state.pendingSnapshotById.size) for (const heap of state.pendingSnapshots) heap.length = 0;
+    state.appliedDeltaCount += applied;
+    state.preparedEntries += preparedEntries;
     const elapsedMs = performance.now() - startedAt;
-    if (appliedSnapshots) {
-      state.appliedDeltaCount += applied;
-      if (changedChunks) onChanged();
-    }
+    state.maxApplySliceMs = Math.max(state.maxApplySliceMs, elapsedMs);
+    if (changedChunks) onChanged();
     if (staleSnapshots || laggingSnapshots) requestSync({ reason: staleSnapshots ? "stale-snapshot" : "rpc-lag", quiet: true });
-    return {
-      applied,
-      appliedSnapshots,
-      changedChunks,
-      staleSnapshots,
-      laggingSnapshots,
-      pending: state.pendingDeltaCount,
-      pendingSnapshots: pendingSnapshotCount(),
-      elapsedMs,
-    };
+    return { applied, appliedSnapshots, changedChunks, staleSnapshots, laggingSnapshots, preparedEntries, pending: state.pendingDeltaCount, pendingSnapshots: pendingSnapshotCount(), elapsedMs };
+  }
+
+  function snapshotOptions(snapshot) {
+    return { expectedChainRevision: snapshot.expectedChainRevision, snapshotToken: snapshot.token, snapshotSlot: snapshot.contextSlot, source: snapshot.source || "rpc", snapshotCommitment: snapshot.snapshotCommitment, readStartedAt: snapshot.readStartedAt };
   }
 
   function supersedePendingSnapshot(id) {
@@ -593,6 +753,7 @@ export function createPlayChainChunkDeltaSync({
     if (!pending) return;
     pending.superseded = true;
     state.pendingSnapshotById.delete(id);
+    state.pendingSnapshotsByTier[pending.serviceTier]--;
     state.pendingDeltaCount = Math.max(0, state.pendingDeltaCount - pending.deltas.length);
   }
 
@@ -601,24 +762,22 @@ export function createPlayChainChunkDeltaSync({
   }
 
   function clearPendingSnapshots() {
-    state.pendingSnapshots.length = 0;
+    for (const heap of state.pendingSnapshots) heap.length = 0;
     state.pendingSnapshotHead = 0;
     state.pendingSnapshotById.clear();
+    state.snapshotVirtualTime.fill(0);
+    state.pendingSnapshotsByTier.fill(0);
+    state.snapshotServiceCursor = 0;
+    state.snapshotPriorityCenter = "";
     state.pendingDeltaCount = 0;
-  }
-
-  function compactPendingSnapshots() {
-    if (state.pendingSnapshotHead < 512 || state.pendingSnapshotHead * 2 < state.pendingSnapshots.length) return;
-    state.pendingSnapshots = state.pendingSnapshots.slice(state.pendingSnapshotHead);
-    state.pendingSnapshotHead = 0;
   }
 
   function trimSnapshotCache() {
     if (state.snapshotCache.size <= SNAPSHOT_CACHE_LIMIT && state.snapshotCacheDeltaCount <= SNAPSHOT_CACHE_DELTA_LIMIT) return;
     for (const id of state.snapshotCache.keys()) {
-      if (chunks?.chunks?.has?.(id) || state.pendingSnapshotById.has(id)) continue;
+      if (state.pendingSnapshotById.has(id)) continue;
       deleteSnapshotCache(id);
-      state.syncedChunkIds.delete(id);
+      if (!chunks?.chunks?.has?.(id)) state.syncedChunkIds.delete(id);
       if (state.snapshotCache.size <= SNAPSHOT_CACHE_LIMIT && state.snapshotCacheDeltaCount <= SNAPSHOT_CACHE_DELTA_LIMIT) break;
     }
   }
@@ -630,7 +789,11 @@ export function createPlayChainChunkDeltaSync({
       ...canonical,
       id: snapshot.id,
       token: Math.max(1, Math.trunc(Number(snapshot.token) || state.snapshotSerial++)),
-      contextSlot: Math.max(0, Math.trunc(Number(snapshot.contextSlot) || 0)),
+      contextSlot: optionalContextSlot(snapshot.contextSlot),
+      source: snapshot.source || "rpc",
+      snapshotCommitment: snapshot.snapshotCommitment,
+      readStartedAt: snapshot.readStartedAt,
+      verifiedAt: snapshot.verifiedAt,
       needsRefresh: Boolean(needsRefresh),
     };
     deleteSnapshotCache(cached.id);
@@ -656,6 +819,7 @@ export function createPlayChainChunkDeltaSync({
         id: chunk.id,
         chunkX: chunk.chunkX,
         chunkZ: chunk.chunkZ,
+        instance: chunk,
         expectedChainRevision: Math.max(0, Math.trunc(Number(chunk.chainRevision) || 0)),
       });
     }
@@ -668,41 +832,24 @@ export function createPlayChainChunkDeltaSync({
     if (state.persistentClearPromise) await state.persistentClearPromise;
     if (syncEpoch !== state.syncEpoch) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
     const missing = (targets ?? []).filter((target) => !state.snapshotCache.has(target.id));
-    if (!missing.length) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
-    const snapshots = await durableCache.getVerifiedSnapshots?.(missing, { chunkSize: chunks.chunkSize || 16 }) ?? [];
-    if (syncEpoch !== state.syncEpoch) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
-    let appliedSnapshots = 0;
-    let changedChunks = 0;
-    let maxContextSlot = 0;
-    for (const cachedSnapshot of snapshots) {
-      if (syncEpoch !== state.syncEpoch) break;
+    const queuedIds = new Set();
+    const enqueue = async (cachedSnapshot) => {
+      if (syncEpoch !== state.syncEpoch || queuedIds.has(cachedSnapshot.id)) return;
+      queuedIds.add(cachedSnapshot.id);
       const loaded = chunks?.chunks?.get?.(cachedSnapshot.id);
-      const token = state.snapshotSerial++;
-      const expectedChainRevision = Math.max(0, Math.trunc(Number(loaded?.chainRevision) || 0));
-      const snapshot = canonicalizeSnapshot({
-        ...cachedSnapshot,
-        token,
-      });
-      const result = chunks.replaceChainDeltasForChunk(snapshot.id, snapshot.deltas, {
-        expectedChainRevision,
-        snapshotToken: token,
-        snapshotSlot: snapshot.contextSlot,
-      });
-      let effective = snapshot;
-      if (result?.applied) {
-        effective = canonicalizeSnapshot({ ...snapshot, deltas: result.effectiveDeltas });
-        appliedSnapshots += 1;
-        if (result.changed) changedChunks += 1;
-      }
-      storeSnapshotCache({ ...effective, token }, { needsRefresh: true });
+      const canonical = await canonicalizeChunkSnapshotAsync(cachedSnapshot, { chunkSize: chunks.chunkSize || 16 });
+      if (syncEpoch !== state.syncEpoch) return;
+      const snapshot = { ...canonical, canonicalPrepared: true, token: state.snapshotSerial++, source: "persistent", syncEpoch, instance: loaded, verifiedAt: null, expectedChainRevision: loaded?.chainRevision ?? 0 };
+      storeSnapshotCache(snapshot, { needsRefresh: true });
+      queueChainSnapshot(snapshot, { updateCache: false });
       state.syncedChunkIds.delete(snapshot.id);
-      maxContextSlot = Math.max(maxContextSlot, snapshot.contextSlot);
-    }
+    };
+    const snapshots = await durableCache.getVerifiedSnapshots?.(missing, { chunkSize: chunks.chunkSize || 16, onSnapshot: enqueue }) ?? [];
+    if (syncEpoch !== state.syncEpoch) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
+    // Embedders may implement the pre-streaming cache interface.
+    for (const cachedSnapshot of snapshots) await enqueue(cachedSnapshot);
     state.persistentCacheHits += snapshots.length;
-    state.persistentCacheApplied += appliedSnapshots;
-    state.lastRpcContextSlot = Math.max(state.lastRpcContextSlot, maxContextSlot);
-    if (changedChunks) onChanged();
-    return { cacheHits: snapshots.length, appliedSnapshots, changedChunks, maxContextSlot };
+    return { cacheHits: snapshots.length, appliedSnapshots: 0, changedChunks: 0, queuedSnapshots: snapshots.length };
   }
 
   function configurePersistentCacheScope(module, connection) {
@@ -716,13 +863,14 @@ export function createPlayChainChunkDeltaSync({
     if (state.persistentCacheScope === nextScope) return nextScope;
     if (state.persistentCacheScope) {
       state.syncedChunkIds.clear();
+      state.verifiedAtById.clear();
       state.snapshotCache.clear();
       state.snapshotCacheDeltaCount = 0;
       clearPendingSnapshots();
       clearTimeout(state.persistentWriteTimer);
       state.persistentWriteTimer = null;
       state.persistentWriteById.clear();
-      state.lastRpcContextSlot = 0;
+      state.lastRpcContextSlot = null;
       chunks?.resetChainSnapshotAuthority?.();
     }
     state.persistentCacheScope = nextScope;
@@ -730,7 +878,13 @@ export function createPlayChainChunkDeltaSync({
   }
 
   function canonicalizeSnapshot(snapshot) {
-    return canonicalizeChunkSnapshot(snapshot, { chunkSize: chunks?.chunkSize || 16 });
+    if (snapshot.canonicalPrepared) return {
+      id: snapshot.id, chunkX: snapshot.chunkX, chunkZ: snapshot.chunkZ,
+      chunkSize: snapshot.chunkSize, contextSlot: snapshot.contextSlot,
+      packedDeltas: snapshot.packedDeltas, fingerprint: snapshot.fingerprint,
+      deltas: snapshot.deltas, canonicalPrepared: true,
+    };
+    return { ...canonicalizeChunkSnapshot(snapshot, { chunkSize: chunks?.chunkSize || 16 }), canonicalPrepared: true };
   }
 
   function queuePersistentWrite(snapshot) {
@@ -753,32 +907,20 @@ export function createPlayChainChunkDeltaSync({
     }
   }
 
-  function fetchBatchesViaWorker(batches, connection, chainModule, minContextSlot = 0) {
-    if (state.rpcWorkerDisabled || typeof Worker === "undefined") return Promise.resolve(null);
+  function fetchBatchesViaWorker(batches, connection, chainModule, minContextSlot = null, onBatch, syncEpoch = state.syncEpoch) {
+    if (state.rpcWorkerDisabled || typeof Worker === "undefined") return Promise.resolve(false);
     const rpcUrl = String(connection?.rpcEndpoint || connection?._rpcEndpoint || "");
     const pdaConfig = chainModule?.getChunkBrokenPdaDerivationConfig?.();
-    if (!rpcUrl || !validPdaConfig(pdaConfig)) return Promise.resolve(null);
+    if (!rpcUrl || !validPdaConfig(pdaConfig)) return Promise.resolve(false);
     const worker = ensureRpcWorker();
-    if (!worker) return Promise.resolve(null);
+    if (!worker) return Promise.resolve(false);
     const taskId = state.rpcWorkerTaskSerial++;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        disableRpcWorker(new Error("chunk PDA RPC worker timed out"));
-      }, RPC_WORKER_TASK_TIMEOUT_MS);
-      state.rpcWorkerRequests.set(taskId, { resolve, reject, timer });
+      const timer = setTimeout(() => disableRpcWorker(new Error("chunk PDA RPC worker timed out")), RPC_WORKER_TASK_TIMEOUT_MS * Math.ceil(batches.length / RPC_BATCH_CONCURRENCY));
+      state.rpcWorkerRequests.set(taskId, { resolve, reject, timer, onBatch, syncEpoch, pending: new Set() });
       try {
-        worker.postMessage({
-          type: "fetchChunkPdas",
-          taskId,
-          pdaConfig,
-          rpcUrl,
-          timeoutMs: RPC_BATCH_TIMEOUT_MS,
-          minContextSlot,
-          batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))),
-        });
-      } catch (error) {
-        disableRpcWorker(error);
-      }
+        worker.postMessage({ type: "fetchChunkPdas", taskId, syncEpoch, concurrency: RPC_BATCH_CONCURRENCY, pdaConfig, rpcUrl, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot, batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))) });
+      } catch (error) { disableRpcWorker(error); }
     });
   }
 
@@ -789,10 +931,16 @@ export function createPlayChainChunkDeltaSync({
       worker.onmessage = (event) => {
         const message = event.data;
         const request = state.rpcWorkerRequests.get(message?.taskId);
-        if (!request) return;
+        if (!request || message.syncEpoch !== request.syncEpoch || request.syncEpoch !== state.syncEpoch) { state.staleWorkerMessages++; return; }
+        if (message.type === "chunkPdaBatchFetched") {
+          const pending = Promise.resolve(request.onBatch(message.result, message.batchIndex));
+          request.pending.add(pending);
+          pending.finally(() => request.pending.delete(pending)).catch(() => {});
+          return;
+        }
         state.rpcWorkerRequests.delete(message.taskId);
         clearTimeout(request.timer);
-        if (message.type === "chunkPdasFetched") request.resolve(message.batchResults ?? []);
+        if (message.type === "chunkPdasFetched") Promise.all(request.pending).then(() => request.resolve(true), request.reject);
         else request.reject(new Error(message.error || "chunk PDA RPC worker failed"));
       };
       worker.onerror = (event) => {
@@ -912,7 +1060,7 @@ async function decodeBatchSnapshots(batch, infos, chunkSize, expectedMinY, { con
         chunkX: chunk.chunkX,
         chunkZ: chunk.chunkZ,
         expectedChainRevision: chunk.expectedChainRevision,
-        contextSlot: Math.max(0, Math.trunc(Number(contextSlot) || 0)),
+        contextSlot: optionalContextSlot(contextSlot),
         deltas: mergeChunkPdaDeltas(brokenDeltas, placedDeltas),
       });
     } catch (error) {
@@ -950,17 +1098,20 @@ function mergeChunkPdaDeltas(brokenDeltas, placedDeltas) {
 
 async function fetchMultipleAccountsWithContext(connection, pubkeys, minContextSlot = 0) {
   if (typeof connection?.getMultipleAccountsInfoAndContext === "function") {
-    const config = { commitment: "confirmed" };
+    const config = { commitment: "finalized" };
     const minimumSlot = Math.max(0, Math.trunc(Number(minContextSlot) || 0));
     if (minimumSlot > 0) config.minContextSlot = minimumSlot;
+    const readStartedAt = Date.now();
     const response = await connection.getMultipleAccountsInfoAndContext(pubkeys, config);
     return {
       infos: Array.isArray(response?.value) ? response.value : [],
-      contextSlot: Math.max(0, Math.trunc(Number(response?.context?.slot) || 0)),
+      contextSlot: optionalContextSlot(response?.context?.slot),
+      readStartedAt, commitment: "finalized",
     };
   }
-  const infos = await connection.getMultipleAccountsInfo(pubkeys, "confirmed");
-  return { infos, contextSlot: 0 };
+  const readStartedAt = Date.now();
+  const infos = await connection.getMultipleAccountsInfo(pubkeys, "finalized");
+  return { infos, contextSlot: null, readStartedAt, commitment: "finalized" };
 }
 
 function accountOwnerAddress(account) {
@@ -1093,10 +1244,7 @@ function defer(task) {
   });
 }
 
-function yieldToFrame() {
-  if (typeof globalThis.scheduler?.yield === "function") return globalThis.scheduler.yield();
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
+function yieldToFrame() { return yieldChunkSyncTask(); }
 
 function withTimeout(promise, timeoutMs, message) {
   let timer = null;

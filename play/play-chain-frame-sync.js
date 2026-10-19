@@ -2,16 +2,13 @@ import {
   RPC_CONFIG_CHANGED_EVENT,
   WALLET_SESSION_CHANGED_EVENT,
 } from "./play-chain-session.js";
+import { getChunkSnapshotApplyBudget } from "./play-chain-apply-budget.js";
 
 const FRAME_CHAIN_BACKPACK_SYNC_MS = 15_000;
 const FRAME_CHAIN_PLAYER_SYNC_MS = 18_000;
 const FRAME_CHAIN_CHUNK_DELTA_SYNC_MS = 1_200;
 const FRAME_CHAIN_CHUNK_DELTA_MOVING_SYNC_MS = 1_800;
 const STARTUP_CHAIN_DELTA_SYNC_DELAY_MS = 0;
-const FRAME_CHAIN_DELTA_APPLY_IDLE_BUDGET_MS = 1.8;
-const FRAME_CHAIN_DELTA_APPLY_MOVING_BUDGET_MS = 0.45;
-const FRAME_CHAIN_DELTA_APPLY_IDLE_MAX = 320;
-const FRAME_CHAIN_DELTA_APPLY_MOVING_MAX = 64;
 
 export function createPlayChainFrameSync({
   getChainBackpack = () => null,
@@ -24,6 +21,7 @@ export function createPlayChainFrameSync({
   let lastBackpackAt = 0;
   let lastPlayerAt = 0;
   let lastChunkDeltaAt = performance.now();
+  let lastChunkApplyAt = null;
 
   return {
     bind,
@@ -39,6 +37,10 @@ export function createPlayChainFrameSync({
     bound = true;
     globalThis.addEventListener?.(WALLET_SESSION_CHANGED_EVENT, handleWalletSessionChanged);
     globalThis.addEventListener?.(RPC_CONFIG_CHANGED_EVENT, handleRpcConfigChanged);
+    globalThis.addEventListener?.("pageshow", handleWorldResume);
+    globalThis.addEventListener?.("online", handleWorldResume);
+    globalThis.addEventListener?.("pagehide", () => getChainChunkDeltas()?.cancelActiveSync?.("pagehide"));
+    globalThis.document?.addEventListener?.("visibilitychange", () => { if (globalThis.document.visibilityState === "visible") handleWorldResume(); });
   }
 
   function scheduleStartupChunkDeltaSync({ onSync = null } = {}) {
@@ -70,13 +72,12 @@ export function createPlayChainFrameSync({
     });
   }
 
-  function updateChunkDeltasForFrame(now, { moving = false } = {}) {
+  function updateChunkDeltasForFrame(now, { moving = false, frameIntervalMs = null } = {}) {
     const chainChunkDeltas = getChainChunkDeltas();
     if (!chainChunkDeltas) return;
-    chainChunkDeltas.applyQueuedDeltas?.({
-      budgetMs: moving ? FRAME_CHAIN_DELTA_APPLY_MOVING_BUDGET_MS : FRAME_CHAIN_DELTA_APPLY_IDLE_BUDGET_MS,
-      maxDeltas: moving ? FRAME_CHAIN_DELTA_APPLY_MOVING_MAX : FRAME_CHAIN_DELTA_APPLY_IDLE_MAX,
-    });
+    const observedInterval = frameIntervalMs ?? (lastChunkApplyAt === null ? undefined : now - lastChunkApplyAt);
+    lastChunkApplyAt = now;
+    chainChunkDeltas.applyQueuedDeltas?.(getChunkSnapshotApplyBudget({ moving, frameIntervalMs: observedInterval }));
     const syncInterval = moving ? FRAME_CHAIN_CHUNK_DELTA_MOVING_SYNC_MS : FRAME_CHAIN_CHUNK_DELTA_SYNC_MS;
     if (now - lastChunkDeltaAt < syncInterval) return;
     lastChunkDeltaAt = now;
@@ -106,9 +107,16 @@ export function createPlayChainFrameSync({
     getChainChunkDeltas()?.requestSync({ force: true, reason: "rpc-change", quiet: false });
   }
 
+  function handleWorldResume() {
+    lastChunkDeltaAt = 0;
+    lastChunkApplyAt = null;
+    getChainChunkDeltas()?.invalidateFreshness?.({ reason: "page-resume" });
+    getChainChunkDeltas()?.requestSync({ reason: "page-resume", quiet: true });
+  }
+
   function resetTimers({ backpack = false, player = false, chunkDeltas = false } = {}) {
     if (backpack) lastBackpackAt = 0;
     if (player) lastPlayerAt = 0;
-    if (chunkDeltas) lastChunkDeltaAt = 0;
+    if (chunkDeltas) { lastChunkDeltaAt = 0; lastChunkApplyAt = null; }
   }
 }

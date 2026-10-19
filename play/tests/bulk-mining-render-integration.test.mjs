@@ -26,6 +26,13 @@ test("a confirmed 640-block batch becomes air in the real chunk state and remesh
       rolledBackMines: 0,
     },
     savePlayerProfile() {},
+    getSelectedToolSlot() {
+      return { index: 0, slot: {
+        itemId: "forged_item", kind: "forged", custodySource: "equipment",
+        equipmentSlot: 2, itemPda: "11111111111111111111111111111112",
+        durability: 2000, maxDurability: 2000,
+      } };
+    },
   };
   const mining = createMiningController({
     gameState,
@@ -49,7 +56,7 @@ test("a confirmed 640-block batch becomes air in the real chunk state and remesh
     storedRewardCount: 0,
     storedRewards: [],
   });
-  const confirmed = mining.confirmTx(pending.txId);
+  const confirmed = mining.confirmTx(pending.txId, { executionSlot: 123, commitment: "confirmed", signature: "test-only-confirmed-signature" });
 
   assert.equal(blocks.length, 640);
   assert.equal(reconciliation.confirmedCount, 640);
@@ -57,6 +64,7 @@ test("a confirmed 640-block batch becomes air in the real chunk state and remesh
   assert.equal(chunk.pendingDeltas.size, 0);
   assert.equal(chunk.chainDeltas.size, 640);
   assert.equal(chunk.unobservedChainDeltaKeys.size, 640);
+  assert.ok([...chunk.confirmedDeltaProtection.values()].every((protection) => protection.executionSlot === 123 && protection.commitment === "confirmed"));
   assert.equal(chunk.dirty, true);
   assert.ok(blocks.every((block) => chunks.getBlockAtWorld(block.worldX, block.worldY, block.worldZ) === BLOCK_ID.air));
 

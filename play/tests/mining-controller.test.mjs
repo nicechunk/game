@@ -353,3 +353,22 @@ function mineOnce(harness, index = 1) {
 function key(block) {
   return `${Math.trunc(block.worldX)},${Math.trunc(block.worldY)},${Math.trunc(block.worldZ)}`;
 }
+
+test("handing an unknown mining outcome to authority clears only its preview and never invents success or damage", () => {
+  const harness = createHarness();
+  mineThreeTimes(harness);
+  const pending = harness.calls.pending[0];
+  pending.chainOutcomeUnknown = true;
+  const snapshot = harness.controller.pendingSnapshot()[0];
+  const deferred = harness.controller.deferToAuthorityTx(pending.txId);
+  assert.equal(deferred.txId, snapshot.txId);
+  assert.equal(deferred.chainOutcomeUnknown, true);
+  assert.deepEqual(deferred.pendingDeltas, snapshot.pendingDeltas);
+  assert.equal(harness.controller.pendingCount(), 0);
+  assert.equal(harness.gameState.playerProfile.confirmedMines, 0);
+  assert.equal(harness.gameState.playerProfile.rolledBackMines, 0);
+  assert.equal(harness.calls.confirmed.length, 0);
+  assert.equal(harness.calls.rolledBack.length, 0);
+  assert.equal(harness.blockId(), TARGET.blockId);
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
+});

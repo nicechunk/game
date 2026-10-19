@@ -96,7 +96,7 @@ export function createPlayChainAdapter({
         miningTool: pending.miningTool,
         mode: "debug",
       });
-      return normalizeChainResult(result);
+      return normalizeChainResult(result, module);
     }
     const module = await loadPlayChainModule();
     if (isSupportCollapse) {
@@ -108,7 +108,7 @@ export function createPlayChainAdapter({
         toolSlot: pending.toolSlotIndex ?? 0,
         ...mineOptions,
       });
-      return normalizeChainResult(result);
+      return normalizeChainResult(result, module);
     }
     const method = isTreeFell ? "recordTreeFellOnChain" : "recordBlockBreakOnChain";
     if (typeof module[method] !== "function") return skipped(isTreeFell ? "record-tree-fell-unavailable" : "record-mine-unavailable");
@@ -116,7 +116,7 @@ export function createPlayChainAdapter({
       ...mineOptions,
       expectedRewardCount: isTreeFell ? Math.max(1, pending.rewardBlocks?.length ?? 1) : 1,
     });
-    return normalizeChainResult(result);
+    return normalizeChainResult(result, module);
   }
 
   async function submitPlace(pending) {
@@ -136,10 +136,10 @@ export function createPlayChainAdapter({
         sourceReference: clonePlacementSourceReference(pending.sourceReference),
       },
     );
-    return normalizeChainResult(result);
+    return normalizeChainResult(result, module);
   }
 
-  function normalizeChainResult(result) {
+  function normalizeChainResult(result, module) {
     if (!result?.submitted) {
       const reason = String(result?.reason || "not-submitted");
       state.lastError = reason;
@@ -154,7 +154,8 @@ export function createPlayChainAdapter({
     state.lastError = "";
     state.lastSignature = signature;
     state.lastSubmittedAt = Date.now();
-    return { submitted: true, signature, result };
+    const confirmation = result.confirmation ?? module?.getNicechunkTransactionConfirmation?.(signature) ?? null;
+    return { submitted: true, signature, result, confirmation };
   }
 
   function skipped(reason) {

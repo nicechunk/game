@@ -44,6 +44,9 @@ assert.equal(equipped.slot.code, code, "a chain hash should hydrate canonical NC
 assert.ok(equipped.slot.bytes.length > 0);
 assert.equal(gameState.isUsableMiningToolSlot(equipped.slot), false, "forged actions remain disabled before canonical runtime validation");
 setForgedItemRuntime(equipped.slot, restoreForgeRuntime(code, { expectedDesignHash: designHash }));
+assert.equal(gameState.isUsableMiningToolSlot(equipped.slot), false, "model validation cannot turn a backpack shortcut into chain Equipment custody");
+// Represent the subsequent confirmed Equipment transfer in this isolated fixture.
+Object.assign(equipped.slot,{custodySource:"equipment",equipmentSlot:1});
 assert.equal(gameState.isUsableMiningToolSlot(equipped.slot), true);
 
 const staleLengthSlot = normalizeForgedHotbarSlot({

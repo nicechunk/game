@@ -13,7 +13,9 @@ export function createPlayChainFoundationSync({
   getPlayerPosition = () => [0, 0, 0],
   loadChainModule = loadPlayChainModule,
   viewDistance = DEFAULT_VIEW_DISTANCE_CHUNKS,
+  getViewDistance = () => viewDistance,
   preloadMargin = DEFAULT_PRELOAD_MARGIN_CHUNKS,
+  getPreloadMargin = () => preloadMargin,
   chunkSize = DEFAULT_CHUNK_SIZE,
   onChanged = () => {},
   onStatus = () => {},
@@ -40,7 +42,7 @@ export function createPlayChainFoundationSync({
   function updateForFrame(now = performance.now()) {
     if (loadingPromise || now < retryAfterAt) return null;
     const center = currentChunk();
-    const key = chunkKey(center.chunkX, center.chunkZ);
+    const key = contextKey(center);
     if (key === lastCenterKey && now - lastRefreshAt < FOUNDATION_REFRESH_MS) return null;
     return refresh({ quiet: true, now });
   }
@@ -52,19 +54,21 @@ export function createPlayChainFoundationSync({
       return refreshResult({ ok: false, cached: true, retryAt: retryAfterAt });
     }
     const center = currentChunk();
-    const key = chunkKey(center.chunkX, center.chunkZ);
+    const key = contextKey(center);
     if (!force && key === lastCenterKey && attemptAt - lastRefreshAt < FOUNDATION_REFRESH_MS) {
       return refreshResult({ ok: true, cached: true });
     }
-    loadingPromise = performRefresh(center, { quiet, attemptAt }).finally(() => {
+    loadingPromise = performRefresh(center, { quiet, attemptAt, key }).finally(() => {
       loadingPromise = null;
     });
     return loadingPromise;
   }
 
-  async function performRefresh(center, { quiet, attemptAt }) {
+  async function performRefresh(center, { quiet, attemptAt, key }) {
     prunePendingFoundations();
     const failures = [];
+    const wallet = String(getWalletAddress() || "");
+    let loadedNearby = null, loadedOwned = null;
     let nearbyLoaded = false;
     let ownedLoaded = false;
     let module;
@@ -81,35 +85,36 @@ export function createPlayChainFoundationSync({
     } else {
       try {
         const loaded = await module.loadFoundationsForChunks(chunks);
-        replaceVerifiedFoundations(nearbyFoundations, loaded);
+        loadedNearby = loaded;
         nearbyLoaded = true;
       } catch (error) {
         failures.push(error);
       }
     }
 
-    const wallet = String(getWalletAddress() || "");
-    if (wallet !== ownedWalletAddress) {
-      ownedWalletAddress = wallet;
-      ownedFoundations.clear();
-    }
     if (!wallet) {
-      ownedFoundations.clear();
+      loadedOwned = [];
       ownedLoaded = true;
     } else if (typeof module.loadOwnedFoundations !== "function") {
       failures.push(new Error("Owned BuildSite loader is unavailable."));
     } else {
       try {
         const loaded = await module.loadOwnedFoundations(wallet);
-        replaceVerifiedFoundations(ownedFoundations, loaded, { owner: wallet, allowIndexing: true });
+        loadedOwned = loaded;
         ownedLoaded = true;
       } catch (error) {
         failures.push(error);
       }
     }
 
+    if (key !== contextKey(currentChunk()) || wallet !== String(getWalletAddress() || "")) {
+      return refreshResult({ ok: true, stale: true, scannedChunks: chunks.length });
+    }
+    if (loadedNearby) replaceVerifiedFoundations(nearbyFoundations, loadedNearby);
+    if (wallet !== ownedWalletAddress) { ownedWalletAddress = wallet; ownedFoundations.clear(); }
+    if (loadedOwned) replaceVerifiedFoundations(ownedFoundations, loadedOwned, { owner: wallet, allowIndexing: true });
     rebuildIndex();
-    lastCenterKey = chunkKey(center.chunkX, center.chunkZ);
+    lastCenterKey = key;
     lastRefreshAt = attemptAt;
     const ok = nearbyLoaded && ownedLoaded;
     retryAfterAt = failures.length ? attemptAt + FOUNDATION_RETRY_MS : 0;
@@ -226,6 +231,10 @@ export function createPlayChainFoundationSync({
     };
   }
 
+  function contextKey(center) {
+    return `${chunkKey(center.chunkX, center.chunkZ)}:${normalizedViewDistance()}:${normalizedPreloadMargin()}`;
+  }
+
   function chunksForCurrentView(center) {
     const radius = normalizedViewDistance() + normalizedPreloadMargin() + 1;
     const chunks = [];
@@ -238,11 +247,11 @@ export function createPlayChainFoundationSync({
   }
 
   function normalizedViewDistance() {
-    return Math.max(1, Math.trunc(Number(viewDistance) || DEFAULT_VIEW_DISTANCE_CHUNKS));
+    return Math.max(1, Math.trunc(Number(getViewDistance?.()) || DEFAULT_VIEW_DISTANCE_CHUNKS));
   }
 
   function normalizedPreloadMargin() {
-    return Math.max(0, Math.trunc(Number(preloadMargin) || 0));
+    return Math.max(0, Math.trunc(Number(getPreloadMargin?.()) || 0));
   }
 
   function normalizedChunkSize() {
