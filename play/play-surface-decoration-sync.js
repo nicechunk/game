@@ -2,7 +2,7 @@ import { loadPlayChainModule } from "./play-chain-adapter.js";
 import {
   compileSurfaceDecorationRules,
   surfaceDecorationVariantHash,
-  BLOCK_ID, terrainSurfaceHeight,
+  BLOCK_ID, RESOURCE_ID, terrainSurfaceHeight,
   resolveSurfaceDecoration,
 } from "../chunk.js/play.js";
 
@@ -93,9 +93,8 @@ export function createPlaySurfaceDecorationSync({
     const cx=Math.floor(hit.worldX/16),cz=Math.floor(hit.worldZ/16),column=((hit.worldZ%16+16)%16)*16+(hit.worldX%16+16)%16;
     const decoration=resolveSurfaceDecoration({worldSeed,worldX:hit.worldX,surfaceY:surface,worldZ:hit.worldZ,surfaceBlockId:hit.blockId,rules:compiledRules});
     if (decoration?.decorationId>=100 && decoration.decorationId<=107 && !pickedByChunk.get(`${cx},${cz}`)?.includes(column)) {
-      return {...single,kind:"surface-pebble",requiredDamage:1};
+      return {...single,kind:"surface-pebble",requiredDamage:1,rewardBlocks:[{...hit,worldY:surface+1,blockId:BLOCK_ID.stoneFragment,resourceId:RESOURCE_ID.stoneFragment}]};
     }
-    if (hit.blockId===BLOCK_ID.gravel) return {...single,kind:"bare-gravel",requiredDamage:3};
     return null;
   }
   function setPicked(cx,cz,columns) {

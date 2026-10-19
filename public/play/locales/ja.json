@@ -1677,7 +1677,8 @@
       "flowerWhite": "白い花",
       "cotton": "綿花",
       "flowerPink": "ピンクの花",
-      "twig": "Twig"
+      "twig": "Twig",
+      "stoneFragment": "石片"
     },
     "equipment": {
       "chainSaved": "装備をチェーンに保存しました（{signature}）。",
@@ -1714,7 +1715,8 @@
       "chunkLimit": "支持を失った構造が3チャンクを超えています。ブロックは採掘されませんでした。"
     },
     "resource": {
-      "twig": "Twig"
+      "twig": "Twig",
+      "stoneFragment": "石片"
     },
     "starter": {
       "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."

@@ -57,6 +57,7 @@ const chunkRuntimeEntries = [
   "forge/forge-core.js",
   "forge/forge-mesher.js",
   "forge/forge-runtime-cache.js",
+  "forge/starter-axe.js",
 ];
 const chunkRuntimeExcludedFiles = new Set([
   "renderer/forge-tool-visuals.js",

@@ -1677,7 +1677,8 @@
       "flowerWhite": "白花",
       "cotton": "棉花",
       "flowerPink": "粉红花",
-      "twig": "树枝"
+      "twig": "树枝",
+      "stoneFragment": "碎石"
     },
     "equipment": {
       "chainSaved": "装备已保存至链上（{signature}）。",
@@ -1714,7 +1715,8 @@
       "chunkLimit": "失去支撑的结构跨越超过 3 个 Chunk，本次没有挖掘任何方块。"
     },
     "resource": {
-      "twig": "树枝"
+      "twig": "树枝",
+      "stoneFragment": "碎石"
     },
     "starter": {
       "axeRecipe": "1个碎石 + 2根树枝 → 1把基础石斧 · 耐久99。打开背包 → 熔炼，无需燃料、建造设施或技能等级。制作后从背包装备石斧。持工具成功采集由合约扣3点耐久；徒手采集不扣工具耐久。"

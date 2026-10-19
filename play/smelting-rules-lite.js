@@ -138,7 +138,7 @@ export function smeltingRecipeForSelectedSlots(slots = []) {
     () => smeltingInputKeyForSlot(slot),
   )).filter(Boolean);
   const counts = createSmeltingInputCounts(keys);
-  if (counts.size===2 && counts.get("gravel")>=1 && counts.get("twig")>=2) return {recipe:STARTER_AXE_RECIPE,score:{exact:true}};
+  if (counts.size===2 && counts.get("stoneFragment")>=1 && counts.get("twig")>=2) return {recipe:STARTER_AXE_RECIPE,score:{exact:true}};
   const match = findBestSmeltingRecipeForKeys(keys);
   if (!match?.recipe || !match.score?.exact) return null;
   return {

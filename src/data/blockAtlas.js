@@ -107,8 +107,12 @@ const blockDensityKgM3 = {
 };
 
 export const blockAtlas = [
+  block({id:"NCK_55",key:"stoneFragment",name:"Stone Fragment",category:"geological",source:"Loose surface stones",tags:["Starter tools","Bare-hand pickup"],
+    description:"One loose, angular gray stone collected from authenticated surface pebble decorations. A distinct resource from terrain Gravel: 500 cm³ of silicate rock, density 2600 kg/m³, mass 1.3 kg. Pickup removes only the loose stone and leaves the ground intact. One stone fragment and two twigs make a basic stone axe with 99 durability. Bare-hand collection grants no skill points or skill bonuses.",
+    colors:["#858983","#535953","#b5bab1"],densityKgM3:2600,dimensionsM:{width:0.10,height:0.08,depth:0.08},physical:{densityKgM3:2600,dimensionsM:{width:0.10,height:0.08,depth:0.08},volumeM3:0.0005,massKg:1.3},composition:geologicalSilicate,
+    signals:{temperature:42,humidity:28,altitude:56,slope:30,rarity:8}}),
   block({id:"NCK_54",key:"twig",name:"Twig",category:"organic",source:"Natural leaves · 30% per removed leaf",tags:["Starter tools","Leaf drop","No fuel"],
-    description:"A dry brown branch with one fork and pale broken tips. Natural broadleaf and pine leaves each have an independent, fixed 30% coordinate roll for one twig. Bare hands can strike leaves; replaying a removed leaf cannot reroll its drop. Each twig holds 250 cm³ of wood (about 162.5 g at 650 kg/m³); its visual bounds include air. Two twigs and one surface pebble make a basic stone axe with 99 durability in the backpack Smelting tab, without fuel or a built station.",
+    description:"A dry brown branch with one fork and pale broken tips. Natural broadleaf and pine leaves each have an independent, fixed 30% coordinate roll for one twig. Bare hands can strike leaves; replaying a removed leaf cannot reroll its drop. Each twig holds 250 cm³ of wood (about 162.5 g at 650 kg/m³); its visual bounds include air. Two twigs and one stone fragment (ID 55) make a basic stone axe with 99 durability in the backpack Smelting tab, without fuel or a built station.",
     colors:["#95643e","#b47e4d","#d4b181"],densityKgM3:650,dimensionsM:{width:0.04,height:0.30,depth:0.03},physical:{densityKgM3:650,dimensionsM:{width:0.04,height:0.30,depth:0.03},volumeM3:0.00025,massKg:0.1625},composition:plantTissue,
     signals:{temperature:50,humidity:30,altitude:55,slope:10,rarity:8}}),
   block({

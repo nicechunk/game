@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "revision": 2,
+  "revision": 3,
   "seed": "material-physics-v2",
   "units": {
     "volume": "mm3",
@@ -8,7 +8,7 @@
     "mass": "g"
   },
   "massFormula": "round(volumeMm3 * densityKgM3 / 1000000)",
-  "ruleCount": 112,
+  "ruleCount": 113,
   "rules": [
     {
       "kind": "block",
@@ -380,6 +380,13 @@
       "name": "twig",
       "densityKgM3": 650,
       "standardVolumeMm3": 250000
+    },
+    {
+      "kind": "block",
+      "id": 55,
+      "name": "stoneFragment",
+      "densityKgM3": 2600,
+      "standardVolumeMm3": 500000
     },
     {
       "kind": "item",
@@ -795,9 +802,9 @@
       "standardVolumeMm3": 750000
     }
   ],
-  "catalogRevision": 2,
+  "catalogRevision": 3,
   "builtinBlockIds": [
     54
   ],
-  "ruleSource": "governed-table-with-protocol-twig-default"
+  "ruleSource": "governed-table"
 }
