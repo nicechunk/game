@@ -1234,7 +1234,10 @@
       "processReady": "가공 준비 완료",
       "statusReadyCold": "연료 없이 온체인 가공할 수 있습니다.",
       "outputTooLarge": "결과가 온체인 레코드 1개의 한도를 초과합니다. 배치 크기를 줄이세요.",
-      "backpackOutputFull": "배낭에 결과물을 넣을 공간이 없습니다. 공간을 비우거나 입력 스택 하나를 전부 사용하세요."
+      "backpackOutputFull": "배낭에 결과물을 넣을 공간이 없습니다. 공간을 비우거나 입력 스택 하나를 전부 사용하세요.",
+      "materials": {
+        "basic_stone_axe": "Basic Stone Axe"
+      }
     },
     "materialGrade": {
       "crude": "Crude",
@@ -1673,7 +1676,8 @@
       "flowerBlue": "파란 꽃",
       "flowerWhite": "흰 꽃",
       "cotton": "목화",
-      "flowerPink": "분홍 꽃"
+      "flowerPink": "분홍 꽃",
+      "twig": "Twig"
     },
     "equipment": {
       "chainSaved": "장비를 체인에 저장했습니다({signature}).",
@@ -1708,6 +1712,12 @@
     "supportCollapse": {
       "blockLimit": "지지력을 잃은 구조물이 640블록 원자적 처리 한도를 초과했습니다. 채굴된 블록은 없습니다.",
       "chunkLimit": "지지력을 잃은 구조물이 3개 청크를 초과합니다. 채굴된 블록은 없습니다."
+    },
+    "resource": {
+      "twig": "Twig"
+    },
+    "starter": {
+      "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
     }
   },
   "resourceSimulator": {
@@ -2207,6 +2217,10 @@
         "blasting_charge": {
           "name": "발파 장약",
           "description": "여러 블록을 통제 굴착하기 위한 수지 결합형 소형 채굴 장약입니다. NiceChunk 배합은 의도적으로 가상화되어 있습니다."
+        },
+        "basic_stone_axe": {
+          "name": "Basic Stone Axe",
+          "description": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
         }
       }
     },

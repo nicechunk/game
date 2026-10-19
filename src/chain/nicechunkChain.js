@@ -1,6 +1,7 @@
 import { Buffer } from "buffer";
 import bs58 from "bs58";
 import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
+import { STARTER_AXE_RECIPE_ID } from "../data/starterTools.js";
 import { encodeMiningToolReference, miningDurabilityFromTransaction } from "./miningDurability.js";
 import {
   createAssociatedTokenAccountInstruction,
@@ -407,6 +408,7 @@ const WorldMapBlock = Object.freeze({
   FlowerRed: 51,
   FlowerBlue: 52,
   FlowerPink: 53,
+  Twig: 54,
 });
 
 function isCanonicalMineableBlockId(blockId) {
@@ -456,6 +458,7 @@ const blockIdByRenderType = new Map([
   ["leavesWarm", WorldMapBlock.Leaves],
   ["pineTrunk", WorldMapBlock.PineTrunk],
   ["pineLeaves", WorldMapBlock.PineLeaves],
+  ["twig", WorldMapBlock.Twig],
   ["deadWood", WorldMapBlock.DeadWood],
   ["giantRoot", WorldMapBlock.GiantRoot],
   ["grassPlant", WorldMapBlock.GrassPlant],
@@ -1141,6 +1144,10 @@ export async function executeSmeltingOnChain({
   batchMultiplier = 1,
   backpackAddress = null,
 } = {}) {
+  if (Number(recipeId) === STARTER_AXE_RECIPE_ID) {
+    if (Number(batchMultiplier)!==1 || fuelIndexes.length) return {submitted:false,reason:"invalid-starter-recipe"};
+    return craftStarterAxeOnChain({ inputIndexes, backpackAddress });
+  }
   const provider = await connectedWalletProvider({ prompt: true });
   if (!provider) return { submitted: false, reason: "wallet-unavailable" };
   const normalizedInputIndexes = normalizeBackpackIndexes(inputIndexes);
@@ -3315,7 +3322,7 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       kind: "block",
       quantity: 1,
       metadata: 0,
-      resource: { blockId: canonicalBlock.blockId },
+      resource: { blockId: options?.miningTool?.action === "pick-pebble" ? WorldMapBlock.Gravel : canonicalBlock.blockId },
     })) {
       return { submitted: false, reason: "backpack-full" };
     }
@@ -7130,6 +7137,16 @@ export function createMinePlacedBlockWithRewardsInstruction({
 }
 
 function attachMiningTool(instruction, { owner, miningTool, context = gameContext, structural = false, continuation = false }) {
+  if (miningTool?.kind === "bare-hands") {
+    const offset = context.isUnifiedGame && instruction.programId.equals(context.programId) ? 1 : 0;
+    if (instruction.data[offset] !== 8) throw new Error("Bare hands only support a single natural target");
+    instruction.data[offset] = miningTool.action === "pick-pebble" ? 23 : 22;
+    if (instruction.data[offset] === 23) {
+      const x = instruction.data.readInt32LE(offset+9), z = instruction.data.readInt32LE(offset+15);
+      instruction.keys.push({pubkey: deriveSurfacePickedPda(blockChunkX(x),blockChunkZ(z),context)[0],isSigner:false,isWritable:true});
+    }
+    return instruction;
+  }
   instruction.keys[1].isWritable = true;
   // Structural mining never uses exploration/decoration tables. Omitting those
   // unused accounts keeps the existing 640-block atomic plan within 1232 bytes.
@@ -7145,6 +7162,7 @@ function attachMiningTool(instruction, { owner, miningTool, context = gameContex
 }
 
 export async function loadConfirmedMiningEquipmentResult(signature, owner, tool, conn = getNicechunkConnection()) {
+  if (tool?.kind === "bare-hands") return { bareHands: true };
   const pending = { miningDurabilitySyncPending: true, miningDurabilityOwner: owner.toBase58() };
   // Failure to fetch a receipt after confirmation must never turn a successful
   // mine into a rejection, a local refund or a second resource transaction.
@@ -9179,4 +9197,49 @@ function base64ToBytes(value) {
     bytes[index] = binary.charCodeAt(index);
   }
   return bytes;
+}
+
+
+export function deriveSurfacePickedPda(chunkX,chunkZ,context=gameContext) {
+  const x=Buffer.alloc(4),z=Buffer.alloc(4);x.writeInt32LE(chunkX);z.writeInt32LE(chunkZ);
+  return PublicKey.findProgramAddressSync([Buffer.from("surface-picked-v1"),deriveGlobalConfigPda().toBuffer(),x,z],context.chunkProgramId);
+}
+export async function fetchSurfacePickedOnChain(chunkX,chunkZ) {
+  const account=await getNicechunkConnection().getAccountInfo(deriveSurfacePickedPda(chunkX,chunkZ)[0],"confirmed");
+  if (!account?.data?.length) return [];
+  const data=Buffer.from(account.data);
+  if (!account.owner.equals(gameContext.chunkProgramId) || data.length!==48 || data.subarray(0,8).toString()!=="NCKPCK01"
+      || data.readInt32LE(8)!==chunkX || data.readInt32LE(12)!==chunkZ) throw new Error("Invalid surface pickup account");
+  return Array.from({length:256},(_,i)=>i).filter(i=>data[16+(i>>3)]&(1<<(i&7)));
+}
+export function createCraftStarterAxeInstruction({owner,backpack,itemId,inputIndexes,context=gameContext}) {
+  const indexes=normalizeBackpackIndexes(inputIndexes);
+  if (indexes.length<2 || indexes.length>3 || indexes.length!==inputIndexes.length) throw new Error("Invalid starter recipe inputs");
+  const data=Buffer.alloc(10+indexes.length);data[0]=17;data.writeBigUInt64LE(BigInt(itemId),1);data[9]=indexes.length;indexes.forEach((v,i)=>data[10+i]=v);
+  return new TransactionInstruction({programId:context.backpackProgramId,keys:[
+    {pubkey:owner,isSigner:true,isWritable:true}, {pubkey:derivePlayerProfilePda(owner)[0],isSigner:false,isWritable:false},
+    {pubkey:backpack,isSigner:false,isWritable:true}, {pubkey:deriveForgedItemPda(owner,itemId,context.backpackProgramId)[0],isSigner:false,isWritable:true},
+    {pubkey:playerProgramId,isSigner:false,isWritable:false}, {pubkey:deriveMaterialPhysicsPda(context.backpackProgramId)[0],isSigner:false,isWritable:false},
+    {pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],data:contextInstructionData(context,gameNamespaceBackpack,data)});
+}
+async function craftStarterAxeOnChain({inputIndexes,backpackAddress}) {
+  const provider=await connectedWalletProvider({prompt:true});if (!provider) return {submitted:false,reason:"wallet-unavailable"};
+  const conn=getNicechunkConnection();const equipped=(await loadEquippedBackpackForOwner(provider.publicKey,conn))?.publicKey;
+  if (!equipped || (backpackAddress && equipped.toBase58()!==backpackAddress)) return {submitted:false,reason:"no-backpack"};
+  const itemId=createBackpackId();const tx=new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({units:320000}),
+    createCraftStarterAxeInstruction({owner:provider.publicKey,backpack:equipped,itemId,inputIndexes}));
+  const signature=await signAndSendWalletTransaction(provider,tx,conn);
+  return {submitted:true,signature,itemId:itemId.toString(),itemPda:deriveForgedItemPda(provider.publicKey,itemId,gameContext.backpackProgramId)[0].toBase58(),durabilityCurrent:99,durabilityMax:99};
+}
+
+export async function fetchSurfacePickedChunksOnChain(coords=[]) {
+  if (!coords.length) return [];
+  if (coords.length>32) throw new Error("Too many pickup chunks");
+  const accounts=await getNicechunkConnection().getMultipleAccountsInfo(coords.map(c=>deriveSurfacePickedPda(c.chunkX,c.chunkZ)[0]),"confirmed");
+  return coords.map((c,i)=>{
+    const account=accounts[i];if (!account?.data?.length) return {...c,columns:[]};
+    const data=Buffer.from(account.data);
+    if (!account.owner.equals(gameContext.chunkProgramId) || data.length!==48 || data.subarray(0,8).toString()!=="NCKPCK01" || data.readInt32LE(8)!==c.chunkX || data.readInt32LE(12)!==c.chunkZ) throw new Error("Invalid pickup snapshot");
+    return {...c,columns:Array.from({length:256},(_,j)=>j).filter(j=>data[16+(j>>3)]&(1<<(j&7)))};
+  });
 }

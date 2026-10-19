@@ -2,6 +2,8 @@ import { loadPlayChainModule } from "./play-chain-adapter.js";
 import {
   compileSurfaceDecorationRules,
   surfaceDecorationVariantHash,
+  BLOCK_ID, terrainSurfaceHeight,
+  resolveSurfaceDecoration,
 } from "../chunk.js/play.js";
 
 export function createPlaySurfaceDecorationSync({
@@ -20,17 +22,21 @@ export function createPlaySurfaceDecorationSync({
     ruleCount: 0,
     error: "",
   };
+  let pickupsLoading = false;
+  const pickedByChunk = new Map();
   let compiledRules = compileSurfaceDecorationRules(initialRules);
 
   return {
     scheduleAfterWorldVisible,
     snapshot: () => ({ ...state }),
     resolveBackpackDecoration,
+    bareHandPlan, markPicked, syncPickups,
   };
 
   function scheduleAfterWorldVisible() {
     if (state.started) return null;
     state.started = true;
+    globalThis.setInterval(() => { syncPickups().catch(() => {}); }, 5000);
     return new Promise((resolve) => {
       globalThis.setTimeout(() => resolve(sync()), 0);
     });
@@ -61,6 +67,7 @@ export function createPlaySurfaceDecorationSync({
         revision: state.revision,
       }));
       onRulesChanged({ rules: compiledRules.rules, revision: state.revision });
+      await syncPickups();
       return {
         ok: true,
         found: true,
@@ -75,6 +82,41 @@ export function createPlaySurfaceDecorationSync({
     } finally {
       state.loading = false;
     }
+  }
+
+  function bareHandPlan(hit) {
+    if (!hit?.hit || !chunks?.config || Number.isInteger(chunks.getDeltaAtWorld?.(hit.worldX,hit.worldY,hit.worldZ))) return null;
+    const surface = terrainSurfaceHeight(chunks.config,hit.worldX,hit.worldZ);
+    const single = {blocks:[{...hit}],rewardBlocks:[{...hit}],collapseBlocks:[]};
+    if (hit.blockId===BLOCK_ID.leaves || hit.blockId===BLOCK_ID.pineLeaves) return {...single,kind:"bare-leaves",requiredDamage:3};
+    if (hit.worldY!==surface || chunks.getBlockAtWorld(hit.worldX,surface+1,hit.worldZ)!==BLOCK_ID.air) return null;
+    const cx=Math.floor(hit.worldX/16),cz=Math.floor(hit.worldZ/16),column=((hit.worldZ%16+16)%16)*16+(hit.worldX%16+16)%16;
+    const decoration=resolveSurfaceDecoration({worldSeed,worldX:hit.worldX,surfaceY:surface,worldZ:hit.worldZ,surfaceBlockId:hit.blockId,rules:compiledRules});
+    if (decoration?.decorationId>=100 && decoration.decorationId<=107 && !pickedByChunk.get(`${cx},${cz}`)?.includes(column)) {
+      return {...single,kind:"surface-pebble",requiredDamage:1};
+    }
+    if (hit.blockId===BLOCK_ID.gravel) return {...single,kind:"bare-gravel",requiredDamage:3};
+    return null;
+  }
+  function setPicked(cx,cz,columns) {
+    const id=`${cx},${cz}`;columns=[...new Set([...(pickedByChunk.get(id)||[]),...columns])].sort((a,b)=>a-b);pickedByChunk.set(id,columns);
+    const chunk=chunks.chunks?.get(id);
+    if (chunk && JSON.stringify(chunk.pickedSurfaceColumns)!==JSON.stringify(columns)) {
+      chunk.pickedSurfaceColumns=columns;chunk.markDirty();
+    }
+  }
+  function markPicked(hit) {
+    const cx=Math.floor(hit.worldX/16),cz=Math.floor(hit.worldZ/16),column=((hit.worldZ%16+16)%16)*16+(hit.worldX%16+16)%16;
+    const previous=pickedByChunk.get(`${cx},${cz}`)||[];setPicked(cx,cz,[...new Set([...previous,column])].sort((a,b)=>a-b));
+  }
+  async function syncPickups() {
+    if (pickupsLoading || !state.applied || !chunks.chunks?.size) return;
+    pickupsLoading=true;
+    try {
+      const module=await loadPlayChainModule();if (!module.fetchSurfacePickedChunksOnChain) return;
+      const coords=[...chunks.chunks.values()].filter(c=>Math.abs(c.chunkX-chunks.centerChunkX)<=2 && Math.abs(c.chunkZ-chunks.centerChunkZ)<=2).map(c=>({chunkX:c.chunkX,chunkZ:c.chunkZ}));
+      for (const row of await module.fetchSurfacePickedChunksOnChain(coords)) setPicked(row.chunkX,row.chunkZ,row.columns);
+    } finally {pickupsLoading=false;}
   }
 
   function resolveBackpackDecoration(resource = {}) {

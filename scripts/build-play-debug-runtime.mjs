@@ -15,6 +15,7 @@ const playLoaderSource = resolve(playSource, "play-loader.js");
 const playOnboardingLoaderSource = resolve(playSource, "play-onboarding-loader.js");
 const chunkSource = resolve(root, "chunk.js");
 const playLocaleSource = resolve(root, "public/play/locales");
+const smeltingRulesSource = resolve(root, "public/rules/smelting-rules.json");
 const materialPhysicsRulesSource = resolve(root, "public/rules/material-physics-v2.json");
 const distRoot = resolve(root, "dist");
 const chainAssetsSource = resolve(root, "dist/assets");
@@ -39,6 +40,7 @@ const chainAssetFiles = chainAssetPaths.map((assetPath) => {
 const sharedRuntimeFiles = [
   resolve(root, "src/i18n.js"),
   resolve(root, "src/data/smeltingRules.js"),
+  resolve(root, "src/data/starterTools.js"),
 ];
 const chainVersionFiles = await collectFiles(resolve(root, "src/chain"));
 const chunkRuntimeEntries = [
@@ -73,6 +75,7 @@ const sourceFiles = [...new Set([
   ...playRuntimeFiles,
   ...(await collectFiles(playLocaleSource)),
   materialPhysicsRulesSource,
+  smeltingRulesSource,
   ...chunkRuntimeFiles,
   ...sharedRuntimeFiles,
   ...chainVersionFiles,
@@ -316,6 +319,7 @@ await writeFile(resolve(outputRoot, "play", "index.html"), deployedIndex);
 await cp(playLocaleSource, resolve(outputRoot, "play", "locales"), { recursive: true });
 await mkdir(resolve(outputRoot, "rules"), { recursive: true });
 await cp(materialPhysicsRulesSource, resolve(outputRoot, "rules", "material-physics-v2.json"));
+await cp(smeltingRulesSource, resolve(outputRoot, "rules", "smelting-rules.json"));
 const runtimeMetadata = `${JSON.stringify({
   version,
   runtimePrefix,

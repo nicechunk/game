@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.72 — 2026-10-19
+
+- Add bare-hand surface pebble pickup and natural leaf gathering.
+- Add 30% authoritative Twig drops and the fuel-free 1 Gravel + 2 Twig stone-axe recipe (99 durability).
+- Keep tool wear authoritative and preserve the market acquisition path.
+- Publish matching Devnet client, resource rules and starter instructions.
+
+
 All notable public repository changes will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

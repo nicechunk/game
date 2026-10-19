@@ -16,6 +16,8 @@ export function createMiningController({
   isFluidBlock,
   isMineableBlock,
   getMiningPlan = null,
+  getBareHandPlan = () => null,
+  onSurfacePicked = () => {},
   blockAirId,
   onStatus = () => {},
   onChanged = () => {},
@@ -63,18 +65,14 @@ export function createMiningController({
     }
 
     const selectedTool = gameState.getSelectedToolSlot();
-    if (!selectedTool) {
-      onStatus("Select a usable mining tool in the hotbar before mining.");
-      return null;
-    }
-
-    const miningTool = miningToolReference(selectedTool.slot);
+    const barePlan = !selectedTool ? getBareHandPlan(rayHit) : null;
+    const miningTool = barePlan ? { kind: "bare-hands", action: barePlan.kind === "surface-pebble" ? "pick-pebble" : "gather" } : miningToolReference(selectedTool?.slot);
     if (!miningTool) {
-      onStatus("Equip an on-chain mining tool before mining.");
+      onStatus("With empty hands, collect surface pebbles or strike natural leaves. Craft a stone axe in Smelting, or buy a tool at the market.");
       return null;
     }
-
-    const targetSelection = selectMiningTarget(rayHit);
+    const targetSelection = barePlan && rayHit?.hit && isHitInMiningReach(rayHit)
+      ? { hit: rayHit } : barePlan ? { hit: null } : selectMiningTarget(rayHit);
     if (!targetSelection.hit?.hit) {
       return null;
     }
@@ -84,7 +82,7 @@ export function createMiningController({
 
     const def = blockDef(targetHit.blockId);
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
-    const miningPlan = miningPlanForHit(targetHit, def);
+    const miningPlan = barePlan || miningPlanForHit(targetHit, def);
     if (miningPlan.blockedReason) {
       const key = miningPlan.blockedReason === "chunk-limit"
         ? "main.supportCollapse.chunkLimit"
@@ -108,7 +106,7 @@ export function createMiningController({
       blockId: targetHit.blockId,
       resourceId,
       blockName: def.name,
-      selectedToolIndex: selectedTool.index,
+      selectedToolIndex: selectedTool?.index ?? -1,
       miningTool,
       requiredDamage: miningPlan.requiredDamage,
       miningPlan,
@@ -253,6 +251,8 @@ export function createMiningController({
   }
 
   function toolCollisionHitForProgress(swing, toProgress) {
+    if (swing.miningTool?.kind === "bare-hands") return toProgress >= 0.64
+      ? {hit:true,pointX:swing.hit.worldX+0.5,pointY:swing.hit.worldY+0.5,pointZ:swing.hit.worldZ+0.5} : {hit:false};
     const endProgress = clamp01(toProgress);
     const startProgress = Math.max(collisionStartProgress, Math.min(endProgress, Number(swing.previousToolProgress) || collisionStartProgress));
     let previousBoxes = swing.previousToolBoxes;
@@ -352,7 +352,7 @@ export function createMiningController({
     }
     if (isBlockPending(hit)) return null;
     const selectedTool = gameState.hotbarSlots[swing.selectedToolIndex];
-    if (!gameState.isUsableMiningToolSlot?.(selectedTool)) {
+    if (swing.miningTool?.kind !== "bare-hands" && !gameState.isUsableMiningToolSlot?.(selectedTool)) {
       onStatus("Mining tool is no longer usable.");
       return null;
     }
@@ -366,7 +366,7 @@ export function createMiningController({
     const key = damageKey(hit);
     const now = performance.now();
     prunePartialDamage(now, key);
-    const tool = miningToolReference(selectedTool);
+    const tool = swing.miningTool?.kind === "bare-hands" ? (!gameState.getSelectedToolSlot() ? swing.miningTool : null) : miningToolReference(selectedTool);
     if (JSON.stringify(tool) !== JSON.stringify(swing.miningTool)) return null;
     const damageState = partialDamageState(key, now, JSON.stringify(tool));
     const nextDamage = damageState.damage + 1;
@@ -402,7 +402,7 @@ export function createMiningController({
     });
 
     blockDamage.delete(key);
-    const pendingDeltas = planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
+    const pendingDeltas = swing.miningPlan?.kind === "surface-pebble" ? [] : planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
     const pending = {
       txId,
       worldX: hit.worldX,
@@ -455,6 +455,7 @@ export function createMiningController({
       blockId: blockAirId,
     })) ?? [], txId);
     chunks.confirmPendingDelta(txId, confirmation ?? pending.chainConfirmation ?? {});
+    if (pending.miningKind === "surface-pebble") onSurfacePicked(pending);
     pendingTx.splice(index, 1);
     const confirmedItems = (pending.rewardGroups ?? []).reduce((sum, group) => sum + Math.max(0, Math.trunc(group.count || 0)), 0);
     gameState.playerProfile.confirmedMines += Math.max(1, Math.trunc(pending.minedBlockCount || 1));
