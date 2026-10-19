@@ -2,13 +2,13 @@
 
 ## Active rules
 
-- Loose surface stones are **Stone Fragment / 碎石**, block ID **55**, resource group **30**. Terrain Gravel retains ID **6** and all existing ordinary uses.
+- Loose surface stones are **Stone Fragment**, block ID **55**, resource group **30**. Terrain Gravel retains ID **6** and all existing ordinary uses.
 - Pickup authenticates the generated terrain, canonical decoration, session, land protection, Chunk PDA and Backpack. It grants one 500,000 mm³ fragment (500 cm³), density 2,600 kg/m³, mass 1,300 g. The ground remains intact and a per-column pickup bit prevents repeat claims.
 - Bare-hand terrain excavation is disabled, including Gravel. Bare hands support only natural leaves and authenticated loose-stone pickup.
 - The fixed starter recipe requires **1 Stone Fragment (55) + 2 Twig (54)** and creates one canonical basic stone axe with **99/99 durability**. Gravel and ordinary Stone cannot substitute. No station, fuel or skill prerequisite is added.
 - Bare hands still cause no skill instructions, skill bonuses, XP, deferred mining events or progress changes. Equipped mining retains its normal skills and contract debit of 3 durability per successful transaction.
 - MaterialPhysics revision **3**, **113 rules**, adds fragment ID 55 while retaining every previous governed rule. No account layout, account size, authority or existing inventory migration is required. Old Gravel inventory remains Gravel.
-- Client resource mapping, backpack name/icon, reward preview, capacity check and recipe selection share the fragment ID. Chinese calls it 碎石; 砾石 keeps its existing meaning.
+- Client resource mapping, backpack name/icon, reward preview, capacity check and recipe selection share the fragment ID. Chinese locale labels distinguish Stone Fragment from Gravel while preserving Gravel's existing meaning.
 
 ## Validation and release
 
