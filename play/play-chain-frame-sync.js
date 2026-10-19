@@ -72,12 +72,15 @@ export function createPlayChainFrameSync({
     });
   }
 
-  function updateChunkDeltasForFrame(now, { moving = false, frameIntervalMs = null } = {}) {
+  function updateChunkDeltasForFrame(now, { moving = false, frameIntervalMs = null, deadline = Infinity } = {}) {
     const chainChunkDeltas = getChainChunkDeltas();
     if (!chainChunkDeltas) return;
     const observedInterval = frameIntervalMs ?? (lastChunkApplyAt === null ? undefined : now - lastChunkApplyAt);
     lastChunkApplyAt = now;
-    chainChunkDeltas.applyQueuedDeltas?.(getChunkSnapshotApplyBudget({ moving, frameIntervalMs: observedInterval }));
+    const budget = getChunkSnapshotApplyBudget({ moving, frameIntervalMs: observedInterval });
+    budget.budgetMs = Math.max(0, Math.min(budget.budgetMs, deadline - performance.now()));
+    budget.deadline = deadline;
+    chainChunkDeltas.applyQueuedDeltas?.(budget);
     const syncInterval = moving ? FRAME_CHAIN_CHUNK_DELTA_MOVING_SYNC_MS : FRAME_CHAIN_CHUNK_DELTA_SYNC_MS;
     if (now - lastChunkDeltaAt < syncInterval) return;
     lastChunkDeltaAt = now;

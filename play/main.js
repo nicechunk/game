@@ -63,6 +63,7 @@ import { createSupportCollapseMiningPlanner } from "./support-collapse-plan.js";
 import { createPlayEffects } from "./play-effects.js";
 import { createPlayRenderBudget } from "./play-render-budget.js";
 import { createPlayFrameProbe } from "./play-frame-probe.js";
+import { createFrameWorkBudget, remainingFrameWorkMs } from "./play-frame-work-budget.js";
 import { createPlayHud } from "./play-hud.js";
 import { createPlayInputActions } from "./play-input-actions.js";
 import { createPlayPlayerSession } from "./play-player-session.js";
@@ -483,6 +484,8 @@ const elements = {
 
 let renderer = null;
 let chunks = null;
+let authorityWorldConfig = null;
+let authorityWorldKey = "";
 let camera = null;
 let controls = null;
 let player = null;
@@ -1152,6 +1155,7 @@ async function boot() {
   foundationSync = createPlayChainFoundationSync({
     index: foundationIndex,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
+    getAuthorityContext: hostWorldAuthorityContext,
     getPlayerPosition: playerWorldFloat,
     getViewDistance: currentViewDistance,
     getPreloadMargin: () => chunks?.preloadMargin ?? PLAYABLE_PRELOAD_MARGIN,
@@ -1180,8 +1184,10 @@ async function boot() {
   });
   chunks.setSupplementalCollisionProvider?.(buildingController);
   buildingSync = createPlayChainBuildingSync({
+    autoApply: false,
     cache: buildingCache,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
+    getAuthorityContext: hostWorldAuthorityContext,
     getFoundations: () => foundationIndex.list(),
     getFoundationsNear: (worldX, worldZ, radius) => foundationIndex.listNear(worldX, worldZ, radius),
     getFoundationVersion: () => foundationIndex.version(),
@@ -1359,6 +1365,8 @@ async function boot() {
     canvas: elements.canvas,
     setStatus,
     parsePoseText,
+    getPerformanceSnapshot: () => ({ frames: frameProbeLogger.snapshot(), chunks: chunks?.diagnostics?.(),
+      renderer: renderer?.diagnostics?.(), minimap: minimap?.diagnostics?.() }),
     getPoseSnapshot: () => playerSession?.currentPoseSnapshot(),
     applyPoseSnapshot: (pose) => playerSession?.applyPoseSnapshot(pose),
     openBackpackPanel,
@@ -1539,6 +1547,8 @@ function frame(now) {
   markFrameProbe(frameProbe, "build-limit");
   applyPlayerPhysics(dt);
   markFrameProbe(frameProbe, "physics");
+  const streamingBudget = createFrameWorkBudget({ rawFrameIntervalMs: frameProbe.rawFrameIntervalMs,
+    startedAt: frameProbe.startedAt });
   mining?.update(now);
   playerSession?.savePlayerPosition(now);
   syncCameraToPlayer(dt);
@@ -1559,15 +1569,18 @@ function frame(now) {
   markFrameProbe(frameProbe, "chain-backpack");
   chainFrameSync?.updatePlayerForFrame(now);
   markFrameProbe(frameProbe, "chain-player");
-  chainFrameSync?.updateChunkDeltasForFrame(now, { moving: movingNow });
+  chainFrameSync?.updateChunkDeltasForFrame(now, { moving: movingNow,
+    frameIntervalMs: frameProbe.rawFrameIntervalMs, deadline: streamingBudget.deadline });
   markFrameProbe(frameProbe, "chain-deltas");
   foundationSync?.updateForFrame(now);
   markFrameProbe(frameProbe, "foundation-sync");
   buildingSync?.updateForFrame(now);
+  buildingSync?.applyQueuedBuildings?.({ deadline: streamingBudget.deadline,
+    budgetMs: remainingFrameWorkMs(streamingBudget.deadline, 1), maxBuildings: 2 });
   markFrameProbe(frameProbe, "building-sync");
   updateChunkLoadingForFrame(now);
   markFrameProbe(frameProbe, "chunk-load");
-  chunks.rebuildDirtyChunks(meshBudgetMs);
+  chunks.rebuildDirtyChunks(remainingFrameWorkMs(streamingBudget.deadline, meshBudgetMs), { deadline: streamingBudget.deadline });
   markFrameProbe(frameProbe, "chunk-rebuild");
   pruneGpuChunksForFrame(now);
   markFrameProbe(frameProbe, "gpu-prune");
@@ -1593,6 +1606,7 @@ function frame(now) {
     allowBackgroundUploads: renderBudget?.allowBackgroundUploads?.(now) ?? !movingNow,
     backgroundUploadBudget: renderBudget?.frameBackgroundUploadBudget?.(now),
     prefetchFocus: chunkPrefetchFocus,
+    deadline: streamingBudget.deadline,
   }) : { uploaded: 0, pendingUploads: renderer.pendingUploadSince.size, frameDeferred: true };
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);
@@ -2404,4 +2418,14 @@ function minimapCameraHeading() {
   if (!Array.isArray(forward) || Math.hypot(forward[0], forward[2]) < 0.000001) return 0;
   // The map marker starts toward -Z, matching the avatar/model yaw convention.
   return Math.atan2(-forward[0], -forward[2]);
+}
+
+function hostWorldAuthorityContext() {
+  const config = chunks?.config;
+  if (config !== authorityWorldConfig) {
+    authorityWorldConfig = config;
+    authorityWorldKey = config ? JSON.stringify([Array.from(config.worldSeed), config.chunkSize,
+      config.minY, config.height, config.maxBuildY, config.seaLevel, config.maxTerrainHeight]) : "";
+  }
+  return `${authorityWorldKey}:${chunks?.generationVersion ?? ""}:${chunks?.resourceRuleVersion ?? ""}:${chunks?.materialVersion ?? ""}`;
 }

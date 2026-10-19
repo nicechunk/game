@@ -7,6 +7,8 @@ import {
   terrainSurfaceHeight,
   waterLevelAt,
 } from "/chunk.js/play.js";
+import { createMinimapTileJob } from "./play-minimap-tile-job.js";
+import { buildMinimapTilePixelsSteps, createMinimapTerrainSampler } from "./play-minimap-terrain.js";
 
 const MAP_CACHE_LIMIT = 900;
 const SMALL_UPDATE_MS = 180;
@@ -40,9 +42,13 @@ export function createPlayMinimap({
   setStatus = () => {},
 } = {}) {
   const config = createWorldGeneratorConfig({ worldSeed });
+  const terrainSampler = createMinimapTerrainSampler(worldSeed);
   const chunkSize = config.chunkSize || DEFAULT_CHUNK_SIZE;
   const tileCache = new Map();
   const fallbackCache = new Map();
+  const fallbackJobs = new Map();
+  const viewportKeys = { small: new Set(), large: new Set() };
+  let placeholderCanvas = null;
   const state = {
     lastSmallAt: 0,
     smallDirty: true,
@@ -96,6 +102,9 @@ export function createPlayMinimap({
     openLargeMap,
     closeLargeMap,
     teleportTo,
+    diagnostics: () => ({ workerActive: Boolean(state.mapWorker), tiles: tileCache.size, coarseTiles: fallbackCache.size,
+      pending: state.tileRequests.size, fallbackPending: fallbackJobs.size,
+      retainedSmall: viewportKeys.small.size, retainedLarge: viewportKeys.large.size }),
   };
 
   function bind() {
@@ -147,6 +156,8 @@ export function createPlayMinimap({
     state.mapWorker = null;
     state.mapWorkerFailed = true;
     state.tileRequests.clear();
+    state.smallDirty = true;
+    state.lastLargeAt = 0;
   }
 
   function handleMapWorkerMessage(event) {
@@ -194,7 +205,7 @@ export function createPlayMinimap({
       const smallScale = smallMapScale(smallCanvas?.width, smallViewDistance);
       drawMap(smallCanvas, smallCanvas?.getContext("2d"), smallScale, px, pz, { small: true });
       state.smallViewDistance = smallViewDistance;
-      state.smallDirty = false;
+      state.smallDirty = [...fallbackJobs.values()].some(job => job.small);
     }
     if (state.expanded && (force || now - state.lastLargeAt >= LARGE_UPDATE_MS)) {
       state.lastLargeAt = now;
@@ -300,8 +311,17 @@ export function createPlayMinimap({
     state.activePointers.clear();
     state.largeDrawPending = false;
     clearLargeDetailTimer();
+    viewportKeys.large.clear();
+    retainViewportJobs();
     elements.mapOverlay?.classList.remove("open");
     elements.mapOverlay?.setAttribute("aria-hidden", "true");
+  }
+
+  function retainViewportJobs() {
+    const retainedKeys = new Set([...viewportKeys.small, ...viewportKeys.large]);
+    for (const [key, job] of fallbackJobs) if (!retainedKeys.has(job.retainKey ?? key)) fallbackJobs.delete(key);
+    for (const key of state.tileRequests.keys()) if (!retainedKeys.has(key)) state.tileRequests.delete(key);
+    state.mapWorker?.postMessage({ type: "retain", keys: [...retainedKeys] });
   }
 
   function teleportTo(x, z) {
@@ -508,11 +528,20 @@ export function createPlayMinimap({
     const minTileZ = Math.floor(minWorldZ / tileWorldSize);
     const maxTileZ = Math.floor(maxWorldZ / tileWorldSize);
 
-    for (let tileZ = minTileZ; tileZ <= maxTileZ; tileZ += 1) {
-      for (let tileX = minTileX; tileX <= maxTileX; tileX += 1) {
+    const tiles = [];
+    const centerTileX = viewX / tileWorldSize, centerTileZ = viewZ / tileWorldSize;
+    const activeKeys = new Set();
+    for (let tileZ = minTileZ; tileZ <= maxTileZ; tileZ++) for (let tileX = minTileX; tileX <= maxTileX; tileX++) {
+      tiles.push({ tileX, tileZ, distance: (tileX + 0.5 - centerTileX) ** 2 + (tileZ + 0.5 - centerTileZ) ** 2 });
+      activeKeys.add(`${worldStep}:${small ? MAP_SMALL_TILE_SAMPLES : MAP_TILE_PIXELS}:${tileX},${tileZ}`);
+    }
+    viewportKeys[small ? "small" : "large"] = activeKeys;
+    retainViewportJobs();
+    tiles.sort((a, b) => a.distance - b.distance || a.tileZ - b.tileZ || a.tileX - b.tileX);
+    for (const { tileX, tileZ } of tiles) {
         const overBudget = performance.now() - startedAt > tileBudgetMs;
         const previewOnly = !small && performance.now() < state.previewTilesUntil;
-        const tile = getMapTile(tileX, tileZ, worldStep, { allowBuild: !overBudget && !previewOnly, small });
+        const tile = getMapTile(tileX, tileZ, worldStep, { allowBuild: !overBudget && !previewOnly, small, deadline: startedAt + tileBudgetMs });
         const worldX1 = tileX * tileWorldSize;
         const worldZ1 = tileZ * tileWorldSize;
         const drawX1 = Math.floor(centerX + (worldX1 - viewX) * scale);
@@ -521,10 +550,10 @@ export function createPlayMinimap({
         const drawZ2 = Math.ceil(centerZ + (worldZ1 + tileWorldSize - viewZ) * scale);
         if (tile) terrainCtx.drawImage(tile, drawX1, drawZ1, drawX2 - drawX1, drawZ2 - drawZ1);
         else {
-          const fallback = fallbackTileSurface(tileX, tileZ, worldStep, { soft: small });
+          const fallback = fallbackTileSurface(tileX, tileZ, worldStep, { soft: small,
+            allowBuild: performance.now() < startedAt + tileBudgetMs && !previewOnly, deadline: startedAt + tileBudgetMs });
           terrainCtx.drawImage(fallback, drawX1, drawZ1, drawX2 - drawX1, drawZ2 - drawZ1);
         }
-      }
     }
 
     const minChunkX = Math.floor(minWorldX / chunkSize);
@@ -608,7 +637,7 @@ export function createPlayMinimap({
     state.smallMarkerHeading = heading;
   }
 
-  function getMapTile(tileX, tileZ, worldStep, { allowBuild = true, small = false } = {}) {
+  function getMapTile(tileX, tileZ, worldStep, { allowBuild = true, small = false, deadline = Infinity } = {}) {
     const step = Math.max(1, Math.trunc(worldStep) || 1);
     const samples = small ? MAP_SMALL_TILE_SAMPLES : MAP_TILE_PIXELS;
     const key = `${step}:${samples}:${tileX},${tileZ}`;
@@ -622,26 +651,22 @@ export function createPlayMinimap({
       requestMapTile(key, tileX, tileZ, step, samples, small);
       return null;
     }
+    let job = fallbackJobs.get(key);
+    if (!job) {
+      if (fallbackJobs.size >= MAP_WORKER_PENDING_LIMIT) return null;
+      job = createMinimapTileJob({ tileX, tileZ, worldStep: step, samples, tilePixels: MAP_TILE_PIXELS,
+        iterator: buildMinimapTilePixelsSteps(terrainSampler, { tileX, tileZ, worldStep: step, samples, tilePixels: MAP_TILE_PIXELS }, { workBudget: 1 }) });
+      job.small = small;
+      fallbackJobs.set(key, job);
+    }
+    if (!job.advance({ deadline }).done) return null;
+    fallbackJobs.delete(key);
     const canvas = document.createElement("canvas");
     canvas.width = samples;
     canvas.height = samples;
     const ctx = canvas.getContext("2d", { willReadFrequently: false });
     const image = ctx.createImageData(samples, samples);
-    const originX = tileX * MAP_TILE_PIXELS * step;
-    const originZ = tileZ * MAP_TILE_PIXELS * step;
-    const sampleScale = MAP_TILE_PIXELS / samples;
-    for (let localZ = 0; localZ < samples; localZ += 1) {
-      for (let localX = 0; localX < samples; localX += 1) {
-        const worldX = originX + Math.floor((localX + 0.5) * sampleScale * step);
-        const worldZ = originZ + Math.floor((localZ + 0.5) * sampleScale * step);
-        const [r, g, b] = mapColorAt(worldX, worldZ, { soft: small });
-        const offset = (localZ * samples + localX) * 4;
-        image.data[offset] = r;
-        image.data[offset + 1] = g;
-        image.data[offset + 2] = b;
-        image.data[offset + 3] = 255;
-      }
-    }
+    image.data.set(job.pixels);
     ctx.putImageData(image, 0, 0);
     tileCache.set(key, { canvas });
     pruneTileCache();
@@ -662,7 +687,7 @@ export function createPlayMinimap({
     });
   }
 
-  function fallbackTileSurface(tileX, tileZ, worldStep, { soft = false } = {}) {
+  function fallbackTileSurface(tileX, tileZ, worldStep, { soft = false, allowBuild = true, deadline = Infinity } = {}) {
     const step = Math.max(1, Math.trunc(worldStep) || 1);
     const key = `${step}:${soft ? 1 : 0}:${tileX},${tileZ}`;
     const cached = fallbackCache.get(key);
@@ -670,28 +695,33 @@ export function createPlayMinimap({
       touchCacheEntry(fallbackCache, key, cached);
       return cached.canvas;
     }
-    const tileWorldSize = MAP_TILE_PIXELS * step;
-    const originX = tileX * tileWorldSize;
-    const originZ = tileZ * tileWorldSize;
+    const placeholder = () => {
+      if (!placeholderCanvas) {
+        placeholderCanvas = document.createElement("canvas");
+        placeholderCanvas.width = placeholderCanvas.height = 1;
+        const ctx = placeholderCanvas.getContext("2d", { alpha: false });
+        ctx.fillStyle = "#11222a"; ctx.fillRect(0, 0, 1, 1);
+      }
+      return placeholderCanvas;
+    };
+    if (!allowBuild) return placeholder();
+    const jobKey = `coarse:${key}`;
+    let job = fallbackJobs.get(jobKey);
+    if (!job) {
+      if (fallbackJobs.size >= MAP_WORKER_PENDING_LIMIT) return placeholder();
+      job = { ...createMinimapTileJob({ tileX, tileZ, worldStep: step, samples: 2, tilePixels: MAP_TILE_PIXELS,
+        sampleScale: MAP_TILE_PIXELS, sampleOffset: 0, mapColorAt: (x,z) => mapColorAt(x,z,{soft}) }), small: soft,
+        retainKey: `${step}:${soft ? MAP_SMALL_TILE_SAMPLES : MAP_TILE_PIXELS}:${tileX},${tileZ}` };
+      fallbackJobs.set(jobKey, job);
+    }
+    if (!job.advance({deadline, maxSamples: 4}).done) return placeholder();
+    fallbackJobs.delete(jobKey);
     const canvas = document.createElement("canvas");
     canvas.width = 2;
     canvas.height = 2;
     const tileContext = canvas.getContext("2d", { alpha: false });
     const image = tileContext.createImageData(2, 2);
-    for (let localZ = 0; localZ < 2; localZ += 1) {
-      for (let localX = 0; localX < 2; localX += 1) {
-        const color = mapColorAt(
-          originX + localX * tileWorldSize,
-          originZ + localZ * tileWorldSize,
-          { soft },
-        );
-        const offset = (localZ * 2 + localX) * 4;
-        image.data[offset] = color[0];
-        image.data[offset + 1] = color[1];
-        image.data[offset + 2] = color[2];
-        image.data[offset + 3] = 255;
-      }
-    }
+    image.data.set(job.pixels);
     tileContext.putImageData(image, 0, 0);
     fallbackCache.set(key, { canvas });
     pruneFallbackCache();

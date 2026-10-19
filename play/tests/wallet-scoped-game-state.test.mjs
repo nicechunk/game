@@ -70,7 +70,8 @@ test("authoritative backpack sync removes a forged shortcut no longer owned on c
     const result = restored.mergeChainBackpackSlots([]);
     assert.equal(result.changed, true);
     assert.equal(forgedSlots(restored).length, 0);
-    assert.equal(restored.selectedHotbarSlot, 0);
+    assert.equal(restored.selectedHotbarSlot, 1, "removing an unowned shortcut preserves the selected empty slot");
+    assert.equal(restored.getSelectedToolSlot(), null);
   });
 });
 

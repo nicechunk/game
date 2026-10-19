@@ -16,6 +16,8 @@ export function createPlayLandUi({
   let bound = false;
   let lastSignature = "";
   let collapsed = false;
+  let lastActive = null;
+  let frameSnapshots = null;
 
   return { bind, render, update, setCollapsed, isCollapsed: () => collapsed };
 
@@ -104,10 +106,13 @@ export function createPlayLandUi({
 
   function render({ force = false } = {}) {
     const active = Boolean(isConstructionModeActive());
+    if (!active && lastActive === false && !force) { frameSnapshots = null; return; }
+    lastActive = active;
     const buildingController = getBuildingController();
     buildingController?.activate?.(active);
     const foundation = getController()?.snapshot?.() ?? { active: false };
     const building = buildingController?.snapshot?.() ?? { active, mode: "foundation", foundations: [] };
+    frameSnapshots = { foundation, building };
     const mode = building.mode === "building" ? "building" : "foundation";
     const foundationBound = Boolean(foundation.foundationBound || building.foundationBound);
     const signature = JSON.stringify([
@@ -315,8 +320,12 @@ export function createPlayLandUi({
   }
 
   function updateMeasurementLabels() {
-    const building = getBuildingController()?.snapshot?.();
-    const snapshot = getController()?.snapshot?.();
+    if (!isConstructionModeActive()) {
+      if (elements?.foundationMeasurements) elements.foundationMeasurements.hidden = true;
+      return;
+    }
+    const building = frameSnapshots?.building;
+    const snapshot = frameSnapshots?.foundation;
     const preview = snapshot?.active && building?.mode !== "building" ? snapshot.preview : null;
     const root = elements?.foundationMeasurements;
     if (!preview || !root || !canvas) {

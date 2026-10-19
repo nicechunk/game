@@ -31,9 +31,13 @@ test("the production frame synchronizer measures actual frame spacing and resets
   const session = createPlayChainFrameSync({ getChainChunkDeltas: () => ({ applyQueuedDeltas: (budget) => applied.push(budget), requestSync() {} }) });
   session.updateChunkDeltasForFrame(1000, { moving: true });
   session.updateChunkDeltasForFrame(1200, { moving: true });
-  assert.deepEqual(applied[0], getChunkSnapshotApplyBudget({ moving: true }));
-  assert.deepEqual(applied[1], getChunkSnapshotApplyBudget({ moving: true, frameIntervalMs: 200 }));
+  assert.deepEqual(applied[0], { ...getChunkSnapshotApplyBudget({ moving: true }), deadline: Infinity });
+  assert.deepEqual(applied[1], { ...getChunkSnapshotApplyBudget({ moving: true, frameIntervalMs: 200 }), deadline: Infinity });
   session.resetTimers({ chunkDeltas: true });
   session.updateChunkDeltasForFrame(1e9, { moving: true });
-  assert.deepEqual(applied[2], getChunkSnapshotApplyBudget({ moving: true }), "a reset cannot spend a tab suspension as unlimited catch-up work");
+  assert.deepEqual(applied[2], { ...getChunkSnapshotApplyBudget({ moving: true }), deadline: Infinity }, "a reset cannot spend a tab suspension as unlimited catch-up work");
+  const deadline = performance.now() - 1;
+  session.updateChunkDeltasForFrame(1e9 + 1, { moving: true, frameIntervalMs: 200, deadline });
+  assert.deepEqual(applied[3], { ...getChunkSnapshotApplyBudget({ moving: true, frameIntervalMs: 200 }), budgetMs: 0, deadline },
+    "the shared expired deadline leaves no new time allowance while forwarding the explicit raw interval");
 });

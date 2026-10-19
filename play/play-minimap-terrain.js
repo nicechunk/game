@@ -40,13 +40,20 @@ export function createMinimapTerrainSampler(worldSeed) {
   }
 }
 
-export function buildMinimapTilePixels(sampler, {
+export function buildMinimapTilePixels(sampler, options = {}) {
+  const iterator = buildMinimapTilePixelsSteps(sampler, options);
+  let step; do { step = iterator.next(); } while (!step.done);
+  return step.value;
+}
+
+export function* buildMinimapTilePixelsSteps(sampler, {
   tileX,
   tileZ,
   worldStep,
   tilePixels = 64,
   samples = 64,
-} = {}) {
+} = {}, { workBudget = 32 } = {}) {
+  let units = 0;
   const step = Math.max(1, Math.trunc(worldStep) || 1);
   const sampleCount = Math.max(8, Math.trunc(samples) || 64);
   const padded = sampleCount + 2;
@@ -70,6 +77,7 @@ export function buildMinimapTilePixels(sampler, {
       colors[index * 3] = sample.color[0];
       colors[index * 3 + 1] = sample.color[1];
       colors[index * 3 + 2] = sample.color[2];
+      if (++units >= workBudget) { units = 0; yield { phase: "map-terrain", workUnits: workBudget }; }
     }
   }
 
@@ -92,6 +100,7 @@ export function buildMinimapTilePixels(sampler, {
       pixels[output + 1] = color[1];
       pixels[output + 2] = color[2];
       pixels[output + 3] = 255;
+      if (++units >= workBudget) { units = 0; yield { phase: "map-relief", workUnits: workBudget }; }
     }
   }
   return pixels;

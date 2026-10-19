@@ -5,6 +5,7 @@ export function createPlayDebugController({
   setStatus,
   parsePoseText,
   getPoseSnapshot,
+  getPerformanceSnapshot = () => null,
   applyPoseSnapshot,
   openBackpackPanel,
   openProfilePanel,
@@ -239,7 +240,9 @@ export function createPlayDebugController({
   }
 
   async function copyRenderLog() {
-    const text = renderLog.toText();
+    const performanceSnapshot = getPerformanceSnapshot();
+    const text = renderLog.toText() + (performanceSnapshot
+      ? `\nPerformance snapshot:\n${JSON.stringify(performanceSnapshot, null, 2)}` : "");
     if (elements.renderLogPreview) elements.renderLogPreview.textContent = renderLog.summary();
     try {
       await navigator.clipboard?.writeText(text);
