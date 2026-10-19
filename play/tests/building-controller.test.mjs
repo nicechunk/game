@@ -267,6 +267,37 @@ test("a failed replacement removes its stale previously verified mesh", async ()
   }
 });
 
+test("an unrelated ready building preserves a matching in-flight building job", async () => {
+  const calls = [];
+  const controller = controllerFor({ createMeshClient: () => ({ build(input, options) {
+    return new Promise(resolve => calls.push({ input, options, resolve }));
+  } }) });
+  const a = buildingRecord("101", 1, "11".repeat(32)), b = buildingRecord("202", 1, "22".repeat(32));
+  const first = controller.applyChainBuildings([a]);
+  const expanded = controller.applyChainBuildings([a, b]);
+  assert.equal(calls.length, 2, "matching work is shared instead of rebuilt");
+  assert.equal(calls[0].options.signal.aborted, false);
+  calls[1].resolve(meshResult(calls[1].input, 2));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(controller.renderChunks().map(chunk => chunk.id), ["building-202"]);
+  calls[0].resolve(meshResult(calls[0].input, 1));
+  await first; await expanded;
+  assert.deepEqual(new Set(controller.renderChunks().map(chunk => chunk.id)), new Set(["building-101", "building-202"]));
+});
+
+test("building range snapshots are reused until their geometry or query changes", async () => {
+  const controller = controllerFor({ createMeshClient: () => ({ async build(input) { return meshResult(input, 1); } }) });
+  const empty = controller.renderChunksInRange(0, 0, 2);
+  assert.equal(controller.renderChunksInRange(0, 0, 2), empty);
+  const record = buildingRecord("101", 1, "11".repeat(32));
+  await controller.applyChainBuildings([record]);
+  const current = controller.renderChunksInRange(0, 0, 2);
+  assert.notEqual(current, empty); assert.equal(current.length, 1);
+  assert.equal(controller.renderChunksInRange(0, 0, 2), current);
+  assert.notEqual(controller.renderChunksInRange(1, 0, 2), current);
+  await controller.applyChainBuildings([]); assert.deepEqual(controller.renderChunksInRange(0, 0, 2), []);
+});
+
 test("a newer chain snapshot cancels stale building mesh work", async () => {
   const meshCalls = [];
   const controller = controllerFor({

@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import { createStreamingWorkPool, mapStreaming } from "./streamingWork.js";
 import bs58 from "bs58";
 import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
 import { STARTER_AXE_RECIPE_ID } from "../data/starterTools.js";
@@ -337,6 +338,12 @@ const gameplaySessionReadyCache = new Map();
 const resourceDropTableReadyAtByProgram = new Map();
 const surfaceDecorationTableReadyAtByProgram = new Map();
 const buildingPayloadCache = new Map();
+const verifiedManifestCache = new Map();
+const buildingReadPending = new Map();
+const discoveryConnectionIds = new WeakMap();
+let discoveryConnectionSerial=1;
+const discoveryPdaCache = new Map();
+const buildingReadPool = createStreamingWorkPool({concurrency:3,capacity:256});
 const buildingPayloadCacheLimit = 128;
 const skillRuleTableCacheByConnection = new WeakMap();
 let surfaceDecorationTableCache = null;
@@ -510,6 +517,15 @@ export function getNicechunkConnection() {
   return connection;
 }
 
+// Read identity only: movement does not alter this authority namespace.
+export function getNicechunkDiscoveryContext() {
+  return {
+    rpc: discoveryRpcNamespace(), program: gameContext.programId.toBase58(),
+    chunkProgram: gameContext.chunkProgramId.toBase58(), buildingProgram: gameContext.buildingProgramId.toBase58(),
+    globalConfig: deriveGlobalConfigPda().toBase58(), world: canonicalChunkWorldConfig,
+  };
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener(rpcConfigChangedEventName, () => {
     connection = null;
@@ -526,6 +542,8 @@ function clearChainReadCaches() {
   resourceDropTableReadyAtByProgram.clear();
   surfaceDecorationTableReadyAtByProgram.clear();
   buildingPayloadCache.clear();
+  verifiedManifestCache.clear();
+  buildingReadPending.clear();
   surfaceDecorationTableCache = null;
 }
 
@@ -706,10 +724,8 @@ function deriveFoundationChunkPdaForProgram(chunkX, chunkZ, programId = chunkPro
   const chunkZBytes = Buffer.alloc(4);
   chunkXBytes.writeInt32LE(chunkX, 0);
   chunkZBytes.writeInt32LE(chunkZ, 0);
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from(foundationChunkSeed), deriveGlobalConfigPda().toBuffer(), chunkXBytes, chunkZBytes],
-    programId,
-  );
+  return cachedDiscoveryPda(`chunk:${programId}:${deriveGlobalConfigPda()}:${chunkX},${chunkZ}`,()=>PublicKey.findProgramAddressSync(
+    [Buffer.from(foundationChunkSeed), deriveGlobalConfigPda().toBuffer(), chunkXBytes, chunkZBytes], programId));
 }
 
 export function deriveFoundationPda(owner, foundationId) {
@@ -733,10 +749,8 @@ function revisionBuffer(revision) {
 }
 
 function deriveBuildSitePdaForProgram(foundationId, programId = buildingProgramId) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from(buildSiteSeed), deriveGlobalConfigPda().toBuffer(), foundationIdBuffer(foundationId)],
-    programId,
-  );
+  return cachedDiscoveryPda(`site:${programId}:${deriveGlobalConfigPda()}:${foundationId}`,()=>PublicKey.findProgramAddressSync(
+    [Buffer.from(buildSiteSeed), deriveGlobalConfigPda().toBuffer(), foundationIdBuffer(foundationId)], programId));
 }
 
 function deriveBuildingManifestPdaForProgram(foundationId, revision, programId = buildingProgramId) {
@@ -2190,70 +2204,121 @@ export async function loadFoundationsForChunks(chunks = [], conn = getNicechunkC
     deriveFoundationChunkPdaForContext(chunkX, chunkZ, gameContext)[0]
   ));
   const infos = await getMultipleAccountsInfoBatched(conn, addresses, 100);
-  const indexed = new Map();
-  for (let index = 0; index < coordinates.length; index += 1) {
-    const account = infos[index];
-    if (!account?.data?.length) continue;
-    if (!account.owner?.equals?.(gameContext.chunkProgramId)) {
-      throw new Error("Invalid FoundationChunk owner.");
-    }
-    const coordinate = coordinates[index];
-    const records = decodeFoundationChunk(account.data, {
-      ...coordinate,
-      address: addresses[index].toBase58(),
-    });
-    for (const record of records) {
-      const current = indexed.get(record.foundationId);
-      if (current && !foundationIndexRecordsMatch(current, record)) {
-        throw new Error(`FoundationChunk records disagree for land ${record.foundationId}.`);
+  const indexed = new Map(), idsByCoordinate = new Map(), coordinateErrors = new Map();
+  const failedIds = new Set(), issues = [];
+  for (let index = 0; index < coordinates.length; index++) {
+    const coordinate = coordinates[index], key = `${coordinate.chunkX},${coordinate.chunkZ}`;
+    try {
+      const account = infos[index];
+      if (!account?.data?.length) { idsByCoordinate.set(key, []); continue; }
+      if (!account.owner?.equals?.(gameContext.chunkProgramId) || account.executable) throw new Error("Invalid FoundationChunk owner.");
+      const records = decodeFoundationChunk(account.data, { ...coordinate, address: addresses[index].toBase58() });
+      idsByCoordinate.set(key, records.map(record => String(record.foundationId)));
+      for (const record of records) {
+        const previous = indexed.get(record.foundationId);
+        if (previous && !foundationIndexRecordsMatch(previous, record)) {
+          failedIds.add(String(record.foundationId));
+          throw new Error(`FoundationChunk records disagree for land ${record.foundationId}.`);
+        }
+        indexed.set(record.foundationId, record);
       }
-      indexed.set(record.foundationId, record);
-    }
+    } catch (error) { coordinateErrors.set(key, error); issues.push(error); }
   }
-  if (!indexed.size) return [];
-  const sites = await loadBuildSitesByIds([...indexed.keys()], conn);
+  const sites = indexed.size ? await loadBuildSitesByIds([...indexed.keys()], conn, {
+    onError(error, id) { failedIds.add(String(id)); issues.push(error); },
+  }) : [];
   const active = [];
   for (const site of sites) {
     const record = indexed.get(site.foundationId);
     if (!record || site.accountVersion !== 3 || site.status !== "active" || site.hasActiveGeometry === false) continue;
     if (!foundationIndexRecordsMatch(record, site)) {
-      throw new Error(`BuildSite ${site.foundationId} does not match its FoundationChunk index.`);
+      failedIds.add(String(site.foundationId));
+      issues.push(new Error(`BuildSite ${site.foundationId} does not match its FoundationChunk index.`));
+      continue;
     }
-    active.push(site);
+    if (!failedIds.has(String(site.foundationId))) active.push(site);
   }
-  return attachActiveBuildingHashes(active, conn);
+  const manifestFailures = new Set();
+  const result = await attachActiveBuildingHashes(active, conn, (error, foundation) => {
+    // The BuildSite revision is known even if its payload is unavailable. Publish
+    // that descriptor without a hash so obsolete geometry/collision is removed.
+    manifestFailures.add(String(foundation.foundationId)); issues.push(error);
+  });
+  const activeIds = new Set(active.map(record => String(record.foundationId)));
+  const observations = [], failedCoordinates = [];
+  for (let index = 0; index < coordinates.length; index++) {
+    const coordinate = coordinates[index], key = `${coordinate.chunkX},${coordinate.chunkZ}`;
+    const ids = idsByCoordinate.get(key) || [];
+    if (coordinateErrors.has(key) || ids.some(id => failedIds.has(id))) {
+      failedCoordinates.push(coordinate); continue;
+    }
+    observations.push({ ...coordinate, ...infos.readMetadata[index],
+      foundationIds: ids.filter(id => activeIds.has(id)),
+      retryRequired: ids.some(id => manifestFailures.has(id)),
+    });
+  }
+  Object.defineProperties(result, {
+    observations: { value: observations }, failedCoordinates: { value: failedCoordinates },
+    issues: { value: issues.map(error => String(error?.message || error).slice(0, 160)) },
+    invalidatedFoundationIds: { value: [...indexed.keys()].filter(id => !activeIds.has(String(id)) && !failedIds.has(String(id))) },
+  });
+  return result;
 }
 
-async function attachActiveBuildingHashes(foundations, conn) {
-  const withBuildings = foundations.filter((foundation) => Number(foundation.activeRevision) > 0);
-  if (!withBuildings.length) return foundations;
-  const programs = withBuildings.map((foundation) => buildingProgramForFoundation(foundation, gameContext));
-  const addresses = withBuildings.map((foundation, index) => deriveBuildingManifestPdaForProgram(
-    foundation.foundationId,
-    foundation.activeRevision,
-    programs[index],
-  )[0]);
-  const infos = await getMultipleAccountsInfoBatched(conn, addresses, 100);
-  const hashByFoundationId = new Map();
-  for (let index = 0; index < withBuildings.length; index += 1) {
-    const foundation = withBuildings[index];
-    const account = infos[index];
-    if (!account?.data?.length || !account.owner?.equals?.(programs[index])) {
-      throw new Error(`Active BuildingManifest ${foundation.foundationId}:${foundation.activeRevision} is unavailable.`);
-    }
-    const manifest = decodeBuildingManifest(account.data, addresses[index].toBase58());
-    if (manifest.status !== "active"
-      || manifest.foundationId !== foundation.foundationId
-      || manifest.revision !== Number(foundation.activeRevision)
-      || manifest.owner !== foundation.owner) {
-      throw new Error(`BuildingManifest ${foundation.foundationId}:${foundation.activeRevision} does not match its BuildSite.`);
-    }
-    hashByFoundationId.set(foundation.foundationId, manifest.expectedHash.toString("hex"));
+async function attachActiveBuildingHashes(foundations, conn, onError = null) {
+  const hashes = new Map(), missing = [];
+  for (const foundation of foundations) {
+    if (!(Number(foundation.activeRevision) > 0)) continue;
+    const cached = cachedBuildingManifest(foundation, conn);
+    if (cached) hashes.set(foundation, cached); else missing.push(foundation);
   }
-  return foundations.map((foundation) => {
-    const contentHash = hashByFoundationId.get(foundation.foundationId);
-    return contentHash ? { ...foundation, contentHash } : foundation;
+  if (missing.length) {
+    const addresses = missing.map(foundation => deriveBuildingManifestPdaForProgram(foundation.foundationId, foundation.activeRevision, buildingProgramForFoundation(foundation, gameContext))[0]);
+    let infos;
+    try { infos = await getMultipleAccountsInfoBatched(conn, addresses, 100); }
+    catch (error) {
+      if (!onError) throw error;
+      for (const foundation of missing) onError(error, foundation);
+    }
+    if (infos) for (let index = 0; index < missing.length; index++) {
+      const foundation = missing[index];
+      try {
+        const manifest = verifyBuildingManifest(foundation, infos[index], addresses[index]);
+        rememberBuildingManifest(foundation, manifest, infos.readMetadata[index].observedAt, conn);
+        hashes.set(foundation, manifest);
+      } catch (error) { if (!onError) throw error; onError(error, foundation); }
+    }
+  }
+  return foundations.map(foundation => {
+    const manifest = hashes.get(foundation);
+    return manifest ? { ...foundation, contentHash: manifest.expectedHash.toString("hex"),
+      buildingQuarterTurns: manifest.quarterTurns, buildingOffsetX: manifest.offsetX, buildingOffsetZ: manifest.offsetZ,
+      buildingManifestPda: manifest.address,
+    } : Number(foundation.activeRevision) > 0 ? { ...foundation, buildingVerificationFailed: true } : foundation;
   });
+}
+
+function cachedBuildingManifest(foundation,conn) {
+  const cached=verifiedManifestCache.get(buildingCacheKey(foundation,conn)), expected=String(foundation.contentHash || "").toLowerCase();
+  return cached && Date.now()-cached.observedAt<60000 && (!expected || expected===cached.manifest.expectedHash.toString("hex")) ? cached.manifest : null;
+}
+function verifyBuildingManifest(foundation,account,address) {
+  const program=buildingProgramForFoundation(foundation,gameContext), expected=String(foundation.contentHash || "").toLowerCase();
+  if(!account?.data?.length || !account.owner?.equals?.(program) || account.executable) throw Error(`Active BuildingManifest ${foundation.foundationId}:${foundation.activeRevision} is unavailable.`);
+  const manifest=decodeBuildingManifest(account.data,address.toBase58());
+  if(manifest.status!=="active"||manifest.foundationId!==String(foundation.foundationId)||manifest.revision!==Number(foundation.activeRevision)
+    ||manifest.owner!==foundation.owner||expected && expected!==manifest.expectedHash.toString("hex")) throw Error("BuildingManifest does not match its verified BuildSite.");
+  return manifest;
+}
+function rememberBuildingManifest(foundation,manifest,observedAt,conn) {
+  const key=buildingCacheKey(foundation,conn);verifiedManifestCache.delete(key);verifiedManifestCache.set(key,{manifest,observedAt});
+  while(verifiedManifestCache.size>256) verifiedManifestCache.delete(verifiedManifestCache.keys().next().value);
+}
+async function readVerifiedBuildingManifest(foundation,conn) {
+  const cached=cachedBuildingManifest(foundation,conn);if(cached) return cached;
+  const program=buildingProgramForFoundation(foundation,gameContext),address=deriveBuildingManifestPdaForProgram(foundation.foundationId,foundation.activeRevision,program)[0];
+  const infos=await getMultipleAccountsInfoBatched(conn,[address],100),manifest=verifyBuildingManifest(foundation,infos[0],address);
+  rememberBuildingManifest(foundation,manifest,infos.readMetadata[0].observedAt,conn);return manifest;
 }
 
 function foundationIndexRecordsMatch(left, right) {
@@ -2266,132 +2331,66 @@ function foundationIndexRecordsMatch(left, right) {
     && Number(left?.depth) === Number(right?.depth);
 }
 
-export async function loadBuildingsForFoundations(foundations = []) {
+export async function loadBuildingsForFoundations(foundations = [], {onBuilding=null,onError=null,connection: suppliedConnection=null} = {}) {
   if (!isNicechunkChainSyncEnabled() || !Array.isArray(foundations) || !foundations.length) return [];
-  const unique = new Map();
-  for (const foundation of foundations) {
-    const revision = normalizeBuildingRevision(foundation?.activeRevision || 0, { allowZero: true });
-    if (!revision) continue;
-    unique.set(String(foundation.foundationId), { ...foundation, activeRevision: revision });
+  const conn=suppliedConnection || getNicechunkConnection();
+  const records=new Map();
+  for(const foundation of foundations) {
+    const revision=normalizeBuildingRevision(foundation?.activeRevision || 0,{allowZero:true});
+    if(!revision) continue;
+    const expectedHash=String(foundation.contentHash || "").trim().toLowerCase();
+    if(expectedHash && !/^[0-9a-f]{64}$/.test(expectedHash)) throw Error("Invalid on-chain building hash.");
+    records.set(buildingCacheKey(foundation,conn),{...foundation,activeRevision:revision});
   }
-  if (!unique.size) return [];
-  const conn = getNicechunkConnection();
-  const records = [...unique.values()];
-  const cachedByKey = new Map();
-  const recordsToLoad = [];
-  for (const foundation of records) {
-    const key = buildingCacheKey(foundation);
-    const cached = buildingPayloadCache.get(key);
-    const expectedHash = String(foundation?.contentHash || "").trim().toLowerCase();
-    if (expectedHash && !/^[0-9a-f]{64}$/.test(expectedHash)) {
-      throw new Error("Invalid on-chain building hash.");
-    }
-    if (cached && (!expectedHash || String(cached.contentHash || "") === expectedHash)) {
-      buildingPayloadCache.delete(key);
-      buildingPayloadCache.set(key, cached);
-      cachedByKey.set(key, cached);
-    } else {
-      recordsToLoad.push(foundation);
-    }
+  const loaded=new Map(), errors=[];
+  await mapStreaming([...records],async([key,foundation])=>{
+    try {
+      let building=buildingPayloadCache.get(key);
+      if(building && foundation.contentHash && building.contentHash!==foundation.contentHash) building=null;
+      if(!building) {
+        let pending=buildingReadPending.get(key);
+        if(!pending) {
+          pending=buildingReadPool.run(()=>readCompleteBuilding(foundation,conn)).finally(()=>{if(buildingReadPending.get(key)===pending)buildingReadPending.delete(key);});
+          buildingReadPending.set(key,pending);
+        }
+        building=await pending;
+      }
+      // A completed shared read is still checked against each caller's descriptor.
+      if(building.owner!==foundation.owner || foundation.contentHash && building.contentHash!==foundation.contentHash) throw Error("Building payload does not match its on-chain manifest hash.");
+      loaded.set(key,building);
+      await onBuilding?.(building,foundation);
+    } catch(error) {errors.push(error);await onError?.(error,foundation);}
+  },3);
+  if(errors.length && !onError) throw errors[0];
+  return [...records.keys()].map((key)=>loaded.get(key)).filter(Boolean);
+}
+
+async function readCompleteBuilding(foundation,conn) {
+  const manifest=await readVerifiedBuildingManifest(foundation,conn);
+  const program=buildingProgramForFoundation(foundation,gameContext);
+  const addresses=Array.from({length:manifest.shardCount},(_,index)=>deriveBuildingShardPdaForProgram(foundation.foundationId,foundation.activeRevision,index,program)[0]);
+  const infos=await getMultipleAccountsInfoBatched(conn,addresses,100), shards=[];
+  for(let index=0;index<infos.length;index++) {
+    const account=infos[index];
+    if(!account?.data?.length || !account.owner?.equals?.(program) || account.executable) throw Error(`Building shard ${index} is unavailable.`);
+    const shard=decodeBuildingShard(account.data,addresses[index].toBase58());
+    if(shard.foundationId!==String(foundation.foundationId)||shard.revision!==foundation.activeRevision||shard.shardIndex!==index) throw Error("Building shard foundation mismatch.");
+    shards.push(shard.payload);
   }
-  const manifestPrograms = recordsToLoad.map((foundation) => buildingProgramForFoundation(foundation, gameContext));
-  const manifestAddresses = recordsToLoad.map((foundation, index) => deriveBuildingManifestPdaForProgram(
-    foundation.foundationId,
-    foundation.activeRevision,
-    manifestPrograms[index],
-  )[0]);
-  const manifestInfos = await getMultipleAccountsInfoBatched(conn, manifestAddresses, 100);
-  const manifests = [];
-  for (let index = 0; index < recordsToLoad.length; index += 1) {
-    const account = manifestInfos[index];
-    if (!account?.data?.length) {
-      throw new Error(`Building manifest ${recordsToLoad[index].foundationId}:${recordsToLoad[index].activeRevision} is unavailable.`);
-    }
-    if (!account.owner?.equals?.(manifestPrograms[index])) throw new Error("Invalid BuildingManifest owner.");
-    const manifest = decodeBuildingManifest(account.data, manifestAddresses[index].toBase58());
-    if (manifest.status !== "active") {
-      throw new Error(`Building manifest ${manifest.foundationId}:${manifest.revision} is not active.`);
-    }
-    const foundation = recordsToLoad[index];
-    if (manifest.foundationId !== String(foundation.foundationId)
-      || manifest.revision !== foundation.activeRevision
-      || manifest.owner !== foundation.owner) {
-      throw new Error("BuildingManifest does not match its verified BuildSite.");
-    }
-    manifests.push({ foundation, manifest, programId: manifestPrograms[index] });
-  }
-  const shardRequests = [];
-  for (const entry of manifests) {
-    for (let shardIndex = 0; shardIndex < entry.manifest.shardCount; shardIndex += 1) {
-      shardRequests.push({
-        entry,
-        shardIndex,
-        address: deriveBuildingShardPdaForProgram(
-          entry.foundation.foundationId,
-          entry.foundation.activeRevision,
-          shardIndex,
-          entry.programId,
-        )[0],
-      });
-    }
-  }
-  const shardInfos = await getMultipleAccountsInfoBatched(conn, shardRequests.map((request) => request.address), 100);
-  const shardsByBuilding = new Map();
-  for (let index = 0; index < shardRequests.length; index += 1) {
-    const request = shardRequests[index];
-    const account = shardInfos[index];
-    if (!account?.data?.length || !account.owner?.equals?.(request.entry.programId)) {
-      throw new Error(`Building shard ${request.shardIndex} is unavailable.`);
-    }
-    const shard = decodeBuildingShard(account.data, request.address.toBase58());
-    if (shard.foundationId !== String(request.entry.foundation.foundationId)
-      || shard.revision !== request.entry.foundation.activeRevision
-      || shard.shardIndex !== request.shardIndex) {
-      throw new Error("Building shard foundation mismatch.");
-    }
-    const key = `${request.entry.foundation.foundationId}:${request.entry.foundation.activeRevision}`;
-    const list = shardsByBuilding.get(key) ?? [];
-    list[request.shardIndex] = shard.payload;
-    shardsByBuilding.set(key, list);
-  }
-  const loadedByKey = new Map();
-  for (const { foundation, manifest } of manifests) {
-    const key = `${foundation.foundationId}:${foundation.activeRevision}`;
-    const shards = shardsByBuilding.get(key) ?? [];
-    if (shards.length !== manifest.shardCount || shards.some((shard) => !shard)) {
-      throw new Error(`Building ${key} has an incomplete shard set.`);
-    }
-    const payload = Buffer.concat(shards);
-    if (payload.length !== manifest.payloadLen) throw new Error("Building payload length mismatch.");
-    const digest = await sha256Buffer(payload);
-    if (!digest.equals(manifest.expectedHash)) throw new Error("Building payload hash mismatch.");
-    const expectedHash = String(foundation?.contentHash || "").trim().toLowerCase();
-    const digestHex = digest.toString("hex");
-    if (expectedHash && digestHex !== expectedHash) {
-      throw new Error("Building payload does not match its on-chain manifest hash.");
-    }
-    const building = {
-      id: `${foundation.id}:building:${foundation.activeRevision}`,
-      owner: foundation.owner,
-      foundationId: foundation.foundationId,
-      foundation: foundation.id,
-      revision: foundation.activeRevision,
-      quarterTurns: manifest.quarterTurns,
-      offsetX: manifest.offsetX,
-      offsetZ: manifest.offsetZ,
-      code: `NCM3:${base64UrlEncode(payload)}`,
-      contentHash: digestHex,
-      payloadBytes: payload.length,
-      manifestPda: manifest.address,
-      programId: buildingProgramForFoundation(foundation, gameContext).toBase58(),
-      updatedSlot: manifest.updatedSlot,
-    };
-    loadedByKey.set(buildingCacheKey(foundation), building);
-    cacheBuildingPayload(buildingCacheKey(foundation), building);
-  }
-  return records
-    .map((foundation) => cachedByKey.get(buildingCacheKey(foundation)) ?? loadedByKey.get(buildingCacheKey(foundation)))
-    .filter(Boolean);
+  if(shards.length!==manifest.shardCount) throw Error("Building has an incomplete shard set.");
+  const payload=Buffer.concat(shards);
+  if(payload.length!==manifest.payloadLen) throw Error("Building payload length mismatch.");
+  const digest=await sha256Buffer(payload);
+  if(!digest.equals(manifest.expectedHash)) throw Error("Building payload hash mismatch.");
+  const digestHex=digest.toString("hex");
+  if(foundation.contentHash && digestHex!==foundation.contentHash) throw Error("Building payload does not match its on-chain manifest hash.");
+  const building={id:`${foundation.id}:building:${foundation.activeRevision}`,owner:foundation.owner,
+    foundationId:foundation.foundationId,foundation:foundation.id,revision:foundation.activeRevision,
+    quarterTurns:manifest.quarterTurns,offsetX:manifest.offsetX,offsetZ:manifest.offsetZ,
+    code:`NCM3:${base64UrlEncode(payload)}`,contentHash:digestHex,payloadBytes:payload.length,
+    manifestPda:manifest.address,programId:program.toBase58(),globalConfig:manifest.globalConfig,updatedSlot:manifest.updatedSlot};
+  cacheBuildingPayload(buildingCacheKey(foundation,conn),building);
+  return building;
 }
 
 export function decodeFoundationChunk(input, { chunkX = null, chunkZ = null, address = "" } = {}) {
@@ -2631,7 +2630,7 @@ export function decodeBuildingShard(input, address = "", { allowIncomplete = fal
   };
 }
 
-export async function loadBuildSitesByIds(foundationIds, conn = getNicechunkConnection()) {
+export async function loadBuildSitesByIds(foundationIds, conn = getNicechunkConnection(), { onError = null } = {}) {
   const ids = [...new Set((foundationIds ?? []).map((value) => BigInt(value).toString()))];
   if (!ids.length) return [];
   const addresses = ids.map((id) => deriveBuildSitePdaForProgram(id, gameContext.buildingProgramId)[0]);
@@ -2641,13 +2640,15 @@ export async function loadBuildSitesByIds(foundationIds, conn = getNicechunkConn
     const address = addresses[index];
     const account = infos[index];
     if (!account?.data?.length) continue;
-    if (!account.owner?.equals?.(gameContext.buildingProgramId)) throw new Error("Invalid BuildSite owner.");
-    const foundation = {
-      ...decodeBuildSite(account.data, address.toBase58()),
-      programId: gameContext.buildingProgramId.toBase58(),
-    };
-    if (foundation.foundationId !== ids[index]) throw new Error("BuildSite PDA identifier mismatch.");
-    foundations.push(foundation);
+    try {
+      if (!account.owner?.equals?.(gameContext.buildingProgramId) || account.executable) throw new Error("Invalid BuildSite owner.");
+      const foundation = {
+        ...decodeBuildSite(account.data, address.toBase58()),
+        programId: gameContext.buildingProgramId.toBase58(),
+      };
+      if (foundation.foundationId !== ids[index]) throw new Error("BuildSite PDA identifier mismatch.");
+      foundations.push(foundation);
+    } catch (error) { if (!onError) throw error; onError(error, ids[index]); }
   }
   return foundations;
 }
@@ -7760,8 +7761,24 @@ function base64UrlEncode(bytes) {
   return Buffer.from(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function buildingCacheKey(foundation) {
-  return `${buildingProgramForFoundation(foundation, gameContext).toBase58()}:${String(foundation?.foundationId ?? "0")}:${Math.max(0, Math.trunc(Number(foundation?.activeRevision) || 0))}`;
+function discoveryRpcNamespace(conn=null) {
+  if(conn){
+    const endpoint=String(conn.rpcEndpoint || conn._rpcEndpoint || "");
+    if(endpoint)return endpoint;
+    if(!discoveryConnectionIds.has(conn))discoveryConnectionIds.set(conn,discoveryConnectionSerial++);
+    return `sdk:${discoveryConnectionIds.get(conn)}`;
+  }
+  try{return getNicechunkRpcUrl();}catch{return "sdk-default";}
+}
+
+function cachedDiscoveryPda(key,derive) {
+  let result=discoveryPdaCache.get(key);
+  if(!result) {result=derive();discoveryPdaCache.set(key,result);while(discoveryPdaCache.size>8192)discoveryPdaCache.delete(discoveryPdaCache.keys().next().value);}
+  return [...result];
+}
+
+function buildingCacheKey(foundation,conn=null) {
+  return `${discoveryRpcNamespace(conn)}:${deriveGlobalConfigPda()}:${buildingProgramForFoundation(foundation,gameContext)}:${String(foundation?.owner || "")}:${String(foundation?.foundationId ?? "0")}:${Math.max(0,Math.trunc(Number(foundation?.activeRevision)||0))}`;
 }
 
 function buildingProgramForFoundation(foundation, context = gameContext) {
@@ -7776,7 +7793,7 @@ function buildingProgramForFoundation(foundation, context = gameContext) {
 
 function cacheBuildingPayload(key, building) {
   buildingPayloadCache.delete(key);
-  buildingPayloadCache.set(key, building);
+  buildingPayloadCache.set(key, Object.freeze(building));
   while (buildingPayloadCache.size > buildingPayloadCacheLimit) {
     buildingPayloadCache.delete(buildingPayloadCache.keys().next().value);
   }
@@ -7792,13 +7809,31 @@ async function sha256Buffer(bytes) {
   return Buffer.from(digest);
 }
 
+const accountReadPools = new WeakMap();
 async function getMultipleAccountsInfoBatched(conn, addresses, batchSize = 100) {
-  const result = [];
+  const result = new Array(addresses.length), metadata = new Array(addresses.length);
   const size = Math.max(1, Math.min(100, Math.trunc(Number(batchSize) || 100)));
-  for (let start = 0; start < addresses.length; start += size) {
-    const batch = addresses.slice(start, start + size);
-    result.push(...await conn.getMultipleAccountsInfo(batch, "confirmed"));
+  let pool = accountReadPools.get(conn);
+  if (!pool) { pool=createStreamingWorkPool({concurrency:4,capacity:512});accountReadPools.set(conn,pool); }
+  const jobs=[];
+  for (let start=0;start<addresses.length;start+=size) {
+    const batch=addresses.slice(start,start+size);
+    jobs.push(pool.run(async()=>{
+      const readStartedAt=Date.now();
+      const response=typeof conn.getMultipleAccountsInfoAndContext === "function"
+        ? await conn.getMultipleAccountsInfoAndContext(batch,{commitment:"confirmed"})
+        : {value:await conn.getMultipleAccountsInfo(batch,"confirmed"),context:{slot:null}};
+      const observedAt=Date.now(), infos=response?.value;
+      if (!Array.isArray(infos)||infos.length!==batch.length) throw Error("Account response does not match requested coordinates.");
+      const contextSlot=Number.isSafeInteger(response.context?.slot)&&response.context.slot>=0?response.context.slot:null;
+      for(let i=0;i<batch.length;i++) {
+        if (!(i in infos)) throw Error("Account response has a missing entry.");
+        result[start+i]=infos[i];metadata[start+i]={readStartedAt,observedAt,contextSlot,commitment:"confirmed"};
+      }
+    }));
   }
+  await Promise.all(jobs);
+  Object.defineProperty(result,"readMetadata",{value:metadata});
   return result;
 }
 

@@ -2,7 +2,8 @@ const DB_NAME = "nicechunk-chain-chunk-cache";
 const DB_VERSION = 1;
 const SNAPSHOT_STORE = "snapshots";
 const CACHE_SCHEMA = "chain-chunk-snapshot-v2-pure-rpc";
-import { optionalContextSlot, yieldChunkSyncTask } from "./play-chain-batch-scheduler.js";
+import { canonicalizeChunkSnapshotAsync } from "./play-chain-chunk-canonical.js";
+export { canonicalizeChunkSnapshot, canonicalizeChunkSnapshotAsync, prepareCanonicalChunkSnapshot, sameCanonicalChunkSnapshot } from "./play-chain-chunk-canonical.js";
 const DEFAULT_MAX_RECORDS = 4096;
 const DEFAULT_MAX_DELTAS = 262_144;
 const DEFAULT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -55,7 +56,9 @@ export function createPlayChainChunkCache({
       const record = records[index];
       if (!record) continue;
       try {
-        if (record.schema !== CACHE_SCHEMA || record.scope !== activeScope || record.key !== keys[index]) {
+        if (record.schema !== CACHE_SCHEMA || record.scope !== activeScope || record.key !== keys[index]
+          || record.chunkX !== normalizedTargets[index].chunkX || record.chunkZ !== normalizedTargets[index].chunkZ
+          || record.chunkSize !== chunkSize) {
           throw new Error("Chunk cache namespace mismatch.");
         }
         if (currentTime - finiteTimestamp(record.verifiedAt) > normalizedMaxAge()) {
@@ -91,7 +94,7 @@ export function createPlayChainChunkCache({
 
   async function putVerifiedSnapshots(snapshots = [], { chunkSize = 16 } = {}) {
     const activeScope = scope();
-    const verifiedAt = Math.max(0, Math.trunc(Number(now()) || 0));
+    const writeTime = Math.max(0, Math.trunc(Number(now()) || 0));
     const byKey = new Map();
     for (const snapshotValue of snapshots ?? []) {
       const canonical = await canonicalizeChunkSnapshotAsync(snapshotValue, { chunkSize });
@@ -108,7 +111,7 @@ export function createPlayChainChunkCache({
         deltaCount: canonical.deltas.length,
         packedDeltas: canonical.packedDeltas,
         verified: true,
-        verifiedAt,
+        verifiedAt: Number.isFinite(snapshotValue.verifiedAt) ? Math.min(writeTime, finiteTimestamp(snapshotValue.verifiedAt)) : writeTime,
       });
     }
     const records = [...byKey.values()];
@@ -247,128 +250,6 @@ export function createPlayChainChunkCache({
     });
     return databasePromise;
   }
-}
-
-export function canonicalizeChunkSnapshot(snapshot = {}, options = {}) {
-  const preparation = prepareCanonicalChunkSnapshot(snapshot, options);
-  while (!preparation.done) preparation.step({ maxEntries: Infinity, budgetMs: Infinity });
-  return preparation.result;
-}
-
-export async function canonicalizeChunkSnapshotAsync(snapshot = {}, options = {}) {
-  const preparation = prepareCanonicalChunkSnapshot(snapshot, options);
-  while (!preparation.done) {
-    preparation.step({ maxEntries: 128, budgetMs: 1 });
-    if (!preparation.done) await yieldChunkSyncTask();
-  }
-  return preparation.result;
-}
-
-export function prepareCanonicalChunkSnapshot(snapshot = {}, { chunkSize = 16 } = {}) {
-  const size = Math.max(1, Math.trunc(Number(chunkSize) || 16));
-  const chunkX = requireI32(snapshot.chunkX, "chunkX");
-  const chunkZ = requireI32(snapshot.chunkZ, "chunkZ");
-  let result = null, done = false;
-  function *prepare() {
-    const byCoordinate = new Map();
-    if (snapshot.packedDeltas !== undefined) {
-      const packed = snapshot.packedDeltas;
-      if (!Array.isArray(packed) || packed.length % 4) throw new Error("Invalid packed chunk deltas.");
-      for (let index = 0; index < packed.length; index += 4) {
-        const entry = [requireLocalCoordinate(packed[index], size, "localX"), requireI32(packed[index + 1], "worldY"), requireLocalCoordinate(packed[index + 2], size, "localZ"), requireInteger(packed[index + 3], 0, 0xffff, "blockId")];
-        byCoordinate.set(coordinateKey(entry[0], entry[1], entry[2]), entry); yield;
-      }
-    } else for (const raw of snapshot.deltas ?? []) {
-      const worldX = optionalInteger(raw?.worldX ?? raw?.x);
-      const worldY = requireI32(raw?.worldY ?? raw?.y, "worldY");
-      const worldZ = optionalInteger(raw?.worldZ ?? raw?.z);
-      const localX = requireLocalCoordinate(raw?.localX ?? (worldX === null ? null : worldX - chunkX * size), size, "localX");
-      const localZ = requireLocalCoordinate(raw?.localZ ?? (worldZ === null ? null : worldZ - chunkZ * size), size, "localZ");
-      const blockId = requireInteger(raw?.blockId ?? raw?.newBlockId ?? 0, 0, 0xffff, "blockId");
-      byCoordinate.set(coordinateKey(localX, worldY, localZ), [localX, worldY, localZ, blockId]); yield;
-    }
-    // Bottom-up merge sort yields between comparisons; even very large restore
-    // records cannot hide an unbounded Array.sort inside one application slice.
-    let entries = [];
-    for (const entry of byCoordinate.values()) { entries.push(entry); yield; }
-    for (let width = 1; width < entries.length; width *= 2) {
-      const merged = new Array(entries.length);
-      for (let start = 0; start < entries.length; start += width * 2) {
-        let left = start, right = Math.min(start + width, entries.length);
-        const leftEnd = right, rightEnd = Math.min(start + width * 2, entries.length);
-        for (let index = start; index < rightEnd; index++) {
-          merged[index] = left < leftEnd && (right >= rightEnd || comparePackedDelta(entries[left], entries[right]) <= 0) ? entries[left++] : entries[right++]; yield;
-        }
-      }
-      entries = merged;
-    }
-    const packedDeltas = [], deltas = [];
-    let first = 0x811c9dc5, second = 0x9e3779b9;
-    for (const [localX, worldY, localZ, blockId] of entries) {
-      for (const integer of [localX, worldY, localZ, blockId]) {
-        const index = packedDeltas.length; packedDeltas.push(integer);
-        let value = integer | 0;
-        for (let byte = 0; byte < 4; byte++) { const octet = value & 0xff; first = Math.imul(first ^ octet, 0x01000193); second = Math.imul(second ^ (octet + index + byte), 0x85ebca6b); second = (second << 13) | (second >>> 19); value >>= 8; }
-      }
-      deltas.push({ worldX: chunkX * size + localX, worldY, worldZ: chunkZ * size + localZ, localX, localY: worldY, localZ, blockId, source: "chain" }); yield;
-    }
-    result = { id: snapshot.id ?? `${chunkX},${chunkZ}`, chunkX, chunkZ, chunkSize: size, contextSlot: optionalContextSlot(snapshot.contextSlot), packedDeltas, fingerprint: `v1:${deltas.length}:${(first >>> 0).toString(36)}:${(second >>> 0).toString(36)}`, deltas };
-  }
-  const iterator = prepare();
-  return { get done() { return done; }, get result() { return result; }, step({ maxEntries = 64, budgetMs = 1 } = {}) {
-    const started = performance.now(); let processed = 0;
-    while (!done && processed < maxEntries) { done = iterator.next().done; processed++; if (performance.now() - started >= budgetMs) break; }
-    return { done, processed, elapsedMs: performance.now() - started };
-  } };
-}
-
-export function sameCanonicalChunkSnapshot(left, right) {
-  if (!left || !right || left.fingerprint !== right.fingerprint) return false;
-  const a = left.packedDeltas;
-  const b = right.packedDeltas;
-  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-  for (let index = 0; index < a.length; index += 1) {
-    if (a[index] !== b[index]) return false;
-  }
-  return true;
-}
-
-function normalizePackedDeltas(value, chunkSize) {
-  if (!Array.isArray(value) || value.length % 4 !== 0) throw new Error("Invalid packed chunk deltas.");
-  const packed = [];
-  for (let index = 0; index < value.length; index += 4) {
-    packed.push(
-      requireLocalCoordinate(value[index], chunkSize, "localX"),
-      requireI32(value[index + 1], "worldY"),
-      requireLocalCoordinate(value[index + 2], chunkSize, "localZ"),
-      requireInteger(value[index + 3], 0, 0xffff, "blockId"),
-    );
-  }
-  return packed;
-}
-
-function fingerprintPackedDeltas(packed) {
-  let first = 0x811c9dc5;
-  let second = 0x9e3779b9;
-  for (let index = 0; index < packed.length; index += 1) {
-    let value = packed[index] | 0;
-    for (let byte = 0; byte < 4; byte += 1) {
-      const octet = value & 0xff;
-      first = Math.imul(first ^ octet, 0x01000193);
-      second = Math.imul(second ^ (octet + index + byte), 0x85ebca6b);
-      second = (second << 13) | (second >>> 19);
-      value >>= 8;
-    }
-  }
-  return `v1:${packed.length / 4}:${(first >>> 0).toString(36)}:${(second >>> 0).toString(36)}`;
-}
-
-function comparePackedDelta(a, b) {
-  return a[1] - b[1] || a[2] - b[2] || a[0] - b[0] || a[3] - b[3];
-}
-
-function coordinateKey(localX, worldY, localZ) {
-  return `${localX}:${worldY}:${localZ}`;
 }
 
 function uniqueTargets(targets) {

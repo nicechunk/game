@@ -140,3 +140,21 @@ test("a cancelled work-conserving pool stops launching queued batches", async ()
   const result = await runChunkBatchPool(Array.from({ length: 20 }, (_, index) => index), { concurrency: 4, signal: controller.signal, fetchBatch: async () => { started++; await new Promise((resolve) => setTimeout(resolve, 1)); return { ok: true }; }, onResult: () => { delivered++; controller.abort(); } });
   assert.equal(started, 4); assert.equal(delivered, 1); assert.equal(result.cancelled, true);
 });
+
+test("an exhausted shared deadline performs no chunk snapshot preparation or commit", async () => {
+  const chunks = manager();
+  const sync = createPlayChainChunkDeltaSync({ chunks, persistentScopeHint: { cluster: "devnet", programId: "program" },
+    persistentCache: { async getVerifiedSnapshots() { return [{ chunkX: 0, chunkZ: 0, id: "0,0", contextSlot: 1,
+      deltas: [{ worldX: 1, worldY: 1, worldZ: 1, blockId: 7 }] }]; }, async putVerifiedSnapshots() {} },
+  });
+  try {
+    await sync.preloadPersistentCache();
+    const before = sync.snapshot();
+    const result = sync.applyQueuedDeltas({ deadline: performance.now() - 1, budgetMs: 10 });
+    assert.equal(result.appliedSnapshots, 0); assert.equal(result.preparedEntries, 0);
+    assert.equal(sync.snapshot().pendingSnapshots, before.pendingSnapshots);
+    assert.equal(chunks.chunks.get("0,0").chainDeltas.size, 0);
+    assert.equal(sync.applyQueuedDeltas({ budgetMs: 0 }).preparedEntries, 0);
+    drain(sync); assert.equal(chunks.chunks.get("0,0").chainDeltas.size, 1);
+  } finally { sync.cancelActiveSync(); chunks.dispose(); }
+});

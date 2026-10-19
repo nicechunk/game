@@ -10,12 +10,24 @@ test("foundation discovery follows live 7 -> 2 -> 20 -> 7 view changes at the sa
     index: { replaceAll() {}, list: () => [], size: () => 0 },
     loadChainModule: async () => ({ loadFoundationsForChunks: async (chunks) => { queried.push(chunks); return []; } }),
   });
+  const observed = new Set();
   for (const [index, distance] of [7, 2, 20, 7].entries()) {
     view = distance;
+    const previousCalls = queried.length;
     await sync.updateForFrame(1000 + index);
+    for (const batch of queried.slice(previousCalls)) {
+      assert.ok(batch.length <= 1024, "each host query respects the real interface bound");
+      for (const coordinate of batch) {
+        const key = `${coordinate.chunkX},${coordinate.chunkZ}`;
+        assert.ok(!observed.has(key), "valid overlapping coordinates do not need a repeated read");
+        observed.add(key);
+      }
+    }
     const radius = distance + 3;
-    assert.equal(queried.length, index + 1, "range change must bypass the normal refresh TTL");
-    assert.equal(queried.at(-1).length, (2 * radius + 1) ** 2);
+    for (let z = -radius; z <= radius; z++) for (let x = -radius; x <= radius; x++) {
+      assert.ok(observed.has(`${x},${z}`), "the union covers the complete configured view");
+    }
+    assert.equal(sync.snapshot().scannedChunks, (2 * radius + 1) ** 2);
   }
 });
 
@@ -36,7 +48,7 @@ test("building discovery invalidates context and query radius when view changes"
   }
 });
 
-test("a late foundation range result cannot replace the index after view shrink", async () => {
+test("a late foundation result is reusable when it overlaps the smaller active view", async () => {
   let view=7,records=[],calls=0,release,started;
   const waiting=new Promise(resolve=>{release=resolve;});
   const firstStarted=new Promise(resolve=>{started=resolve;});
@@ -50,9 +62,9 @@ test("a late foundation range result cannot replace the index after view shrink"
   view=2;release();
   const stale=await request;
   assert.equal(stale.stale,true);
-  assert.equal(records.length,0,"the old range must not reach the active index");
+  assert.deepEqual(records.map(record=>record.foundationId),["1"],"verified overlapping land is published despite the center/range change");
   await sync.updateForFrame(1100);
-  assert.deepEqual(records.map(record=>record.foundationId),["2"]);
+  assert.deepEqual(records.map(record=>record.foundationId),["1"]);
 });
 
 test("a late building range result cannot reintroduce far buildings after view shrink", async () => {
@@ -71,5 +83,5 @@ test("a late building range result cannot reintroduce far buildings after view s
   assert.equal(stale.stale,true);
   assert.equal(applied.length,0,"the old range must not reach building geometry application");
   await sync.updateForFrame(1100);
-  assert.deepEqual(applied,[[]]);
+  assert.deepEqual(applied,[],"a scene that never contained a building needs no empty replacement");
 });

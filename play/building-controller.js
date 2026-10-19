@@ -39,7 +39,10 @@ export function createBuildingController({
   let previewRequest = 0;
   let chainRequest = 0;
   let previewAbortController = null;
-  let chainAbortController = null;
+  const chainJobs = new Map();
+  let chainDesired = new Map();
+  let chainRenderDirty=false,chainRenderQueued=false,renderGeometryRevision=0;
+  let rangeCache=null,ownedCache=null;
   let meshingPreview = false;
   let meshingChain = false;
   let modeExplicit = false;
@@ -117,9 +120,11 @@ export function createBuildingController({
   function ownedFoundations() {
     const wallet = String(getWalletAddress() || "");
     if (!wallet) return [];
-    return (index?.list?.() ?? [])
-      .filter((foundation) => foundation.owner === wallet
-        && foundation.status !== "removed");
+    const version=typeof index?.version==="function"?index.version():null;
+    if(version!==null&&ownedCache?.wallet===wallet&&ownedCache.version===version)return ownedCache.records;
+    const records=(index?.list?.()??[]).filter(foundation=>foundation.owner===wallet&&foundation.status!=="removed");
+    if(version!==null)ownedCache={wallet,version,records};
+    return records;
   }
 
   function currentFoundation() {
@@ -326,148 +331,74 @@ export function createBuildingController({
   }
 
   async function applyChainBuildings(records = []) {
-    chainAbortController?.abort();
-    const abortController = new AbortController();
-    chainAbortController = abortController;
-    const request = ++chainRequest;
-    const foundationByKey = new Map((index?.list?.() ?? [])
-      .filter((foundation) => foundation.status !== "removed")
-      .map((foundation) => [foundationKey(foundation.owner, foundation.foundationId), foundation]));
-    const desired = new Map();
-    for (const record of records ?? []) {
-      const foundation = foundationByKey.get(foundationKey(record?.owner, record?.foundationId));
-      if (!foundation || !record?.code) continue;
-      desired.set(foundation.id, {
-        record,
-        foundation,
-        fingerprint: chainBuildingFingerprint(record, foundation),
-      });
+    const request=++chainRequest;
+    const foundationByKey=new Map((index?.list?.()??[]).filter(f=>(!f.status||f.status==="active")&&f.hasActiveGeometry!==false).map(f=>[foundationKey(f.owner,f.foundationId),f]));
+    const desired=new Map();
+    for(const record of records??[]){
+      const foundation=foundationByKey.get(foundationKey(record?.owner,record?.foundationId));
+      if(!foundation||!record?.code)continue;
+      desired.set(foundation.id,{record,foundation,fingerprint:chainBuildingFingerprint(record,foundation)});
     }
-
-    const next = new Map();
-    const pending = [];
-    let reused = 0;
-    let reusedChanged = false;
-    for (const [foundationId, existing] of chainBuildings) {
-      if (!desired.has(foundationId)) rememberChainMesh(existing);
-    }
-    for (const { record, foundation, fingerprint } of desired.values()) {
-      const existing = chainBuildings.get(foundation.id);
-      if (existing?.fingerprint === fingerprint) {
-        next.set(foundation.id, {
-          ...existing,
-          record: { ...record, code: existing.building.canonicalCode },
-          foundation,
-        });
-        reused += 1;
-        continue;
+    chainDesired=desired;
+    for(const [id,job]of chainJobs)if(desired.get(id)?.fingerprint!==job.fingerprint){job.controller.abort();chainJobs.delete(id);}
+    let removed=0,reused=0,changed=false;
+    for(const [id,entry]of chainBuildings)if(!desired.has(id)){rememberChainMesh(entry);chainBuildings.delete(id);removed++;changed=true;}
+    const work=[];
+    for(const {record,foundation,fingerprint}of desired.values()){
+      const existing=chainBuildings.get(foundation.id);
+      if(existing?.fingerprint===fingerprint){
+        chainBuildings.set(foundation.id,{...existing,record:{...record,code:existing.building.canonicalCode},foundation});reused++;continue;
       }
-      const cached = takeChainMesh(fingerprint);
-      if (cached) {
-        next.set(foundation.id, {
-          ...cached,
-          record: { ...record, code: cached.building.canonicalCode },
-          placement: cached.placement ? { ...cached.placement, foundation } : cached.placement,
-          foundation,
-          fingerprint,
-        });
-        reused += 1;
-        reusedChanged = true;
-        continue;
-      }
-      if (existing) next.set(foundation.id, existing);
-      pending.push({ record, foundation, fingerprint });
+      if(existing){chainBuildings.delete(foundation.id);changed=true;}
+      const cached=takeChainMesh(fingerprint);
+      if(cached){chainBuildings.set(foundation.id,{...cached,record:{...record,code:cached.building.canonicalCode},foundation,placement:cached.placement?{...cached.placement,foundation}:cached.placement});reused++;changed=true;continue;}
+      const pending=chainJobs.get(foundation.id);
+      if(pending?.fingerprint===fingerprint){work.push({shared:pending});continue;}
+      work.push({record,foundation,fingerprint});
     }
-    const player = playerWorldXZ(getPlayerPosition());
-    pending.sort((left, right) => distanceSquared(left.foundation, player.x, player.z)
-      - distanceSquared(right.foundation, player.x, player.z));
-    const removed = [...chainBuildings.keys()].filter((id) => !desired.has(id)).length;
-    const changedBeforeMeshing = removed > 0 || reusedChanged || next.size !== chainBuildings.size;
-    chainBuildings = next;
-    if (!pending.length) {
-      if (request !== chainRequest) return { count: chainBuildings.size, stale: true };
-      if (chainAbortController === abortController) chainAbortController = null;
-      if (changedBeforeMeshing) rebuildRenderChunkCache();
-      meshingChain = false;
-      if (changedBeforeMeshing) onChanged(snapshot());
-      return { count: next.size, rebuilt: 0, reused, removed };
-    }
-
-    let renderCommitDirty = changedBeforeMeshing;
-    let renderCommitQueued = false;
-    const flushRenderCommit = () => {
-      renderCommitQueued = false;
-      if (!renderCommitDirty || request !== chainRequest) return;
-      renderCommitDirty = false;
-      rebuildRenderChunkCache();
-      onChanged(snapshot());
-    };
-    const scheduleRenderCommit = () => {
-      renderCommitDirty = true;
-      if (renderCommitQueued) return;
-      renderCommitQueued = true;
-      scheduleNextRenderCommit(flushRenderCommit);
-    };
-
-    meshingChain = true;
-    onChanged(snapshot());
-    if (changedBeforeMeshing) scheduleRenderCommit();
-    const jobs = pending.map(({ record, foundation, fingerprint }) => {
-      const distance = distanceSquared(foundation, player.x, player.z);
-      return meshClient.build({
-        code: record.code,
-        buildingId: record.id || `${foundation.id}:building`,
-        foundation,
-        quarterTurns: record.quarterTurns,
-        offsetX: normalizeBuildingOffset(record.offsetX),
-        offsetZ: normalizeBuildingOffset(record.offsetZ),
-        placementId: record.id || `${foundation.id}:building`,
-        chunkSize,
-        revision: ++revision,
-      }, {
-        signal: abortController.signal,
-        priority: -distance,
-        scope: `chain:${request}`,
-      }).then((result) => {
-        if (request !== chainRequest) return { stale: true };
-        try {
-          const building = result.building;
-          const placement = result.placement;
-          const chunks = result.chunks;
-          if (!building?.canonicalCode || !placement || !Array.isArray(chunks)) {
-            throw new Error("Building mesh result is incomplete.");
-          }
-          next.set(foundation.id, {
-            record: { ...record, code: building.canonicalCode },
-            building,
-            placement,
-            chunks,
-            foundation,
-            fingerprint,
-          });
-          scheduleRenderCommit();
-          return { ok: true };
-        } catch (error) {
-          next.delete(foundation.id);
-          scheduleRenderCommit();
-          console.warn("[NiceChunk Building Decode]", foundation.id, error);
-          return { ok: false, error };
-        }
-      }, (error) => {
-        if (request !== chainRequest) return { stale: true };
-        next.delete(foundation.id);
-        scheduleRenderCommit();
-        if (error?.code !== "building-mesh-aborted") console.warn("[NiceChunk Building Decode]", error);
-        return { ok: false, error };
-      });
+    if(changed)markChainRenderChanged(true);
+    const player=playerWorldXZ(getPlayerPosition());
+    work.sort((a,b)=>distanceSquared(a.foundation||a.shared.foundation,player.x,player.z)-distanceSquared(b.foundation||b.shared.foundation,player.x,player.z));
+    let rebuilt=0;
+    const jobs=work.map(item=>{
+      if(item.shared)return item.shared.promise;
+      const {record,foundation,fingerprint}=item,controller=new AbortController();
+      const job={controller,fingerprint,foundation,promise:null};chainJobs.set(foundation.id,job);rebuilt++;
+      const isCurrent=()=>chainJobs.get(foundation.id)===job&&chainDesired.get(foundation.id)?.fingerprint===fingerprint;
+      let task;
+      try{task=meshClient.build({code:record.code,buildingId:record.id||`${foundation.id}:building`,foundation,
+        quarterTurns:record.quarterTurns,offsetX:normalizeBuildingOffset(record.offsetX),offsetZ:normalizeBuildingOffset(record.offsetZ),
+        placementId:record.id||`${foundation.id}:building`,chunkSize,revision:++revision},
+        {signal:controller.signal,priority:-distanceSquared(foundation,player.x,player.z),scope:`chain:${foundation.id}:${fingerprint}`});}
+      catch(error){task=Promise.reject(error);}
+      job.promise=Promise.resolve(task).then(result=>{
+        if(!isCurrent())return {stale:true};
+        if(!result.building?.canonicalCode||!result.placement||!Array.isArray(result.chunks))throw Error("Building mesh result is incomplete.");
+        chainBuildings.set(foundation.id,{record:{...record,code:result.building.canonicalCode},building:result.building,placement:result.placement,chunks:result.chunks,foundation,fingerprint});
+        markChainRenderChanged();return {ok:true};
+      }).catch(error=>{
+        if(!isCurrent())return {stale:true};
+        chainBuildings.delete(foundation.id);markChainRenderChanged();
+        if(error?.code!=="building-mesh-aborted")console.warn("[NiceChunk Building Decode]",foundation.id,error);
+        return {ok:false,error};
+      }).finally(()=>{if(chainJobs.get(foundation.id)===job)chainJobs.delete(foundation.id);meshingChain=chainJobs.size>0;});
+      return job.promise;
     });
+    meshingChain=chainJobs.size>0;
+    if(jobs.length)onChanged(snapshot());
     await Promise.all(jobs);
-    if (request !== chainRequest) return { count: chainBuildings.size, stale: true };
-    flushRenderCommit();
-    if (chainAbortController === abortController) chainAbortController = null;
-    meshingChain = false;
-    onChanged(snapshot());
-    return { count: next.size, rebuilt: jobs.length, reused, removed };
+    flushChainRenderChanges();meshingChain=chainJobs.size>0;
+    if([...desired].some(([id,item])=>chainDesired.get(id)?.fingerprint!==item.fingerprint))return {count:chainBuildings.size,stale:true};
+    if(jobs.length)onChanged(snapshot());
+    return {count:chainBuildings.size,rebuilt,reused,removed};
+  }
+  function markChainRenderChanged(immediate=false){
+    chainRenderDirty=true;
+    if(immediate){flushChainRenderChanges();return;}
+    if(chainRenderQueued)return;chainRenderQueued=true;scheduleNextRenderCommit(flushChainRenderChanges);
+  }
+  function flushChainRenderChanges(){
+    chainRenderQueued=false;if(!chainRenderDirty)return;chainRenderDirty=false;rebuildRenderChunkCache();onChanged(snapshot());
   }
 
   function renderChunks() {
@@ -478,6 +409,8 @@ export function createBuildingController({
     const centerX = Math.trunc(Number(centerChunkX) || 0);
     const centerZ = Math.trunc(Number(centerChunkZ) || 0);
     const radius = Math.max(0, Math.trunc(Number(radiusChunks) || 0));
+    const key=`${centerX},${centerZ}:${radius}:${renderGeometryRevision}`;
+    if(rangeCache?.key===key)return rangeCache.chunks;
     const result = [...unindexedRenderChunks];
     for (let chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ += 1) {
       for (let chunkX = centerX - radius; chunkX <= centerX + radius; chunkX += 1) {
@@ -485,6 +418,7 @@ export function createBuildingController({
         if (chunks) result.push(...chunks);
       }
     }
+    rangeCache={key,chunks:result};
     return result;
   }
 
@@ -515,6 +449,7 @@ export function createBuildingController({
   }
 
   function rebuildRenderChunkCache() {
+    renderGeometryRevision++;rangeCache=null;
     const result = [];
     for (const [foundationId, entry] of chainBuildings) {
       if (previewPlacement?.foundation?.id === foundationId) continue;
@@ -689,6 +624,7 @@ function chainBuildingFingerprint(record, foundation) {
     : String(record?.code || "");
   return JSON.stringify([
     foundationKey(record?.owner, record?.foundationId),
+    String(foundation?.programId || ""), String(record?.programId || ""),
     Math.max(0, Math.trunc(Number(record?.revision) || 0)),
     ((Math.trunc(Number(record?.quarterTurns) || 0) % 4) + 4) % 4,
     normalizeBuildingOffset(record?.offsetX),

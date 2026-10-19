@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
+import { createHash } from "node:crypto";
 
 import {
   decodeBuildSite,
   decodeFoundationChunk,
   deriveBuildingManifestPda,
+  deriveBuildingShardPda,
   deriveBuildSitePda,
   deriveFoundationChunkPda,
   deriveGlobalConfigPda,
@@ -15,6 +17,7 @@ import {
   fetchLandContractPortfolioOnChain,
   loadFoundationsForChunks,
   loadOwnedFoundations,
+  loadBuildingsForFoundations,
 } from "../../src/chain/nicechunkChain.js";
 
 test("FoundationChunk v3 decodes chunk-aligned records and rejects v2 state", () => {
@@ -246,11 +249,67 @@ test("view discovery resolves FoundationChunk indexes through BuildSite and Buil
   assert.equal(records.length, 1);
   assert.equal(records[0].foundationId, foundationId.toString());
   assert.equal(records[0].contentHash, contentHash.toString("hex"));
+  assert.equal(records[0].buildingQuarterTurns, 0);
+  assert.equal(records[0].buildingOffsetX, 0);
+  assert.equal(records[0].buildingOffsetZ, 0);
+  assert.equal(records[0].buildingManifestPda, manifestAddress.toBase58());
   assert.deepEqual(requests, [
     [chunkAddress.toBase58()],
     [siteAddress.toBase58()],
     [manifestAddress.toBase58()],
   ]);
+});
+
+test("an invalid manifest is isolated and its verified BuildSite revision remains known", async () => {
+  const owner = PublicKey.unique(), chunkProgram = new PublicKey("GnVKn442KDTDgCyjVG7SEtCQQLjaCiLvrEZDWSU13wbj");
+  const buildingProgram = new PublicKey("39UMTUWXQkuomkFNbDPF5NGZnJmG6pDkJHVSkZyqVwWx"), accounts = new Map();
+  for (const [index, foundationId] of [880n, 881n].entries()) {
+    accounts.set(deriveFoundationChunkPda(index, 0)[0].toBase58(), { owner: chunkProgram, data: foundationChunkData({ owner, foundationId, chunkX: index, chunkZ: 0 }) });
+    accounts.set(deriveBuildSitePda(foundationId)[0].toBase58(), { owner: buildingProgram, data: buildSiteData({ owner, foundationId, chunkX: index, chunkZ: 0, activeRevision: 1 }) });
+    accounts.set(deriveBuildingManifestPda(foundationId, 1)[0].toBase58(), { owner: index ? PublicKey.unique() : buildingProgram,
+      data: buildingManifestData({ owner, foundationId, contentHash: Buffer.from("73".repeat(32), "hex") }) });
+  }
+  const connection = { getMultipleAccountsInfo: async addresses => addresses.map(address => accounts.get(address.toBase58()) || null) };
+  const result = await loadFoundationsForChunks([{ chunkX: 0, chunkZ: 0 }, { chunkX: 1, chunkZ: 0 }], connection);
+  assert.equal(result.length, 2); assert.equal(result[0].contentHash, "73".repeat(32));
+  assert.equal(result[1].contentHash, undefined); assert.equal(result[1].buildingVerificationFailed, true);
+  assert.equal(result.observations.length, 2); assert.equal(result.observations[1].retryRequired, true);
+  assert.equal(result.issues.length, 1);
+});
+
+test("a malformed FoundationChunk cannot become a negative observation for its coordinate", async () => {
+  const owner = PublicKey.unique(), program = new PublicKey("GnVKn442KDTDgCyjVG7SEtCQQLjaCiLvrEZDWSU13wbj");
+  const bad = foundationChunkData({ owner, foundationId: 882n, chunkX: 0, chunkZ: 0 }); bad[0] = 0;
+  const connection = { getMultipleAccountsInfo: async addresses => addresses.map(address => address.equals(deriveFoundationChunkPda(0, 0)[0]) ? { owner: program, data: bad } : null) };
+  const result = await loadFoundationsForChunks([{ chunkX: 0, chunkZ: 0 }, { chunkX: 1, chunkZ: 0 }], connection);
+  assert.deepEqual(result.failedCoordinates, [{ chunkX: 0, chunkZ: 0 }]);
+  assert.deepEqual(result.observations.map(row => [row.chunkX, row.chunkZ, row.foundationIds]), [[1, 0, []]]);
+});
+
+test("the real building SDK delivers each hash-verified complete shard set before a blocked peer", async () => {
+  const owner = PublicKey.unique(), program = new PublicKey("39UMTUWXQkuomkFNbDPF5NGZnJmG6pDkJHVSkZyqVwWx");
+  const accounts = new Map(), descriptors = [], delivered = [], errors = []; let release;
+  const waiting = new Promise(resolve => { release = resolve; });
+  for (const [index, foundationId] of [890n, 891n, 892n].entries()) {
+    const payload = Buffer.from([index + 1]), hash = createHash("sha256").update(payload).digest();
+    accounts.set(deriveBuildingManifestPda(foundationId, 1)[0].toBase58(), { owner: program, data: buildingManifestData({ owner, foundationId, contentHash: hash }) });
+    const shard = Buffer.alloc(65); shard.write("NCKBDT02"); shard[8] = 2;
+    shard.writeUInt16LE(1, 12); shard.writeUInt16LE(1, 14); deriveGlobalConfigPda().toBuffer().copy(shard, 16);
+    shard.writeBigUInt64LE(foundationId, 48); shard.writeUInt32LE(1, 56); shard[64] = index === 2 ? 9 : payload[0];
+    accounts.set(deriveBuildingShardPda(foundationId, 1, 0)[0].toBase58(), { owner: program, data: shard });
+    descriptors.push({ id: `${owner}:${foundationId}`, owner: owner.toBase58(), foundationId: String(foundationId), activeRevision: 1, contentHash: hash.toString("hex"), programId: program.toBase58() });
+  }
+  const connection = { async getMultipleAccountsInfo(addresses) {
+    if (addresses.some(address => address.equals(deriveBuildingShardPda(891n, 1, 0)[0]))) await waiting;
+    return addresses.map(address => accounts.get(address.toBase58()) || null);
+  } };
+  const loading = loadBuildingsForFoundations(descriptors, { connection,
+    onBuilding: building => delivered.push(building), onError: (error, foundation) => errors.push({ error, foundation }),
+  });
+  for (let attempt = 0; attempt < 1000 && (!delivered.length || !errors.length); attempt++) await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(delivered.map(row => row.foundationId), ["890"]); assert.equal(errors[0].foundation.foundationId, "892");
+  assert.match(errors[0].error.message, /hash mismatch/); assert.equal(delivered[0].payloadBytes, 1);
+  release(); assert.equal((await loading).length, 2); assert.deepEqual(delivered.map(row => row.foundationId), ["890", "891"]);
 });
 
 function foundationChunkData({ owner, foundationId, chunkX, chunkZ }) {

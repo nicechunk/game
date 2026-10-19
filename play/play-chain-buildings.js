@@ -1,206 +1,183 @@
 import { loadPlayChainModule } from "./play-chain-adapter.js";
 import { createPlayBuildingCache } from "./play-building-cache.js";
+import { createStreamingWorkPool, mapStreaming, streamingContextKey } from "../src/chain/streamingWork.js";
 
-const BUILDING_REFRESH_MS = 60_000;
-const BUILDING_RETRY_MS = 5_000;
-const ZERO_BUILDING_HASH = "0".repeat(64);
-const DEFAULT_VIEW_DISTANCE_CHUNKS = 7;
-const DEFAULT_PRELOAD_MARGIN_CHUNKS = 2;
-const DEFAULT_CHUNK_SIZE = 16;
+const BUILDING_REFRESH_MS=60_000, BUILDING_RETRY_MS=5_000;
+const ZERO_BUILDING_HASH="0".repeat(64);
+const DEFAULT_VIEW_DISTANCE_CHUNKS=7, DEFAULT_PRELOAD_MARGIN_CHUNKS=2, DEFAULT_CHUNK_SIZE=16;
 
 export function createPlayChainBuildingSync({
-  cache = createPlayBuildingCache(),
-  getWalletAddress = () => "",
-  getFoundations = () => [],
-  getFoundationsNear = null,
-  getFoundationVersion = null,
-  getPlayerPosition = () => [0, 0, 0],
-  viewDistance = DEFAULT_VIEW_DISTANCE_CHUNKS,
-  getViewDistance = () => viewDistance,
-  preloadMargin = DEFAULT_PRELOAD_MARGIN_CHUNKS,
-  getPreloadMargin = () => preloadMargin,
-  chunkSize = DEFAULT_CHUNK_SIZE,
-  refreshFoundations = async () => ({ ok: false }),
-  loadChainModule = loadPlayChainModule,
-  applyBuildings = () => {},
-  onChanged = () => {},
-  onStatus = () => {},
-  translate = (_key, fallback) => fallback,
-} = {}) {
-  let loadingPromise = null;
-  let lastRefreshAt = 0;
-  let retryAfterAt = 0;
-  let refreshFailed = false;
-  let hasSuccessfulRefresh = false;
-  let lastFoundationKey = "";
-  let lastContextKey = "";
-  let lastAppliedBuildingKey = null;
-  let currentBuildings = [];
-  let refreshRequest = 0;
+  cache=createPlayBuildingCache(), getWalletAddress=()=>"", getAuthorityContext=null,
+  getFoundations=()=>[],getFoundationsNear=null,getFoundationVersion=null,
+  getPlayerPosition=()=>[0,0,0],viewDistance=DEFAULT_VIEW_DISTANCE_CHUNKS,getViewDistance=()=>viewDistance,
+  preloadMargin=DEFAULT_PRELOAD_MARGIN_CHUNKS,getPreloadMargin=()=>preloadMargin,chunkSize=DEFAULT_CHUNK_SIZE,
+  refreshFoundations=async()=>({ok:false}),loadChainModule=loadPlayChainModule,applyBuildings=()=>{},
+  onChanged=()=>{},onStatus=()=>{},translate=(_key,fallback)=>fallback,
+  autoApply=true,clock=()=>performance.now(),maxQueuedBuildings=512,maxRequestsPerRound=128,
+}={}) {
+  const ready=new Map(), queued=new Map(), desired=new Map(), pending=new Map(), rounds=new Map();
+  const disk=new Map(), diskPool=createStreamingWorkPool({concurrency:1,capacity:32});
+  let diskActive=false,diskFailures=0,diskWrites=0,diskRetryAt=0,applicationScheduled=false,applicationVersion=0;
+  let module=null,authorityKey=null,epoch=0,lastContextKey="",lastFoundationKey="",lastAppliedBuildingKey=null;
+  let lastRefreshAt=0,retryAfterAt=0,refreshFailed=false,hasSuccessfulRefresh=false,publishPending=false;
+  let desiredKey="", desiredList=[], cacheChecks=new WeakMap();
 
-  return {
-    refresh,
-    create,
-    updateForFrame,
-    snapshot: () => ({
-      loading: Boolean(loadingPromise),
-      lastRefreshAt,
-      retryAfterAt,
-      refreshFailed,
-      foundationKey: lastFoundationKey,
-      contextKey: lastContextKey,
-      buildings: currentBuildings.length,
-      mode: "on-chain-manifest-view-cache",
-    }),
-  };
-
-  function updateForFrame(now = performance.now()) {
-    if (now < retryAfterAt) return null;
-    const contextKey = currentContextKey();
-    if (hasSuccessfulRefresh && !refreshFailed
-      && contextKey === lastContextKey
-      && now - lastRefreshAt < BUILDING_REFRESH_MS) return null;
-    return refresh({ quiet: true, now });
+  function authorityContext(){return streamingContextKey([module?.getNicechunkDiscoveryContext?.()??"default",getAuthorityContext?.()??null,String(getWalletAddress()||"")]);}
+  function ensureContext(){
+    const key=authorityContext();if(key===authorityKey)return;
+    const hadScene=lastAppliedBuildingKey!==null;
+    authorityKey=key;epoch++;ready.clear();queued.clear();desired.clear();pending.clear();rounds.clear();disk.clear();
+    cacheChecks=new WeakMap();desiredKey="";lastAppliedBuildingKey=null;lastRefreshAt=0;retryAfterAt=0;hasSuccessfulRefresh=false;publishPending=hadScene;
   }
-
-  async function refresh({ force = false, quiet = true, now = performance.now() } = {}) {
-    if (loadingPromise) return loadingPromise;
-    const attemptAt = Number.isFinite(now) ? Number(now) : performance.now();
-    if (!force && attemptAt < retryAfterAt) {
-      return { ok: false, cached: true, retryAt: retryAfterAt, buildings: currentBuildings };
-    }
-    const contextKey = currentContextKey();
-    const foundations = foundationsForCurrentView();
-    const foundationKey = foundationsRevisionKey(foundations);
-    if (!force && hasSuccessfulRefresh && !refreshFailed
-      && contextKey === lastContextKey
-      && foundationKey === lastFoundationKey
-      && attemptAt - lastRefreshAt < BUILDING_REFRESH_MS) {
-      lastContextKey = contextKey;
-      return { ok: true, cached: true, buildings: currentBuildings };
-    }
-    const request = ++refreshRequest;
-    loadingPromise = performRefresh(foundations, { quiet, contextKey, request, attemptAt }).finally(() => {
-      loadingPromise = null;
-    });
-    return loadingPromise;
+  function reconcileDesired(){
+    ensureContext();const context=currentContextKey();
+    if(context===desiredKey)return;
+    desiredKey=context;desiredList=foundationsForCurrentView();desired.clear();
+    for(const foundation of desiredList)desired.set(foundationIdentity(foundation.owner,foundation.foundationId),{foundation,key:foundationRenderKey(foundation)});
+    for(const [id,item]of ready)if(desired.get(id)?.key!==item.key){ready.delete(id);publishPending=true;}
+    for(const [id,item]of queued)if(desired.get(id)?.key!==item.key)queued.delete(id);
+    if(publishPending)scheduleApplication();
   }
-
-  async function performRefresh(foundations, { quiet, contextKey, request, attemptAt }) {
+  function scheduleApplication(){
+    if(!autoApply||applicationScheduled)return;
+    applicationScheduled=true;
+    const schedule=globalThis.requestAnimationFrame||((callback)=>globalThis.setTimeout(callback,0));
+    schedule(()=>{applicationScheduled=false;applyQueuedBuildings();if(queued.size||publishPending)scheduleApplication();});
+  }
+  function applyQueuedBuildings({deadline=Infinity,budgetMs=1,maxBuildings=2}={}){
+    const start=performance.now(),end=Math.min(deadline,start+Math.max(0,Number(budgetMs)||0));
+    if(start>=end)return {appliedBuildings:0,pending:queued.size,elapsedMs:performance.now()-start,buildings:ready.size};
+    reconcileDesired();let applied=0;
+    for(const [id,item]of queued){
+      if(applied>=maxBuildings||performance.now()>=end)break;
+      queued.delete(id);
+      if(item.epoch!==epoch||desired.get(id)?.key!==item.key)continue;
+      ready.set(id,item);publishPending=true;applied++;
+    }
+    if(publishPending&&performance.now()<end){
+      const records=[...ready.values()].map(item=>item.building);
+      const key=buildingsRenderKey(records,desiredList);
+      publishPending=false;
+      if(key!==lastAppliedBuildingKey){
+        lastAppliedBuildingKey=key;
+        applicationVersion++;
+        try {Promise.resolve(applyBuildings(records)).catch(error=>{refreshFailed=true;retryAfterAt=clock()+BUILDING_RETRY_MS;onStatus(String(error?.message||error));});}
+        catch(error){refreshFailed=true;retryAfterAt=clock()+BUILDING_RETRY_MS;onStatus(String(error?.message||error));}
+        onChanged({foundations:desired.size,buildings:records.length,applied:true});
+      }
+    }
+    return {appliedBuildings:applied,pending:queued.size,elapsedMs:performance.now()-start,buildings:ready.size};
+  }
+  function enqueueBuilding(building,foundation,requestEpoch){
+    reconcileDesired();const id=foundationIdentity(foundation.owner,foundation.foundationId),key=foundationRenderKey(foundation);
+    if(requestEpoch!==epoch||desired.get(id)?.key!==key||!buildingMatchesFoundation(building,foundation))return false;
+    if(queued.size>=maxQueuedBuildings&&!queued.has(id))return false;
+    queued.set(id,{building,foundation,key,epoch:requestEpoch});scheduleApplication();return true;
+  }
+  async function verifyCache(building,foundation){
+    if(!building||typeof building!=="object"||!buildingMatchesFoundation(building,foundation))return false;
+    const key=foundationRenderKey(foundation),cached=cacheChecks.get(building);
+    if(cached?.key===key&&cached.code===building.code)return true;
+    if(!await cachedBuildingMatchesFoundation(building,foundation))return false;
+    cacheChecks.set(building,{key,code:building.code});return true;
+  }
+  function scheduleDisk(record,building){
+    const id=foundationIdentity(record.owner,record.foundationId);
+    if(disk.size>=128&&!disk.has(id))disk.delete(disk.keys().next().value);
+    disk.set(id,{record,building,epoch,attempts:0});void pumpDisk();
+  }
+  async function pumpDisk(){
+    if(diskActive||!disk.size||clock()<diskRetryAt)return;diskActive=true;
+    const entries=[...disk].slice(0,8);for(const [id]of entries)disk.delete(id);
+    const requestEpoch=epoch;
     try {
-      const cached = new Map();
-      const missing = [];
-      const cachedBuildings = typeof cache?.getBuildings === "function"
-        ? await cache.getBuildings(foundations)
-        : await Promise.all(foundations.map((foundation) => cache?.getBuilding?.(foundation)));
-      for (let index = 0; index < foundations.length; index += 1) {
-        const foundation = foundations[index];
-        const building = cachedBuildings[index];
-        if (building && await cachedBuildingMatchesFoundation(building, foundation)) {
-          cached.set(String(foundation.foundationId), building);
-        } else {
-          missing.push(foundation);
-        }
-      }
-      const loaded = new Map();
-      const verifiedForCache = [];
-      if (missing.length) {
-        const module = await loadChainModule();
-        if (typeof module.loadBuildingsForFoundations !== "function") {
-          throw new Error("Building PDA batch loader is unavailable.");
-        }
-        const chainBuildings = await module.loadBuildingsForFoundations(missing);
-        const foundationById = new Map(missing.map((foundation) => [String(foundation.foundationId), foundation]));
-        for (const building of chainBuildings ?? []) {
-          const foundation = foundationById.get(String(building?.foundationId));
-          if (!foundation || !buildingMatchesFoundation(building, foundation)) {
-            throw new Error(`Building ${building?.foundationId ?? "unknown"} failed on-chain manifest verification.`);
-          }
-          verifiedForCache.push({ record: foundation, building });
-          loaded.set(String(foundation.foundationId), building);
-        }
-        if (typeof cache?.putVerifiedBuildings === "function") {
-          await cache.putVerifiedBuildings(verifiedForCache);
-        } else {
-          await Promise.all(verifiedForCache.map(({ record, building }) => cache?.putVerifiedBuilding?.(record, building)));
-        }
-      }
-      const nextBuildings = foundations
-        .map((foundation) => cached.get(String(foundation.foundationId)) ?? loaded.get(String(foundation.foundationId)))
-        .filter(Boolean);
-      if (request !== refreshRequest || contextKey !== currentContextKey()) {
-        return { ok: true, stale: true, foundations, buildings: nextBuildings };
-      }
-      currentBuildings = nextBuildings;
-      const appliedBuildingKey = buildingsRenderKey(currentBuildings, foundations);
-      const applied = appliedBuildingKey !== lastAppliedBuildingKey;
-      if (applied) {
-        await Promise.resolve(applyBuildings(currentBuildings));
-        lastAppliedBuildingKey = appliedBuildingKey;
-      }
-      lastFoundationKey = foundationsRevisionKey(foundations);
-      lastContextKey = contextKey;
-      lastRefreshAt = attemptAt;
-      retryAfterAt = 0;
-      refreshFailed = false;
-      hasSuccessfulRefresh = true;
-      if (applied || loaded.size) {
-        onChanged({ foundations: foundations.length, buildings: currentBuildings.length, loaded: loaded.size, applied });
-      }
-      return { ok: true, foundations, buildings: currentBuildings, applied };
-    } catch (error) {
-      const reason = String(error?.message || error || "building-sync-failed");
-      retryAfterAt = Math.max(retryAfterAt, attemptAt + BUILDING_RETRY_MS);
-      refreshFailed = true;
-      if (!quiet) onStatus(text("main.land.buildingSyncFailed", "Building PDA sync failed: {reason}", { reason }));
-      console.warn("[NiceChunk Building Sync]", error);
-      return { ok: false, reason, error, retryAt: retryAfterAt, buildings: currentBuildings };
+      await diskPool.run(async()=>{
+        if(requestEpoch!==epoch)return;
+        const values=entries.map(([,entry])=>entry).filter(entry=>entry.epoch===requestEpoch);
+        if(typeof cache?.putVerifiedBuildings==="function")await cache.putVerifiedBuildings(values);
+        else for(const entry of values)await cache?.putVerifiedBuilding?.(entry.record,entry.building);
+        diskWrites+=values.length;
+      });
+    }catch{
+      diskFailures++;diskRetryAt=clock()+1000;
+      for(const [id,entry]of entries)if(entry.epoch===epoch&&entry.attempts<2&&!disk.has(id)&&disk.size<128)disk.set(id,{...entry,attempts:entry.attempts+1});
     }
+    finally{diskActive=false;if(disk.size)globalThis.setTimeout(()=>void pumpDisk(),Math.max(0,diskRetryAt-clock()));}
   }
-
-  function foundationsForCurrentView() {
-    const [worldX, , worldZ] = getPlayerPosition?.() ?? [0, 0, 0];
-    const centerX = finiteNumber(worldX);
-    const centerZ = finiteNumber(worldZ);
-    const radius = syncRadiusBlocks();
-    const candidates = typeof getFoundationsNear === "function"
-      ? getFoundationsNear(centerX, centerZ, radius)
-      : getFoundations();
-    return verifiedBuildingFoundations(candidates).filter((foundation) => foundationIntersectsView(
-      foundation,
-      centerX,
-      centerZ,
-      radius,
-    ));
+  function updateForFrame(now=clock()){
+    reconcileDesired();if(now<retryAfterAt)return null;
+    const missing=[...desired].some(([id,item])=>ready.get(id)?.key!==item.key&&!queued.has(id)&&!pending.has(`${epoch}:${item.key}`));
+    if(!missing&&hasSuccessfulRefresh&&!refreshFailed&&desiredKey===lastContextKey&&now-lastRefreshAt<BUILDING_REFRESH_MS)return null;
+    return refresh({quiet:true,now});
   }
-
-  function currentContextKey() {
-    const [worldX, , worldZ] = getPlayerPosition?.() ?? [0, 0, 0];
-    const size = normalizedChunkSize();
-    const centerChunkX = Math.floor(finiteNumber(worldX) / size);
-    const centerChunkZ = Math.floor(finiteNumber(worldZ) / size);
-    const version = typeof getFoundationVersion === "function"
-      ? String(getFoundationVersion() ?? 0)
-      : foundationsRevisionKey(getFoundations());
-    return `${version}:${centerChunkX},${centerChunkZ}:${normalizedViewDistance()}:${normalizedPreloadMargin()}`;
+  async function refresh({force=false,quiet=true,now=clock()}={}){
+    reconcileDesired();if(!force&&now<retryAfterAt)return{ok:false,cached:true,retryAt:retryAfterAt,buildings:currentBuildings()};
+    // Importing the SDK is independent of network hydration. Establish its
+    // authority namespace before any cached payload is allowed into the scene.
+    let moduleError=null;
+    try{module=await loadChainModule();}catch(error){moduleError=error;}
+    reconcileDesired();
+    const initialContext=desiredKey;
+    if(!force&&rounds.has(initialContext))return rounds.get(initialContext);
+    const foundations=desiredList;
+    if(!force&&hasSuccessfulRefresh&&!refreshFailed&&initialContext===lastContextKey&&now-lastRefreshAt<BUILDING_REFRESH_MS
+      && foundations.every(f=>ready.has(foundationIdentity(f.owner,f.foundationId))||queued.has(foundationIdentity(f.owner,f.foundationId))))return{ok:true,cached:true,buildings:currentBuildings()};
+    const requestEpoch=epoch,startClock=clock(),appliedBefore=applicationVersion;let failures=0,loaded=0;
+    const needed=foundations.filter(f=>force||refreshFailed||ready.get(foundationIdentity(f.owner,f.foundationId))?.key!==foundationRenderKey(f))
+      .filter(f=>!pending.has(`${requestEpoch}:${foundationRenderKey(f)}`)).slice(0,maxRequestsPerRound);
+    const tokens=new Map();
+    for(const foundation of needed){const key=`${requestEpoch}:${foundationRenderKey(foundation)}`;const token={};tokens.set(key,token);pending.set(key,token);}
+    const work=(async()=>{
+      const missing=[];
+      await mapStreaming(needed,async(foundation)=>{
+        try{
+          const building=typeof cache?.getBuilding==="function"?await cache.getBuilding(foundation):(await cache?.getBuildings?.([foundation]))?.[0];
+          if(await verifyCache(building,foundation))enqueueBuilding(building,foundation,requestEpoch);
+          else missing.push(foundation);
+        }catch{missing.push(foundation);}
+      },4);
+      if(missing.length){
+        try{
+          if(!module)throw moduleError||Error("Building chain module is unavailable.");
+          // Loading the module may reveal an authority namespace not known at construction.
+          const context=authorityContext();
+          if(authorityKey!==context){ensureContext();reconcileDesired();return {ok:true,stale:true,buildings:currentBuildings()};}
+          if(typeof module.loadBuildingsForFoundations!=="function")throw Error("Building PDA batch loader is unavailable.");
+          const delivered=new Set();
+          const accept=(building,foundation)=>{
+            const descriptor=foundation||missing.find(f=>String(f.foundationId)===String(building?.foundationId)&&String(f.owner)===String(building?.owner));
+            if(!descriptor||!buildingMatchesFoundation(building,descriptor)){failures++;return;}
+            const id=foundationIdentity(building.owner,building.foundationId);
+            if(delivered.has(id))return;delivered.add(id);
+            if(enqueueBuilding(building,descriptor,requestEpoch)){loaded++;scheduleDisk(descriptor,building);}
+          };
+          const records=await module.loadBuildingsForFoundations(missing,{onBuilding:accept,onError:()=>{failures++;}});
+          for(const building of records||[])accept(building);
+        }catch(error){failures++;if(!quiet)onStatus(text("main.land.buildingSyncFailed","Building PDA sync failed: {reason}",{reason:String(error?.message||error)}));}
+      }
+      reconcileDesired();
+      if(requestEpoch!==epoch)return {ok:true,stale:true,buildings:currentBuildings()};
+      lastContextKey=initialContext;lastFoundationKey=foundationsRevisionKey(foundations);
+      lastRefreshAt=now+Math.max(0,clock()-startClock);retryAfterAt=failures?lastRefreshAt+BUILDING_RETRY_MS:0;
+      refreshFailed=failures>0;hasSuccessfulRefresh=true;
+      if(autoApply)applyQueuedBuildings({budgetMs:2,maxBuildings:2});
+      return{ok:!failures,partial:failures>0&&ready.size>0,stale:initialContext!==desiredKey,foundations,buildings:currentBuildings(),loaded,applied:applicationVersion!==appliedBefore};
+    })().finally(()=>{
+      for(const [key,token]of tokens)if(pending.get(key)===token)pending.delete(key);
+      if(rounds.get(initialContext)===work)rounds.delete(initialContext);
+    });
+    rounds.set(initialContext,work);return work;
   }
-
-  function syncRadiusBlocks() {
-    return (normalizedViewDistance() + normalizedPreloadMargin() + 1) * normalizedChunkSize();
-  }
-
-  function normalizedViewDistance() {
-    return Math.max(1, Math.trunc(Number(getViewDistance?.()) || DEFAULT_VIEW_DISTANCE_CHUNKS));
-  }
-
-  function normalizedPreloadMargin() {
-    return Math.max(0, Math.trunc(Number(getPreloadMargin?.()) || 0));
-  }
-
-  function normalizedChunkSize() {
-    return Math.max(1, Math.trunc(Number(chunkSize) || DEFAULT_CHUNK_SIZE));
-  }
-
+  function currentBuildings(){return [...ready.values()].map(item=>item.building);}
+  function foundationsForCurrentView(){const [x,,z]=getPlayerPosition?.()??[0,0,0],radius=syncRadiusBlocks();const candidates=getFoundationsNear?getFoundationsNear(finiteNumber(x),finiteNumber(z),radius):getFoundations();return verifiedBuildingFoundations(candidates).filter(f=>foundationIntersectsView(f,finiteNumber(x),finiteNumber(z),radius));}
+  function currentContextKey(){const [x,,z]=getPlayerPosition?.()??[0,0,0];const version=getFoundationVersion?String(getFoundationVersion()??0):foundationsRevisionKey(getFoundations());return `${version}:${Math.floor(finiteNumber(x)/normalizedChunkSize())},${Math.floor(finiteNumber(z)/normalizedChunkSize())}:${normalizedViewDistance()}:${normalizedPreloadMargin()}`;}
+  function syncRadiusBlocks(){return(normalizedViewDistance()+normalizedPreloadMargin()+1)*normalizedChunkSize();}
+  function normalizedViewDistance(){return Math.max(1,Math.trunc(Number(getViewDistance?.())||DEFAULT_VIEW_DISTANCE_CHUNKS));}
+  function normalizedPreloadMargin(){return Math.max(0,Math.trunc(Number(getPreloadMargin?.())||0));}
+  function normalizedChunkSize(){return Math.max(1,Math.trunc(Number(chunkSize)||DEFAULT_CHUNK_SIZE));}
+  function snapshot(){reconcileDesired();return{loading:rounds.size>0,lastRefreshAt,retryAfterAt,refreshFailed,foundationKey:lastFoundationKey,contextKey:lastContextKey,buildings:ready.size,pendingBuildings:queued.size,pendingReads:pending.size,authorityEpoch:epoch,diskQueued:disk.size,diskActive,diskWrites,diskFailures,mode:"on-chain-manifest-view-cache"};}
+  function text(key,fallback,params={}){const value=translate?.(key,fallback,params);return typeof value==="string"&&value!==key?value:fallback.replace(/\{(\w+)\}/g,(_,name)=>String(params[name]??""));}
+  return{refresh,create,updateForFrame,applyQueuedBuildings,snapshot};
   async function create(payload) {
     if (!getWalletAddress()) return { submitted: false, reason: "wallet-unavailable" };
     const foundation = (getFoundations() ?? []).find((candidate) => String(candidate?.foundationId) === String(payload?.foundationId));
@@ -232,12 +209,6 @@ export function createPlayChainBuildingSync({
     return { ...result, building: { ...building, revision, contentHash }, indexedOnChain: true };
   }
 
-  function text(key, fallback, params = {}) {
-    const value = translate?.(key, fallback, params);
-    return typeof value === "string" && value !== key
-      ? value
-      : fallback.replace(/\{(\w+)\}/g, (_match, name) => String(params[name] ?? ""));
-  }
 }
 
 export function buildingMatchesFoundation(building, foundation) {
@@ -245,6 +216,12 @@ export function buildingMatchesFoundation(building, foundation) {
   const expectedHash = String(foundation?.contentHash || "").trim().toLowerCase();
   return String(building?.foundationId) === String(foundation?.foundationId)
     && String(building?.owner || "") === String(foundation?.owner || "")
+    && (!foundation?.programId || String(building?.programId || "") === String(foundation.programId))
+    && (!foundation?.globalConfig || String(building?.globalConfig || "") === String(foundation.globalConfig))
+    && (!foundation?.buildingManifestPda || String(building?.manifestPda || "") === String(foundation.buildingManifestPda))
+    && (foundation?.buildingQuarterTurns == null || Number(building?.quarterTurns ?? 0) === foundation.buildingQuarterTurns)
+    && (foundation?.buildingOffsetX == null || Number(building?.offsetX ?? 0) === foundation.buildingOffsetX)
+    && (foundation?.buildingOffsetZ == null || Number(building?.offsetZ ?? 0) === foundation.buildingOffsetZ)
     && Number(building?.revision) === Number(foundation?.activeRevision)
     && /^[0-9a-f]{64}$/.test(fullHash)
     && /^[0-9a-f]{64}$/.test(expectedHash)
@@ -267,8 +244,8 @@ function verifiedBuildingFoundations(foundations = []) {
   for (const foundation of foundations ?? []) {
     const revision = Math.max(0, Math.trunc(Number(foundation?.activeRevision) || 0));
     const hash = String(foundation?.contentHash || "").trim().toLowerCase();
-    if (!foundation?.foundationId || !revision || !/^[0-9a-f]{64}$/.test(hash) || hash === ZERO_BUILDING_HASH) continue;
-    unique.set(String(foundation.foundationId), { ...foundation, activeRevision: revision, contentHash: hash });
+    if (!foundation?.foundationId || !foundation?.owner || foundation.status && foundation.status!=="active" || foundation.hasActiveGeometry===false || !revision || !/^[0-9a-f]{64}$/.test(hash) || hash === ZERO_BUILDING_HASH) continue;
+    unique.set(foundationIdentity(foundation.owner,foundation.foundationId), { ...foundation, activeRevision: revision, contentHash: hash });
   }
   return [...unique.values()];
 }
@@ -299,6 +276,12 @@ function buildingsRenderKey(buildings = [], foundations = []) {
 function foundationRenderKey(foundation) {
   return [
     foundationIdentity(foundation?.owner, foundation?.foundationId),
+    String(foundation?.programId || ""),
+    String(foundation?.globalConfig || ""),
+    foundation?.buildingQuarterTurns ?? "",
+    foundation?.buildingOffsetX ?? "",
+    foundation?.buildingOffsetZ ?? "",
+    String(foundation?.buildingManifestPda || ""),
     Math.trunc(Number(foundation?.minX) || 0),
     Math.trunc(Number(foundation?.minZ) || 0),
     Math.trunc(Number(foundation?.surfaceY) || 0),

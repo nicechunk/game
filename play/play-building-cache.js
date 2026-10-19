@@ -1,7 +1,7 @@
 const DB_NAME = "nicechunk-building-cache";
 const DB_VERSION = 3;
 const BUILDING_STORE = "buildings";
-const CACHE_SCHEMA = "chain-land-v5";
+const CACHE_SCHEMA = "chain-land-v6";
 const memoryBuildings = new Map();
 let databasePromise = null;
 
@@ -86,6 +86,7 @@ function normalizeRecord(record = {}) {
   const depth = requireU32(record.depth, "depth");
   return {
     foundationId: requireU64String(record.foundationId, "foundationId"),
+    owner: String(record.owner || ""), programId: String(record.programId || ""), globalConfig: String(record.globalConfig || ""),
     minX,
     minZ,
     maxX: minX + width - 1,
@@ -112,13 +113,15 @@ function normalizeBuilding(building = {}, record) {
     offsetZ: requireI32(building.offsetZ ?? 0, "offsetZ"),
     code: String(building.code || ""),
     manifestPda: String(building.manifestPda || ""),
+    programId: String(building.programId || ""),
+    globalConfig: String(building.globalConfig || ""),
     updatedSlot: String(building.updatedSlot || "0"),
     contentHash: normalizeBuildingHash(building.contentHash || record.contentHash),
   };
 }
 
 function buildingCacheKey(scope, record) {
-  return `${scope}:building:${record.foundationId}:${record.activeRevision}:${record.contentHash}`;
+  return `${scope}:building:${record.programId}:${record.globalConfig}:${record.owner}:${record.foundationId}:${record.activeRevision}:${record.contentHash}`;
 }
 
 function normalizeBuildingHash(value) {

@@ -25,6 +25,7 @@ export async function fetchChunkAccountBatch({ rpcUrl, pubkeys, requestId, timeo
     });
     if (!response.ok) return { ok: false, error: `RPC HTTP ${response.status}`, infos: [] };
     const payload = await response.json();
+    const observedAt = Date.now();
     if (payload?.error) return { ok: false, error: readableError(payload.error?.message || payload.error), infos: [] };
     const values = payload?.result?.value;
     if (!Array.isArray(values) || values.length !== pubkeys.length) {
@@ -34,6 +35,7 @@ export async function fetchChunkAccountBatch({ rpcUrl, pubkeys, requestId, timeo
       ok: true,
       contextSlot: optionalContextSlot(payload?.result?.context?.slot),
       readStartedAt,
+      observedAt,
       commitment: "finalized",
       infos: values.map(decodeAccountInfo),
     };

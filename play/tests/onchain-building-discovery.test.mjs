@@ -8,12 +8,14 @@ import {
   createPlayChainBuildingSync,
 } from "../play-chain-buildings.js";
 import { createPlayChainFoundationSync } from "../play-chain-foundations.js";
+import { createFoundationSpatialIndex } from "../foundation-spatial-index.js";
 
 test("foundation discovery reads the complete view ring from on-chain chunk indexes", async () => {
   let indexed = [];
   let queried = [];
   const land = foundation({ foundationId: "7", activeRevision: 0, contentHash: undefined });
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub((records) => { indexed = records; }),
     getPlayerPosition: () => [0, 0, 0],
     viewDistance: 1,
@@ -30,8 +32,9 @@ test("foundation discovery reads the complete view ring from on-chain chunk inde
   const result = await sync.refresh({ force: true, now: 1_000 });
   assert.equal(result.ok, true);
   assert.equal(result.scannedChunks, 25);
-  assert.deepEqual(queried[0], { chunkX: -2, chunkZ: -2 });
-  assert.deepEqual(queried.at(-1), { chunkX: 2, chunkZ: 2 });
+  assert.deepEqual(queried[0], { chunkX: 0, chunkZ: 0 }, "the nearest unseen coordinate is queried first");
+  assert.equal(new Set(queried.map(row => `${row.chunkX},${row.chunkZ}`)).size, 25);
+  assert.ok(queried.every(row => Math.abs(row.chunkX) <= 2 && Math.abs(row.chunkZ) <= 2));
   assert.deepEqual(indexed.map((record) => record.foundationId), ["7"]);
   assert.equal(sync.snapshot().mode, "on-chain-chunk-index");
 });
@@ -40,6 +43,7 @@ test("foundation discovery refreshes on Chunk crossings but not steady frames", 
   let player = [1, 0, 1];
   let loads = 0;
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub(),
     getPlayerPosition: () => player,
     viewDistance: 1,
@@ -67,6 +71,7 @@ test("nearby manifest hashes override hashless owner scans for the same land", a
   const owned = { ...nearby };
   delete owned.contentHash;
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub((records) => { indexed = records; }),
     getWalletAddress: () => "owner",
     loadChainModule: async () => ({
@@ -91,6 +96,7 @@ test("owned indexing contracts remain queryable without entering the active spat
     activeRevision: 0,
   });
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub((records) => { indexed = records; }),
     getWalletAddress: () => "owner",
     loadChainModule: async () => ({
@@ -110,6 +116,7 @@ test("a transient FoundationChunk failure retains the last verified land set", a
   let fail = false;
   let indexed = [];
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub((records) => { indexed = records; }),
     loadChainModule: async () => ({
       loadFoundationsForChunks: async () => {
@@ -138,6 +145,7 @@ test("a transient FoundationChunk failure retains the last verified land set", a
 test("land creation needs no Guardian coverage or building announcement", async () => {
   let indexed = [];
   const sync = createPlayChainFoundationSync({
+    clock: () => 0,
     index: spatialIndexStub((records) => { indexed = records; }),
     getWalletAddress: () => "owner",
     loadChainModule: async () => ({
@@ -188,6 +196,23 @@ test("persistent building cache bytes are rehashed against the on-chain manifest
   }, land), false);
 });
 
+test("discovery manifest placement and authority metadata survive the spatial index and bind disk cache hits", async () => {
+  const payload = Buffer.from("placement-bound-cache"), hash = createHash("sha256").update(payload).digest("hex");
+  const descriptor = foundation({ foundationId: "123", contentHash: hash, programId: "program-a", globalConfig: "global-a",
+    buildingManifestPda: "manifest-a", buildingQuarterTurns: 2, buildingOffsetX: -3, buildingOffsetZ: 5 });
+  const index = createFoundationSpatialIndex(); index.replace([descriptor]);
+  const indexed = index.list()[0], version = index.version();
+  const building = chainBuilding({ foundationId: "123", contentHash: hash, programId: "program-a", globalConfig: "global-a",
+    manifestPda: "manifest-a", quarterTurns: 2, offsetX: -3, offsetZ: 5, code: `NCM3:${payload.toString("base64url")}` });
+  assert.equal(await cachedBuildingMatchesFoundation(building, indexed), true);
+  for (const change of [{ programId: "program-b" }, { globalConfig: "global-b" }, { manifestPda: "manifest-b" },
+    { quarterTurns: 1 }, { offsetX: -2 }, { offsetZ: 6 }]) {
+    assert.equal(await cachedBuildingMatchesFoundation({ ...building, ...change }, indexed), false);
+  }
+  index.replace([{ ...descriptor, buildingOffsetX: 7 }]);
+  assert.equal(index.version(), version + 1); assert.equal(index.list()[0].buildingOffsetX, 7);
+});
+
 test("building refresh reuses a byte-verified cache and reapplies moved land", async () => {
   const payload = Buffer.from("cached-building");
   const hash = createHash("sha256").update(payload).digest("hex");
@@ -199,6 +224,7 @@ test("building refresh reuses a byte-verified cache and reapplies moved land", a
   });
   const applied = [];
   const sync = createPlayChainBuildingSync({
+    clock: () => 0,
     cache: { getBuildings: async () => [building] },
     getFoundations: () => [land],
     getFoundationsNear: () => [land],
@@ -212,7 +238,8 @@ test("building refresh reuses a byte-verified cache and reapplies moved land", a
   assert.equal((await sync.refresh({ force: true, now: 1_001 })).applied, false);
   land = { ...land, minX: 32, maxX: 47 };
   assert.equal((await sync.refresh({ force: true, now: 1_002 })).applied, true);
-  assert.equal(applied.length, 2);
+  assert.equal(applied.filter(records => records.length).length, 2);
+  assert.deepEqual(applied[1], [], "known obsolete placement is removed before its replacement");
   assert.equal(sync.snapshot().mode, "on-chain-manifest-view-cache");
 });
 
@@ -228,6 +255,7 @@ test("tampered building cache falls back to chain PDA loading", async () => {
   let loads = 0;
   let writes = 0;
   const sync = createPlayChainBuildingSync({
+    clock: () => 0,
     cache: {
       getBuildings: async () => [{ ...valid, code: "NCM3:CQkJ" }],
       putVerifiedBuildings: async () => { writes += 1; },
@@ -256,6 +284,7 @@ test("building sync hydrates only land intersecting the preload ring", async () 
   let player = [0, 0, 0];
   const loads = [];
   const sync = createPlayChainBuildingSync({
+    clock: () => 0,
     cache: { getBuildings: async (records) => records.map(() => null), putVerifiedBuildings: async () => [] },
     getFoundations: () => [near, far],
     getFoundationsNear: (worldX, worldZ, radius) => [near, far].filter((record) => (
@@ -288,6 +317,7 @@ test("building finalization succeeds independently of Guardian availability", as
   const land = foundation({ foundationId: "17", contentHash: "50".repeat(32) });
   let foundationRefreshes = 0;
   const sync = createPlayChainBuildingSync({
+    clock: () => 0,
     cache: null,
     getWalletAddress: () => "owner",
     getFoundations: () => [land],
@@ -332,6 +362,7 @@ test("building sync backs off after RPC failure and retains the verified render 
   console.warn = () => {};
   try {
     const sync = createPlayChainBuildingSync({
+    clock: () => 0,
       cache: { getBuildings: async () => [cacheMiss ? null : building] },
       getFoundations: () => [land],
       getFoundationsNear: () => [land],
@@ -384,6 +415,7 @@ function foundation({
   status = "active",
   accountVersion = 3,
   hasActiveGeometry = true,
+  ...extra
 } = {}) {
   return {
     id: `${owner}:${foundationId}`,
@@ -402,6 +434,7 @@ function foundation({
     status,
     accountVersion,
     hasActiveGeometry,
+    ...extra,
   };
 }
 
@@ -411,6 +444,7 @@ function chainBuilding({
   revision = 1,
   contentHash = "ab".repeat(32),
   code = "NCM3:AQ",
+  ...extra
 } = {}) {
   return {
     id: `${owner}:${foundationId}:building:${revision}`,
@@ -422,5 +456,6 @@ function chainBuilding({
     offsetZ: 0,
     contentHash,
     code,
+    ...extra,
   };
 }

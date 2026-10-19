@@ -1,3 +1,5 @@
+import { decodeChunkAccountBatch } from "./play-chain-chunk-codec.js";
+import { canonicalChunkWorkSnapshot } from "./play-chain-chunk-canonical.js";
 import { createChunkPdaDeriver } from "./play-solana-pda-lite.js";
 
 const pdaCache = new Map();
@@ -31,11 +33,21 @@ self.onmessage = async (event) => {
             await deriveCachedPda("placed", derivers.placed, chunk.chunkX, chunk.chunkZ),
           ]);
         }
-        return fetchChunkAccountBatch({ rpcUrl: task.rpcUrl, pubkeys: pubkeyPairs.flat(), requestId: task.taskId * 100 + batchIndex, timeoutMs: task.timeoutMs, minContextSlot: task.minContextSlot, signal });
+        const result = await fetchChunkAccountBatch({ rpcUrl: task.rpcUrl, pubkeys: pubkeyPairs.flat(), requestId: task.taskId * 100 + batchIndex, timeoutMs: task.timeoutMs, minContextSlot: task.minContextSlot, signal });
+        if (result.ok && !signal.aborted) {
+          result.decoded = await decodeChunkAccountBatch(batch, result.infos, {
+            chunkSize: task.chunkSize || 16, minY: task.minY, contextSlot: result.contextSlot,
+            expectedOwner: task.pdaConfig.programId, globalConfig: task.pdaConfig.globalConfig,
+            signal, compact: true,
+          });
+          result.decodeWork = canonicalChunkWorkSnapshot();
+          delete result.infos;
+        }
+        return result;
       },
       onResult: (result, batchIndex) => {
         const transfer = [];
-        for (const info of result.infos ?? []) if (info?.data?.buffer) transfer.push(info.data.buffer);
+        for (const record of result.decoded?.snapshots ?? []) transfer.push(record.packedDeltas.buffer);
         self.postMessage({ type: "chunkPdaBatchFetched", taskId: task.taskId, syncEpoch: task.syncEpoch, batchIndex, result }, transfer);
       },
     });

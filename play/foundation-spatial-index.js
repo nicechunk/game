@@ -203,6 +203,11 @@ function normalizeFoundation(input = {}, chunkSize) {
     contentHash: normalizeContentHash(input.contentHash),
     sourcePda: String(input.sourcePda || input.address || ""),
     programId: String(input.programId || ""),
+    globalConfig: String(input.globalConfig || ""),
+    buildingQuarterTurns: optionalInteger(input.buildingQuarterTurns, 0, 3),
+    buildingOffsetX: optionalInteger(input.buildingOffsetX, -0x80000000, 0x7fffffff),
+    buildingOffsetZ: optionalInteger(input.buildingOffsetZ, -0x80000000, 0x7fffffff),
+    buildingManifestPda: String(input.buildingManifestPda || ""),
     hasActiveGeometry: input.hasActiveGeometry !== false,
     createdSlot: String(input.createdSlot || "0"),
     updatedSlot: String(input.updatedSlot || ""),
@@ -236,6 +241,11 @@ function foundationFingerprint(record) {
     record.contentHash,
     record.sourcePda,
     record.programId,
+    record.globalConfig,
+    record.buildingQuarterTurns,
+    record.buildingOffsetX,
+    record.buildingOffsetZ,
+    record.buildingManifestPda,
     record.hasActiveGeometry ? 1 : 0,
     record.createdSlot,
     record.updatedSlot,
@@ -323,4 +333,8 @@ function normalizeFoundationId(value) {
   } catch {
     return "0";
   }
+}
+
+function optionalInteger(value, min, max) {
+  return Number.isInteger(value) && value >= min && value <= max ? value : null;
 }

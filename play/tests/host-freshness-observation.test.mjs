@@ -27,9 +27,9 @@ for (const transport of ["main", "worker"]) {
     data[4] = 1;
     new DataView(data.buffer).setUint16(8, 1, true);
     new DataView(data.buffer).setInt16(10, -32, true);
-    const delayDecode = (info) => {
-      const bytes = info.data;
-      Object.defineProperty(info, "data", {
+    const delayDecode = (info, field = "data") => {
+      const bytes = info[field];
+      Object.defineProperty(info, field, {
         get() {
           time += decodeClockAdvance;
           decodeClockAdvance = 0;
@@ -68,7 +68,7 @@ for (const transport of ["main", "worker"]) {
             workerInstances.push(this.worker);
             this.worker.on("message", (message) => {
               if (message.type === "test-ready") return;
-              if (message.type === "chunkPdaBatchFetched" && message.result.ok) delayDecode(message.result.infos[0]);
+              if (message.type === "chunkPdaBatchFetched" && message.result.ok) delayDecode(message.result.decoded.snapshots[0], "packedDeltas");
               this.onmessage?.({ data: message });
             });
             this.worker.on("error", (error) => this.onerror?.({ message: error.message, preventDefault() {} }));
@@ -105,22 +105,23 @@ for (const transport of ["main", "worker"]) {
       assert.equal(sync.snapshot().verifiedChunks, 1);
       assert.equal(reads, 1);
 
-      time = 15_999;
+      // Leave a scheduling margin around the wall-clock network observation.
+      time = 14_900;
       await sync.syncLoadedChunks();
       assert.equal(reads, 1, "fresh observations should not cause extra reads before the 15s TTL");
-      time = 16_000;
+      time = 17_000;
       decodeClockAdvance = 10_000;
       const unchanged = await sync.syncLoadedChunks();
       assert.equal(unchanged.transport, transport);
-      assert.equal(reads, 2, "a 15s-old successful RPC must refresh even when its decode completed 10s later");
-      assert.equal(time, 26_000);
+      assert.equal(reads, 2, "an expired successful RPC must refresh even when its decode completed 10s later");
+      assert.equal(time, 27_000);
       assert.equal(sync.snapshot().unchangedSnapshots, 1, "the second slow decode must exercise canonical acknowledgement, not a new commit");
       assert.equal(sync.snapshot().pendingSnapshots, 0);
 
-      time = 30_999;
+      time = 30_900;
       await sync.syncLoadedChunks();
       assert.equal(reads, 2);
-      time = 31_000;
+      time = 33_000;
       await sync.syncLoadedChunks();
       assert.equal(reads, 3, "slow unchanged acknowledgements must use the same observation-based TTL");
       assert.equal(sync.snapshot().unchangedSnapshots, 2);

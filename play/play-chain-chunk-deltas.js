@@ -1,4 +1,6 @@
-import { BLOCK_ID, chunkId, worldToChunk } from "/chunk.js/play.js";
+import { chunkId, worldToChunk } from "/chunk.js/play.js";
+import { decodeChunkAccountBatch, validateDecodedChunkAccountBatch } from "./play-chain-chunk-codec.js";
+import { canonicalChunkWorkSnapshot } from "./play-chain-chunk-canonical.js";
 import { fetchChunkAccountBatch } from "./play-chain-rpc-batch.js";
 import { runChunkBatchPool, optionalContextSlot, pushChunkSnapshotHeap, popChunkSnapshotHeap, rebuildChunkSnapshotHeap, yieldChunkSyncTask } from "./play-chain-batch-scheduler.js";
 import { loadPlayChainModule } from "./play-chain-adapter.js";
@@ -25,21 +27,11 @@ const DEFAULT_APPLY_MAX_DELTAS = 256;
 const ASYNC_STEP_BUDGET_MS = 2.0;
 const SNAPSHOT_CACHE_LIMIT = 2048;
 const SNAPSHOT_CACHE_DELTA_LIMIT = 131_072;
-const CHUNK_BROKEN_MAX_CAPACITY = 2048;
 export const CHAIN_CHUNK_PDA_READ_STORAGE_KEY = "nicechunk.chainChunkPdaRead";
 export const DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT = Object.freeze({
   cluster: "devnet",
   programId: "GnVKn442KDTDgCyjVG7SEtCQQLjaCiLvrEZDWSU13wbj",
 });
-const CHUNK_BROKEN_MAGIC = "NCBK";
-const CHUNK_BROKEN_VERSION = 1;
-const CHUNK_BROKEN_HEADER_LENGTH = 16;
-const CHUNK_BROKEN_RECORD_LENGTH = 3;
-const CHUNK_PLACED_MAX_CAPACITY = 2048;
-const CHUNK_PLACED_MAGIC = "NCPB";
-const CHUNK_PLACED_VERSION = 1;
-const CHUNK_PLACED_HEADER_LENGTH = 16;
-const CHUNK_PLACED_RECORD_LENGTH = 9;
 const PERSISTENT_WRITE_DELAY_MS = 40;
 
 export function createPlayChainChunkDeltaSync({
@@ -166,6 +158,7 @@ export function createPlayChainChunkDeltaSync({
       staleWorkerMessages: state.staleWorkerMessages,
       maxApplySliceMs: state.maxApplySliceMs,
       preparedEntries: state.preparedEntries,
+      canonicalWork: canonicalChunkWorkSnapshot(),
       maxConcurrentRequests: RPC_BATCH_CONCURRENCY,
       maxBatchesPerSync: MAX_RPC_BATCHES_PER_SYNC,
       preparationEntriesPerBatchStep: 64,
@@ -341,7 +334,7 @@ export function createPlayChainChunkDeltaSync({
     let failedBatchCount = 0;
     let firstBatchError = "";
     let minimumContextSlot = null;
-    let expectedOwner = "";
+    let expectedOwner = "", expectedGlobalConfig = "";
     let observedContextSlot = null;
     try {
       const module = await loadChainModule();
@@ -370,6 +363,7 @@ export function createPlayChainChunkDeltaSync({
       if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
       minimumContextSlot = state.lastRpcContextSlot;
       expectedOwner = String(module.getChunkBrokenPdaDerivationConfig?.()?.programId || "");
+      expectedGlobalConfig = String(module.getChunkBrokenPdaDerivationConfig?.()?.globalConfig || "");
       observedContextSlot = minimumContextSlot;
 
       const batches = chunkArray(targets, chunkBatchSize);
@@ -386,7 +380,8 @@ export function createPlayChainChunkDeltaSync({
           firstBatchError ||= readableError(batchResult?.error || "chunk PDA batch failed");
           return;
         }
-        await consumeDecodedBatch(batches[batchIndex], batchResult.infos, batchResult.contextSlot, batchResult);
+        try { await consumeDecodedBatch(batches[batchIndex], batchResult.infos, batchResult.contextSlot, batchResult); }
+        catch (error) { consumed.delete(batchIndex); throw error; }
       };
       const usedWorker = await fetchBatchesViaWorker(batches, connection, module, minimumContextSlot, consume, syncEpoch).catch(() => false);
       if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
@@ -475,20 +470,22 @@ export function createPlayChainChunkDeltaSync({
     async function consumeDecodedBatch(batch, infos, contextSlot = null, metadata = {}) {
       // Account bytes were observed successfully before this yielding CPU work.
       // Decode/canonicalization must not extend their network freshness.
-      const verifiedAt = now();
+      const verifiedAt = Number.isFinite(metadata.observedAt)
+        ? Math.max(0, now() - Math.max(0, Date.now() - metadata.observedAt)) : now();
       const slot = optionalContextSlot(contextSlot);
       if (minimumContextSlot !== null && (slot === null || slot < minimumContextSlot)) {
         failedBatchCount += 1;
         firstBatchError ||= `RPC context slot ${slot || "missing"} is older than ${minimumContextSlot}`;
         return true;
       }
-      const decodedBatch = await decodeBatchSnapshots(batch, infos, chunks.chunkSize || 16, chunks.minY, {
-        contextSlot: slot,
-        expectedOwner,
-      });
+      const decodeOptions = { chunkSize: chunks.chunkSize || 16, minY: chunks.minY,
+        contextSlot: slot, expectedOwner, globalConfig: expectedGlobalConfig, signal: controller.signal };
+      const decodedBatch = metadata.decoded
+        ? await validateDecodedChunkAccountBatch(batch, metadata.decoded, decodeOptions)
+        : await decodeChunkAccountBatch(batch, infos, decodeOptions);
       if (syncEpoch !== state.syncEpoch) return false;
       for (const decodedSnapshot of decodedBatch.snapshots) {
-        const snapshot = { ...await canonicalizeChunkSnapshotAsync(decodedSnapshot, { chunkSize: chunks.chunkSize || 16 }), canonicalPrepared: true, source: "rpc", snapshotCommitment: metadata.commitment || "finalized", readStartedAt: metadata.readStartedAt ?? verifiedAt, verifiedAt, syncEpoch };
+        const snapshot = { ...decodedSnapshot, source: "rpc", snapshotCommitment: metadata.commitment || "finalized", readStartedAt: metadata.readStartedAt ?? verifiedAt, verifiedAt, syncEpoch };
         const requested = batch.find((target) => target.id === snapshot.id);
         if (requested?.instance && requested.instance !== chunks?.chunks?.get?.(snapshot.id)) continue;
         const loaded = chunks?.chunks?.get?.(snapshot.id);
@@ -663,9 +660,13 @@ export function createPlayChainChunkDeltaSync({
     pushChunkSnapshotHeap(state.pendingSnapshots[snapshot.serviceTier], snapshot);
   }
 
-  function applyQueuedDeltas({ budgetMs = DEFAULT_APPLY_BUDGET_MS, maxDeltas = DEFAULT_APPLY_MAX_DELTAS, maxPreparationEntries = null } = {}) {
+  function applyQueuedDeltas({ budgetMs = DEFAULT_APPLY_BUDGET_MS, maxDeltas = DEFAULT_APPLY_MAX_DELTAS, maxPreparationEntries = null, deadline = Infinity } = {}) {
     const startedAt = performance.now();
-    const budget = Math.max(0.1, Number(budgetMs) || DEFAULT_APPLY_BUDGET_MS);
+    const requestedBudget = Number.isFinite(Number(budgetMs)) ? Math.max(0, Number(budgetMs)) : DEFAULT_APPLY_BUDGET_MS;
+    const budget = Math.min(requestedBudget, deadline - startedAt);
+    if (budget <= 0) return { applied: 0, appliedSnapshots: 0, changedChunks: 0, staleSnapshots: 0,
+      laggingSnapshots: 0, preparedEntries: 0, pending: state.pendingDeltaCount,
+      pendingSnapshots: pendingSnapshotCount(), elapsedMs: performance.now() - startedAt };
     const limit = Math.max(1, Math.trunc(Number(maxDeltas) || DEFAULT_APPLY_MAX_DELTAS));
     const preparationLimit = Math.max(64, Math.trunc(Number(maxPreparationEntries) || limit * 32));
     let applied = 0, appliedSnapshots = 0, changedChunks = 0, staleSnapshots = 0, laggingSnapshots = 0, preparedEntries = 0;
@@ -839,7 +840,7 @@ export function createPlayChainChunkDeltaSync({
       const loaded = chunks?.chunks?.get?.(cachedSnapshot.id);
       const canonical = await canonicalizeChunkSnapshotAsync(cachedSnapshot, { chunkSize: chunks.chunkSize || 16 });
       if (syncEpoch !== state.syncEpoch) return;
-      const snapshot = { ...canonical, canonicalPrepared: true, token: state.snapshotSerial++, source: "persistent", syncEpoch, instance: loaded, verifiedAt: null, expectedChainRevision: loaded?.chainRevision ?? 0 };
+      const snapshot = { ...canonical, token: state.snapshotSerial++, source: "persistent", syncEpoch, instance: loaded, verifiedAt: null, expectedChainRevision: loaded?.chainRevision ?? 0 };
       storeSnapshotCache(snapshot, { needsRefresh: true });
       queueChainSnapshot(snapshot, { updateCache: false });
       state.syncedChunkIds.delete(snapshot.id);
@@ -878,19 +879,13 @@ export function createPlayChainChunkDeltaSync({
   }
 
   function canonicalizeSnapshot(snapshot) {
-    if (snapshot.canonicalPrepared) return {
-      id: snapshot.id, chunkX: snapshot.chunkX, chunkZ: snapshot.chunkZ,
-      chunkSize: snapshot.chunkSize, contextSlot: snapshot.contextSlot,
-      packedDeltas: snapshot.packedDeltas, fingerprint: snapshot.fingerprint,
-      deltas: snapshot.deltas, canonicalPrepared: true,
-    };
-    return { ...canonicalizeChunkSnapshot(snapshot, { chunkSize: chunks?.chunkSize || 16 }), canonicalPrepared: true };
+    return canonicalizeChunkSnapshot(snapshot, { chunkSize: chunks?.chunkSize || 16 });
   }
 
   function queuePersistentWrite(snapshot) {
     if (!snapshot?.id || !state.persistentCacheScope) return;
     const canonical = canonicalizeSnapshot(snapshot);
-    state.persistentWriteById.set(canonical.id, canonical);
+    state.persistentWriteById.set(canonical.id, { ...canonical, verifiedAt: snapshot.verifiedAt });
     if (state.persistentWriteTimer) return;
     state.persistentWriteTimer = setTimeout(flushPersistentWrites, PERSISTENT_WRITE_DELAY_MS);
   }
@@ -919,7 +914,7 @@ export function createPlayChainChunkDeltaSync({
       const timer = setTimeout(() => disableRpcWorker(new Error("chunk PDA RPC worker timed out")), RPC_WORKER_TASK_TIMEOUT_MS * Math.ceil(batches.length / RPC_BATCH_CONCURRENCY));
       state.rpcWorkerRequests.set(taskId, { resolve, reject, timer, onBatch, syncEpoch, pending: new Set() });
       try {
-        worker.postMessage({ type: "fetchChunkPdas", taskId, syncEpoch, concurrency: RPC_BATCH_CONCURRENCY, pdaConfig, rpcUrl, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot, batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))) });
+        worker.postMessage({ type: "fetchChunkPdas", taskId, syncEpoch, concurrency: RPC_BATCH_CONCURRENCY, pdaConfig, rpcUrl, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot, chunkSize: chunks.chunkSize || 16, minY: chunks.minY, batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))) });
       } catch (error) { disableRpcWorker(error); }
     });
   }
@@ -1035,67 +1030,6 @@ async function derivePubkeysForBatch(batch, deriveChunkBrokenPda, deriveChunkPla
   return pubkeys;
 }
 
-async function decodeBatchSnapshots(batch, infos, chunkSize, expectedMinY, { contextSlot = 0, expectedOwner = "" } = {}) {
-  if (!Array.isArray(infos) || infos.length !== batch.length * 2) {
-    throw new Error("Chunk PDA account batch length does not match the requested broken/placed pairs.");
-  }
-  const snapshots = [];
-  const errors = [];
-  let stepStartedAt = performance.now();
-  for (let index = 0; index < batch.length; index += 1) {
-    const chunk = batch[index];
-    const brokenAccount = infos[index * 2];
-    const placedAccount = infos[index * 2 + 1];
-    try {
-      validateChunkPdaAccount(brokenAccount, expectedOwner, "ChunkBroken");
-      validateChunkPdaAccount(placedAccount, expectedOwner, "ChunkPlaced");
-      const brokenDeltas = brokenAccount?.data?.length
-        ? decodeChunkBrokenDeltas(brokenAccount.data, chunk.chunkX, chunk.chunkZ, chunkSize, expectedMinY)
-        : [];
-      const placedDeltas = placedAccount?.data?.length
-        ? decodeChunkPlacedDeltas(placedAccount.data, chunk.chunkX, chunk.chunkZ, chunkSize, expectedMinY)
-        : [];
-      snapshots.push({
-        id: chunk.id ?? chunkId(chunk.chunkX, chunk.chunkZ),
-        chunkX: chunk.chunkX,
-        chunkZ: chunk.chunkZ,
-        expectedChainRevision: chunk.expectedChainRevision,
-        contextSlot: optionalContextSlot(contextSlot),
-        deltas: mergeChunkPdaDeltas(brokenDeltas, placedDeltas),
-      });
-    } catch (error) {
-      errors.push({
-        id: chunk.id ?? chunkId(chunk.chunkX, chunk.chunkZ),
-        error: readableError(error),
-      });
-    }
-    if (performance.now() - stepStartedAt >= ASYNC_STEP_BUDGET_MS) {
-      await yieldToFrame();
-      stepStartedAt = performance.now();
-    }
-  }
-  return { snapshots, errors };
-}
-
-function validateChunkPdaAccount(account, expectedOwner, label) {
-  if (!account) return;
-  if (expectedOwner && accountOwnerAddress(account) !== expectedOwner) {
-    throw new Error(`${label} account owner does not match the active chunk program.`);
-  }
-  if (account.executable) throw new Error(`${label} account cannot be executable.`);
-}
-
-function mergeChunkPdaDeltas(brokenDeltas, placedDeltas) {
-  const byCoordinate = new Map();
-  for (const delta of brokenDeltas ?? []) {
-    byCoordinate.set(`${delta.worldX}:${delta.worldY}:${delta.worldZ}`, delta);
-  }
-  for (const delta of placedDeltas ?? []) {
-    byCoordinate.set(`${delta.worldX}:${delta.worldY}:${delta.worldZ}`, delta);
-  }
-  return [...byCoordinate.values()];
-}
-
 async function fetchMultipleAccountsWithContext(connection, pubkeys, minContextSlot = 0) {
   if (typeof connection?.getMultipleAccountsInfoAndContext === "function") {
     const config = { commitment: "finalized" };
@@ -1106,95 +1040,12 @@ async function fetchMultipleAccountsWithContext(connection, pubkeys, minContextS
     return {
       infos: Array.isArray(response?.value) ? response.value : [],
       contextSlot: optionalContextSlot(response?.context?.slot),
-      readStartedAt, commitment: "finalized",
+      readStartedAt, observedAt: Date.now(), commitment: "finalized",
     };
   }
   const readStartedAt = Date.now();
   const infos = await connection.getMultipleAccountsInfo(pubkeys, "finalized");
-  return { infos, contextSlot: null, readStartedAt, commitment: "finalized" };
-}
-
-function accountOwnerAddress(account) {
-  return String(account?.owner?.toBase58?.() ?? account?.owner ?? "");
-}
-
-function decodeChunkBrokenDeltas(data, chunkX, chunkZ, chunkSize = 16, expectedMinY = null) {
-  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  if (bytes.length < CHUNK_BROKEN_HEADER_LENGTH) throw new Error("Invalid ChunkBroken account header length.");
-  if (ascii(bytes, 0, 4) !== CHUNK_BROKEN_MAGIC) throw new Error("Invalid ChunkBroken account magic.");
-  if (bytes[4] !== CHUNK_BROKEN_VERSION) throw new Error("Invalid ChunkBroken account version.");
-  const count = readUint16LE(bytes, 6);
-  const capacity = readUint16LE(bytes, 8);
-  const minY = readInt16LE(bytes, 10);
-  if (Number.isFinite(Number(expectedMinY)) && minY !== Math.trunc(Number(expectedMinY))) throw new Error("ChunkBroken minY does not match the active world.");
-  if (capacity < 1 || count > capacity || capacity > CHUNK_BROKEN_MAX_CAPACITY || bytes.length !== CHUNK_BROKEN_HEADER_LENGTH + capacity * CHUNK_BROKEN_RECORD_LENGTH) {
-    throw new Error("Invalid ChunkBroken account size or capacity.");
-  }
-
-  const deltas = [];
-  const coordinates = new Set();
-  for (let index = 0; index < count; index += 1) {
-    const offset = CHUNK_BROKEN_HEADER_LENGTH + index * CHUNK_BROKEN_RECORD_LENGTH;
-    const packed = readUint24LE(bytes, offset);
-    if (coordinates.has(packed)) throw new Error("Duplicate ChunkBroken coordinate.");
-    coordinates.add(packed);
-    const localX = packed & 0x0f;
-    const localZ = (packed >> 4) & 0x0f;
-    const yOffset = (packed >> 8) & 0x01ff;
-    if (localX >= chunkSize || localZ >= chunkSize) throw new Error("ChunkBroken coordinate exceeds chunk bounds.");
-    deltas.push({
-      worldX: chunkX * chunkSize + localX,
-      worldY: minY + yOffset,
-      worldZ: chunkZ * chunkSize + localZ,
-      blockId: BLOCK_ID.air,
-      action: 1,
-      sequence: index + 1,
-    });
-  }
-  return deltas;
-}
-
-function decodeChunkPlacedDeltas(data, chunkX, chunkZ, chunkSize = 16, expectedMinY = null) {
-  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  if (bytes.length < CHUNK_PLACED_HEADER_LENGTH) throw new Error("Invalid ChunkPlaced account header length.");
-  if (ascii(bytes, 0, 4) !== CHUNK_PLACED_MAGIC) throw new Error("Invalid ChunkPlaced account magic.");
-  if (bytes[4] !== CHUNK_PLACED_VERSION) throw new Error("Invalid ChunkPlaced account version.");
-  const count = readUint16LE(bytes, 6);
-  const capacity = readUint16LE(bytes, 8);
-  const minY = readInt16LE(bytes, 10);
-  if (Number.isFinite(Number(expectedMinY)) && minY !== Math.trunc(Number(expectedMinY))) {
-    throw new Error("ChunkPlaced minY does not match the active world.");
-  }
-  if (capacity < 1 || count > capacity || capacity > CHUNK_PLACED_MAX_CAPACITY
-    || bytes.length !== CHUNK_PLACED_HEADER_LENGTH + capacity * CHUNK_PLACED_RECORD_LENGTH) {
-    throw new Error("Invalid ChunkPlaced account size or capacity.");
-  }
-
-  const deltas = [];
-  const coordinates = new Set();
-  for (let index = 0; index < count; index += 1) {
-    const offset = CHUNK_PLACED_HEADER_LENGTH + index * CHUNK_PLACED_RECORD_LENGTH;
-    const packed = readUint24LE(bytes, offset);
-    const blockId = readUint16LE(bytes, offset + 3);
-    const volumeMm3 = readUint32LE(bytes, offset + 5);
-    if (coordinates.has(packed)) throw new Error("Duplicate ChunkPlaced coordinate.");
-    if (blockId === BLOCK_ID.air || volumeMm3 === 0) throw new Error("Invalid ChunkPlaced record.");
-    coordinates.add(packed);
-    const localX = packed & 0x0f;
-    const localZ = (packed >> 4) & 0x0f;
-    const yOffset = (packed >> 8) & 0x01ff;
-    if (localX >= chunkSize || localZ >= chunkSize) throw new Error("ChunkPlaced coordinate exceeds chunk bounds.");
-    deltas.push({
-      worldX: chunkX * chunkSize + localX,
-      worldY: minY + yOffset,
-      worldZ: chunkZ * chunkSize + localZ,
-      blockId,
-      volumeMm3,
-      action: 2,
-      sequence: index + 1,
-    });
-  }
-  return deltas;
+  return { infos, contextSlot: null, readStartedAt, observedAt: Date.now(), commitment: "finalized" };
 }
 
 function chunkPriority(chunk, manager) {
@@ -1208,34 +1059,6 @@ function chunkArray(items, size) {
   const batches = [];
   for (let index = 0; index < items.length; index += step) batches.push(items.slice(index, index + step));
   return batches;
-}
-
-function ascii(bytes, offset, length) {
-  let text = "";
-  for (let index = 0; index < length; index += 1) text += String.fromCharCode(bytes[offset + index] || 0);
-  return text;
-}
-
-function readUint16LE(bytes, offset) {
-  return (bytes[offset] || 0) | ((bytes[offset + 1] || 0) << 8);
-}
-
-function readInt16LE(bytes, offset) {
-  const value = readUint16LE(bytes, offset);
-  return value & 0x8000 ? value - 0x10000 : value;
-}
-
-function readUint24LE(bytes, offset) {
-  return (bytes[offset] || 0) | ((bytes[offset + 1] || 0) << 8) | ((bytes[offset + 2] || 0) << 16);
-}
-
-function readUint32LE(bytes, offset) {
-  return (
-    (bytes[offset] || 0)
-    | ((bytes[offset + 1] || 0) << 8)
-    | ((bytes[offset + 2] || 0) << 16)
-    | ((bytes[offset + 3] || 0) << 24)
-  ) >>> 0;
 }
 
 function defer(task) {
