@@ -7,6 +7,7 @@ const PLAYER_POSITION_MIN_DISTANCE_SQ = PLAYER_POSITION_MIN_DISTANCE_BLOCKS * PL
 const PLAYER_POSITION_SAVE_REASON_RESOURCE_MINE = "resource-mine-confirm";
 
 export function createPlayChainPlayerSync({
+  loadChainModule = loadPlayChainModule,
   getWalletAddress = () => "",
   getGameState = () => null,
   refreshBackpack = () => Promise.resolve(null),
@@ -36,6 +37,7 @@ export function createPlayChainPlayerSync({
     progress: null,
     skillXp: null,
     skillLevels: null,
+    lastDurabilityReadSlot: 0,
     nameMutation: {
       saving: false,
       lastAttemptAt: 0,
@@ -81,6 +83,7 @@ export function createPlayChainPlayerSync({
   };
   const pendingEquipmentChanges = new Map();
   let equipmentFlushScheduled = false;
+  let miningSnapshotRevision = 0;
 
   return {
     refresh,
@@ -89,6 +92,7 @@ export function createPlayChainPlayerSync({
     requestPositionSave,
     queueEquipmentChanges,
     applyEquipmentSnapshot,
+    applyMiningResult,
     snapshot,
     displayIdentity,
   };
@@ -137,15 +141,20 @@ export function createPlayChainPlayerSync({
     if (!force && state.owner === wallet && now - state.lastSyncAt < PLAYER_SYNC_INTERVAL_MS) return { ok: false, reason: "cooldown" };
 
     state.loading = true;
+    if (state.owner !== wallet) state.lastDurabilityReadSlot = 0;
     state.owner = wallet;
+    const requestRevision = miningSnapshotRevision;
     try {
-      const module = await loadPlayChainModule();
+      const module = await loadChainModule();
       const [profileResult, equipmentResult, appearanceResult, progressResult] = await Promise.allSettled([
         typeof module.fetchPlayerProfileForOwner === "function" ? module.fetchPlayerProfileForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerEquipmentForOwner === "function" ? module.fetchPlayerEquipmentForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerAppearanceForOwner === "function" ? module.fetchPlayerAppearanceForOwner(wallet) : Promise.resolve(null),
         typeof module.fetchPlayerProgress === "function" ? module.fetchPlayerProgress(wallet) : Promise.resolve(null),
       ]);
+      if (requestRevision !== miningSnapshotRevision || String(getWalletAddress() || "").trim() !== wallet) {
+        return { ok: false, reason: "superseded-player-snapshot" };
+      }
       const nextProfile = settledValue(profileResult);
       const nextEquipment = settledValue(equipmentResult);
       const nextAppearance = settledValue(appearanceResult);
@@ -196,6 +205,8 @@ export function createPlayChainPlayerSync({
   }
 
   function clearState(reason = "") {
+    miningSnapshotRevision += 1;
+    state.lastDurabilityReadSlot = 0;
     const hadData = Boolean(state.owner || state.profile || state.equipment || state.appearance || state.progress || state.skillXp || state.skillLevels || state.lastError);
     state.owner = "";
     state.profile = null;
@@ -246,7 +257,7 @@ export function createPlayChainPlayerSync({
     mutation.lastPlayerName = normalized;
     onChanged(snapshot());
     try {
-      const module = await loadPlayChainModule();
+      const module = await loadChainModule();
       if (typeof module.upsertPlayerProfileName !== "function") {
         mutation.lastError = "upsert-profile-unavailable";
         return { ok: false, reason: mutation.lastError };
@@ -334,7 +345,7 @@ export function createPlayChainPlayerSync({
     mutation.lastModelCode = normalizedCode;
     onChanged(snapshot());
     try {
-      const module = await loadPlayChainModule();
+      const module = await loadChainModule();
       if (typeof module.createPlayerAppearanceOnChain !== "function") {
         mutation.lastError = "appearance-save-unavailable";
         return { ok: false, reason: mutation.lastError };
@@ -437,7 +448,7 @@ export function createPlayChainPlayerSync({
     sync.lastReason = saveReason;
     sync.lastError = "";
     try {
-      const module = await loadPlayChainModule();
+      const module = await loadChainModule();
       if (typeof module.updatePlayerPositionOnChain !== "function") {
         sync.lastError = "update-position-unavailable";
         return { ok: false, reason: sync.lastError };
@@ -505,6 +516,41 @@ export function createPlayChainPlayerSync({
       ?? { changed: false, reason: "game-state-unavailable" };
   }
 
+  function applyMiningResult(result) {
+    const wallet = String(getWalletAddress() || "").trim();
+    const receipt = result?.miningDurability;
+    if (!wallet || result?.miningDurabilityOwner !== wallet || receipt?.kind !== "equipment" || !receipt.itemPda) return { changed: false };
+    const readSlot = Number(result.miningDurabilityReadSlot);
+    if (!Number.isSafeInteger(readSlot) || readSlot < state.lastDurabilityReadSlot
+        || (readSlot === state.lastDurabilityReadSlot && !result.playerProfileAfter && !result.playerEquipmentAfter)) {
+      return { changed: false, reason: "stale-mining-snapshot" };
+    }
+    state.owner = wallet;
+    state.lastDurabilityReadSlot = readSlot;
+    miningSnapshotRevision += 1;
+    if (result.playerProfileAfter?.owner === wallet) state.profile = result.playerProfileAfter;
+    if (result.playerEquipmentAfter?.owner === wallet) {
+      state.equipment = result.playerEquipmentAfter;
+      state.equipmentReadKnown = true;
+    }
+    applyEquipmentSnapshot();
+    // A later account snapshot can include another completed mine. Prefer it
+    // over an older per-transaction receipt; never subtract damage locally.
+    const equipped = result.playerEquipmentAfter?.slots?.find((entry) => (
+      entry.slot === receipt.equipmentSlot && entry.backpackSlot?.itemPda === receipt.itemPda
+    ))?.backpackSlot;
+    const authoritativeDurability = equipped;
+    getGameState()?.applyAuthoritativeMiningDurability?.({
+      ...receipt,
+      ...(authoritativeDurability ? {
+        durabilityCurrent: authoritativeDurability.durabilityCurrent,
+        durabilityMax: authoritativeDurability.durabilityMax,
+      } : {}),
+    });
+    onChanged(snapshot());
+    return { changed: true };
+  }
+
   function queueEquipmentChanges(mutation = {}) {
     const wallet = String(getWalletAddress() || "").trim();
     if (!wallet || (mutation.ownerAddress && mutation.ownerAddress !== wallet)) {
@@ -553,7 +599,7 @@ export function createPlayChainPlayerSync({
     mutation.lastError = "";
     onChanged(snapshot());
     try {
-      const module = await loadPlayChainModule();
+      const module = await loadChainModule();
       if (typeof module.setPlayerEquipmentSlotsOnChain !== "function") {
         throw new Error("equipment-save-unavailable");
       }
@@ -585,7 +631,7 @@ export function createPlayChainPlayerSync({
       appendEvent(failure);
       onStatus(failure);
       try {
-        const module = await loadPlayChainModule();
+        const module = await loadChainModule();
         const [equipment] = await Promise.all([
           typeof module.fetchPlayerEquipmentForOwner === "function"
             ? module.fetchPlayerEquipmentForOwner(String(getWalletAddress() || ""))

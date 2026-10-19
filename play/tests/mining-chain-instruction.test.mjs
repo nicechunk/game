@@ -27,6 +27,7 @@ function miningAccounts() {
     authority: Keypair.generate().publicKey,
     owner: Keypair.generate().publicKey,
     backpack: Keypair.generate().publicKey,
+    miningTool: { kind: "equipment", equipmentSlot: 2, itemPda: Keypair.generate().publicKey },
     actionId: 0x0102_0304_0506_0708n,
   };
 }
@@ -34,7 +35,7 @@ function miningAccounts() {
 function assertRewardMiningTail(instruction, backpack, owner) {
   const [materialPhysics] = deriveMaterialPhysicsPda();
   const [playerSkills] = derivePlayerSkillsPda(owner);
-  assert.equal(instruction.keys.length, 14);
+  assert.equal(instruction.keys.length, 16);
   assert.equal(instruction.keys[10].pubkey.toBase58(), backpack.toBase58());
   assert.equal(instruction.keys[11].pubkey.toBase58(), materialPhysics.toBase58());
   assert.equal(instruction.keys[11].isWritable, false);
@@ -97,7 +98,7 @@ test("browser tree mining pairs every writable ChunkBroken PDA with its readonly
   assert.equal(instruction.data.readInt16LE(13), 80);
   assert.equal(instruction.data.readInt32LE(15), 1);
   assert.equal(instruction.data.readUInt16LE(19), 22);
-  assert.equal(instruction.keys.length, 12);
+  assert.equal(instruction.keys.length, 14);
   assert.equal(instruction.keys[6].pubkey.toBase58(), accounts.backpack.toBase58());
   assert.equal(instruction.keys[7].pubkey.toBase58(), materialPhysics.toBase58());
   assert.equal(instruction.keys[8].pubkey.toBase58(), SystemProgram.programId.toBase58());
@@ -122,7 +123,7 @@ test("tree mining de-duplicates Chunk pairs without changing first-seen order", 
     chunks,
   });
 
-  assert.equal(instruction.keys.length, 14);
+  assert.equal(instruction.keys.length, 16);
   assert.equal(instruction.keys[10].pubkey.toBase58(), deriveChunkBrokenPda(-1, 2)[0].toBase58());
   assert.equal(instruction.keys[11].pubkey.toBase58(), deriveFoundationChunkPda(-1, 2)[0].toBase58());
   assert.equal(instruction.keys[12].pubkey.toBase58(), deriveChunkBrokenPda(0, 2)[0].toBase58());
@@ -142,7 +143,7 @@ test("a 640-block eight-type range plus skill sync fits one Solana packet", () =
     ...accounts,
     range,
   });
-  assert.equal(rangeInstruction.data.length, 1 + 8 + 15 + 80 + 1 + 8 + 240);
+  assert.equal(rangeInstruction.data.length, 1 + 8 + 15 + 80 + 1 + 8 + 240 + 1);
   const baselineInstruction = createSyncPlayerSkillsInstruction({
     payer: accounts.authority,
     owner: accounts.owner,
@@ -209,9 +210,9 @@ test("a cross-chunk support collapse compiles as one Solana transaction", () => 
     mode: range.mode,
   }));
   assert.deepEqual(instructions.map((instruction) => instruction.data.readUInt8(9)), [2, 3, 3]);
-  assert.deepEqual(instructions.map((instruction) => instruction.keys.length), [14, 15, 15]);
+  assert.deepEqual(instructions.map((instruction) => instruction.keys.length), [14, 13, 13]);
   assert.ok(instructions.slice(1).every((instruction) => (
-    instruction.keys[14].pubkey.equals(SYSVAR_INSTRUCTIONS_PUBKEY)
+    instruction.keys[12].pubkey.equals(SYSVAR_INSTRUCTIONS_PUBKEY)
   )));
   assert.deepEqual(instructions.slice(1).map((instruction) => ({
     x: instruction.data.readInt32LE(instruction.data.length - 10),

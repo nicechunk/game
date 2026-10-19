@@ -1220,6 +1220,7 @@ async function boot() {
       });
     },
     onConfirm: (pending) => {
+      chainPlayer?.applyMiningResult?.(pending.chainResult);
       forgetMiningHit(pending);
       effects?.emitConfirmedBlockFracture?.(pending);
       guardian?.sendConfirmedMine(pending);

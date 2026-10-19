@@ -68,6 +68,12 @@ export function createMiningController({
       return null;
     }
 
+    const miningTool = miningToolReference(selectedTool.slot);
+    if (!miningTool) {
+      onStatus("Equip an on-chain mining tool before mining.");
+      return null;
+    }
+
     const targetSelection = selectMiningTarget(rayHit);
     if (!targetSelection.hit?.hit) {
       return null;
@@ -103,6 +109,7 @@ export function createMiningController({
       resourceId,
       blockName: def.name,
       selectedToolIndex: selectedTool.index,
+      miningTool,
       requiredDamage: miningPlan.requiredDamage,
       miningPlan,
       previousToolBoxes: null,
@@ -126,6 +133,13 @@ export function createMiningController({
       const reason = typeof miningPermission === "string" ? miningPermission : "no-backpack";
       onStatus("Mining is locked until you create a backpack.");
       onMiningBlocked({ reason });
+      return null;
+    }
+
+    const selectedTool = gameState.getSelectedToolSlot();
+    const miningTool = miningToolReference(selectedTool?.slot);
+    if (!miningTool) {
+      onStatus("Equip an on-chain mining tool before mining.");
       return null;
     }
 
@@ -162,6 +176,8 @@ export function createMiningController({
       blockId: first.blockId,
       resourceId: first.resourceId || def.resourceId,
       miningKind: "debug-bulk",
+      miningTool,
+      toolSlotIndex: selectedTool.index,
       batchAuthorization: "debug",
       lossyRewards: true,
       storedRewardCount: null,
@@ -176,7 +192,6 @@ export function createMiningController({
         worldZ: block.worldZ,
         blockId: blockAirId,
       })),
-      toolDamageBySlot: [],
       requiredDamage: 0,
       gatheringYieldBps: 0,
       resourceVolumeMilliLiters: 0,
@@ -351,17 +366,13 @@ export function createMiningController({
     const key = damageKey(hit);
     const now = performance.now();
     prunePartialDamage(now, key);
-    const damageState = partialDamageState(key, now);
+    const tool = miningToolReference(selectedTool);
+    if (JSON.stringify(tool) !== JSON.stringify(swing.miningTool)) return null;
+    const damageState = partialDamageState(key, now, JSON.stringify(tool));
     const nextDamage = damageState.damage + 1;
     const requiredDamage = Math.max(1, swing.requiredDamage || requiredDamageForBlock(hit.blockId, def));
     damageState.damage = nextDamage;
     damageState.lastTouchedAt = now;
-    damageState.toolDamageBySlot.set(
-      swing.selectedToolIndex,
-      (damageState.toolDamageBySlot.get(swing.selectedToolIndex) ?? 0) + 1,
-    );
-    selectedTool.durability = Math.max(0, Math.trunc(selectedTool.durability || 0) - 1);
-    gameState.saveHotbarSlots();
     const damageInfo = {
       hit: cloneHit(hit),
       blockName: def.name,
@@ -390,18 +401,6 @@ export function createMiningController({
       volumeMilliLiters,
     });
 
-    const toolDamageBySlot = Array.from(damageState.toolDamageBySlot, ([slotIndex, amount]) => ({
-      slotIndex,
-      amount,
-    }));
-    const chainToolDamage = toolDamageBySlot.flatMap(({ slotIndex, amount }) => {
-      const tool = gameState.hotbarSlots[slotIndex];
-      return tool?.itemId === "forged_item"
-        && tool.custodySource === "equipment"
-        && Number.isInteger(tool.equipmentSlot)
-        ? [{ equipmentSlot: tool.equipmentSlot, amount }]
-        : [];
-    });
     blockDamage.delete(key);
     const pendingDeltas = planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
     const pending = {
@@ -419,9 +418,7 @@ export function createMiningController({
       rewardGroups: rewardGroups.map((group) => ({ ...group })),
       pendingDeltas,
       toolSlotIndex: swing.selectedToolIndex,
-      toolDamage: nextDamage,
-      toolDamageBySlot,
-      chainToolDamage,
+      miningTool: { ...swing.miningTool },
       requiredDamage,
       gatheringYieldBps: yieldBps,
       resourceVolumeMilliLiters: volumeMilliLiters,
@@ -482,14 +479,6 @@ export function createMiningController({
       onStatus("No pending delta to rollback.");
       return null;
     }
-    const damageEntries = Array.isArray(pending.toolDamageBySlot) && pending.toolDamageBySlot.length
-      ? pending.toolDamageBySlot
-      : Number.isInteger(pending.toolSlotIndex) && Number(pending.toolDamage) > 0
-        ? [{ slotIndex: pending.toolSlotIndex, amount: pending.toolDamage }]
-        : [];
-    for (const entry of damageEntries) {
-      gameState.restoreToolDamage(entry.slotIndex, entry.amount);
-    }
     gameState.playerProfile.rolledBackMines += 1;
     gameState.playerProfile.minedBlocks = Math.max(0, gameState.playerProfile.minedBlocks - Math.max(1, Math.trunc(pending.minedBlockCount || 1)));
     gameState.savePlayerProfile();
@@ -545,13 +534,13 @@ export function createMiningController({
     return Math.max(1, Math.trunc(defaultRequiredDamage));
   }
 
-  function partialDamageState(key, now) {
+  function partialDamageState(key, now, toolKey) {
     const existing = blockDamage.get(key);
-    if (existing) return existing;
+    if (existing?.toolKey === toolKey) return existing;
     const state = {
       damage: 0,
       lastTouchedAt: now,
-      toolDamageBySlot: new Map(),
+      toolKey,
     };
     blockDamage.set(key, state);
     return state;
@@ -733,3 +722,11 @@ function clamp(value, min, max) {
 
 const scratchTargetBox = {};
 const scratchCollisionResult = {};
+
+function miningToolReference(slot) {
+  if (slot?.itemId === "forged_item" && slot.custodySource === "equipment"
+      && Number.isInteger(slot.equipmentSlot) && slot.equipmentSlot >= 0 && slot.equipmentSlot < 9 && slot.itemPda) {
+    return { kind: "equipment", equipmentSlot: slot.equipmentSlot, itemPda: String(slot.itemPda) };
+  }
+  return null;
+}

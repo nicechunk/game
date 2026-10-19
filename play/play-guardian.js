@@ -686,12 +686,13 @@ export function guardianEquipmentFromAvatarEquipment(equipment = {}) {
   if (rightHand === "pickaxe") {
     const designHash = Math.trunc(Number(equipment.designHash) || 0) >>> 0;
     const forged = Boolean(equipment.forged || equipment.isForged || designHash);
+    if (!forged) return { rightHandKind: EQUIPMENT_KIND.empty, rightHandVariant: 0, flags: 0, designHash: 0 };
     return {
-      rightHandKind: forged ? EQUIPMENT_KIND.forged : EQUIPMENT_KIND.pickaxe,
-      rightHandVariant: forged ? 2 : 1,
-      flags: forged ? EQUIPMENT_FLAG_FORGED : 0,
-      designHash: forged ? designHash : 0,
-      payloadBytes: forged ? validatedNcf1EquipmentPayload(equipment.payloadBytes, designHash) : null,
+      rightHandKind: EQUIPMENT_KIND.forged,
+      rightHandVariant: 2,
+      flags: EQUIPMENT_FLAG_FORGED,
+      designHash,
+      payloadBytes: validatedNcf1EquipmentPayload(equipment.payloadBytes, designHash),
     };
   }
   if (rightHand === "block") {
@@ -713,7 +714,7 @@ export function equipmentFromGuardianEvent(event = {}) {
     );
     return forged
       ? { rightHand: "pickaxe", forged: true, designHash, payloadBytes: validatedNcf1EquipmentPayload(event.payloadBytes, designHash) }
-      : { rightHand: "pickaxe" };
+      : { rightHand: "empty" };
   }
   if (kind === EQUIPMENT_KIND.block) return { rightHand: "block", blockId: Math.trunc(event.rightHandVariant || 0), color: [0.52, 0.72, 0.38, 1] };
   return { rightHand: "empty" };

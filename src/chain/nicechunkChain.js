@@ -1,6 +1,7 @@
 import { Buffer } from "buffer";
 import bs58 from "bs58";
 import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
+import { encodeMiningToolReference, miningDurabilityFromTransaction } from "./miningDurability.js";
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
@@ -236,6 +237,10 @@ const backpackSlotKindBlock = 1;
 const backpackSlotKindItem = 2;
 export const PLACEMENT_SOURCE_BACKPACK = 0;
 export const PLACEMENT_SOURCE_EQUIPMENT = 1;
+// Placement validates both the target and its support through the canonical
+// world generator before consuming inventory. Forest placements can exceed
+// 1.3M CU even though the inventory CPI alone needs much less.
+export const BLOCK_PLACEMENT_COMPUTE_UNIT_LIMIT = 1_400_000;
 const equipmentBackpackSlotOffset = 40;
 const backpackItemCategoryForged = 2;
 const backpackItemCategoryBlueprint = 3;
@@ -1025,6 +1030,8 @@ export function deriveSmeltingAuthorityPda() {
 export function deriveGameSmeltingAuthorityPda() {
   return deriveSmeltingAuthorityPdaForProgram(gameProgramId);
 }
+
+const miningMinimumReadSlots = new Map();
 
 const gameContext = Object.freeze({
   isUnifiedGame: true,
@@ -3337,12 +3344,8 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
       actionId: miningActionId,
       expectedBlockId: canonicalBlock.blockId,
       context,
+      miningTool: options?.miningTool,
     }));
-    addEquipmentDurabilityInstructions(tx, {
-      authority: session.keypair.publicKey,
-      owner: provider.publicKey,
-      damage: options.durabilityDamage,
-    });
     const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(tx, {
       provider,
       session,
@@ -3364,6 +3367,7 @@ export async function recordBlockBreakOnChain(block, toolSlot = 0, options = {})
     invalidateChunkDeltaCache(blockChunkX(canonicalBlock.x), blockChunkZ(canonicalBlock.z));
     return {
       submitted: true,
+      ...(await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, options?.miningTool, conn)),
       signature,
       ...solSpendResult(solSpend),
       ...backpackBefore,
@@ -3437,12 +3441,8 @@ async function minePlacedBlockOnChain({ provider, connection: conn, block, equip
     actionId: miningActionId,
     expectedBlockId: block.blockId,
     context,
+      miningTool: options?.miningTool,
   }));
-  addEquipmentDurabilityInstructions(tx, {
-    authority: session.keypair.publicKey,
-    owner: provider.publicKey,
-    damage: options?.durabilityDamage,
-  });
   const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(tx, {
     provider,
     session,
@@ -3465,6 +3465,7 @@ async function minePlacedBlockOnChain({ provider, connection: conn, block, equip
   invalidateChunkDeltaCache(blockChunkX(block.x), blockChunkZ(block.z));
   return {
     submitted: true,
+      ...(await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, options?.miningTool, conn)),
     signature,
     ...solSpendResult(solSpend),
     ...backpackBefore,
@@ -3528,12 +3529,8 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
       expectedBlockId: canonicalBlock.blockId,
       chunks,
       context,
+      miningTool: options?.miningTool,
     }));
-    addEquipmentDurabilityInstructions(tx, {
-      authority: session.keypair.publicKey,
-      owner: provider.publicKey,
-      damage: options.durabilityDamage,
-    });
     const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(tx, {
       provider,
       session,
@@ -3564,6 +3561,7 @@ export async function recordTreeFellOnChain(block, toolSlot = 0, options = {}) {
     );
     return {
       submitted: true,
+      ...(await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, options?.miningTool, conn)),
       signature,
       ...solSpendResult(solSpend),
       ...backpackBefore,
@@ -3643,6 +3641,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
         backpack: equippedBackpack.publicKey,
         actionId: miningActionId,
         mode: BULK_MINING_RANGE_MODE_DEBUG,
+        miningTool: options?.miningTool,
         context,
       }));
       tx.add(createSyncPlayerSkillsInstruction({
@@ -3688,6 +3687,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
     );
     return {
       submitted: true,
+      ...(await loadConfirmedMiningEquipmentResult(signatures.at(-1), provider.publicKey, options?.miningTool, conn)),
       signature: signatures.at(-1) ?? "",
       signatures,
       ...solSpendResult(solSpend),
@@ -3780,13 +3780,9 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
         actionId: miningActionId,
         mode: range.mode,
         context,
+      miningTool: options?.miningTool,
       }));
     }
-    addEquipmentDurabilityInstructions(transaction, {
-      authority: session.keypair.publicKey,
-      owner: provider.publicKey,
-      damage: options.durabilityDamage,
-    });
     const playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(transaction, {
       provider,
       session,
@@ -3822,6 +3818,7 @@ export async function recordSupportCollapseOnChain(block, options = {}) {
     );
     return {
       submitted: true,
+      ...(await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, options?.miningTool, conn)),
       signature,
       signatures: [signature],
       ...solSpendResult(solSpend),
@@ -4259,7 +4256,9 @@ export async function fetchPlayerProfileForOwner(ownerAddress = null) {
     : (await connectedWalletProvider())?.publicKey ?? storedWalletPublicKey();
   if (!owner) return null;
   const [playerProfile] = derivePlayerProfilePda(owner);
-  const account = await getNicechunkConnection().getAccountInfo(playerProfile, "confirmed");
+  const account = await getNicechunkConnection().getAccountInfo(playerProfile, {
+    commitment: "confirmed", minContextSlot: miningMinimumReadSlots.get(owner.toBase58()) || 0,
+  });
   if (!account?.data?.length || !account.owner.equals(playerProgramId)) return null;
   const decoded = decodePlayerProfile(account.data);
   if (decoded.owner !== owner.toBase58()) return null;
@@ -4276,7 +4275,9 @@ export async function fetchPlayerEquipmentForOwner(ownerAddress = null) {
     : (await connectedWalletProvider())?.publicKey ?? storedWalletPublicKey();
   if (!owner) return null;
   const [playerEquipment] = derivePlayerEquipmentPda(owner);
-  const account = await getNicechunkConnection().getAccountInfo(playerEquipment, "confirmed");
+  const account = await getNicechunkConnection().getAccountInfo(playerEquipment, {
+    commitment: "confirmed", minContextSlot: miningMinimumReadSlots.get(owner.toBase58()) || 0,
+  });
   if (!account?.data?.length || !account.owner.equals(playerProgramId)) return null;
   const decoded = decodePlayerEquipment(account.data);
   if (decoded.owner !== owner.toBase58()) return null;
@@ -5538,9 +5539,7 @@ export async function recordBlockPlacementOnChain(target, renderType, _toolSlot 
     });
     if (!source) return { submitted: false, reason: "placement-source-unavailable" };
     const session = await getOrCreateGameplaySession(provider);
-    const tx = new Transaction();
-    tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 700_000 }));
-    tx.add(createPlaceBlockInstruction({
+    const tx = createPlaceBlockTransaction({
       authority: session.keypair.publicKey,
       owner: provider.publicKey,
       backpack: source.backpack,
@@ -5550,7 +5549,7 @@ export async function recordBlockPlacementOnChain(target, renderType, _toolSlot 
       sourceIndex: source.sourceIndex,
       expectedSlot: source.expectedSlot,
       context: gameContext,
-    }));
+    });
 
     const solSpend = createSolSpendSummary();
     const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
@@ -6957,36 +6956,7 @@ function createOrRefreshPlayerSessionInstruction({
   });
 }
 
-function createMineBlockInstruction({ authority, block, owner, expectedBlockId, context = gameContext }) {
-  if (!owner) throw new Error("owner is required for canonical mining");
-  if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for canonical mining");
-  const [chunkBrokenPda] = deriveChunkBrokenPdaForContext(blockChunkX(block.x), blockChunkZ(block.z), context);
-  const [foundationChunkPda] = deriveFoundationChunkPdaForContext(blockChunkX(block.x), blockChunkZ(block.z), context);
-  const [playerProfile] = derivePlayerProfilePda(owner);
-  const [playerSession] = derivePlayerSessionPda(owner, authority);
-  const data = Buffer.alloc(13);
-  data.writeUInt8(5, 0);
-  data.writeInt32LE(block.x, 1);
-  data.writeInt16LE(block.y, 5);
-  data.writeInt32LE(block.z, 7);
-  data.writeUInt16LE(expectedBlockId, 11);
-
-  return new TransactionInstruction({
-    programId: context.chunkProgramId,
-    keys: [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: playerProfile, isSigner: false, isWritable: false },
-      { pubkey: playerSession, isSigner: false, isWritable: false },
-      { pubkey: chunkBrokenPda, isSigner: false, isWritable: true },
-      { pubkey: foundationChunkPda, isSigner: false, isWritable: false },
-      { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: contextInstructionData(context, gameNamespaceChunk, data),
-  });
-}
-
-export function createMineBlockWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, context = gameContext }) {
+export function createMineBlockWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, miningTool, context = gameContext }) {
   if (!owner) throw new Error("owner is required for canonical mining");
   if (!backpack) throw new Error("backpack is required for reward mining");
   if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for canonical mining");
@@ -7008,7 +6978,7 @@ export function createMineBlockWithRewardsInstruction({ authority, block, owner,
   data.writeInt32LE(block.z, 15);
   data.writeUInt16LE(expectedBlockId, 19);
 
-  return new TransactionInstruction({
+  return attachMiningTool(new TransactionInstruction({
     programId: context.chunkProgramId,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -7027,7 +6997,14 @@ export function createMineBlockWithRewardsInstruction({ authority, block, owner,
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
-  });
+  }), { owner, miningTool, context });
+}
+
+export function createPlaceBlockTransaction(options) {
+  return new Transaction().add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: BLOCK_PLACEMENT_COMPUTE_UNIT_LIMIT }),
+    createPlaceBlockInstruction(options),
+  );
 }
 
 export function createPlaceBlockInstruction({
@@ -7108,7 +7085,7 @@ export function createMinePlacedBlockWithRewardsInstruction({
   block,
   actionId,
   expectedBlockId,
-  context = gameContext,
+  miningTool, context = gameContext,
 }) {
   if (!owner) throw new Error("owner is required for placed-block mining");
   if (!backpack) throw new Error("backpack is required for placed-block mining");
@@ -7132,7 +7109,7 @@ export function createMinePlacedBlockWithRewardsInstruction({
   data.writeInt32LE(normalizedBlock.z, 15);
   data.writeUInt16LE(normalizedBlockId, 19);
 
-  return new TransactionInstruction({
+  return attachMiningTool(new TransactionInstruction({
     programId: context.chunkProgramId,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -7149,53 +7126,64 @@ export function createMinePlacedBlockWithRewardsInstruction({
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
-  });
+  }), { owner, miningTool, context });
 }
 
-function addEquipmentDurabilityInstructions(transaction, { authority, owner, damage = [] } = {}) {
-  for (const entry of normalizeEquipmentDurabilityDamage(damage)) {
-    transaction.add(createConsumePlayerEquipmentDurabilityInstruction({
-      authority,
-      owner,
-      equipmentSlot: entry.equipmentSlot,
-      amount: entry.amount,
-    }));
+function attachMiningTool(instruction, { owner, miningTool, context = gameContext, structural = false, continuation = false }) {
+  instruction.keys[1].isWritable = true;
+  // Structural mining never uses exploration/decoration tables. Omitting those
+  // unused accounts keeps the existing 640-block atomic plan within 1232 bytes.
+  if (structural) instruction.keys.splice(7, 2);
+  if (continuation) return instruction;
+  const tool = encodeMiningToolReference(miningTool);
+  instruction.keys.push(
+    { pubkey: playerProgramId, isSigner: false, isWritable: false },
+    { pubkey: derivePlayerEquipmentPda(owner)[0], isSigner: false, isWritable: true },
+  );
+  instruction.data = Buffer.concat([instruction.data, tool]);
+  return instruction;
+}
+
+export async function loadConfirmedMiningEquipmentResult(signature, owner, tool, conn = getNicechunkConnection()) {
+  const pending = { miningDurabilitySyncPending: true, miningDurabilityOwner: owner.toBase58() };
+  // Failure to fetch a receipt after confirmation must never turn a successful
+  // mine into a rejection, a local refund or a second resource transaction.
+  try {
+    let transaction = null;
+    for (let attempt = 0; attempt < 3 && !transaction; attempt += 1) {
+      transaction = await conn.getTransaction(signature, { commitment: "confirmed", maxSupportedTransactionVersion: 0 });
+      if (!transaction && attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    if (!transaction || transaction.meta?.err) return pending;
+    miningMinimumReadSlots.set(owner.toBase58(), Math.max(
+      miningMinimumReadSlots.get(owner.toBase58()) || 0, transaction.slot));
+    const receipt = miningDurabilityFromTransaction(transaction, gameContext.chunkProgramId.toBase58(), tool);
+    if (!receipt) return pending;
+    const result = { miningDurability: receipt, miningDurabilityOwner: owner.toBase58(),
+      miningDurabilityReadSlot: transaction.slot, miningDurabilitySyncPending: false };
+    try {
+      const profileKey = derivePlayerProfilePda(owner)[0];
+      const equipmentKey = derivePlayerEquipmentPda(owner)[0];
+      const snapshot = await conn.getMultipleAccountsInfoAndContext([profileKey, equipmentKey], {
+        commitment: "confirmed", minContextSlot: transaction.slot,
+      });
+      const [profile, equipment] = snapshot.value;
+      if (profile?.owner.equals(playerProgramId)) {
+        const decoded = decodePlayerProfile(profile.data);
+        if (decoded.owner === owner.toBase58()) result.playerProfileAfter = { ...decoded,
+          publicKey: profileKey.toBase58(), programId: playerProgramId.toBase58() };
+      }
+      if (equipment?.data?.length && equipment.owner.equals(playerProgramId)) {
+        const decoded = decodePlayerEquipment(equipment.data);
+        if (decoded.owner === owner.toBase58()) result.playerEquipmentAfter = { ...decoded,
+          publicKey: equipmentKey.toBase58(), programId: playerProgramId.toBase58() };
+      }
+      result.miningDurabilityReadSlot = snapshot.context.slot;
+    } catch { /* The authenticated receipt remains usable; normal PDA sync retries. */ }
+    return result;
+  } catch {
+    return pending;
   }
-  return transaction;
-}
-
-function normalizeEquipmentDurabilityDamage(damage = []) {
-  const totals = new Map();
-  for (const entry of Array.isArray(damage) ? damage : []) {
-    const equipmentSlot = Math.trunc(Number(entry?.equipmentSlot));
-    const amount = Math.trunc(Number(entry?.amount));
-    if (!Number.isInteger(equipmentSlot) || equipmentSlot < 0 || equipmentSlot >= playerEquipmentSlotCount) continue;
-    if (!Number.isInteger(amount) || amount < 1) continue;
-    totals.set(equipmentSlot, Math.min(0xffffffff, (totals.get(equipmentSlot) ?? 0) + amount));
-  }
-  return Array.from(totals, ([equipmentSlot, amount]) => ({ equipmentSlot, amount }));
-}
-
-function createConsumePlayerEquipmentDurabilityInstruction({ authority, owner, equipmentSlot, amount }) {
-  const [playerProfile] = derivePlayerProfilePda(owner);
-  const [playerSession] = derivePlayerSessionPda(owner, authority);
-  const [playerEquipment] = derivePlayerEquipmentPda(owner);
-  const data = Buffer.alloc(6);
-  data.writeUInt8(15, 0);
-  data.writeUInt8(equipmentSlot, 1);
-  data.writeUInt32LE(amount, 2);
-  return new TransactionInstruction({
-    programId: playerProgramId,
-    keys: [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: owner, isSigner: false, isWritable: false },
-      { pubkey: playerProfile, isSigner: false, isWritable: false },
-      { pubkey: playerSession, isSigner: false, isWritable: false },
-      { pubkey: playerEquipment, isSigner: false, isWritable: true },
-      { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
-    ],
-    data,
-  });
 }
 
 export function createBatchMineWithRewardsInstruction({
@@ -7205,7 +7193,7 @@ export function createBatchMineWithRewardsInstruction({
   backpack,
   actionId,
   mode = bulkMiningModeDebug,
-  context = gameContext,
+  miningTool, context = gameContext,
 }) {
   if (!owner) throw new Error("owner is required for batch mining");
   if (!backpack) throw new Error("backpack is required for batch mining");
@@ -7245,7 +7233,7 @@ export function createBatchMineWithRewardsInstruction({
     data.writeUInt16LE(Math.trunc(block.blockId), offset + 10);
   });
 
-  return new TransactionInstruction({
+  return attachMiningTool(new TransactionInstruction({
     programId: context.chunkProgramId,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -7264,7 +7252,7 @@ export function createBatchMineWithRewardsInstruction({
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
-  });
+  }), { owner, miningTool, context });
 }
 
 export function createRangeMineWithRewardsInstruction({
@@ -7274,7 +7262,7 @@ export function createRangeMineWithRewardsInstruction({
   backpack,
   actionId,
   mode = BULK_MINING_RANGE_MODE_DEBUG,
-  context = gameContext,
+  miningTool, context = gameContext,
 }) {
   if (!owner) throw new Error("owner is required for range mining");
   if (!backpack) throw new Error("backpack is required for range mining");
@@ -7309,7 +7297,7 @@ export function createRangeMineWithRewardsInstruction({
   const [materialPhysics] = deriveMaterialPhysicsPda(context.backpackProgramId);
   const [playerSkills] = derivePlayerSkillsPda(owner);
 
-  return new TransactionInstruction({
+  return attachMiningTool(new TransactionInstruction({
     programId: context.chunkProgramId,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -7333,6 +7321,9 @@ export function createRangeMineWithRewardsInstruction({
       ),
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
+  }), { owner, miningTool, context,
+    structural: [BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY, BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE].includes(mode),
+    continuation: mode === BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE,
   });
 }
 
@@ -7787,7 +7778,7 @@ async function fundBuildingUploadSession(provider, sessionAuthority, accountLeng
   await signAndSendWalletTransaction(provider, transaction, conn);
 }
 
-export function createFellTreeWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, chunks = [], context = gameContext }) {
+export function createFellTreeWithRewardsInstruction({ authority, block, owner, backpack, actionId, expectedBlockId, chunks = [], miningTool, context = gameContext }) {
   if (!owner) throw new Error("owner is required for tree felling");
   if (!backpack) throw new Error("backpack is required for tree felling");
   if (!Number.isInteger(expectedBlockId)) throw new Error("expectedBlockId is required for tree felling");
@@ -7809,7 +7800,7 @@ export function createFellTreeWithRewardsInstruction({ authority, block, owner, 
   data.writeInt32LE(block.z, 15);
   data.writeUInt16LE(expectedBlockId, 19);
 
-  return new TransactionInstruction({
+  return attachMiningTool(new TransactionInstruction({
     programId: context.chunkProgramId,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -7836,7 +7827,7 @@ export function createFellTreeWithRewardsInstruction({ authority, block, owner, 
       ]),
     ],
     data: contextInstructionData(context, gameNamespaceChunk, data),
-  });
+  }), { owner, miningTool, context });
 }
 
 function createInitializeChunkBrokenInstruction({ authority, chunkX, chunkZ, context = gameContext }) {
