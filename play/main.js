@@ -1538,6 +1538,7 @@ function frame(now) {
   mining?.update(now);
   playerSession?.savePlayerPosition(now);
   syncCameraToPlayer(dt);
+  renderBudget?.noteCameraFrame?.(camera, now);
   if (!initialWorldCovered) syncPlayStartupViewport(renderer, camera);
   chunks.setBuildCamera(camera);
   avatarSession?.syncAvatarToPlayer(now);
@@ -1585,7 +1586,7 @@ function frame(now) {
     deferRegionUploads: renderBudget?.shouldDeferRegionUploads?.(movingNow) ?? movingNow,
     cameraState: camera,
     residencyChunks: initialWorldCovered ? chunks.chunks.values() : [],
-    allowBackgroundUploads: !movingNow,
+    allowBackgroundUploads: renderBudget?.allowBackgroundUploads?.(now) ?? !movingNow,
   }) : { uploaded: 0, pendingUploads: renderer.pendingUploadSince.size, frameDeferred: true };
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);

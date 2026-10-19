@@ -1,3 +1,5 @@
+import { createCameraActivityTracker } from "./play-camera-activity.js";
+
 const DEFAULT_CHUNK_LOAD_UPDATE_MS = 70;
 const DEFAULT_GPU_PRUNE_MS = 650;
 const DEFAULT_IDLE_UPLOAD_SCAN_MS = 220;
@@ -15,6 +17,7 @@ export function createPlayRenderBudget({
   gpuPruneMs = DEFAULT_GPU_PRUNE_MS,
   idleUploadScanMs = DEFAULT_IDLE_UPLOAD_SCAN_MS,
 } = {}) {
+  const cameraActivity = createCameraActivityTracker();
   const state = {
     lastChunkLoadAt: 0,
     lastGpuPruneAt: 0,
@@ -33,6 +36,8 @@ export function createPlayRenderBudget({
     uploadCandidatesForFrame,
     noteWorldVisible,
     noteWorldCovered,
+    noteCameraFrame: cameraActivity.update,
+    allowBackgroundUploads,
     shouldUpdateChunkLoad,
     shouldPruneGpu,
     reset,
@@ -114,6 +119,10 @@ export function createPlayRenderBudget({
     if (covered) state.worldCovered = true;
   }
 
+  function allowBackgroundUploads(now = performance.now()) {
+    return !isMotionActive() && !cameraActivity.active(now);
+  }
+
   function shouldUpdateChunkLoad(now, chunkKey, { force = false } = {}) {
     if (!force && chunkKey === state.lastLoadChunkKey && now - state.lastChunkLoadAt < chunkLoadUpdateMs) return false;
     state.lastLoadChunkKey = chunkKey;
@@ -128,6 +137,7 @@ export function createPlayRenderBudget({
   }
 
   function reset() {
+    cameraActivity.reset();
     state.lastChunkLoadAt = 0;
     state.lastGpuPruneAt = 0;
     state.lastIdleUploadScanAt = 0;

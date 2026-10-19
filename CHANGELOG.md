@@ -22,6 +22,12 @@ from an npm package release.
 
 ### Fixed
 
+- Treat camera orbit and first-person look as active rendering before admitting
+  optional off-camera GPU uploads; resume background residency after settling.
+  Preserve foreground loading budgets and all retained rendering quality.
+- Reduce camera collision work with bounded per-sweep voxel visit reuse and
+  loaded-air tree queries that preserve exact trunk/leaf overlap and fallbacks.
+
 - Removed the built-in starter iron pickaxe and all automatic hotbar grants or
   cache restores. Mining requires a real custodied on-chain tool; retired
   default-tool selectors and receipts are rejected. Crafted tools retain their
