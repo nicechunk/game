@@ -1167,7 +1167,7 @@ async function minimumRent(bytes) {
 function currentRpcUrl() {
   const override = cleanHttpsUrl(localStorage.getItem(RPC_OVERRIDE_KEY));
   if (override) return override;
-  const apiKey = String(localStorage.getItem(HELIUS_KEY) || "").trim();
+  const apiKey = String(sessionStorage.getItem(HELIUS_KEY) || "").trim();
   return apiKey ? `https://devnet.helius-rpc.com/?api-key=${encodeURIComponent(apiKey)}` : DEFAULT_RPC_URL;
 }
 
