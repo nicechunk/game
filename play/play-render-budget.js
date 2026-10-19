@@ -21,6 +21,7 @@ export function createPlayRenderBudget({
     lastIdleUploadScanAt: 0,
     lastLoadChunkKey: "",
     worldVisible: false,
+    worldCovered: false,
   };
 
   return {
@@ -31,6 +32,7 @@ export function createPlayRenderBudget({
     shouldDeferRegionUploads,
     uploadCandidatesForFrame,
     noteWorldVisible,
+    noteWorldCovered,
     shouldUpdateChunkLoad,
     shouldPruneGpu,
     reset,
@@ -54,6 +56,10 @@ export function createPlayRenderBudget({
     const controls = getControls();
     const sprinting = controls?.keys?.has("ShiftLeft") || controls?.keys?.has("ShiftRight");
     const base = getRenderer()?.options?.maxChunkUploadsPerFrame ?? 3;
+    // During the covered startup, sampled FPS includes compilation/deferred
+    // frames. It must not turn initial uploads into a one-channel serial queue.
+    // The renderer still enforces its CPU deadline, byte cap and GPU fences.
+    if (!state.worldCovered) return Math.min(12, Math.max(base, isMobileViewport() ? 4 : 8));
     if (fps < 36) return 1;
     if (isMotionActive() || controls?.move?.moving) {
       if (fps > 55) return sprinting ? 4 : 5;
@@ -71,9 +77,10 @@ export function createPlayRenderBudget({
     const controls = getControls();
     const sprinting = controls?.keys?.has("ShiftLeft") || controls?.keys?.has("ShiftRight");
     const workers = chunks.workerCount || 1;
-    // Keep one frame lane free until the first nearby mesh is available. Once
-    // the player can see the world, the full pool drains the streaming backlog.
-    if (!state.worldVisible) return Math.min(workers, 1);
+    // preferredWorkerCount already reserves CPU cores for the main thread.
+    // Serializing the first build delays both the scene and the rest of the
+    // Worker startup. Give the bounded pool its initial work immediately.
+    if (!state.worldVisible) return workers;
     // A large queue is a streaming backlog, not an incidental remesh. Let the
     // reserved worker pool drain it instead of creating a low-FPS serial loop.
     if (chunks.buildQueue.length > Math.max(2, workers)) return workers;
@@ -100,6 +107,10 @@ export function createPlayRenderBudget({
     if (visible) state.worldVisible = true;
   }
 
+  function noteWorldCovered(covered = true) {
+    if (covered) state.worldCovered = true;
+  }
+
   function shouldUpdateChunkLoad(now, chunkKey, { force = false } = {}) {
     if (!force && chunkKey === state.lastLoadChunkKey && now - state.lastChunkLoadAt < chunkLoadUpdateMs) return false;
     state.lastLoadChunkKey = chunkKey;
@@ -119,6 +130,7 @@ export function createPlayRenderBudget({
     state.lastIdleUploadScanAt = 0;
     state.lastLoadChunkKey = "";
     state.worldVisible = false;
+    state.worldCovered = false;
   }
 
   function normalizedFps() {

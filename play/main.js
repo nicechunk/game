@@ -71,6 +71,7 @@ import { createForgedItemPlacementController } from "./play-forged-item-placemen
 import { createPlayActionHit } from "./play-action-hit.js";
 import { createPlayProfileSession } from "./play-profile-session.js";
 import { createPlayStartupLogger } from "./play-startup-logger.js";
+import { measurePlayWorldReadiness, shouldDeferCoveredWorld, syncPlayStartupViewport } from "./play-world-readiness.js";
 import { createPlaySurfaceDecorationSync } from "./play-surface-decoration-sync.js";
 import { createPlayItemName } from "./play-item-name.js";
 import { createPlayConfirmDialog } from "./play-confirm-dialog.js";
@@ -538,6 +539,7 @@ let mobileChat = null;
 let actionOverlayBuilder = null;
 let effects = null;
 let renderBudget = null;
+let initialWorldCovered = false;
 let playHud = null;
 let inputActions = null;
 let playerSession = null;
@@ -810,6 +812,12 @@ async function boot() {
   renderer.setRenderLogger(renderLog);
   chunks.setStageStats?.(renderer.stageStats);
   startupLogger.step("WebGL2 renderer total", () => renderer.init());
+  syncPlayStartupViewport(renderer, camera);
+  chunks.setBuildCamera(camera);
+  // Worker construction and the first bounded builds overlap the asynchronous
+  // avatar load, instead of waiting for the entire UI boot and first RAF.
+  chunks.setBuildConcurrencyLimit(renderBudget.frameBuildConcurrencyLimit());
+  chunks.setContinuousBuildDispatch(true);
   globalThis.NiceChunkLoading?.stage?.("engine", 0.56);
   const gameplaySetupToken = startupLogger.begin("gameplay session construction");
   effects = createPlayEffects({
@@ -1529,6 +1537,8 @@ function frame(now) {
   mining?.update(now);
   playerSession?.savePlayerPosition(now);
   syncCameraToPlayer(dt);
+  if (!initialWorldCovered) syncPlayStartupViewport(renderer, camera);
+  chunks.setBuildCamera(camera);
   avatarSession?.syncAvatarToPlayer(now);
   markFrameProbe(frameProbe, "player-sync");
   const movingNow = isMotionActive();
@@ -1587,7 +1597,14 @@ function frame(now) {
   const forgedPlacementPreview = forgedPlacement?.previewEntity?.(lastHit);
   if (forgedPlacementPreview) frameAvatars.push(forgedPlacementPreview);
   updateViewEnvironment(now);
-  const renderStats = renderer.render(camera, visibleChunks, frameAvatars, buildActionOverlays(lastHit, now));
+  const worldReadiness = initialWorldCovered ? null : measurePlayWorldReadiness(chunks, renderer, camera);
+  let renderStats;
+  if (shouldDeferCoveredWorld(worldReadiness)) {
+    renderer.sealDeferredUploads();
+    renderStats = { ...renderer.stats, renderDeferred: true, cpuDrawSubmitMs: 0 };
+  } else {
+    renderStats = renderer.render(camera, visibleChunks, frameAvatars, buildActionOverlays(lastHit, now));
+  }
   markFrameProbe(frameProbe, "render");
   landConstruction?.update?.();
   markFrameProbe(frameProbe, "land-ui");
@@ -1598,7 +1615,11 @@ function frame(now) {
   markFrameProbe(frameProbe, "minimap-heading");
   updateMinimapForFrame(now, { worldVisible: visibleChunks.length > 0 });
   markFrameProbe(frameProbe, "minimap-scheduled");
-  startupLogger.noteFrame(now, { getWorldStats: () => chunks.stats(), renderStats, uploadStats });
+  startupLogger.noteFrame(now, { getWorldStats: () => chunks.stats(), renderStats, uploadStats, worldReadiness });
+  if (worldReadiness?.ready && !renderStats.renderDeferred && renderStats.terrainDrawCalls > 0) {
+    initialWorldCovered = true;
+    renderBudget.noteWorldCovered(true);
+  }
   endFrameProbe(frameProbe);
 }
 

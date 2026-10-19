@@ -38,6 +38,7 @@ test("Loader tracks real bytes, reuses boot resources, and waits for critical st
     const worldSnapshot = await page.evaluate(() => globalThis.NiceChunkLoading.snapshot());
     assert.equal(worldSnapshot.error, "", `Loader failed before the first world frame: ${worldSnapshot.error}`);
     assert.equal(worldSnapshot.visible, true, "the first world frame must not dismiss pending PDA work");
+    assert.equal(await page.evaluate(() => globalThis.NiceChunkLoading.coversWorld()), true);
     assert.equal(worldSnapshot.worldVisible, true);
     assert.ok(worldSnapshot.pendingTasks.includes("chunks"));
     assert.equal(
@@ -58,6 +59,7 @@ test("Loader tracks real bytes, reuses boot resources, and waits for critical st
     assert.equal(result.localeMarker, "zh-Hans");
     assert.ok(result.taskDoneAt > result.worldAt);
     assert.equal(result.snapshot.progress, 100);
+    assert.equal(await page.evaluate(() => globalThis.NiceChunkLoading.coversWorld()), false);
     assert.equal(result.snapshot.stage, "ready");
     assert.ok(result.progress.some((value) => value > 0 && value < 100));
     assertMonotonic(result.progress);

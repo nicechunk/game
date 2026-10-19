@@ -130,7 +130,7 @@ export function createPlayStartupLogger({ enabled = true, prefix = DEFAULT_PREFI
     mark("initial chunk range queued", { chunks: initialChunkTarget });
   }
 
-  function noteFrame(now, { getWorldStats = null, worldStats = null, renderStats = null, uploadStats = null } = {}) {
+  function noteFrame(now, { getWorldStats = null, worldStats = null, renderStats = null, uploadStats = null, worldReadiness = null } = {}) {
     frameCount += 1;
     if (!milestones.has("first-frame")) {
       milestones.add("first-frame");
@@ -145,13 +145,21 @@ export function createPlayStartupLogger({ enabled = true, prefix = DEFAULT_PREFI
       ?(renderStats?.visibleChunks||0)>0:renderStats.terrainDrawCalls>0;
     if (terrainDrawn && !milestones.has("first-world")) {
       milestones.add("first-world");
-      loadingApi()?.worldReady?.();
       mark("first visible world frame", {
         frame: frameCount,
         visibleChunks: renderStats.visibleChunks,
         drawCalls: renderStats.drawCalls || 0,
         triangles: renderStats.triangles || 0,
       });
+    }
+    const coverageReady = !worldReadiness || worldReadiness.ready;
+    if (terrainDrawn && !renderStats?.renderDeferred && coverageReady && !milestones.has("world-covered")) {
+      milestones.add("world-covered");
+      loadingApi()?.worldReady?.();
+      mark("initial visible terrain uploaded", worldReadiness || {});
+    }
+    if (worldReadiness && !milestones.has("world-covered")) {
+      loadingApi()?.worldProgress?.(worldReadiness.readyChunks / Math.max(1, worldReadiness.targetChunks));
     }
     if ((uploadStats?.uploaded || 0) > 0 && !milestones.has("first-upload")) {
       milestones.add("first-upload");
@@ -160,14 +168,14 @@ export function createPlayStartupLogger({ enabled = true, prefix = DEFAULT_PREFI
     if (now - lastChunkSampleAt < CHUNK_SAMPLE_INTERVAL_MS) return;
     lastChunkSampleAt = now;
     const stats = worldStats || (typeof getWorldStats === "function" ? getWorldStats() : null);
-    if (stats) reportChunkProgress(stats, renderStats);
+    if (stats) reportChunkProgress(stats, renderStats, worldReadiness);
   }
 
-  function reportChunkProgress(stats, renderStats) {
+  function reportChunkProgress(stats, renderStats, worldReadiness) {
     const target = initialChunkTarget || stats.chunks || 1;
     const ready = Math.max(0, stats.ready || 0);
     const ratio = ready / Math.max(1, target);
-    loadingApi()?.worldProgress?.(Math.min(1, ratio));
+    if (!worldReadiness) loadingApi()?.worldProgress?.(Math.min(1, ratio));
     const thresholds = [
       ["first", ready > 0],
       ["25%", ratio >= 0.25],

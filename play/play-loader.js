@@ -95,6 +95,7 @@
     ready: worldReady,
     fail,
     snapshot,
+    coversWorld,
   };
 
   retryButton.addEventListener("click", retryFailure);
@@ -458,9 +459,7 @@
 
   function snapshot() {
     return {
-      visible: overlay.isConnected
-        && !overlay.classList.contains("is-ready")
-        && !overlay.classList.contains("is-dialog-open"),
+      visible: coversWorld(),
       progress: Math.round(displayedProgress),
       stage: state.stage,
       assetsSettled,
@@ -471,6 +470,11 @@
       pendingTasks: Array.from(holds),
       files: Array.from(files.values(), (file) => ({ name: file.name, status: file.status, loaded: file.loaded, total: file.total, cached: file.cached })),
     };
+  }
+
+  function coversWorld() {
+    return overlay.isConnected && !overlay.classList.contains("is-ready")
+      && !overlay.classList.contains("is-dialog-open");
   }
 
   function queueRender() {
