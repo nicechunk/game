@@ -8,4 +8,5 @@ export const PLAY_RENDER_OPTIONS = Object.freeze({
   maxVoxelParticles: 320,
   gpuTiming: false,
   deferredChunkUploads: true,
+  sharedChunkBuffers: true,
 });

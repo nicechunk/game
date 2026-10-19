@@ -22,6 +22,10 @@ from an npm package release.
 
 ### Fixed
 
+- Enable bounded shared terrain GPU buffers and ordered cross-column batching
+  for Play 0.1.92 while retaining resolution, view distance, detailed water,
+  clouds, foreground loading and existing gameplay behavior.
+
 - Treat camera orbit and first-person look as active rendering before admitting
   optional off-camera GPU uploads; resume background residency after settling.
   Preserve foreground loading budgets and all retained rendering quality.
