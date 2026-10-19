@@ -24,6 +24,12 @@ test("clear-air renderer keeps original detail, water, picking and context resto
       canvas.style.cssText = "width:1920px;height:1080px";
       const renderer = new WebGL2VoxelRenderer(canvas, { ...PLAY_RENDER_OPTIONS, viewDistance: 20, useRegionBatching: false });
       renderer.init();
+      check(PLAY_RENDER_OPTIONS.shadows === false, "gameplay must disable cast shadows");
+      const renderPass = renderer.renderMeshPass.bind(renderer);
+      renderer.renderMeshPass = (chunks, origin, categories, ...rest) => {
+        check(!categories.includes("shadow"), "disabled shadow pass must not be submitted");
+        return renderPass(chunks, origin, categories, ...rest);
+      };
       const camera = createCameraState({ worldX: 8, worldY: 1, worldZ: 0,
         targetWorldX: 8, targetWorldY: 1, targetWorldZ: 40, far: 512 });
       const sizes = [];
@@ -82,8 +88,11 @@ test("clear-air renderer keeps original detail, water, picking and context resto
             check(!/fog/i.test(name), "fog uniform survived compilation: " + name);
           }
         }
-        check(renderer.cloudLayer && renderer.skyGradient && renderer.sunDisc && renderer.projectedShadowLayer,
-          "original visual passes must remain available");
+        check(renderer.cloudLayer && renderer.skyGradient && renderer.sunDisc,
+          "cloud and sky effects must remain available");
+        check(renderer.projectedShadowLayer === null, "disabled shadows must not allocate GPU resources");
+        check(renderer.renderProjectedShadows([{id:"test-caster"}], null, null).drawCalls === 0,
+          "disabled avatar shadows must not draw");
         check(renderer.textureArray.quality === "balanced" && renderer.textureArray.mipLevels > 1, "filtered textures were not restored");
         check(renderer.options.waterEffects && renderer.gl.getUniformLocation(renderer.program, "uTime") !== null, "detailed animated water was not restored");
         check(renderer.gpuTimer === null, "GPU timer must be opt-in during gameplay");

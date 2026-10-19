@@ -705,6 +705,7 @@ async function boot() {
     isMobileViewport,
   }));
   chunks = startupLogger.step("ChunkManager and workers", () => new ChunkManager({
+    shadows: PLAY_RENDER_OPTIONS.shadows,
     viewDistance,
     preloadMargin: PLAYABLE_PRELOAD_MARGIN,
     workerUrl: chunkBuildWorkerUrl,
