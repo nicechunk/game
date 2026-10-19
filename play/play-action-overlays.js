@@ -89,6 +89,16 @@ export function createActionOverlayBuilder({
           fillColor: [1, 1, 1, 0.018 + wave * 0.028],
           lineColor: [1, 1, 1, alpha],
         });
+        if (entry.miningKind === "surface-pebble" && entry.surfaceDecoration) {
+          overlays.push({
+            shape: "surface-decoration",
+            worldX: target.worldX,
+            worldY: target.worldY + 1,
+            worldZ: target.worldZ,
+            decoration: entry.surfaceDecoration,
+            fillColor: [1, 1, 1, 0.14 + wave * 0.62],
+          });
+        }
       }
     }
     return pendingKeys;

@@ -411,6 +411,7 @@ export function createMiningController({
       blockId: hit.blockId,
       resourceId,
       miningKind: swing.miningPlan?.kind || "single-block",
+      ...(swing.miningPlan?.surfaceDecoration ? { surfaceDecoration: { ...swing.miningPlan.surfaceDecoration } } : {}),
       minedBlockCount: planBlocks.length,
       blocks: planBlocks.map((block) => ({ ...block })),
       collapseBlocks: (swing.miningPlan?.collapseBlocks ?? []).map((block) => ({ ...block })),

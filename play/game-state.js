@@ -193,7 +193,9 @@ export function createPlayGameState({
           changed = true;
         }
       }
-      if (!this.isHotbarSlotSelectable(this.selectedHotbarSlot) || !this.hotbarSlots[this.selectedHotbarSlot]) {
+      // An empty selected slot is the player's bare-hand choice, not a missing
+      // selection. Inventory refreshes must not silently select another tool.
+      if (!this.isHotbarSlotSelectable(this.selectedHotbarSlot)) {
         this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
       }
       if (changed) this.saveHotbarSlots();
@@ -386,7 +388,7 @@ export function createPlayGameState({
       const changed = JSON.stringify(next) !== JSON.stringify(this.hotbarSlots);
       if (changed) {
         this.hotbarSlots = next;
-        if (!this.isHotbarSlotSelectable(this.selectedHotbarSlot) || !this.hotbarSlots[this.selectedHotbarSlot]) {
+        if (!this.isHotbarSlotSelectable(this.selectedHotbarSlot)) {
           this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
         }
         this.saveHotbarSlots();
@@ -404,7 +406,7 @@ export function createPlayGameState({
         changed = true;
       }
       if (changed) {
-        this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
+        if (!this.isHotbarSlotSelectable(this.selectedHotbarSlot)) this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
         this.saveHotbarSlots();
       }
       return { changed };

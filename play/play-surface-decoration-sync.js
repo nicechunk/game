@@ -98,7 +98,7 @@ export function createPlaySurfaceDecorationSync({
     const cx=Math.floor(hit.worldX/16),cz=Math.floor(hit.worldZ/16),column=((hit.worldZ%16+16)%16)*16+(hit.worldX%16+16)%16;
     const decoration=resolveSurfaceDecoration({worldSeed,worldX:hit.worldX,surfaceY:surface,worldZ:hit.worldZ,surfaceBlockId:hit.blockId,rules:compiledRules});
     if (decoration?.decorationId>=100 && decoration.decorationId<=107 && !pickedByChunk.get(`${cx},${cz}`)?.includes(column)) {
-      return {...single,kind:"surface-pebble",requiredDamage:1,rewardBlocks:[{...hit,worldY:surface+1,blockId:BLOCK_ID.stoneFragment,resourceId:RESOURCE_ID.stoneFragment}]};
+      return {...single,kind:"surface-pebble",requiredDamage:1,surfaceDecoration:{...decoration},rewardBlocks:[{...hit,worldY:surface+1,blockId:BLOCK_ID.stoneFragment,resourceId:RESOURCE_ID.stoneFragment}]};
     }
     return null;
   }
