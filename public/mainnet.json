@@ -3,7 +3,7 @@
   "app": {
     "id": "nicechunk",
     "name": "NICECHUNK",
-    "version": "0.1.92",
+    "version": "0.1.93",
     "minClientVersion": "0.1.21",
     "network": "mainnet"
   },

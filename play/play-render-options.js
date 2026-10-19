@@ -9,4 +9,8 @@ export const PLAY_RENDER_OPTIONS = Object.freeze({
   gpuTiming: false,
   deferredChunkUploads: true,
   sharedChunkBuffers: true,
+  maxSharedChunkBufferBytes: 64 * 1024 * 1024,
+  maxPrefetchGpuBytes: 192 * 1024 * 1024,
+  prefetchWithFrameInFlight: true,
+  maxChunkUploadsPerFrame: 16,
 });

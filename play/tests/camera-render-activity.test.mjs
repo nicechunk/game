@@ -4,19 +4,20 @@ import {createCameraActivityTracker} from '../play-camera-activity.js';
 import {createPlayRenderBudget} from '../play-render-budget.js';
 import {createCameraState} from '../../chunk.js/renderer/camera.js';
 
-test('orbit and first-person look pause only speculative uploads until camera settles',()=>{
+test('orbit and first-person look keep bounded speculative uploads while preserving visible throughput',()=>{
  const camera=createCameraState(),budget=createPlayRenderBudget({getFps:()=>60,getRenderer:()=>({options:{maxChunkUploadsPerFrame:8}})});
  budget.noteWorldVisible();budget.noteWorldCovered();
  budget.noteCameraFrame(camera,0);assert.equal(budget.allowBackgroundUploads(0),true);
  const visibleBudget=budget.frameUploadBudget();
  camera.yaw+=.03;budget.noteCameraFrame(camera,16);
- assert.equal(budget.allowBackgroundUploads(16),false);
+ assert.equal(budget.allowBackgroundUploads(16),true);
+ assert.equal(budget.frameBackgroundUploadBudget(16).maxUploads,3);
  assert.equal(budget.frameUploadBudget(),visibleBudget,'current-view upload throughput stays available');
- budget.noteCameraFrame(camera,100);assert.equal(budget.allowBackgroundUploads(100),false);
+ budget.noteCameraFrame(camera,100);assert.equal(budget.allowBackgroundUploads(100),true);
  budget.noteCameraFrame(camera,180);assert.equal(budget.allowBackgroundUploads(180),true);
  camera.targetWorldX=8;camera.targetWorldY=8;camera.targetWorldZ=8;
- budget.noteCameraFrame(camera,200);assert.equal(budget.allowBackgroundUploads(200),false);
- budget.reset();budget.noteCameraFrame(camera,201);assert.equal(budget.allowBackgroundUploads(201),true);
+ budget.noteCameraFrame(camera,200);assert.equal(budget.allowBackgroundUploads(200),true);
+ budget.reset();budget.noteCameraFrame(camera,201);assert.equal(budget.allowBackgroundUploads(201),false,'startup reserves all upload throughput');
 });
 
 test('slow continuous rotation accumulates while normalized coordinate jitter stays idle',()=>{
@@ -40,9 +41,15 @@ test('explicit targets ignore unused yaw fields and track actual projection chan
  assert.equal(tracker.update(camera,1),false,'clock reset must release the prior motion hold');
 });
 
-test('actual locomotion keeps speculative uploads paused with an unchanged camera',()=>{
+test('actual locomotion trickles bounded residency and low FPS backs off',()=>{
  let moving=true;
- const budget=createPlayRenderBudget({isMotionActive:()=>moving}),camera=createCameraState();
- budget.noteCameraFrame(camera,0);assert.equal(budget.allowBackgroundUploads(1000),false);
- moving=false;assert.equal(budget.allowBackgroundUploads(1000),true);
+ let fps=60;
+ const budget=createPlayRenderBudget({isMotionActive:()=>moving,getFps:()=>fps}),camera=createCameraState();
+ budget.noteWorldCovered();budget.noteCameraFrame(camera,0);
+ assert.equal(budget.allowBackgroundUploads(1000),true);
+ assert.ok(budget.frameBackgroundUploadBudget(1000).maxCpuMs<1);
+ moving=false;assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,6);
+ fps=30;assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,1);
+ fps=20;assert.equal(budget.allowBackgroundUploads(1000),false);
+ assert.equal(budget.frameBackgroundUploadBudget(1000).maxUploads,0);
 });

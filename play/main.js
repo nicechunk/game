@@ -76,6 +76,7 @@ import { createPlaySurfaceDecorationSync } from "./play-surface-decoration-sync.
 import { createPlayItemName } from "./play-item-name.js";
 import { createPlayConfirmDialog } from "./play-confirm-dialog.js";
 import { createPlayCacheMaintenance } from "./play-cache-maintenance.js";
+import { createChunkPrefetchPlanner, PLAY_CHUNK_STREAMING_OPTIONS } from "./play-chunk-prefetch.js";
 import { createMobileChatController } from "./play-mobile-chat.js";
 import { hydrateForgedPresentationSlot } from "./forged-hotbar-compat.js";
 import { createFoundationSpatialIndex } from "./foundation-spatial-index.js";
@@ -539,6 +540,8 @@ let mobileChat = null;
 let actionOverlayBuilder = null;
 let effects = null;
 let renderBudget = null;
+const chunkPrefetchPlanner = createChunkPrefetchPlanner();
+let chunkPrefetchFocus = null;
 let initialWorldCovered = false;
 let playHud = null;
 let inputActions = null;
@@ -715,6 +718,7 @@ async function boot() {
     deferInitialBuilds: true,
     deferContinuousBuildDispatch: true,
     maxQueuedBuilds: renderBudget.maxBuildQueueForViewDistance(viewDistance),
+    ...PLAY_CHUNK_STREAMING_OPTIONS,
   }), (manager) => ({ workers: manager?.workers?.length || 0, maxWorkers: manager?.workerCount || 0, workerMode: Boolean(manager?.useWorkers) }));
   chunks.setRenderLogger(renderLog);
   surfaceDecorationSync = createPlaySurfaceDecorationSync({
@@ -1587,6 +1591,8 @@ function frame(now) {
     cameraState: camera,
     residencyChunks: initialWorldCovered ? chunks.chunks.values() : [],
     allowBackgroundUploads: renderBudget?.allowBackgroundUploads?.(now) ?? !movingNow,
+    backgroundUploadBudget: renderBudget?.frameBackgroundUploadBudget?.(now),
+    prefetchFocus: chunkPrefetchFocus,
   }) : { uploaded: 0, pendingUploads: renderer.pendingUploadSince.size, frameDeferred: true };
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);
@@ -1694,7 +1700,10 @@ function updateChunkLoadingForFrame(now, { force = false } = {}) {
   const chunkZ = Math.floor(pz / chunkSize);
   const key = `${chunkX},${chunkZ}`;
   if (!renderBudget?.shouldUpdateChunkLoad?.(now, key, { force })) return;
-  chunks.updatePlayerPosition(player.worldX, player.worldY, player.worldZ, cameraLoadDirection(camera));
+  chunkPrefetchFocus = chunkPrefetchPlanner.update(px, pz, now, { moving: isMotionActive(), chunkSize });
+  chunks.updatePlayerPosition(player.worldX, player.worldY, player.worldZ, {
+    ...cameraLoadDirection(camera), ...chunkPrefetchFocus,
+  });
 }
 
 function pruneGpuChunksForFrame(now, { force = false } = {}) {

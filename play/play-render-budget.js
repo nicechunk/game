@@ -31,6 +31,7 @@ export function createPlayRenderBudget({
     preferredWorkerCount,
     maxBuildQueueForViewDistance,
     frameUploadBudget,
+    frameBackgroundUploadBudget,
     frameBuildConcurrencyLimit,
     shouldDeferRegionUploads,
     uploadCandidatesForFrame,
@@ -51,7 +52,7 @@ export function createPlayRenderBudget({
   }
 
   function maxBuildQueueForViewDistance(distance) {
-    const preload = clampInt(distance, 2, maxViewDistance) + preloadMargin;
+    const preload = clampInt(distance, 2, maxViewDistance) + preloadMargin + 3;
     const fullRing = preload * 2 + 1;
     return Math.max(768, fullRing * fullRing);
   }
@@ -60,18 +61,19 @@ export function createPlayRenderBudget({
     const fps = normalizedFps();
     const controls = getControls();
     const sprinting = controls?.keys?.has("ShiftLeft") || controls?.keys?.has("ShiftRight");
-    const base = getRenderer()?.options?.maxChunkUploadsPerFrame ?? 3;
+    const mobile = isMobileViewport();
+    const base = Math.min(mobile ? 8 : 16, getRenderer()?.options?.maxChunkUploadsPerFrame ?? 3);
     // During the covered startup, sampled FPS includes compilation/deferred
     // frames. It must not turn initial uploads into a one-channel serial queue.
     // The renderer still enforces its CPU deadline, byte cap and GPU fences.
-    if (!state.worldCovered) return Math.min(12, Math.max(base, isMobileViewport() ? 4 : 8));
+    if (!state.worldCovered) return Math.min(mobile ? 8 : 16, Math.max(base, mobile ? 4 : 8));
     if (fps < 36) {
       const pending = (getRenderer()?.pendingMeshSources?.size ?? 0) + (getChunks()?.buildQueue?.length ?? 0);
       return pending ? Math.max(2, Math.min(base, 4)) : 1;
     }
     if (isMotionActive() || controls?.move?.moving) {
-      if (fps > 55) return sprinting ? 4 : 5;
-      return sprinting ? 3 : 2;
+      if (fps > 55) return Math.min(mobile ? 8 : 16, Math.max(base, sprinting ? 10 : 12));
+      return Math.min(base, sprinting ? 6 : 8);
     }
     if (fps > 55) return Math.max(base, 7);
     if (fps > 45) return Math.max(base, 4);
@@ -94,7 +96,7 @@ export function createPlayRenderBudget({
     if (chunks.buildQueue.length > Math.max(2, workers)) return workers;
     if (fps < 36) return 1;
     if (sprinting) return Math.min(workers, fps > 52 ? 2 : 1);
-    if (isMotionActive()) return Math.min(workers, fps > 55 ? 2 : 1);
+    if (isMotionActive()) return Math.min(workers, fps > 45 ? workers : 2);
     if (fps > 55) return workers;
     if (fps > 45) return Math.min(workers, 2);
     return 1;
@@ -120,7 +122,21 @@ export function createPlayRenderBudget({
   }
 
   function allowBackgroundUploads(now = performance.now()) {
-    return !isMotionActive() && !cameraActivity.active(now);
+    return state.worldCovered && normalizedFps() >= 24;
+  }
+
+  function frameBackgroundUploadBudget(now = performance.now()) {
+    const fps = normalizedFps();
+    const active = isMotionActive() || cameraActivity.active(now);
+    // Background work uses only the remainder of the foreground budget. Keep
+    // trickling during travel instead of waiting until a new edge is visible.
+    const slow = fps < 40, mobile = isMobileViewport();
+    return {
+      maxUploads: !allowBackgroundUploads(now) ? 0 : slow || mobile ? 1 : active ? 3 : 6,
+      maxBytes: (slow || mobile ? 96 : active ? 256 : 512) * 1024,
+      maxCpuMs: slow || mobile ? 0.35 : active ? 0.75 : 1.25,
+      intervalMs: slow ? 80 : active ? 24 : 16,
+    };
   }
 
   function shouldUpdateChunkLoad(now, chunkKey, { force = false } = {}) {
