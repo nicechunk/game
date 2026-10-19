@@ -1,4 +1,4 @@
-import { createPlayChainAdapter } from "./play-chain-adapter.js";
+import { loadPlayChainModule, createPlayChainAdapter } from "./play-chain-adapter.js";
 import { createPlayChainEventFeed } from "./play-chain-event-feed.js";
 import { createPlacementSubmissionQueue } from "./play-placement-queue.js";
 import {
@@ -775,7 +775,8 @@ export function createPlayChainSession({
         pending.chainSignature = result.signature;
         pending.chainPlayerPositionSaved = Boolean(result.result?.playerPositionSaved);
         pending.chainResult = result.result ?? null;
-        const confirmed = await controls.confirmTx?.(pending.txId);
+        pending.chainConfirmation = result.confirmation ?? null;
+        const confirmed = await controls.confirmTx?.(pending.txId, pending.chainConfirmation);
         if (!confirmed) {
           state.chainResults.delete(pending.txId);
           appendSubmissionState(
@@ -808,6 +809,16 @@ export function createPlayChainSession({
       }
       render();
     } catch (error) {
+      if (error?.nicechunkSubmissionUncertain && error.signature) {
+        state.chainMode = "awaiting-confirmation";
+        pending.chainSignature = error.signature;
+        pending.chainOutcomeUnknown = true;
+        state.chainResults.set(pending.txId, { signature: error.signature, state: "unknown" });
+        appendSubmissionState(action, pending, `${pending.txId} submitted; confirmation is still unknown.`, "pending", { phase: "awaiting-confirmation", signature: error.signature });
+        void reconcileUncertainSubmission(action, pending, controls);
+        render();
+        return;
+      }
       state.chainMode = "adapter-error";
       const reason = readableError(error);
       logSubmissionFailure(action, pending, {
@@ -829,6 +840,47 @@ export function createPlayChainSession({
       }
       render();
     }
+  }
+
+  async function reconcileUncertainSubmission(action, pending, controls) {
+    // Read-only status recovery. A timeout is not execution failure, and a
+    // signature alone is not a receipt for every coordinate in a multi-tx plan.
+    for (let attempt = 0; attempt < 12 && pending.chainOutcomeUnknown; attempt++) {
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 5_000));
+      const module = await loadPlayChainModule().catch(() => null);
+      const status = await module?.fetchNicechunkTransactionConfirmation?.(pending.chainSignature).catch(() => null);
+      if (status?.state === "failed") {
+        pending.chainOutcomeUnknown = false;
+        state.chainResults.set(pending.txId, { reason: "transaction-execution-failed", signature: pending.chainSignature });
+        controls.rollbackTx?.(pending.txId);
+        render();
+        return;
+      }
+      if (status?.state === "confirmed") {
+        pending.chainConfirmation = status;
+        // Recover only a single atomic mine/place. Bulk/tree/collapse receipts
+        // also carry actual reward/coordinate subsets and need account recovery.
+        const singleMine = !pending.miningKind || pending.miningKind === "single" || pending.miningKind === "single-block";
+        const atomicAction = action === "place" || singleMine && (pending.blocks?.length ?? 1) <= 1;
+        if (atomicAction) {
+          pending.chainOutcomeUnknown = false;
+          pending.chainSubmitted = true;
+          state.chainResults.set(pending.txId, { signature: pending.chainSignature, confirmation: status });
+          await controls.confirmTx?.(pending.txId, status);
+        } else {
+          controls.deferToAuthorityTx?.(pending.txId);
+          pending.chainOutcomeUnknown = false;
+          appendSubmissionState(action, pending, `${pending.txId} confirmed; restoring the exact multi-action result from account snapshots.`, "pending", { phase: "authority-recovery", signature: pending.chainSignature });
+        }
+        void Promise.resolve(refreshPlayerProgress({ force: true, quiet: true })).catch(() => null);
+        render();
+        return;
+      }
+    }
+    // Keep the status explicitly unknown. Drop only the speculative preview so
+    // subsequent complete account snapshots can converge without a false failure.
+    controls.deferToAuthorityTx?.(pending.txId);
+    render();
   }
 
   function logSubmissionFailure(action, pending, { stage, reason, error = null, result = null } = {}) {

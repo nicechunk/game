@@ -106,21 +106,21 @@ export function createPlacementController({
     return null;
   }
 
-  function confirmTx(txId, { chainResolution = false } = {}) {
+  function confirmTx(txId, { chainResolution = false, confirmation = null } = {}) {
     if (!chainResolution) {
       onStatus(text("main.placement.chainConfirmOnly", "Only a confirmed chain transaction can finalize this placement."));
       return null;
     }
-    return confirmPendingAt(pendingTx.findIndex((pending) => pending.txId === txId));
+    return confirmPendingAt(pendingTx.findIndex((pending) => pending.txId === txId), confirmation);
   }
 
-  function confirmPendingAt(index) {
+  function confirmPendingAt(index, confirmation = null) {
     const pending = index >= 0 ? pendingTx.splice(index, 1)[0] : null;
     if (!pending) {
       onStatus(text("main.placement.noPendingConfirm", "No pending placement to confirm."));
       return null;
     }
-    chunks.confirmPendingDelta(pending.txId);
+    chunks.confirmPendingDelta(pending.txId, confirmation ?? pending.chainConfirmation ?? {});
     const reservation = inventoryReservations.get(pending.txId);
     if (reservation) reservation.confirmed = true;
     gameState.playerProfile.placedBlocks = (gameState.playerProfile.placedBlocks || 0) + 1;
@@ -129,6 +129,16 @@ export function createPlacementController({
     onConfirm(pending);
     onChanged();
     onStatus(text("main.placement.confirmed", "Confirmed placement {txId}.", { txId: pending.txId }));
+    return pending;
+  }
+
+  function deferToAuthorityTx(txId) {
+    const index = pendingTx.findIndex((entry) => entry.txId === txId);
+    if (index < 0) return null;
+    const pending = pendingTx.splice(index, 1)[0];
+    chunks.rollbackPendingDelta(txId);
+    inventoryReservations.delete(txId);
+    onChanged();
     return pending;
   }
 
@@ -231,6 +241,7 @@ export function createPlacementController({
     placePending,
     confirmLast,
     confirmTx,
+    deferToAuthorityTx,
     rollbackLast,
     rollbackTx,
     previewForHit,

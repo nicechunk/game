@@ -6,6 +6,7 @@ import {
   preparedCollisionBoxIntersectsBlock,
   preparedCollisionFootprintIntersectsBlock,
   resolveCameraCollisionSegment,
+  isCameraVolumeClear,
 } from "../chunk.js/play.js";
 
 export function createPlayerMotionController({
@@ -78,12 +79,12 @@ export function createPlayerMotionController({
     skin: cfg.cameraCollisionSkin,
     minimumDistance: cfg.cameraCollisionMinimumDistance,
   };
-  const cameraCenterCollisionOptions = {
-    ...cameraCollisionOptions,
-    radius: 0,
-  };
   const desiredCameraCollision = {};
   const interpolatedCameraCollision = {};
+  const focusCameraCollision = {};
+  let lastSafeCamera = null;
+  const cameraSafety = { safe: false, radius: cfg.cameraCollisionRadius, focusClipped: false, fallback: false };
+
 
   return {
     applyPlayerPhysics,
@@ -308,68 +309,114 @@ export function createPlayerMotionController({
     player.cameraPitch = pitch;
     camera.pitch = pitch;
     camera.yaw = controlYaw + Math.PI;
+    const near = Math.max(0, Number(camera.near) || 0.08);
+    const halfHeight = near * Math.tan((Number(camera.fov) || 58) * Math.PI / 360);
+    const halfWidth = halfHeight * Math.max(0.01, Number(camera.aspect) || 1);
+    // This enclosure contains the eye and all four near-plane corners for every
+    // orientation. A center ray cannot provide this guarantee.
+    cameraCollisionOptions.radius = Math.max(cfg.cameraCollisionRadius, Math.hypot(near, halfHeight, halfWidth));
+    cameraSafety.radius = cameraCollisionOptions.radius;
+    cameraSafety.focusClipped = false;
+    cameraSafety.fallback = false;
+    const mobileCamera = isMobileViewport();
+    const targetY = py + (firstPerson ? cfg.firstPersonEyeHeight
+      : mobileCamera ? cfg.cameraFocusHeightMobile : cfg.cameraFocusHeightDesktop);
+    const anchor = safePlayerCameraAnchor(px, py, pz, targetY);
+    if (!anchor) {
+      // A wholly enclosed player has no safe viewpoint. Expose this explicitly
+      // for diagnostics instead of returning an eye inside terrain as 'safe'.
+      cameraSafety.safe = false;
+      cameraSafety.fallback = true;
+      camera.cameraSafety = cameraSafety;
+      return;
+    }
     if (firstPerson) {
-      const eyeY = py + cfg.firstPersonEyeHeight;
       const horizontal = Math.cos(pitch);
       const forwardX = -Math.sin(controlYaw) * horizontal;
       const forwardY = Math.sin(pitch);
       const forwardZ = -Math.cos(controlYaw) * horizontal;
-      const cameraX = px + Math.sin(controlYaw) * cfg.firstPersonCameraBackDistance;
-      const cameraZ = pz + Math.cos(controlYaw) * cfg.firstPersonCameraBackDistance;
-      cameraFocusX = px;
-      cameraFocusY = eyeY;
-      cameraFocusZ = pz;
-      cameraFocusReady = true;
-      player.avatarYaw = controlYaw;
-      player.yaw = controlYaw;
-      setCameraWorldFloat(cameraX, eyeY, cameraZ);
-      setCameraLookTargetWorldFloat(
-        cameraX + forwardX * 8,
-        eyeY + forwardY * 8,
-        cameraZ + forwardZ * 8,
+      const safeEye = resolveCameraCollisionSegment(
+        anchor[0], anchor[1], anchor[2],
+        px + Math.sin(controlYaw) * cfg.firstPersonCameraBackDistance,
+        targetY,
+        pz + Math.cos(controlYaw) * cfg.firstPersonCameraBackDistance,
+        cameraBlockedAt, cameraCollisionOptions, desiredCameraCollision,
       );
+      cameraFocusX = px; cameraFocusY = safeEye.y; cameraFocusZ = pz;
+      cameraFocusReady = true;
+      player.avatarYaw = controlYaw; player.yaw = controlYaw;
+      commitSafeCamera(safeEye.x, safeEye.y, safeEye.z);
+      setCameraLookTargetWorldFloat(safeEye.x + forwardX * 8, safeEye.y + forwardY * 8, safeEye.z + forwardZ * 8);
       return;
     }
-    const mobileCamera = isMobileViewport();
-    const targetY = py + (mobileCamera ? cfg.cameraFocusHeightMobile : cfg.cameraFocusHeightDesktop);
-    if (force || !cameraFocusReady || distanceSquared(cameraFocusX, cameraFocusY, cameraFocusZ, px, targetY, pz) > 256) {
-      cameraFocusX = px;
-      cameraFocusY = targetY;
-      cameraFocusZ = pz;
-      cameraFocusReady = true;
-    } else {
-      const horizontalAlpha = 1 - Math.exp(-dt * 14);
-      const verticalAlpha = 1 - Math.exp(-dt * 7);
-      cameraFocusX = lerp(cameraFocusX, px, horizontalAlpha);
-      cameraFocusZ = lerp(cameraFocusZ, pz, horizontalAlpha);
-      cameraFocusY = lerp(cameraFocusY, targetY, verticalAlpha);
+    let nextFocusX = px, nextFocusY = targetY, nextFocusZ = pz;
+    if (!force && cameraFocusReady && distanceSquared(cameraFocusX, cameraFocusY, cameraFocusZ, px, targetY, pz) <= 256) {
+      const horizontalAlpha = 1 - Math.exp(-Math.max(0, dt) * 14);
+      const verticalAlpha = 1 - Math.exp(-Math.max(0, dt) * 7);
+      nextFocusX = lerp(cameraFocusX, px, horizontalAlpha);
+      nextFocusZ = lerp(cameraFocusZ, pz, horizontalAlpha);
+      nextFocusY = lerp(cameraFocusY, targetY, verticalAlpha);
     }
+    const safeFocus = resolveCameraCollisionSegment(
+      anchor[0], anchor[1], anchor[2], nextFocusX, nextFocusY, nextFocusZ,
+      cameraBlockedAt, cameraCollisionOptions, focusCameraCollision,
+    );
+    cameraFocusX = safeFocus.x; cameraFocusY = safeFocus.y; cameraFocusZ = safeFocus.z;
+    cameraFocusReady = true;
+    cameraSafety.focusClipped = safeFocus.collided;
     const horizontal = Math.cos(pitch) * cfg.cameraDistance;
     const desiredX = cameraFocusX + Math.sin(controlYaw) * horizontal;
     const desiredY = cameraFocusY + Math.sin(-pitch) * cfg.cameraDistance + (mobileCamera ? cfg.cameraLiftMobile : cfg.cameraLiftDesktop);
     const desiredZ = cameraFocusZ + Math.cos(controlYaw) * horizontal;
-    setCameraLookTargetWorldFloat(cameraFocusX, cameraFocusY, cameraFocusZ);
     const safeDesired = resolveCameraPosition(desiredX, desiredY, desiredZ, desiredCameraCollision);
-    if (force) {
-      setCameraWorldFloat(safeDesired.x, safeDesired.y, safeDesired.z);
-      setCameraLookTargetWorldFloat(cameraFocusX, cameraFocusY, cameraFocusZ);
-      return;
-    }
-    if (safeDesired.collided) {
-      // Moving inward immediately avoids exposing a terrain face for one frame.
-      setCameraWorldFloat(safeDesired.x, safeDesired.y, safeDesired.z);
+    setCameraLookTargetWorldFloat(cameraFocusX, cameraFocusY, cameraFocusZ);
+    if (force || safeDesired.collided) {
+      // Contract immediately when blocked; only unobstructed outward recovery is smooth.
+      commitSafeCamera(safeDesired.x, safeDesired.y, safeDesired.z);
       return;
     }
     const [cx, cy, cz] = cameraWorldFloat();
-    const positionAlpha = 1 - Math.exp(-dt * 9);
+    const positionAlpha = 1 - Math.exp(-Math.max(0, dt) * 9);
     const safeInterpolated = resolveCameraPosition(
-      lerp(cx, desiredX, positionAlpha),
-      lerp(cy, desiredY, positionAlpha),
-      lerp(cz, desiredZ, positionAlpha),
+      lerp(cx, desiredX, positionAlpha), lerp(cy, desiredY, positionAlpha), lerp(cz, desiredZ, positionAlpha),
       interpolatedCameraCollision,
-      cameraCenterCollisionOptions,
     );
-    setCameraWorldFloat(safeInterpolated.x, safeInterpolated.y, safeInterpolated.z);
+    commitSafeCamera(safeInterpolated.x, safeInterpolated.y, safeInterpolated.z);
+  }
+
+  function safePlayerCameraAnchor(px, py, pz, targetY) {
+    const radius = cameraCollisionOptions.radius;
+    const candidates = [
+      [px, targetY, pz],
+      [px, py + cfg.firstPersonEyeHeight, pz],
+      [px, py + Math.min(cfg.firstPersonEyeHeight, cfg.playerBodyHeight - radius - 0.002), pz],
+      [px, py + cfg.playerBodyHeight * 0.5, pz],
+    ];
+    for (const point of candidates) {
+      if (isCameraVolumeClear(...point, cameraBlockedAt, radius)) {
+        cameraSafety.fallback = point[1] !== targetY;
+        return point;
+      }
+    }
+    if (lastSafeCamera && isCameraVolumeClear(...lastSafeCamera, cameraBlockedAt, radius)) {
+      cameraSafety.fallback = true;
+      return lastSafeCamera;
+    }
+    return null;
+  }
+
+  function commitSafeCamera(x, y, z) {
+    const safe = isCameraVolumeClear(x, y, z, cameraBlockedAt, cameraCollisionOptions.radius);
+    cameraSafety.safe = safe;
+    getCamera().cameraSafety = cameraSafety;
+    if (safe) {
+      setCameraWorldFloat(x, y, z);
+      lastSafeCamera = [x, y, z];
+    } else if (lastSafeCamera && isCameraVolumeClear(...lastSafeCamera, cameraBlockedAt, cameraCollisionOptions.radius)) {
+      cameraSafety.safe = true;
+      cameraSafety.fallback = true;
+      setCameraWorldFloat(...lastSafeCamera);
+    }
   }
 
   function setFirstPersonCameraEnabled(enabled) {

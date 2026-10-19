@@ -8812,7 +8812,7 @@ async function signAndSendWalletTransaction(provider, transaction, conn = getNic
   if (typeof provider.signTransaction === "function") {
     const signed = await provider.signTransaction(transaction);
     const signature = await sendRawTransactionWithLogs(conn, signed.serialize(), "wallet");
-    await confirmTransactionByHttpPolling(conn, {
+    await confirmSubmittedTransaction(conn, {
       signature,
       blockhash: transaction.recentBlockhash,
       lastValidBlockHeight: transaction.lastValidBlockHeight,
@@ -8826,7 +8826,7 @@ async function signAndSendWalletTransaction(provider, transaction, conn = getNic
   const result = await provider.signAndSendTransaction(transaction);
   const signature = typeof result === "string" ? result : result?.signature;
   if (!signature) throw new Error("Wallet did not return a transaction signature.");
-  await confirmTransactionByHttpPolling(conn, {
+  await confirmSubmittedTransaction(conn, {
     signature,
     blockhash: transaction.recentBlockhash,
     lastValidBlockHeight: transaction.lastValidBlockHeight,
@@ -8841,7 +8841,7 @@ async function signAndSendKeypairTransaction(signer, transaction, conn = getNice
   transaction.lastValidBlockHeight = lastValidBlockHeight;
   transaction.sign(signer);
   const signature = await sendRawTransactionWithLogs(conn, transaction.serialize(), "keypair");
-  await confirmTransactionByHttpPolling(conn, { signature, blockhash, lastValidBlockHeight }, "confirmed");
+  await confirmSubmittedTransaction(conn, { signature, blockhash, lastValidBlockHeight }, "confirmed");
   return signature;
 }
 
@@ -8956,6 +8956,49 @@ async function sendRawTransactionWithLogs(conn, serializedTransaction, context) 
   }
 }
 
+const confirmedTransactionMetadata = new Map();
+
+export function getNicechunkTransactionConfirmation(signature) {
+  const value = confirmedTransactionMetadata.get(String(signature || ""));
+  return value ? { ...value } : null;
+}
+
+export async function fetchNicechunkTransactionConfirmation(signature, conn = getNicechunkConnection()) {
+  const response = await conn.getSignatureStatuses([String(signature)], { searchTransactionHistory: true });
+  const status = response?.value?.[0];
+  if (status?.err) return { state: "failed", signature: String(signature), error: status.err };
+  if (!hasReachedSignatureCommitment(status, "confirmed")) return { state: "unknown", signature: String(signature) };
+  const confirmation = rememberTransactionConfirmation(signature, status, response);
+  return { state: "confirmed", ...confirmation };
+}
+
+function rememberTransactionConfirmation(signature, status, response) {
+  const confirmation = {
+    signature: String(signature),
+    executionSlot: Number.isSafeInteger(status?.slot) && status.slot >= 0 ? status.slot : null,
+    commitment: status?.confirmationStatus === "finalized" || status?.confirmations === null ? "finalized" : "confirmed",
+    confirmedAt: Date.now(),
+    // This only records when the status response was evaluated. It must never
+    // be substituted for executionSlot or an account modification version.
+    responseContextSlot: Number.isSafeInteger(response?.context?.slot) ? response.context.slot : null,
+  };
+  if (confirmedTransactionMetadata.size >= 512) confirmedTransactionMetadata.delete(confirmedTransactionMetadata.keys().next().value);
+  confirmedTransactionMetadata.set(String(signature), confirmation);
+  return confirmation;
+}
+
+async function confirmSubmittedTransaction(conn, strategy, commitment) {
+  try { return await confirmTransactionByHttpPolling(conn, strategy, commitment); }
+  catch (caught) {
+    const error = caught && typeof caught === "object" ? caught : new Error(String(caught));
+    if (error?.name !== "TransactionStatusError") {
+      error.signature = strategy.signature;
+      error.nicechunkSubmissionUncertain = true;
+    }
+    throw error;
+  }
+}
+
 async function confirmTransactionByHttpPolling(conn, strategy, commitment = "confirmed") {
   const { signature, lastValidBlockHeight } = strategy;
   const startedAt = Date.now();
@@ -8969,10 +9012,12 @@ async function confirmTransactionByHttpPolling(conn, strategy, commitment = "con
       return {
         context: statusResponse.context,
         value: { err: null },
+        confirmation: rememberTransactionConfirmation(signature, status, statusResponse),
       };
     }
 
     const now = Date.now();
+    if (now - startedAt > transactionConfirmationTimeoutMs) throw createTransactionConfirmationTimeoutError(signature);
     if (Number.isFinite(lastValidBlockHeight) && now >= nextBlockHeightCheckAt) {
       nextBlockHeightCheckAt = now + transactionBlockHeightPollMs;
       const blockHeight = await conn.getBlockHeight(commitment).catch(() => null);
@@ -8986,12 +9031,11 @@ async function confirmTransactionByHttpPolling(conn, strategy, commitment = "con
           return {
             context: finalStatusResponse.context,
             value: { err: null },
+            confirmation: rememberTransactionConfirmation(signature, finalStatus, finalStatusResponse),
           };
         }
         throw new TransactionExpiredBlockheightExceededError(signature);
       }
-    } else if (!Number.isFinite(lastValidBlockHeight) && now - startedAt > transactionConfirmationTimeoutMs) {
-      throw createTransactionConfirmationTimeoutError(signature);
     }
 
     await sleep(transactionConfirmationPollMs);

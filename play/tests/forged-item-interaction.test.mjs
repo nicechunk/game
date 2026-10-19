@@ -167,5 +167,8 @@ function forgedSlot(code, designHash) {
     designHash,
     durability: 900,
     maxDurability: 900,
+    custodySource: "equipment",
+    equipmentSlot: 1,
+    itemPda: "Item11111111111111111111111111111111111",
   };
 }

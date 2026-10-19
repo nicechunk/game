@@ -190,3 +190,24 @@ test("compute-limit detection does not classify unrelated program failures", () 
 function block(x, y = 8, z = 0) {
   return { x, y, z, blockId: 1, resourceId: 1 };
 }
+
+test("unknown submitted range is never classified as failure or retried with a second transaction", async () => {
+  const ranges = [{ blocks: [{ x: 1, y: -17, z: 1 }] }, { blocks: [{ x: 2, y: -17, z: 1 }, { x: 3, y: -17, z: 1 }] }, { blocks: [{ x: 4, y: -17, z: 1 }] }];
+  let calls = 0;
+  const unknown = Object.assign(new Error("status read timed out"), { signature: "uncertain-local-vector", nicechunkSubmissionUncertain: true });
+  await assert.rejects(submitBulkMiningRanges(ranges, async () => { if (++calls === 1) return { signature: "confirmed-prefix" }; throw unknown; }), (error) => {
+    assert.strictEqual(error, unknown);
+    assert.deepEqual(error.nicechunkConfirmedBlocks, ranges[0].blocks);
+    assert.deepEqual(error.nicechunkUncertainBlocks, ranges[1].blocks);
+    assert.deepEqual(error.nicechunkAbortedBlocks, ranges[2].blocks);
+    return true;
+  });
+  assert.equal(calls, 2);
+});
+
+test("legacy batch fallback never replays a batch whose submitted outcome is unknown", async () => {
+  let calls = 0;
+  const unknown = Object.assign(new Error("unknown confirmation"), { nicechunkSubmissionUncertain: true, signature: "uncertain-batch-vector" });
+  await assert.rejects(submitBulkMiningBatches([{ blocks: [{ x: 1, y: 1, z: 1 }, { x: 2, y: 1, z: 1 }] }], async () => { calls++; throw unknown; }), (error) => error === unknown);
+  assert.equal(calls, 1);
+});

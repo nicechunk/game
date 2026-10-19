@@ -3,40 +3,46 @@ import { createChunkPdaDeriver } from "./play-solana-pda-lite.js";
 const pdaCache = new Map();
 let activeConfigKey = "";
 
+import { fetchChunkAccountBatch } from "./play-chain-rpc-batch.js";
+import { runChunkBatchPool } from "./play-chain-batch-scheduler.js";
+const activeTasks = new Map();
+
 self.onmessage = async (event) => {
   const task = event.data;
-  if (!task || task.type !== "fetchChunkPdas") return;
+  if (task?.type === "cancelChunkPdas") {
+    activeTasks.get(task.taskId)?.abort();
+    return;
+  }
+  if (task?.type !== "fetchChunkPdas") return;
+  const controller = new AbortController();
+  activeTasks.set(task.taskId, controller);
   try {
     const derivers = configuredDerivers(task.pdaConfig);
     const batches = Array.isArray(task.batches) ? task.batches : [];
-    const batchResults = await Promise.all(batches.map(async (batch, batchIndex) => {
-      const pubkeyPairs = await Promise.all((batch ?? []).map((chunk) => Promise.all([
-        deriveCachedPda("broken", derivers.broken, chunk.chunkX, chunk.chunkZ),
-        deriveCachedPda("placed", derivers.placed, chunk.chunkX, chunk.chunkZ),
-      ])));
-      const pubkeys = pubkeyPairs.flat();
-      return fetchAccountBatch({
-        rpcUrl: task.rpcUrl,
-        pubkeys,
-        requestId: task.taskId * 100 + batchIndex,
-        timeoutMs: task.timeoutMs,
-        minContextSlot: task.minContextSlot,
-      });
-    }));
-    const transfer = [];
-    for (const result of batchResults) {
-      for (const info of result.infos ?? []) {
-        if (info?.data?.buffer) transfer.push(info.data.buffer);
-      }
-    }
-    self.postMessage({ type: "chunkPdasFetched", taskId: task.taskId, batchResults }, transfer);
-  } catch (error) {
-    self.postMessage({
-      type: "chunkPdasFetchError",
-      taskId: task.taskId,
-      error: readableError(error),
+    const stats = await runChunkBatchPool(batches, {
+      concurrency: task.concurrency,
+      signal: controller.signal,
+      fetchBatch: async (batch, batchIndex, signal) => {
+        const pubkeyPairs = [];
+        for (const chunk of batch ?? []) {
+          if (signal.aborted) return { ok: false, error: "cancelled" };
+          pubkeyPairs.push([
+            await deriveCachedPda("broken", derivers.broken, chunk.chunkX, chunk.chunkZ),
+            await deriveCachedPda("placed", derivers.placed, chunk.chunkX, chunk.chunkZ),
+          ]);
+        }
+        return fetchChunkAccountBatch({ rpcUrl: task.rpcUrl, pubkeys: pubkeyPairs.flat(), requestId: task.taskId * 100 + batchIndex, timeoutMs: task.timeoutMs, minContextSlot: task.minContextSlot, signal });
+      },
+      onResult: (result, batchIndex) => {
+        const transfer = [];
+        for (const info of result.infos ?? []) if (info?.data?.buffer) transfer.push(info.data.buffer);
+        self.postMessage({ type: "chunkPdaBatchFetched", taskId: task.taskId, syncEpoch: task.syncEpoch, batchIndex, result }, transfer);
+      },
     });
-  }
+    if (!controller.signal.aborted) self.postMessage({ type: "chunkPdasFetched", taskId: task.taskId, syncEpoch: task.syncEpoch, stats });
+  } catch (error) {
+    if (!controller.signal.aborted) self.postMessage({ type: "chunkPdasFetchError", taskId: task.taskId, syncEpoch: task.syncEpoch, error: readableError(error) });
+  } finally { activeTasks.delete(task.taskId); }
 };
 
 function configuredDerivers(config) {
@@ -65,59 +71,6 @@ async function deriveCachedPda(kind, deriveChunkPda, chunkX, chunkZ) {
   if (pdaCache.size >= 4096) pdaCache.delete(pdaCache.keys().next().value);
   pdaCache.set(key, address);
   return address;
-}
-
-async function fetchAccountBatch({ rpcUrl, pubkeys, requestId, timeoutMs, minContextSlot = 0 }) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1_000, Math.trunc(Number(timeoutMs) || 12_000)));
-  try {
-    const config = { commitment: "confirmed", encoding: "base64" };
-    const minimumSlot = Math.max(0, Math.trunc(Number(minContextSlot) || 0));
-    if (minimumSlot > 0) config.minContextSlot = minimumSlot;
-    const response = await fetch(String(rpcUrl || ""), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: requestId,
-        method: "getMultipleAccounts",
-        params: [pubkeys, config],
-      }),
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    if (!response.ok) return { ok: false, error: `RPC HTTP ${response.status}`, infos: [] };
-    const payload = await response.json();
-    if (payload?.error) return { ok: false, error: readableError(payload.error?.message || payload.error), infos: [] };
-    const values = payload?.result?.value;
-    if (!Array.isArray(values) || values.length !== pubkeys.length) {
-      return { ok: false, error: "Invalid getMultipleAccounts response length.", infos: [] };
-    }
-    return {
-      ok: true,
-      contextSlot: Math.max(0, Math.trunc(Number(payload?.result?.context?.slot) || 0)),
-      infos: values.map(decodeAccountInfo),
-    };
-  } catch (error) {
-    const reason = error?.name === "AbortError" ? "chunk PDA RPC batch timed out" : readableError(error);
-    return { ok: false, error: reason, infos: [] };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function decodeAccountInfo(account) {
-  if (!account) return null;
-  const encoded = Array.isArray(account.data) ? account.data[0] : account.data;
-  if (typeof encoded !== "string") throw new Error("Invalid base64 account data.");
-  const binary = atob(encoded);
-  const data = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) data[index] = binary.charCodeAt(index);
-  return {
-    data,
-    owner: String(account.owner || ""),
-    executable: Boolean(account.executable),
-  };
 }
 
 function readableError(error) {

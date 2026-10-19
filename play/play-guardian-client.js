@@ -1,3 +1,4 @@
+import { GUARDIAN_Y_OFFSET32_V1, encodeGuardianY, decodeGuardianY } from "../sdk/guardian-wire.js";
 export const DEFAULT_NICECHUNK_GUARDIAN_URL = "";
 const LEGACY_NICECHUNK_GUARDIAN_URLS = new Set([
   "wss://nicechunk.com/guardian-ws",
@@ -127,7 +128,9 @@ class NiceChunkGuardianClient {
   constructor(options = {}) {
     this.url = options.url || resolveNiceChunkGuardianUrl();
     this.chunkSize = options.chunkSize || 16;
+    if (this.chunkSize !== 16) throw new RangeError("Guardian protocol 1 requires 16-block chunks.");
     this.positionPrecision = options.positionPrecision || DEFAULT_POSITION_PRECISION;
+    if (this.positionPrecision !== DEFAULT_POSITION_PRECISION) throw new RangeError("Guardian wire position precision is fixed at 64 units per block.");
     this.moveIntervalMs = 1000 / (options.moveHz || DEFAULT_MOVE_HZ);
     this.moveHeartbeatMs = Math.max(
       this.moveIntervalMs,
@@ -138,6 +141,10 @@ class NiceChunkGuardianClient {
     this.serviceRadiusChunks = options.serviceRadiusChunks ?? DEFAULT_SERVICE_RADIUS_CHUNKS;
     this.identityHint = options.walletAddress || "";
     this.onReady = options.onReady || (() => {});
+    this.onCompatibility = options.onCompatibility || (() => {});
+    this.advertiseOffsetY = options.advertiseOffsetY !== false;
+    this.supportsOffsetY = false;
+    this.compatibilityState = "unnegotiated";
     this.onClose = options.onClose || (() => {});
     this.onError = options.onError || (() => {});
     this.onPlayerJoin = options.onPlayerJoin || (() => {});
@@ -172,6 +179,7 @@ class NiceChunkGuardianClient {
     this.lastMoveSentAt = 0;
     this.lastMovePoseKey = "";
     this.supportsEquipmentSync = false;
+    this.supportsOffsetY = false;
     this.supportsDigBatch = false;
     this.supportsBuildingManifest = false;
     this.buildingManifestPages = new Map();
@@ -211,6 +219,7 @@ class NiceChunkGuardianClient {
       this.lastMoveSentAt = 0;
       this.lastMovePoseKey = "";
       this.supportsEquipmentSync = false;
+    this.supportsOffsetY = false;
       this.supportsDigBatch = false;
       this.supportsBuildingManifest = false;
       this.buildingManifestPages.clear();
@@ -233,6 +242,7 @@ class NiceChunkGuardianClient {
     this.lastMoveSentAt = 0;
     this.lastMovePoseKey = "";
     this.supportsEquipmentSync = false;
+    this.supportsOffsetY = false;
     this.supportsDigBatch = false;
     this.supportsBuildingManifest = false;
     this.buildingManifestPages.clear();
@@ -258,6 +268,7 @@ class NiceChunkGuardianClient {
     this.lastMoveSentAt = 0;
     this.lastMovePoseKey = "";
     this.supportsEquipmentSync = false;
+    this.supportsOffsetY = false;
     this.supportsDigBatch = false;
     this.supportsBuildingManifest = false;
     this.buildingManifestPages.clear();
@@ -273,6 +284,7 @@ class NiceChunkGuardianClient {
     if (!poseChanged && !heartbeatDue) return;
 
     const move = this.encodeMove({ x, y, z, yaw, pitch });
+    if (!move) { this.reportYCompatibility(y); return false; }
     this.lastMovePoseKey = poseKey;
     this.lastMoveSentAt = now;
     this.socket.send(move.buffer);
@@ -281,6 +293,7 @@ class NiceChunkGuardianClient {
   sendDig({ x, y, z, action = 1, toolHint = 0 }) {
     if (!this.ready || !this.socket || this.socket.readyState !== WebSocket.OPEN) return false;
     const packet = this.encodeDig({ x, y, z, action, toolHint });
+    if (!packet) { this.reportYCompatibility(y); return false; }
     this.socket.send(packet.buffer);
     return true;
   }
@@ -289,9 +302,9 @@ class NiceChunkGuardianClient {
     const normalized = Array.isArray(blocks) ? blocks.filter(Boolean) : [];
     if (!normalized.length || !this.ready || !this.socket || this.socket.readyState !== WebSocket.OPEN) return false;
     if (!this.supportsDigBatch) {
-      normalized.forEach((block) => this.sendDig({ ...block, action, toolHint }));
-      return true;
+      return normalized.map((block) => this.sendDig({ ...block, action, toolHint })).every(Boolean);
     }
+    if (normalized.some((block) => this.encodeY(block.y) === null)) { this.reportYCompatibility(normalized.find((block) => this.encodeY(block.y) === null)?.y); return false; }
     for (let offset = 0; offset < normalized.length; offset += 255) {
       const packet = this.encodeDigBatch(normalized.slice(offset, offset + 255), { action, toolHint });
       if (packet) this.socket.send(packet.buffer);
@@ -375,7 +388,7 @@ class NiceChunkGuardianClient {
   }
 
   async handleSocketMessage(data) {
-    const buffer = data instanceof ArrayBuffer ? data : await data.arrayBuffer();
+    const buffer = data instanceof ArrayBuffer ? data : ArrayBuffer.isView(data) ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) : await data.arrayBuffer();
     const view = new DataView(buffer);
     if (view.byteLength < 1) return;
 
@@ -431,7 +444,7 @@ class NiceChunkGuardianClient {
     const view = new DataView(bytes.buffer);
     view.setUint8(0, MSG_HELLO);
     view.setUint8(1, PROTOCOL_VERSION);
-    view.setUint16(2, 0, true);
+    view.setUint16(2, this.advertiseOffsetY ? GUARDIAN_Y_OFFSET32_V1 : 0, true);
     this.writeWalletHint(bytes, 4);
     view.setInt32(36, chunk.x, true);
     view.setInt32(40, chunk.z, true);
@@ -441,9 +454,12 @@ class NiceChunkGuardianClient {
     return bytes.buffer;
   }
 
-  encodeMove({ x, y, z, yaw, pitch }) {
+  encodeMove({ x, y, z, yaw = 0, pitch = 0 }) {
+    const encodedY = this.encodeY(y, true);
+    if (encodedY === null || !Number.isFinite(x) || !Number.isFinite(z)) return null;
     const chunk = this.worldToChunk(x, z);
     const local = this.globalToLocalChunk(chunk.x, chunk.z);
+    if (!this.validLocalChunk(local)) return null;
     const offsetX = x - chunk.x * this.chunkSize;
     const offsetZ = z - chunk.z * this.chunkSize;
     const bytes = new Uint8Array(MOVE_SIZE);
@@ -452,7 +468,7 @@ class NiceChunkGuardianClient {
     view.setUint8(1, clampByte(local.x));
     view.setUint8(2, clampByte(local.z));
     view.setUint16(3, clampU16(Math.round(offsetX * this.positionPrecision)), true);
-    view.setUint16(5, clampU16(Math.round(y * this.positionPrecision)), true);
+    view.setUint16(5, encodedY, true);
     view.setUint16(7, clampU16(Math.round(offsetZ * this.positionPrecision)), true);
     view.setUint8(9, encodeYaw(yaw));
     view.setInt8(10, encodePitch(pitch));
@@ -463,22 +479,26 @@ class NiceChunkGuardianClient {
   encodeMovePoseKey({ x, y, z, yaw, pitch }) {
     const chunk = this.worldToChunk(x, z);
     const local = this.globalToLocalChunk(chunk.x, chunk.z);
+    if (!this.validLocalChunk(local)) return null;
     const offsetX = x - chunk.x * this.chunkSize;
     const offsetZ = z - chunk.z * this.chunkSize;
     return [
       clampByte(local.x),
       clampByte(local.z),
       clampU16(Math.round(offsetX * this.positionPrecision)),
-      clampU16(Math.round(y * this.positionPrecision)),
+      this.encodeY(y, true),
       clampU16(Math.round(offsetZ * this.positionPrecision)),
       encodeYaw(yaw),
       encodePitch(pitch),
     ].join(":");
   }
 
-  encodeDig({ x, y, z, action, toolHint }) {
+  encodeDig({ x, y, z, action = 1, toolHint = 0 }) {
+    const encodedY = this.encodeY(y);
+    if (encodedY === null || !Number.isFinite(x) || !Number.isFinite(z)) return null;
     const chunk = this.worldToChunk(x, z);
     const local = this.globalToLocalChunk(chunk.x, chunk.z);
+    if (!this.validLocalChunk(local)) return null;
     const blockX = Math.floor(x - chunk.x * this.chunkSize);
     const blockZ = Math.floor(z - chunk.z * this.chunkSize);
     const bytes = new Uint8Array(DIG_SIZE);
@@ -488,16 +508,16 @@ class NiceChunkGuardianClient {
     view.setUint8(3, clampByte(local.x));
     view.setUint8(4, clampByte(local.z));
     view.setUint8(5, clampByte(blockX));
-    view.setUint16(6, clampU16(Math.floor(y)), true);
+    view.setUint16(6, encodedY, true);
     view.setUint8(8, clampByte(blockZ));
     view.setUint8(9, clampByte(action));
     view.setUint8(10, clampByte(toolHint));
     return bytes;
   }
 
-  encodeDigBatch(blocks, { action, toolHint }) {
+  encodeDigBatch(blocks, { action = 1, toolHint = 0 } = {}) {
     const normalized = Array.isArray(blocks) ? blocks.filter(Boolean).slice(0, 255) : [];
-    if (!normalized.length) return null;
+    if (!normalized.length || normalized.some((block) => this.encodeY(block.y) === null || !Number.isFinite(block.x) || !Number.isFinite(block.z))) return null;
     const bytes = new Uint8Array(DIG_BATCH_HEADER_SIZE + normalized.length * DIG_BATCH_ITEM_SIZE);
     const view = new DataView(bytes.buffer);
     view.setUint8(0, MSG_DIG_BATCH);
@@ -506,13 +526,14 @@ class NiceChunkGuardianClient {
     for (const block of normalized) {
       const chunk = this.worldToChunk(block.x, block.z);
       const local = this.globalToLocalChunk(chunk.x, chunk.z);
+      if (!this.validLocalChunk(local)) return null;
       const blockX = Math.floor(block.x - chunk.x * this.chunkSize);
       const blockZ = Math.floor(block.z - chunk.z * this.chunkSize);
       view.setUint16(offset, ++this.digSeq & 0xffff, true);
       view.setUint8(offset + 2, clampByte(local.x));
       view.setUint8(offset + 3, clampByte(local.z));
       view.setUint8(offset + 4, clampByte(blockX));
-      view.setUint16(offset + 5, clampU16(Math.floor(block.y)), true);
+      view.setUint16(offset + 5, this.encodeY(block.y), true);
       view.setUint8(offset + 7, clampByte(blockZ));
       view.setUint8(offset + 8, clampByte(action));
       view.setUint8(offset + 9, clampByte(toolHint));
@@ -566,8 +587,10 @@ class NiceChunkGuardianClient {
     }
     const protocolVersion = view.getUint8(1);
     const chunkIndexMode = view.getUint8(17);
-    if (protocolVersion !== PROTOCOL_VERSION || chunkIndexMode !== CHUNK_INDEX_MODE_U8) {
+    if (protocolVersion !== PROTOCOL_VERSION || chunkIndexMode !== CHUNK_INDEX_MODE_U8 || view.getUint16(14, true) > 127) {
       this.onProtocolError({ code: 8 });
+      this.closedByClient = true;
+      this.onCompatibility({ mode: "unsupported-protocol", authoritativeFallback: true });
       this.socket?.close();
       return;
     }
@@ -578,6 +601,9 @@ class NiceChunkGuardianClient {
     this.serviceRadiusChunks = view.getUint16(14, true);
     this.serverTick = view.getUint16(18, true);
     this.ready = true;
+    this.supportsOffsetY = this.advertiseOffsetY && Boolean(serverFlags & GUARDIAN_Y_OFFSET32_V1);
+    this.compatibilityState = this.supportsOffsetY ? "offset32-v1" : "legacy-positive-y-only";
+    this.onCompatibility({ mode: this.compatibilityState, authoritativeFallback: !this.supportsOffsetY });
     this.supportsEquipmentSync = Boolean(serverFlags & SERVER_FLAG_EQUIPMENT_SYNC);
     this.supportsDigBatch = Boolean(serverFlags & SERVER_FLAG_DIG_BATCH);
     this.supportsBuildingManifest = Boolean(serverFlags & SERVER_FLAG_BUILDING_MANIFEST);
@@ -585,6 +611,8 @@ class NiceChunkGuardianClient {
     this.onReady({
       localPlayerId: this.localPlayerId,
       serverFlags,
+      supportsOffsetY: this.supportsOffsetY,
+      compatibilityMode: this.compatibilityState,
       supportsEquipmentSync: this.supportsEquipmentSync,
       supportsDigBatch: this.supportsDigBatch,
       supportsBuildingManifest: this.supportsBuildingManifest,
@@ -691,7 +719,7 @@ class NiceChunkGuardianClient {
   }
 
   decodeMoveBatch(view) {
-    if (view.byteLength < 4) return;
+    if (view.byteLength < 4) { this.onProtocolError({ code: 4 }); return; }
     this.serverTick = view.getUint16(1, true);
     const count = view.getUint8(3);
     const expectedLength = 4 + count * MOVE_ITEM_SIZE;
@@ -703,6 +731,7 @@ class NiceChunkGuardianClient {
     for (let i = 0; i < count; i++) {
       const player = this.decodeMoveItem(view, offset);
       offset += MOVE_ITEM_SIZE;
+      if (player.y === null) { this.onProtocolError({ code: 3, reason: "invalid-player-y" }); continue; }
       if (player.localPlayerId === this.localPlayerId) continue;
       this.onPlayerMove(player);
     }
@@ -732,13 +761,14 @@ class NiceChunkGuardianClient {
     const localChunkZ = view.getUint8(6);
     const chunkX = this.localToGlobalChunkX(localChunkX);
     const chunkZ = this.localToGlobalChunkZ(localChunkZ);
+    if (!this.validLocalChunk({ x: localChunkX, z: localChunkZ }) || this.decodeY(view.getUint16(8, true)) === null || view.getUint8(7) >= this.chunkSize || view.getUint8(10) >= this.chunkSize) { this.onProtocolError({ code: 3, reason: "invalid-dig-coordinate" }); return; }
     this.onDig({
       localPlayerId,
       seq: view.getUint16(3, true),
       chunkX,
       chunkZ,
       x: chunkX * this.chunkSize + view.getUint8(7),
-      y: view.getUint16(8, true),
+      y: this.decodeY(view.getUint16(8, true)),
       z: chunkZ * this.chunkSize + view.getUint8(10),
       action: view.getUint8(11),
       serverTick: view.getUint16(12, true),
@@ -765,13 +795,14 @@ class NiceChunkGuardianClient {
       const localChunkZ = view.getUint8(offset + 3);
       const chunkX = this.localToGlobalChunkX(localChunkX);
       const chunkZ = this.localToGlobalChunkZ(localChunkZ);
+      if (!this.validLocalChunk({ x: localChunkX, z: localChunkZ }) || this.decodeY(view.getUint16(offset + 5, true)) === null || view.getUint8(offset + 4) >= this.chunkSize || view.getUint8(offset + 7) >= this.chunkSize) { this.onProtocolError({ code: 3, reason: "invalid-dig-coordinate" }); return; }
       this.onDig({
         localPlayerId,
         seq: view.getUint16(offset, true),
         chunkX,
         chunkZ,
         x: chunkX * this.chunkSize + view.getUint8(offset + 4),
-        y: view.getUint16(offset + 5, true),
+        y: this.decodeY(view.getUint16(offset + 5, true)),
         z: chunkZ * this.chunkSize + view.getUint8(offset + 7),
         action: view.getUint8(offset + 8),
         serverTick: this.serverTick,
@@ -810,6 +841,7 @@ class NiceChunkGuardianClient {
       yaw: view.getUint8(poseOffset + 8),
       pitch: view.getInt8(poseOffset + 9),
     });
+    if (player.y === null) { this.onProtocolError({ code: 3, reason: "invalid-player-y" }); return; }
     if (player.localPlayerId === this.localPlayerId) return;
     this.onPlayerJoin(player);
   }
@@ -904,6 +936,7 @@ class NiceChunkGuardianClient {
   }
 
   decodePlayerPose(packet) {
+    const valid = this.validLocalChunk({ x: packet.localChunkX, z: packet.localChunkZ }) && packet.posX <= this.chunkSize * this.positionPrecision && packet.posZ <= this.chunkSize * this.positionPrecision;
     const chunkX = this.localToGlobalChunkX(packet.localChunkX);
     const chunkZ = this.localToGlobalChunkZ(packet.localChunkZ);
     return {
@@ -914,11 +947,26 @@ class NiceChunkGuardianClient {
       chunkX,
       chunkZ,
       x: chunkX * this.chunkSize + packet.posX / this.positionPrecision,
-      y: packet.posY / this.positionPrecision,
+      y: valid ? this.decodeY(packet.posY, true) : null,
       z: chunkZ * this.chunkSize + packet.posZ / this.positionPrecision,
       yaw: decodeYaw(packet.yaw),
       pitch: decodePitch(packet.pitch),
     };
+  }
+
+  encodeY(y, fractional = false) {
+    return encodeGuardianY(y, { fractional, offset32: this.supportsOffsetY, precision: this.positionPrecision });
+  }
+
+  decodeY(y, fractional = false) {
+    return decodeGuardianY(y, { fractional, offset32: this.supportsOffsetY, precision: this.positionPrecision });
+  }
+
+  reportYCompatibility(y) {
+    const mode = !this.supportsOffsetY && Number.isFinite(y) && y < 0 ? "legacy-negative-y-suppressed" : "invalid-world-coordinate";
+    if (this.compatibilityState === mode) return;
+    this.compatibilityState = mode;
+    this.onCompatibility({ mode, authoritativeFallback: true });
   }
 
   sendPong() {
@@ -955,6 +1003,10 @@ class NiceChunkGuardianClient {
       x: chunkX - (this.centerChunkX - this.serviceRadiusChunks),
       z: chunkZ - (this.centerChunkZ - this.serviceRadiusChunks),
     };
+  }
+
+  validLocalChunk(local) {
+    return Number.isInteger(local.x) && Number.isInteger(local.z) && local.x >= 0 && local.z >= 0 && local.x <= Math.min(255, this.serviceRadiusChunks * 2) && local.z <= Math.min(255, this.serviceRadiusChunks * 2);
   }
 
   localToGlobalChunkX(localChunkX) {

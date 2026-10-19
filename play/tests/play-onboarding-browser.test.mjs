@@ -101,12 +101,26 @@ test("the first world visit loads the guide on demand and saves completion per w
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("nc-onboarding-card")), true);
 
     await page.evaluate(() => {
+      const overlay = document.querySelector(".nc-onboarding");
+      const transitions = globalThis.__onboardingStepTransitions = [];
+      // Observe before moving: animation classes can appear and disappear
+      // between separate browser-protocol queries on a busy CI host.
+      const observer = new MutationObserver(() => transitions.push({
+        leaving: overlay.classList.contains("is-step-leaving"),
+        entering: overlay.classList.contains("is-step-entering"),
+        title: document.querySelector("[data-onboarding-step-title]")?.textContent,
+      }));
+      observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
+      globalThis.__onboardingStepObserver = observer;
       const target = globalThis.__onboardingGameState.highlightedBlock;
       globalThis.__onboardingGameState.position = [target.worldX + 0.5, target.worldY + 1, target.worldZ + 0.5];
     });
-    await page.waitForSelector(".nc-onboarding.is-step-leaving");
+    await page.waitForFunction(() => globalThis.__onboardingStepTransitions.some((state) => state.leaving), null, { timeout: 10_000 });
     await page.waitForFunction(() => document.querySelector("[data-onboarding-step-title]")?.textContent === "Orbit the camera");
-    assert.equal(await page.locator(".nc-onboarding").evaluate((element) => element.classList.contains("is-step-entering")), true);
+    assert.equal(await page.evaluate(() => globalThis.__onboardingStepTransitions.some((state) => (
+      state.entering && state.title === "Orbit the camera"
+    ))), true);
+    await page.evaluate(() => globalThis.__onboardingStepObserver.disconnect());
     const orbitState = await page.evaluate(() => {
       const cue = document.querySelector("[data-onboarding-orbit-cue]");
       const rect = cue.getBoundingClientRect();
@@ -116,7 +130,7 @@ test("the first world visit loads the guide on demand and saves completion per w
     assert.ok(orbitState.display !== "none" && orbitState.width > 0 && orbitState.height > 0, JSON.stringify(orbitState));
 
     await page.evaluate(() => { globalThis.__onboardingGameState.player.controlYaw += 0.35; });
-    await page.waitForTimeout(180);
+    await page.waitForFunction(() => document.querySelector("[data-onboarding-step-title]")?.textContent === "Click a real block", null, { timeout: 10_000 });
     const cameraStep = await page.evaluate(() => ({
       title: document.querySelector("[data-onboarding-step-title]")?.textContent,
       yaw: globalThis.__onboardingGameState.player.controlYaw,

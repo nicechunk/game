@@ -1,3 +1,4 @@
+import { prunePlayRenderChunks } from "./play-render-lifecycle.js";
 import chunkBuildWorkerUrl from "/chunk.js/chunk/chunk-build-worker.js?worker&url";
 import {
   BLOCK_ID,
@@ -52,6 +53,7 @@ import { createPlayGuardian } from "./play-guardian.js";
 import { applyGuardianConnectionState } from "./play-guardian-connection.js";
 import { createGuardianAppearanceMeshCache } from "./play-guardian-appearance.js";
 import { createNameChatOverlay } from "./play-name-chat-overlay.js";
+import { computeViewEnvironment, loadedTerrainRadiusBlocks } from "./play-view-distance.js";
 import { createProfileSkillEffects } from "./play-skill-effects.js";
 import { applyPlayerMovementSpeeds, PLAYER_MOVEMENT_CONFIG } from "./play-movement-speed.js";
 import { hasSpawnParam, parsePoseText, spawnCoord, spawnCoordOrNull } from "./pose-utils.js";
@@ -553,6 +555,9 @@ let statusQuietTimer = 0;
 let lastFrameMinimapAt = 0;
 let minimapUpdatePending = false;
 let firstMinimapUpdatePending = true;
+let viewEnvironmentReadyAt = -Infinity;
+let readyTerrainRadius = Infinity;
+let readyTerrainX = 0, readyTerrainZ = 0;
 let onboardingHighlightedBlock = null;
 const constructionActions = Object.freeze({
   selectAtHit: (hit) => dispatchLandConstructionAction("selectAtHit", hit),
@@ -802,6 +807,7 @@ async function boot() {
     onInitStage: startupLogger.rendererStage,
   });
   renderer.setRenderLogger(renderLog);
+  chunks.setStageStats?.(renderer.stageStats);
   startupLogger.step("WebGL2 renderer total", () => renderer.init());
   globalThis.NiceChunkLoading?.stage?.("engine", 0.56);
   const gameplaySetupToken = startupLogger.begin("gameplay session construction");
@@ -1002,6 +1008,11 @@ async function boot() {
     },
     resolveRemoteAvatarMeshId: (ownerWallet, options) => guardianAppearanceMeshes?.resolveMeshIdForWallet(ownerWallet, options),
     appendEvent: appendGuardianEvent,
+    onAuthorityInvalidated: ({ reason, worldX, worldZ } = {}) => {
+      if (Number.isFinite(worldX) && Number.isFinite(worldZ)) chainChunkDeltas?.invalidateChunkForWorld(worldX, worldZ);
+      else chainChunkDeltas?.invalidateFreshness?.({ reason });
+      chainChunkDeltas?.requestSync({ reason: reason || "guardian", quiet: true });
+    },
     onWorldChanged: (event) => {
       if (event?.type === "guardian-dig") {
         chainChunkDeltas?.invalidateChunkForWorld(event.worldX, event.worldZ);
@@ -1017,6 +1028,9 @@ async function boot() {
     getCamera: () => camera,
     getLocalTarget: localOverlayTarget,
     appendRemoteTargets: (target, now) => guardian?.appendOverlayTargets?.(target, now),
+    isBlockedAt: (x, y, z) => chunks?.isCameraOccluderAtWorld?.(x, y, z) ?? false,
+    getMaxDistance: () => currentViewDistance() * (chunks?.chunkSize || 16),
+    occlusion: { mode: params.get("nameOcclusion") === "none" ? "none" : "solid", intervalMs: 150, maxChecksPerUpdate: 8 },
   }).bind();
   chainBackpack = createPlayChainBackpackSync({
     gameState,
@@ -1125,8 +1139,8 @@ async function boot() {
     index: foundationIndex,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
     getPlayerPosition: playerWorldFloat,
-    viewDistance,
-    preloadMargin: PLAYABLE_PRELOAD_MARGIN,
+    getViewDistance: currentViewDistance,
+    getPreloadMargin: () => chunks?.preloadMargin ?? PLAYABLE_PRELOAD_MARGIN,
     chunkSize: chunks.chunkSize || 16,
     onChanged: (result) => {
       syncRegisteredLandContractState(result);
@@ -1158,8 +1172,8 @@ async function boot() {
     getFoundationsNear: (worldX, worldZ, radius) => foundationIndex.listNear(worldX, worldZ, radius),
     getFoundationVersion: () => foundationIndex.version(),
     getPlayerPosition: playerWorldFloat,
-    viewDistance,
-    preloadMargin: PLAYABLE_PRELOAD_MARGIN,
+    getViewDistance: currentViewDistance,
+    getPreloadMargin: () => chunks?.preloadMargin ?? PLAYABLE_PRELOAD_MARGIN,
     chunkSize: chunks.chunkSize || 16,
     refreshFoundations: (options) => foundationSync?.refresh?.(options) ?? Promise.resolve({ ok: false }),
     applyBuildings: (buildings) => buildingController?.applyChainBuildings?.(buildings),
@@ -1218,7 +1232,17 @@ async function boot() {
       else if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
       else guardian?.sendDig(pending, 1);
       chainSession?.handlePendingMine(pending, {
-        confirmTx: (txId) => mining?.confirmTx?.(txId),
+        confirmTx: (txId, confirmation) => mining?.confirmTx?.(txId, confirmation),
+        deferToAuthorityTx: (txId) => {
+          const pending = mining?.deferToAuthorityTx?.(txId);
+          if (pending) {
+            invalidateMiningChunks(pending);
+            chainChunkDeltas?.requestSync({ reason: "mine-unknown-recovery", quiet: true });
+            void refreshPdaBackpackAfterAction(pending).catch(() => null);
+            void chainPlayer?.refresh?.({ force: true, quiet: true });
+          }
+          return pending;
+        },
         rollbackTx: (txId) => mining?.rollbackTx?.(txId),
       });
     },
@@ -1274,11 +1298,20 @@ async function boot() {
       lastWorldDeltaKind = "place";
       chainSession?.handlePendingPlace(pending, {
         validateTx: (txId) => placement?.validateQueuedTx?.(txId),
-        confirmTx: async (txId) => {
-          const confirmed = placement?.confirmTx?.(txId, { chainResolution: true });
+        confirmTx: async (txId, confirmation) => {
+          const confirmed = placement?.confirmTx?.(txId, { chainResolution: true, confirmation });
           if (!confirmed) return null;
           await refreshPdaBackpackAfterAction(confirmed).catch(() => null);
           return confirmed;
+        },
+        deferToAuthorityTx: (txId) => {
+          const pending = placement?.deferToAuthorityTx?.(txId);
+          if (pending) {
+            chainChunkDeltas?.invalidateChunkForWorld(pending.worldX, pending.worldZ);
+            chainChunkDeltas?.requestSync({ reason: "place-unknown-recovery", quiet: true });
+            void refreshPdaBackpackAfterAction(pending).catch(() => null);
+          }
+          return pending;
         },
         rollbackTx: (txId) => placement?.rollbackTx?.(txId, { chainResolution: true }),
       });
@@ -1552,6 +1585,7 @@ function frame(now) {
   guardian?.appendRemoteAvatars(frameAvatars);
   const forgedPlacementPreview = forgedPlacement?.previewEntity?.(lastHit);
   if (forgedPlacementPreview) frameAvatars.push(forgedPlacementPreview);
+  updateViewEnvironment(now);
   const renderStats = renderer.render(camera, visibleChunks, frameAvatars, buildActionOverlays(lastHit, now));
   markFrameProbe(frameProbe, "render");
   landConstruction?.update?.();
@@ -2165,6 +2199,10 @@ function setViewDistance(nextValue) {
   chunks.setViewDistance(next, { preloadMargin: PLAYABLE_PRELOAD_MARGIN });
   renderer.options.viewDistance = next;
   camera.far = viewFarPlane(next);
+  viewEnvironmentReadyAt = -Infinity;
+  updateViewEnvironment(performance.now());
+  void foundationSync?.refresh?.({ force: true, quiet: true });
+  void buildingSync?.refresh?.({ force: true, quiet: true });
   minimap?.invalidate?.();
   chunks.unloadFarChunks(chunks.centerChunkX, chunks.centerChunkZ);
   removeUnloadedGpuChunks();
@@ -2233,19 +2271,40 @@ function reconcilePlayerAfterBuildingCollisionChange() {
   return result;
 }
 
+function currentViewDistance() {
+  return chunks?.viewDistance ?? viewDistance;
+}
+
 function viewFarPlane(distance) {
-  return Math.max(460, Math.trunc(distance) * 48 + 160);
+  return computeViewEnvironment({ viewDistance: distance, preloadMargin: PLAYABLE_PRELOAD_MARGIN }).cameraFar;
+}
+
+function updateViewEnvironment(now) {
+  if (!renderer?.lighting || !camera || !chunks) return;
+  const [px, , pz] = playerWorldFloat();
+  const distance = currentViewDistance();
+  const size = chunks.chunkSize || 16;
+  if (now - viewEnvironmentReadyAt >= 250) {
+    readyTerrainRadius = loadedTerrainRadiusBlocks(chunks.chunks, px, pz, distance, size);
+    readyTerrainX = px; readyTerrainZ = pz;
+    viewEnvironmentReadyAt = now;
+  }
+  const cx = camera.worldX + camera.localOffsetX;
+  const cz = camera.worldZ + camera.localOffsetZ;
+  const environment = computeViewEnvironment({
+    viewDistance: distance, chunkSize: size, preloadMargin: chunks.preloadMargin,
+    fov: camera.fov, aspect: camera.aspect,
+    cameraOffsetBlocks: Math.hypot(cx - px, cz - pz), loadedRadiusBlocks: Math.max(0, readyTerrainRadius - Math.hypot(px - readyTerrainX, pz - readyTerrainZ)),
+  });
+  renderer.lighting.fogNearFar[0] = environment.fogNearFar[0];
+  renderer.lighting.fogNearFar[1] = environment.fogNearFar[1];
+  renderer.viewEnvironment = environment;
+  camera.far = environment.cameraFar;
 }
 
 function removeUnloadedGpuChunks() {
   const buildingIds = buildingController?.liveChunkIds?.() ?? new Set();
-  const liveIds = new Set(chunks.chunks.keys());
-  for (const id of buildingIds) liveIds.add(id);
-  renderer.pruneChunks(liveIds);
-  const ids = new Set([...renderer.chunkBuffers.keys(), ...renderer.visualChunkBuffers.keys()]);
-  for (const id of ids) {
-    if (!liveIds.has(id)) renderer.removeChunk(id);
-  }
+  prunePlayRenderChunks(renderer,chunks.chunks,buildingIds);
 }
 
 function buildingChunksInView() {
@@ -2254,14 +2313,14 @@ function buildingChunksInView() {
   const centerX = Math.floor(worldX / size);
   const centerZ = Math.floor(worldZ / size);
   if (typeof buildingController?.renderChunksInRange === "function") {
-    return buildingController.renderChunksInRange(centerX, centerZ, viewDistance);
+    return buildingController.renderChunksInRange(centerX, centerZ, currentViewDistance());
   }
   const buildingChunks = buildingController?.renderChunks?.() ?? [];
   if (!buildingChunks.length) return buildingChunks;
   return buildingChunks.filter((chunk) => Math.max(
     Math.abs(chunk.chunkX - centerX),
     Math.abs(chunk.chunkZ - centerZ),
-  ) <= viewDistance);
+  ) <= currentViewDistance());
 }
 
 function rememberMiningHit(hit, ttlMs = 1600) {

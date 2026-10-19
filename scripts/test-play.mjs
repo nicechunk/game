@@ -24,7 +24,9 @@ try {
 
 function runTests(files, origin) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--test", "--test-concurrency=4", ...files], {
+    const defaultConcurrency=process.env.NICECHUNK_TEST_SOFTWARE_GL==="1"?1:4;
+    const concurrency=Math.max(1,Math.min(16,Number(process.env.NICECHUNK_TEST_CONCURRENCY)||defaultConcurrency));
+    const child = spawn(process.execPath, ["--import", path.join(projectRoot,"scripts/test-browser-setup.mjs"), "--test", `--test-concurrency=${concurrency}`, ...files], {
       cwd: projectRoot,
       env: { ...process.env, NICECHUNK_TEST_ORIGIN: origin },
       stdio: "inherit",

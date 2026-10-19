@@ -81,6 +81,11 @@ test("Loader exposes a localized failure state and retry reloads the failed entr
     });
     await page.goto(`${origin}/failure`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#nc-loader.is-failed");
+    // The generic title already exists before failure; the queued render must
+    // publish the actual error detail before its content can be asserted.
+    await page.waitForFunction(() => (
+      /HTTP 503/.test(document.querySelector(".nc-load-error code")?.textContent || "")
+    ), null, { timeout: 10_000 });
     assert.equal(await page.locator(".nc-load-error strong").textContent(), englishPlayDictionary.main.loading.loader.failureMessage);
     assert.match(await page.locator(".nc-load-error code").textContent(), /HTTP 503/);
     assert.equal(await page.locator(".nc-load-retry").textContent(), englishPlayDictionary.main.loading.loader.retry);
@@ -102,6 +107,11 @@ test("Loader opens the full RPC settings flow, restores on dismiss, and retries 
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page.goto(`${origin}/character-failure`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#nc-loader.is-failed");
+    // fail() updates state/class immediately; localized DOM copy commits on the
+    // next animation frame. Observe that commit before reading its fields.
+    await page.waitForFunction((title) => (
+      document.querySelector(".nc-load-error strong")?.textContent === title
+    ), englishPlayDictionary.main.loading.loader.failures["rpc-rate-limited"].title, { timeout: 10_000 });
     const snapshot = await page.evaluate(() => globalThis.NiceChunkLoading.snapshot());
     assert.equal(snapshot.failureCode, "rpc-rate-limited");
     assert.equal(

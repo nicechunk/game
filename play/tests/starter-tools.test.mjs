@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Keypair} from '@solana/web3.js';
 import {createMiningController} from '../mining-controller.js';
-import {createMineBlockWithRewardsInstruction,createCraftStarterAxeInstruction,createFellTreeWithRewardsInstruction,createResourceMiningSkillInstructions,NICECHUNK_SKILLS_PROGRAM_ID} from '../../src/chain/nicechunkChain.js';
+import {createMineBlockWithRewardsInstruction,createCraftStarterAxeInstruction,createFellTreeWithRewardsInstruction,loadConfirmedMiningEquipmentResult,createResourceMiningSkillInstructions,NICECHUNK_SKILLS_PROGRAM_ID} from '../../src/chain/nicechunkChain.js';
 import {STARTER_AXE_BYTES,STARTER_AXE_CODE} from '../../src/data/starterTools.js';
 import {decodeNcf1} from '../../chunk.js/forge/forge-core.js';
 import {createForgeRuntimeAsset} from '../../chunk.js/forge/forge-runtime-cache.js';
@@ -51,8 +51,8 @@ test('stone fragments have a distinct identity, model and exact starter recipe',
 function harness(kind='bare-leaves',damage=3,getSkillEffects,rewardBlocks){
  const hit={hit:true,worldX:0,worldY:1,worldZ:0,blockId:23,resourceId:10};let picked=0;
  const state={hotbarSlots:[],getSelectedToolSlot:()=>null,playerProfile:{minedBlocks:0,confirmedMines:0,resourcesCollected:0},savePlayerProfile(){},isUsableMiningToolSlot:()=>false};
- const deltas=[];const controller=createMiningController({gameState:state,chunks:{getBlockAtWorld:()=>23,applyPendingDelta:(d)=>deltas.push(...d),confirmPendingDelta(){}},getHit:()=>hit,blockDef:()=>({name:'leaves',resourceId:10,hardness:1}),isFluidBlock:()=>false,isMineableBlock:()=>true,blockAirId:0,getBareHandPlan:()=>({kind,blocks:[hit],requiredDamage:damage,rewardBlocks}),onSurfacePicked:()=>picked++,getSkillEffects});
- return {controller,deltas,picked:()=>picked};
+ const deltas=[],confirmations=[];const controller=createMiningController({gameState:state,chunks:{getBlockAtWorld:()=>23,applyPendingDelta:(d)=>deltas.push(...d),confirmPendingDelta:(txId,confirmation)=>confirmations.push({txId,confirmation})},getHit:()=>hit,blockDef:()=>({name:'leaves',resourceId:10,hardness:1}),isFluidBlock:()=>false,isMineableBlock:()=>true,blockAirId:0,getBareHandPlan:()=>({kind,blocks:[hit],requiredDamage:damage,rewardBlocks}),onSurfacePicked:()=>picked++,getSkillEffects});
+ return {controller,deltas,confirmations,picked:()=>picked};
 }
 function strike(c){const swing=c.minePending();assert.ok(swing);c.update(swing.endsAt+1);}
 test('empty-handed leaves queue exactly after three contacts with no durability state',()=>{
@@ -61,6 +61,20 @@ test('empty-handed leaves queue exactly after three contacts with no durability 
 });
 test('picking a pebble confirms its pickup without removing ground blocks',()=>{
  const h=harness('surface-pebble',1);strike(h.controller);assert.equal(h.controller.pendingCount(),1);assert.deepEqual(h.controller.pendingSnapshot()[0].pendingDeltas,[]);h.controller.confirmLast();assert.equal(h.deltas.length,0);assert.equal(h.picked(),1);
+});
+test('starter gathering preserves execution metadata and marks only confirmed pebble pickups',()=>{
+ for(const kind of ['bare-leaves','bare-gravel','surface-pebble']){
+  const h=harness(kind,kind==='surface-pebble'?1:3);for(let i=0;i<(kind==='surface-pebble'?1:3);i++)strike(h.controller);
+  const pending=h.controller.pendingSnapshot()[0],confirmation={executionSlot:123,commitment:'confirmed'};
+  h.controller.confirmTx(pending.txId,confirmation);
+  assert.deepEqual(h.confirmations,[{txId:pending.txId,confirmation}]);
+  assert.equal(h.picked(),kind==='surface-pebble'?1:0);
+  assert.equal(h.deltas.length,kind==='surface-pebble'?0:1);
+ }
+});
+test('bare-hand confirmation does not invent equipment durability or request an equipment receipt',async()=>{
+ let reads=0;const result=await loadConfirmedMiningEquipmentResult('bare-hand-vector',owner,{kind:'bare-hands',action:'gather'},{getTransaction(){reads++;throw Error('no equipment receipt for bare hands');}});
+ assert.deepEqual(result,{bareHands:true});assert.equal(reads,0);
 });
 test('bare-hand reward preview uses baseline volume without reading skill effects',()=>{
  const h=harness('bare-leaves',3,()=>{throw Error('bare hands must not read skill effects');});

@@ -51,6 +51,7 @@ export function createPlayGuardian({
   resolveRemoteAvatarMeshId = null,
   appendEvent = () => {},
   onWorldChanged = () => {},
+  onAuthorityInvalidated = () => {},
 } = {}) {
   const state = {
     disabled: guardianDisabled(),
@@ -76,6 +77,7 @@ export function createPlayGuardian({
     appendEvent,
   });
   const remotePlayers = new Map();
+  const recentRemoteDigEvents = new Map();
   const pendingEquipment = new Map();
   const pendingIdentity = new Map();
   const pendingChat = new Map();
@@ -154,12 +156,14 @@ export function createPlayGuardian({
       chunkSize: chunks?.chunkSize || 16,
       onReady: (info) => {
         state.connected = true;
+        onAuthorityInvalidated({ reason: "guardian-connect" });
         state.lastEquipmentSignature = "";
         state.lastIdentityName = "";
         appendEvent(`Guardian connected as #${info.localPlayerId}.`);
         syncIdentity(performance.now(), { force: true });
         syncEquipment(performance.now(), { force: true });
       },
+      onCompatibility: (info) => { if (info.authoritativeFallback) onAuthorityInvalidated({ reason: "guardian-legacy-y" }); },
       onClose: () => {
         state.connected = false;
         remotePlayers.clear();
@@ -289,11 +293,22 @@ export function createPlayGuardian({
       }
       startRemoteSwing(entry);
     }
-    if (event.action !== 3 || !chunks?.applyChainDelta) return;
-    const worldX = Math.trunc(event.x);
-    const worldY = Math.trunc(event.y);
-    const worldZ = Math.trunc(event.z);
-    chunks.applyChainDelta([{ worldX, worldY, worldZ, blockId: BLOCK_ID.air }]);
+    if (![3, 4].includes(event.action)) return;
+    if (![event.x, event.y, event.z].every(Number.isSafeInteger) || event.y < (chunks?.minY ?? -32) || event.y > (chunks?.maxBuildY ?? 320)) return;
+    const worldX = event.x, worldY = event.y, worldZ = event.z;
+    const now = performance.now();
+    const key = `${state.guardianUrl}:${event.localPlayerId}:${event.seq}:${worldX}:${worldY}:${worldZ}:${event.action}`;
+    if ((recentRemoteDigEvents.get(key) ?? 0) > now) return;
+    for (const [oldKey, until] of recentRemoteDigEvents) if (until <= now) recentRemoteDigEvents.delete(oldKey);
+    if (recentRemoteDigEvents.size >= 2048) recentRemoteDigEvents.delete(recentRemoteDigEvents.keys().next().value);
+    recentRemoteDigEvents.set(key, now + 15_000);
+    // Only dig has a known resulting block. Place notifications invalidate the
+    // authoritative pair instead of inventing a material from an unsigned hint.
+    const id = `${Math.floor(worldX / (chunks?.chunkSize || 16))},${Math.floor(worldZ / (chunks?.chunkSize || 16))}`;
+    const loaded = chunks?.chunks?.has?.(id);
+    if (loaded && event.action === 3) chunks?.applyRemoteDelta?.([{ worldX, worldY, worldZ, blockId: BLOCK_ID.air }], { ttlMs: 5_000 });
+    onAuthorityInvalidated({ reason: "guardian-world-hint", worldX, worldZ });
+    if (!loaded) return;
     onWorldChanged({ type: "guardian-dig", worldX, worldY, worldZ, localPlayerId: event.localPlayerId });
   }
 
@@ -587,6 +602,8 @@ export function createPlayGuardian({
       registryRegion: state.guardianRegionKey,
       registry: registryResolver.snapshot?.() ?? null,
       offline: state.offline,
+      worldYMode: state.client?.compatibilityState || "offline",
+      supportsNegativeWorldY: Boolean(state.client?.supportsOffsetY),
     };
   }
 
