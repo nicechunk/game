@@ -32,3 +32,7 @@ Players still need the usual registered profile, Backpack, session authorization
 Validation artifacts, SBF replays, deployment receipts and public checks are recorded in the release report. Local SBF tests cover empty-inventory bootstrapping through equipping and first harvest (99 → 96), replay denial, invalid bare-hand targets, forged recipe data, signature boundaries, failure atomicity, exact partial-stack spending, tree rewards, full Backpacks and placement compatibility.
 
 The batch inventory path uses bounded reusable scratch buffers. Its outcomes are compared byte-for-byte with the previous storage algorithm across 400 randomized fragmented inventories. It retains existing ownership, canonical-address, material-physics and custody checks.
+
+### Full mining transaction and Skills
+
+Skills must recognize authenticated Chunk bare-hand mining (tag **22**) and surface pebble pickup (tag **23**) when the browser submits its final mining-coordinate synchronization. This compatibility fix is deployed on Devnet at slot **512754451**. Full transaction regression includes baseline Skills synchronization, mining, the player position update when present, and final Skills synchronization; testing the mining instruction alone does not cover this transaction. See the [failure reproduction and upgrade verification](leaf-skills-proof-fix-20261019.md).
