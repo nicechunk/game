@@ -697,7 +697,7 @@ async function boot() {
   renderBudget = startupLogger.step("render budget setup", () => createPlayRenderBudget({
     preloadMargin: PLAYABLE_PRELOAD_MARGIN,
     maxViewDistance: PLAYABLE_MAX_VIEW_DISTANCE,
-    getFps: () => fps.fps || 60,
+    getFps: () => fps.sampleCount ? Math.max(1, fps.fps) : 60,
     getControls: () => controls,
     getChunks: () => chunks,
     getRenderer: () => renderer,

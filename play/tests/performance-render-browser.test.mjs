@@ -54,16 +54,24 @@ test("clear-air renderer keeps original detail, water, picking and context resto
       }
       const chunks = [{ id: "stone", chunkX: 0, chunkZ: 2, chunkSize: 16, mesh: quad(3, 10), meshVersion: 1, version: 1 },
         { id: "water", chunkX: 0, chunkZ: 2, chunkSize: 16, visualMesh: quad(17, 8), visualMeshVersion: 1, version: 1 }];
-      const draw = () => { renderer.prepareChunksForRender(chunks); return renderer.render(camera, chunks); };
+      const draw = async () => {
+        for(let attempt=0;attempt<120;attempt++) {
+          const upload=renderer.prepareChunksForRender(chunks);
+          const stats=renderer.render(camera,chunks);
+          if(!renderer.uploadValidationFence && !upload.pendingUploads && stats.visibleChunks>0)return stats;
+          await new Promise(requestAnimationFrame);
+        }
+        throw new Error('asynchronous terrain upload did not complete');
+      };
       function pixel() {
         const gl = renderer.gl, bytes = new Uint8Array(4);
         gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes); return Array.from(bytes);
       }
-      draw(); const waterPixel = pixel();
+      await draw(); const waterPixel = pixel();
       renderer.render(camera, [chunks[0]]); const stonePixel = pixel();
       check(JSON.stringify(waterPixel) !== JSON.stringify(stonePixel), "transparent water must still contribute color");
-      renderer.lighting.fogNearFar = [1, 2]; renderer.lighting.fogColor = [1, 1, 1]; draw(); const near = pixel();
-      renderer.lighting.fogNearFar = [10000, 20000]; renderer.lighting.fogColor = [1, 0, 1]; draw(); const far = pixel();
+      renderer.lighting.fogNearFar = [1, 2]; renderer.lighting.fogColor = [1, 1, 1]; await draw(); const near = pixel();
+      renderer.lighting.fogNearFar = [10000, 20000]; renderer.lighting.fogColor = [1, 0, 1]; await draw(); const far = pixel();
       check(JSON.stringify(near) === JSON.stringify(far), "legacy fog inputs still affect pixels");
       check(far.slice(0, 3).some(value => value < 180), "distant terrain must not be white");
       const checkPrograms = () => {
@@ -87,7 +95,7 @@ test("clear-air renderer keeps original detail, water, picking and context resto
       await new Promise(resolve => setTimeout(resolve, 50));
       const restored = new Promise(resolve => canvas.addEventListener("webglcontextrestored", resolve, { once: true }));
       extension.restoreContext(); await restored;
-      for (let i = 0; i < 4; i++) { draw(); await new Promise(requestAnimationFrame); }
+      await draw();
       check(renderer.initialized && !renderer.lastInitError, "performance context restoration failed");
       checkPrograms(); check(renderer.gl.getError() === renderer.gl.NO_ERROR, "WebGL error");
       const stats = { ...renderer.stats }; renderer.dispose();

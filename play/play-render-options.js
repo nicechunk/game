@@ -6,4 +6,5 @@ export const PLAY_RENDER_OPTIONS = Object.freeze({
   textureQuality: "balanced",
   maxVoxelParticles: 320,
   gpuTiming: false,
+  deferredChunkUploads: true,
 });
