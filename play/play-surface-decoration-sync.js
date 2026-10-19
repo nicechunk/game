@@ -23,10 +23,12 @@ export function createPlaySurfaceDecorationSync({
     error: "",
   };
   let pickupsLoading = false;
+  let syncPromise = null;
   const pickedByChunk = new Map();
   let compiledRules = compileSurfaceDecorationRules(initialRules);
 
   return {
+    start,
     scheduleAfterWorldVisible,
     snapshot: () => ({ ...state }),
     resolveBackpackDecoration,
@@ -34,12 +36,15 @@ export function createPlaySurfaceDecorationSync({
   };
 
   function scheduleAfterWorldVisible() {
+    return start();
+  }
+
+  function start() {
     if (state.started) return null;
     state.started = true;
     globalThis.setInterval(() => { syncPickups().catch(() => {}); }, 5000);
-    return new Promise((resolve) => {
-      globalThis.setTimeout(() => resolve(sync()), 0);
-    });
+    syncPromise = sync();
+    return syncPromise;
   }
 
   async function sync() {
@@ -99,9 +104,10 @@ export function createPlaySurfaceDecorationSync({
   }
   function setPicked(cx,cz,columns) {
     const id=`${cx},${cz}`;columns=[...new Set([...(pickedByChunk.get(id)||[]),...columns])].sort((a,b)=>a-b);pickedByChunk.set(id,columns);
-    const chunk=chunks.chunks?.get(id);
-    if (chunk && JSON.stringify(chunk.pickedSurfaceColumns)!==JSON.stringify(columns)) {
-      chunk.pickedSurfaceColumns=columns;chunk.markDirty();
+    if (chunks.setPickedSurfaceColumns) chunks.setPickedSurfaceColumns(cx,cz,columns);
+    else {
+      const chunk=chunks.chunks?.get(id);
+      if (chunk && JSON.stringify(chunk.pickedSurfaceColumns)!==JSON.stringify(columns)) { chunk.pickedSurfaceColumns=columns;chunk.markDirty(); }
     }
   }
   function markPicked(hit) {

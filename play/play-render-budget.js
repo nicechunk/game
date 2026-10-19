@@ -60,7 +60,10 @@ export function createPlayRenderBudget({
     // frames. It must not turn initial uploads into a one-channel serial queue.
     // The renderer still enforces its CPU deadline, byte cap and GPU fences.
     if (!state.worldCovered) return Math.min(12, Math.max(base, isMobileViewport() ? 4 : 8));
-    if (fps < 36) return 1;
+    if (fps < 36) {
+      const pending = (getRenderer()?.pendingMeshSources?.size ?? 0) + (getChunks()?.buildQueue?.length ?? 0);
+      return pending ? Math.max(2, Math.min(base, 4)) : 1;
+    }
     if (isMotionActive() || controls?.move?.moving) {
       if (fps > 55) return sprinting ? 4 : 5;
       return sprinting ? 3 : 2;

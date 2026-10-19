@@ -717,6 +717,12 @@ async function boot() {
     maxQueuedBuilds: renderBudget.maxBuildQueueForViewDistance(viewDistance),
   }), (manager) => ({ workers: manager?.workers?.length || 0, maxWorkers: manager?.workerCount || 0, workerMode: Boolean(manager?.useWorkers) }));
   chunks.setRenderLogger(renderLog);
+  surfaceDecorationSync = createPlaySurfaceDecorationSync({
+    chunks,
+    worldSeed: PLAYABLE_WORLD_SEED,
+    onRulesChanged: () => chainBackpack?.refreshDecorationIdentity?.(),
+  });
+  startupLogger.track("surface decoration PDA sync", surfaceDecorationSync.start());
   startupLogger.step("initial chunk range enqueue", () => chunks.updatePlayerPosition(spawnX, 112, spawnZ));
   startupLogger.setInitialChunkTarget(chunks.chunks.size);
   const spawnY = Number.isFinite(spawnYOverride)
@@ -996,11 +1002,6 @@ async function boot() {
     clearChunkCache: (options) => chainChunkDeltas?.clearLocalCache?.(options),
     getWalletAddress: () => chainSession?.snapshot?.()?.walletAddress || initialWalletSession.walletAddress || "guest",
     translate: translateWithFallback,
-  });
-  surfaceDecorationSync = createPlaySurfaceDecorationSync({
-    chunks,
-    worldSeed: PLAYABLE_WORLD_SEED,
-    onRulesChanged: () => chainBackpack?.refreshDecorationIdentity?.(),
   });
   guardian = createPlayGuardian({
     chunks,
@@ -1576,12 +1577,13 @@ function frame(now) {
   }
   markFrameProbe(frameProbe, "visibility");
   const uploadChunks = renderBudget?.uploadCandidatesForFrame?.(now, visibleChunks, movingNow) ?? visibleChunks;
-  // Region batching must only use the current render set. Merging the preload
-  // ring can overwrite edge-region buffers and makes out-of-radius chunks flash.
+  // Residency is independent of the draw set. Per-member uploads keep region
+  // storage intact; render() still enforces the current radius and frustum.
   const uploadStats = renderer.prepareChunksForRender(uploadChunks, {
     maxUploads: renderBudget?.frameUploadBudget?.() ?? 1,
     deferRegionUploads: renderBudget?.shouldDeferRegionUploads?.(movingNow) ?? movingNow,
     cameraState: camera,
+    residencyChunks: initialWorldCovered ? chunks.chunks.values() : [],
   });
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);
