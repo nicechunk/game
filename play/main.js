@@ -420,6 +420,10 @@ const elements = {
   profileRpcHint: document.querySelector("#profileRpcHint"),
   profileRpcAction: document.querySelector("#profileRpcAction"),
   chainEventLog: document.querySelector("#chainEventLog"),
+  chainEventPanel: document.querySelector("#chainEventPanel"),
+  chainEventLogToggle: document.querySelector("#chainEventLogToggle"),
+  chainEventLogHistory: document.querySelector("#chainEventLogHistory"),
+  chainEventLogCount: document.querySelector("#chainEventLogCount"),
   minimapPanel: document.querySelector("#minimapPanel"),
   minimap: document.querySelector("#minimap"),
   minimapWorldCoord: document.querySelector("#minimapWorldCoord"),
@@ -981,6 +985,12 @@ async function boot() {
     getBackpackTarget: chainBackpackAnimationTarget,
     onBackpackRequired: (detail) => backpackCreation?.open(detail),
     refreshPlayerProgress: (options) => chainPlayer?.refresh?.(options) ?? Promise.resolve(null),
+    onEventHistoryOpen: () => {
+      controls?.keys?.clear();
+      if (controls) controls.jumpQueued = false;
+      controls?.setJoystick?.(0, 0, false);
+      if (document.pointerLockElement) document.exitPointerLock?.();
+    },
   });
   chainPlayer = createPlayChainPlayerSync({
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
@@ -1230,7 +1240,13 @@ async function boot() {
     getSkillEffects: () => profileSkillEffects,
     blockAirId: BLOCK_ID.air,
     canMine: () => gameState.isBackpackAvailable() || "no-backpack",
-    onMiningBlocked: (detail) => backpackCreation?.open({ ...detail, source: "mining" }),
+    onMiningBlocked: (detail) => {
+      if (detail.reason === "foundation-protected") {
+        chainSession?.appendChainEvent?.(detail.message, { kind: "permission", state: "error" });
+        return;
+      }
+      backpackCreation?.open({ ...detail, source: "mining" });
+    },
     isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     translate: translateWithFallback,
     onStatus: setStatus,

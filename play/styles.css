@@ -16254,3 +16254,132 @@ body {
     outline: 2px solid rgba(74, 201, 255, 0.2);
   }
 }
+/* Expandable event history keeps the compact gameplay feed and full text separate. */
+.chain-event-panel {
+  position: fixed;
+  z-index: 28;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(112px, calc(env(safe-area-inset-bottom) + 102px));
+  display: grid;
+  gap: 7px;
+  width: min(262px, calc(100vw - 44px));
+  pointer-events: none;
+}
+
+.chain-event-panel > .chain-event-log {
+  position: static;
+  width: 100%;
+}
+
+.chain-event-log-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid rgba(180, 235, 255, 0.64);
+  border-radius: 11px;
+  color: #f4fcff;
+  background: rgba(10, 57, 91, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(0, 24, 48, 0.18);
+  font: 600 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.chain-event-log-count {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-event-log-toggle-label { margin-left: auto; }
+.chain-event-log-chevron { font-size: 18px; }
+.chain-event-panel.is-expanded .chain-event-log-chevron { transform: rotate(180deg); }
+.chain-event-log-toggle:hover { background: rgba(17, 83, 128, 0.96); }
+.chain-event-log-toggle:focus-visible,
+.chain-event-panel .chain-event-card:focus-visible,
+.chain-event-history:focus-visible { outline: 2px solid #b5f5ff; outline-offset: 2px; }
+.chain-event-panel .chain-event-card { pointer-events: auto; cursor: pointer; }
+.chain-event-log[hidden], .chain-event-history[hidden] { display: none; }
+
+.chain-event-panel.is-expanded {
+  z-index: 40;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(640px, calc(100vw - 44px));
+  height: min(560px, calc(100dvh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  gap: 0;
+  border: 1px solid rgba(180, 235, 255, 0.64);
+  border-radius: 13px;
+  background: rgba(6, 27, 44, 0.96);
+  box-shadow: 0 12px 36px rgba(0, 20, 38, 0.35);
+  pointer-events: auto;
+}
+
+.chain-event-panel.is-expanded .chain-event-log-toggle {
+  border: 0;
+  border-bottom: 1px solid rgba(180, 235, 255, 0.2);
+  border-radius: 12px 12px 0 0;
+}
+
+.chain-event-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  list-style: none;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+  color: #edf7ff;
+  font: 400 14px/1.6 ui-sans-serif, system-ui, sans-serif;
+}
+
+.chain-event-history,
+.chain-event-history * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.chain-event-history-entry {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid #7dcfff;
+  border-radius: 7px;
+  background: rgba(184, 222, 255, 0.07);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chain-event-history-entry.is-error { border-left-color: #ffbd82; }
+.chain-event-history-entry.is-confirmed { border-left-color: #85e3bc; }
+.chain-event-history-meta { display: flex; flex-wrap: wrap; gap: 8px; color: #b6d7ed; font-size: 11px; }
+.chain-event-history-entry small { font-size: 12px; color: #c4e2f6; }
+.chain-event-history-empty { padding: 18px 6px; color: #b6d7ed; }
+
+@media (max-width: 760px), (pointer: coarse) {
+  .chain-event-panel {
+    right: max(9px, env(safe-area-inset-right));
+    bottom: max(86px, calc(env(safe-area-inset-bottom) + 80px));
+    gap: 4px;
+    width: min(176px, calc(100vw - 154px));
+  }
+  .chain-event-log-toggle { min-height: 40px; padding: 6px 8px; gap: 5px; font-size: 11px; }
+  .chain-event-panel:not(.is-expanded) .chain-event-log-toggle-label { display: none; }
+  .chain-event-panel.is-expanded {
+    width: calc(100vw - max(9px, env(safe-area-inset-right)) - max(9px, env(safe-area-inset-left)));
+    height: min(560px, calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  }
+  .chain-event-history { padding: 8px; }
+}

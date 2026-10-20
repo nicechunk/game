@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hans",
     "label": "Simplified Chinese",
-    "version": "play-locale-zh-Hans-1298cde6114172e3",
-    "contentHash": "1298cde6114172e3"
+    "version": "play-locale-zh-Hans-82005d1e267ce51b",
+    "contentHash": "82005d1e267ce51b"
   },
   "siteFooter": {
     "tagline": "Solana 上的种子体素世界协议。",
@@ -1362,7 +1362,8 @@
       "selectFirst": "点按地形或按 F 选择第一个区块。",
       "selectCorner": "移动预览范围，再选择对角区块完成锁定。",
       "alreadyLocked": "选区已经锁定，请先清除再选择其他范围。",
-      "chunkProtected": "该 Chunk 受契约保护，无法修改。"
+      "chunkProtected": "该 Chunk 受契约保护，无法修改。",
+      "operationDenied": "该区域为契约区域，没有操作权限。"
     },
     "onboarding": {
       "features": {
@@ -1720,6 +1721,13 @@
     },
     "starter": {
       "axeRecipe": "1个碎石 + 2根树枝 → 1把基础石斧 · 耐久99。打开背包 → 熔炼，无需燃料、建造设施或技能等级。制作后从背包装备石斧。持工具成功采集由合约扣3点耐久；徒手采集不扣工具耐久。"
+    },
+    "eventLog": {
+      "title": "日志",
+      "expand": "展开日志",
+      "collapse": "收起日志",
+      "history": "近期日志（最多 300 条）",
+      "empty": "暂无日志。"
     }
   },
   "resourceSimulator": {

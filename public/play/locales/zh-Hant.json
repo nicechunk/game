@@ -2,8 +2,8 @@
   "_meta": {
     "language": "zh-Hant",
     "label": "Traditional Chinese",
-    "version": "play-locale-zh-Hant-73adabaa52209c9a",
-    "contentHash": "73adabaa52209c9a"
+    "version": "play-locale-zh-Hant-ea445daa114fc87e",
+    "contentHash": "ea445daa114fc87e"
   },
   "siteFooter": {
     "tagline": "Solana 上的種子體素世界協議。",
@@ -1362,7 +1362,8 @@
       "selectFirst": "點按地形或按 F 選擇第一個區塊。",
       "selectCorner": "移動預覽範圍，再選擇對角區塊以鎖定。",
       "alreadyLocked": "選區已鎖定，請先清除再選擇其他範圍。",
-      "chunkProtected": "該 Chunk 受契約保護，無法修改。"
+      "chunkProtected": "該 Chunk 受契約保護，無法修改。",
+      "operationDenied": "該區域為契約區域，沒有操作權限。"
     },
     "onboarding": {
       "features": {
@@ -1720,6 +1721,13 @@
     },
     "starter": {
       "axeRecipe": "1個碎石 + 2根樹枝 → 1把基礎石斧 · 耐久99。打開背包 → 熔煉，無需燃料、建造設施或技能等級。製作後從背包裝備石斧。持工具成功採集由合約扣3點耐久；徒手採集不扣工具耐久。"
+    },
+    "eventLog": {
+      "title": "日誌",
+      "expand": "展開日誌",
+      "collapse": "收起日誌",
+      "history": "近期日誌（最多 300 條）",
+      "empty": "暫無日誌。"
     }
   },
   "resourceSimulator": {

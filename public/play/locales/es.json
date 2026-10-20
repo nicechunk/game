@@ -2,8 +2,8 @@
   "_meta": {
     "language": "es",
     "label": "Spanish",
-    "version": "play-locale-es-39f43beb705c9e17",
-    "contentHash": "39f43beb705c9e17"
+    "version": "play-locale-es-ae45130b4a9a13f1",
+    "contentHash": "ae45130b4a9a13f1"
   },
   "siteFooter": {
     "tagline": "Un protocolo de mundo voxel con semillas en Solana.",
@@ -1362,7 +1362,8 @@
       "selectFirst": "Toca el terreno o pulsa F para seleccionar el primer chunk.",
       "selectCorner": "Mueve la vista previa y selecciona la esquina opuesta del chunk.",
       "alreadyLocked": "El área está fijada. Bórrala antes de seleccionar otra.",
-      "chunkProtected": "Este Chunk está protegido por un contrato de terreno y no se puede modificar."
+      "chunkProtected": "Este Chunk está protegido por un contrato de terreno y no se puede modificar.",
+      "operationDenied": "Esta zona está protegida por un contrato de terreno. No tienes permiso para modificarla."
     },
     "onboarding": {
       "features": {
@@ -1720,6 +1721,13 @@
     },
     "starter": {
       "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
+    },
+    "eventLog": {
+      "title": "Registro",
+      "expand": "Abrir registro",
+      "collapse": "Cerrar registro",
+      "history": "Entradas recientes (hasta 300)",
+      "empty": "Aún no hay entradas."
     }
   },
   "resourceSimulator": {

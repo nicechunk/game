@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.97 — 2026-10-20
+
+- Make the right-side event log expandable by mouse, touch, or keyboard. Keep
+  the latest 300 session entries after preview cards expire, with full wrapping,
+  selectable text, native scrolling, and a stable reading position.
+- Report a clear land-contract permission notice when mining is blocked during
+  target selection or a swing. Limit repeated notices to one per two seconds;
+  preserve terrain, tool durability, and the existing ownership rules.
+- Translate log controls and permission feedback into all nine Play languages.
+
 ## 0.1.72 — 2026-10-19
 
 - Add bare-hand surface pebble pickup and natural leaf gathering.

@@ -2,8 +2,8 @@
   "_meta": {
     "language": "ko",
     "label": "Korean",
-    "version": "play-locale-ko-20a7d35325a487b3",
-    "contentHash": "20a7d35325a487b3"
+    "version": "play-locale-ko-5b239e5404113494",
+    "contentHash": "5b239e5404113494"
   },
   "siteFooter": {
     "tagline": "Solana 기반 시드형 복셀 월드 프로토콜.",
@@ -1362,7 +1362,8 @@
       "selectFirst": "지형을 탭하거나 F를 눌러 첫 청크를 선택하세요.",
       "selectCorner": "미리보기를 옮긴 뒤 반대쪽 청크 모서리를 선택하세요.",
       "alreadyLocked": "영역이 잠겼습니다. 다른 영역을 선택하려면 먼저 지우세요.",
-      "chunkProtected": "이 Chunk는 토지 계약으로 보호되어 수정할 수 없습니다."
+      "chunkProtected": "이 Chunk는 토지 계약으로 보호되어 수정할 수 없습니다.",
+      "operationDenied": "이 구역은 토지 계약으로 보호되어 있어 수정할 권한이 없습니다."
     },
     "onboarding": {
       "features": {
@@ -1720,6 +1721,13 @@
     },
     "starter": {
       "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
+    },
+    "eventLog": {
+      "title": "로그",
+      "expand": "로그 펼치기",
+      "collapse": "로그 접기",
+      "history": "최근 로그 (최대 300개)",
+      "empty": "아직 로그가 없습니다."
     }
   },
   "resourceSimulator": {

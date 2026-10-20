@@ -2,6 +2,7 @@ const DEFAULT_VISIBLE_MS = 5000;
 const DEFAULT_FADE_MS = 220;
 const DEFAULT_MAX_DESKTOP = 5;
 const DEFAULT_MAX_MOBILE = 3;
+const DEFAULT_MAX_HISTORY = 300;
 const SUCCESS_REVEAL_MS = 420;
 const SUCCESS_CARD_EXIT_MS = 520;
 const RESOURCE_FLIGHT_MS = 880;
@@ -17,21 +18,53 @@ export function createPlayChainEventFeed({
   fadeMs = DEFAULT_FADE_MS,
   maxDesktop = DEFAULT_MAX_DESKTOP,
   maxMobile = DEFAULT_MAX_MOBILE,
+  panel = null,
+  toggle = null,
+  history = null,
+  countLabel = null,
+  onHistoryOpen = () => {},
+  translate = (_key, fallback) => fallback,
+  maxHistory = DEFAULT_MAX_HISTORY,
 } = {}) {
   const removalTimers = new WeakMap();
   const eventCards = new Map();
   const cardParts = new WeakMap();
   const rotatingVoxelPreviews = new Map();
   let rotationTimer = 0;
+  const historyRecords = [];
+  const historyLimit = Math.max(1, Math.min(1000, Math.trunc(maxHistory) || DEFAULT_MAX_HISTORY));
+  let historySerial = 0;
+  let expanded = false;
+
+  if (panel && toggle && history) {
+    toggle.addEventListener("click", () => setExpanded(!expanded));
+    container?.addEventListener("click", (event) => {
+      if (event.target.closest(".chain-event-card")) setExpanded(true);
+    });
+    panel.addEventListener("keydown", (event) => {
+      // Reading, selecting, and scrolling the log must not trigger game controls.
+      event.stopPropagation();
+      if (event.code === "Escape" && expanded) {
+        event.preventDefault();
+        setExpanded(false);
+      } else if ((event.key === "Enter" || event.key === " ") && event.target.closest(".chain-event-card")) {
+        event.preventDefault();
+        setExpanded(true);
+      }
+    });
+    panel.addEventListener("keyup", (event) => event.stopPropagation());
+  }
 
   return {
     append,
     clear,
+    setExpanded,
   };
 
   function append(message, options = {}) {
     if (!container) return null;
     const event = normalizeEvent(message, options, resourceName);
+    retainHistory(event);
     const existing = event.eventId ? eventCards.get(event.eventId) : null;
     if (existing?.isConnected) {
       updateCard(existing, event);
@@ -43,6 +76,11 @@ export function createPlayChainEventFeed({
     card.className = "chain-event-card";
     card.dataset.kind = event.kind;
     if (event.eventId) card.dataset.eventId = event.eventId;
+    if (history && toggle) {
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-controls", history.id);
+    }
 
     const copy = document.createElement("span");
     copy.className = "chain-event-copy";
@@ -250,6 +288,103 @@ export function createPlayChainEventFeed({
     if (rotationTimer) globalThis.clearTimeout(rotationTimer);
     rotationTimer = 0;
     container?.replaceChildren();
+    historyRecords.length = 0;
+    if (countLabel) countLabel.textContent = "0";
+    history?.replaceChildren();
+    if (expanded) renderHistory();
+  }
+
+  function setExpanded(value) {
+    if (!panel || !toggle || !history) return;
+    expanded = Boolean(value);
+    panel.classList.toggle("is-expanded", expanded);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    const label = toggle.querySelector("[data-log-toggle-label]");
+    const key = expanded ? "main.eventLog.collapse" : "main.eventLog.expand";
+    if (label) {
+      label.dataset.i18n = key;
+      label.textContent = translate(key, expanded ? "Collapse log" : "Expand log");
+    }
+    container.hidden = expanded;
+    history.hidden = !expanded;
+    if (expanded) {
+      renderHistory();
+      history.scrollTop = history.scrollHeight;
+      onHistoryOpen();
+      history.focus({ preventScroll: true });
+    } else {
+      history.replaceChildren();
+      toggle.focus({ preventScroll: true });
+    }
+  }
+
+  function retainHistory(event) {
+    if (!history) return;
+    const record = {
+      id: String(++historySerial),
+      at: new Date(),
+      message: event.message,
+      title: event.title,
+      detail: event.detail,
+      eyebrow: event.eyebrow,
+      state: event.state,
+    };
+    const follow = expanded && history.scrollHeight - history.clientHeight - history.scrollTop < 48;
+    historyRecords.push(record);
+    const trimmed = historyRecords.length > historyLimit;
+    if (trimmed) historyRecords.shift();
+    if (countLabel) countLabel.textContent = String(historyRecords.length);
+    if (!expanded) return;
+    if (historyRecords.length === 1) history.replaceChildren();
+    const removedHeight = trimmed && history.children.length > 1
+      ? history.children[1].offsetTop - history.children[0].offsetTop : 0;
+    const scrollTop = history.scrollTop;
+    history.append(historyEntry(record));
+    if (trimmed) history.firstElementChild?.remove();
+    history.scrollTop = follow ? history.scrollHeight : Math.max(0, scrollTop - removedHeight);
+  }
+
+  function renderHistory() {
+    const entries = document.createDocumentFragment();
+    for (const record of historyRecords) entries.append(historyEntry(record));
+    if (!historyRecords.length) {
+      const empty = document.createElement("li");
+      empty.className = "chain-event-history-empty";
+      empty.dataset.i18n = "main.eventLog.empty";
+      empty.textContent = translate("main.eventLog.empty", "No log entries yet.");
+      entries.append(empty);
+    }
+    history.replaceChildren(entries);
+  }
+
+  function historyEntry(record) {
+    const entry = document.createElement("li");
+    entry.className = `chain-event-history-entry is-${record.state}`;
+    entry.dataset.historyId = record.id;
+    const meta = document.createElement("span");
+    meta.className = "chain-event-history-meta";
+    const time = document.createElement("time");
+    time.dateTime = record.at.toISOString();
+    time.textContent = record.at.toLocaleTimeString([], { hour12: false });
+    const state = document.createElement("span");
+    state.textContent = record.eyebrow;
+    meta.append(time, state);
+    entry.append(meta);
+    if (record.title !== record.message) {
+      const title = document.createElement("strong");
+      title.textContent = record.title;
+      entry.append(title);
+    }
+    const message = document.createElement("span");
+    message.className = "chain-event-history-message";
+    message.textContent = record.message;
+    entry.append(message);
+    if (record.detail && !record.message.includes(record.detail)) {
+      const detail = document.createElement("small");
+      detail.textContent = record.detail;
+      entry.append(detail);
+    }
+    return entry;
   }
 
   function removeCard(card) {
@@ -372,6 +507,7 @@ export function createPlayChainEventFeed({
         rotatingVoxelPreviews.delete(owner);
         continue;
       }
+      if (container?.hidden && container.contains(owner)) continue;
       preview.canvas.renderVoxelYaw(now * RESOURCE_ROTATION_RADIANS_PER_MS + preview.phase);
     }
     scheduleVoxelRotation();

@@ -54,6 +54,7 @@ export function createPlayChainSession({
   getBackpackTarget = () => null,
   onBackpackRequired = () => {},
   refreshPlayerProgress = () => Promise.resolve(null),
+  onEventHistoryOpen = () => {},
 } = {}) {
   const state = {
     walletAddress: loadString(WALLET_STORAGE_KEY),
@@ -74,6 +75,15 @@ export function createPlayChainSession({
   state.sessionLamports = getStoredSessionLamports(state.walletAddress);
   const eventFeed = createPlayChainEventFeed({
     container: elements.chainEventLog,
+    panel: elements.chainEventPanel,
+    toggle: elements.chainEventLogToggle,
+    history: elements.chainEventLogHistory,
+    countLabel: elements.chainEventLogCount,
+    onHistoryOpen: onEventHistoryOpen,
+    translate: (key, fallback) => {
+      const value = t(key);
+      return value === key ? fallback : value;
+    },
     createVoxelItemIconCanvas,
     resourceName,
     getBackpackTarget,

@@ -229,6 +229,34 @@ test("a tree plan touching protected land is rejected as one atomic action", () 
   assert.match(harness.calls.status.at(-1), /protected/i);
 });
 
+test("clicking protected land reports permission denial before target selection without editing or consuming durability", () => {
+  const harness = createHarness({ isBlockProtected: () => true });
+  for (let i = 0; i < 8; i++) assert.equal(harness.controller.minePending(), null);
+  assert.equal(harness.calls.blocked.length, 1, "repeated clicks share one visible notice during the cooldown");
+  assert.equal(harness.calls.blocked[0].reason, "foundation-protected");
+  assert.match(harness.calls.blocked[0].message, /land contract.*permission/i);
+  assert.equal(harness.calls.blocked[0].hit.worldX, TARGET.worldX);
+  assert.equal(harness.calls.selected.length, 0);
+  assert.equal(harness.calls.apply.length, 0);
+  assert.equal(harness.calls.pending.length, 0);
+  assert.equal(harness.controller.activeSwing(), null);
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
+});
+
+test("land protection arriving during a swing reports denial and preserves the block", () => {
+  let protectedNow = false;
+  const harness = createHarness({ isBlockProtected: () => protectedNow });
+  const swing = harness.controller.minePending();
+  assert.ok(swing);
+  protectedNow = true;
+  harness.controller.update(swing.endsAt + 1);
+  assert.equal(harness.calls.blocked[0].reason, "foundation-protected");
+  assert.equal(harness.calls.pending.length, 0);
+  assert.equal(harness.calls.apply.length, 0);
+  assert.equal(harness.blockId(), TARGET.blockId);
+  assert.equal(harness.gameState.hotbarSlots[0].durability, 20);
+});
+
 test("authorized batch mining rejects all blocks when any one is protected", () => {
   const protectedBlock = { ...TARGET, worldX: TARGET.worldX + 1 };
   const harness = createHarness({
@@ -281,7 +309,7 @@ function createHarness({
   isBlockProtected = () => false,
 } = {}) {
   const blocks = new Map([[key(TARGET), TARGET.blockId], ...extraBlocks.map((block) => [key(block), block.blockId])]);
-  const calls = { apply: [], confirm: [], rollback: [], selected: [], pending: [], confirmed: [], rolledBack: [], status: [] };
+  const calls = { apply: [], confirm: [], rollback: [], selected: [], pending: [], confirmed: [], rolledBack: [], status: [], blocked: [] };
   const gameState = {
     hotbarSlots: Array.from({ length: toolCount }, (_, index) => toolFactory(index)),
     selectedToolIndex: 0,
@@ -333,6 +361,7 @@ function createHarness({
     onConfirm: (pending) => calls.confirmed.push(pending),
     onRollback: (pending) => calls.rolledBack.push(pending),
     onStatus: (message) => calls.status.push(message),
+    onMiningBlocked: (detail) => calls.blocked.push(detail),
     swingDurationMs: 100,
   });
   return { controller, chunks, calls, gameState, blockId: () => blocks.get(key(TARGET)) };

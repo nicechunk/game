@@ -2,8 +2,8 @@
   "_meta": {
     "language": "de",
     "label": "German",
-    "version": "play-locale-de-95df01b64001a04b",
-    "contentHash": "95df01b64001a04b"
+    "version": "play-locale-de-0bc3f255ad73e993",
+    "contentHash": "0bc3f255ad73e993"
   },
   "siteFooter": {
     "tagline": "Ein Seed-Voxelwelt-Protokoll auf Solana.",
@@ -1362,7 +1362,8 @@
       "selectFirst": "Tippe auf Gelände oder drücke F, um den ersten Chunk zu wählen.",
       "selectCorner": "Bewege die Vorschau und wähle dann die gegenüberliegende Chunk-Ecke.",
       "alreadyLocked": "Der Bereich ist gesperrt. Lösche ihn vor einer neuen Auswahl.",
-      "chunkProtected": "Dieser Chunk ist durch einen Landvertrag geschützt und kann nicht verändert werden."
+      "chunkProtected": "Dieser Chunk ist durch einen Landvertrag geschützt und kann nicht verändert werden.",
+      "operationDenied": "Dieses Gebiet ist durch einen Landvertrag geschützt. Du hast keine Berechtigung, es zu verändern."
     },
     "onboarding": {
       "features": {
@@ -1720,6 +1721,13 @@
     },
     "starter": {
       "axeRecipe": "1 pebble + 2 twigs → 1 basic stone axe · 99 durability. Open Backpack → Smelting. No fuel, station, or skill gate. Equip the crafted axe from your backpack. A successful tool-assisted harvest costs 3 durability on-chain; bare-hand gathering costs none."
+    },
+    "eventLog": {
+      "title": "Protokoll",
+      "expand": "Protokoll öffnen",
+      "collapse": "Protokoll schließen",
+      "history": "Letzte Einträge (bis zu 300)",
+      "empty": "Noch keine Einträge."
     }
   },
   "resourceSimulator": {

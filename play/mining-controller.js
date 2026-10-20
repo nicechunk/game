@@ -46,6 +46,7 @@ export function createMiningController({
   let txSerial = 1;
   let activeSwing = null;
   let lastDamagePruneAt = 0;
+  let lastProtectedNoticeAt = -Infinity;
 
   function minePending() {
     // Consume the pointer hit even when mining is blocked or a swing is active,
@@ -74,6 +75,7 @@ export function createMiningController({
     const targetSelection = barePlan && rayHit?.hit && isHitInMiningReach(rayHit)
       ? { hit: rayHit } : barePlan ? { hit: null } : selectMiningTarget(rayHit);
     if (!targetSelection.hit?.hit) {
+      if (targetSelection.code === "foundation-protected") notifyProtectedTarget(rayHit);
       return null;
     }
     const targetHit = cloneHit(targetSelection.hit);
@@ -93,8 +95,9 @@ export function createMiningController({
       onStatus(translate(key, fallback));
       return null;
     }
-    if (miningPlan.blocks?.some?.((block) => isBlockProtected(block)) || isBlockProtected(targetHit)) {
-      onStatus(protectedChunkMessage());
+    const protectedBlock = miningPlan.blocks?.find?.((block) => isBlockProtected(block));
+    if (protectedBlock || isBlockProtected(targetHit)) {
+      notifyProtectedTarget(protectedBlock || targetHit);
       return null;
     }
     const duration = Math.max(1, swingDurationMs);
@@ -148,7 +151,7 @@ export function createMiningController({
       const block = normalizeMiningBlock(source);
       if (!block || isBlockPending(block)) continue;
       if (isBlockProtected(block)) {
-        onStatus(protectedChunkMessage());
+        notifyProtectedTarget(block);
         return null;
       }
       const currentBlockId = chunks.getBlockAtWorld(block.worldX, block.worldY, block.worldZ);
@@ -207,7 +210,7 @@ export function createMiningController({
   function selectMiningTarget(rayHit) {
     if (!rayHit?.hit) return { hit: null, reason: "no-click-target" };
     const rayValidation = validateMiningTarget(rayHit, { checkReach: false });
-    if (!rayValidation.ok) return { hit: null, reason: rayValidation.reason };
+    if (!rayValidation.ok) return { hit: null, reason: rayValidation.reason, code: rayValidation.code };
     if (isBlockPending(rayHit)) return { hit: null, reason: "target-pending" };
     if (typeof getToolTargetingSolution === "function") {
       const targeting = getToolTargetingSolution({
@@ -289,7 +292,7 @@ export function createMiningController({
 
   function validateMiningTarget(hit, { checkReach = true } = {}) {
     if (isBlockProtected(hit)) {
-      return { ok: false, reason: protectedChunkMessage() };
+      return { ok: false, reason: protectedChunkMessage(), code: "foundation-protected" };
     }
     if (checkReach && typeof getToolTargetingSolution !== "function" && !isHitInMiningReach(hit)) {
       return { ok: false, reason: "Target block is out of mining reach." };
@@ -303,9 +306,18 @@ export function createMiningController({
 
   function protectedChunkMessage() {
     return translate(
-      "main.land.chunkProtected",
-      "This Chunk is protected by a land contract and cannot be modified.",
+      "main.land.operationDenied",
+      "This area is protected by a land contract. You do not have permission to modify it.",
     );
+  }
+
+  function notifyProtectedTarget(hit) {
+    const now = performance.now();
+    if (now - lastProtectedNoticeAt < 2000) return;
+    lastProtectedNoticeAt = now;
+    const message = protectedChunkMessage();
+    onStatus(message);
+    onMiningBlocked({ reason: "foundation-protected", message, hit: cloneHit(hit) });
   }
 
   function canToolReachHit(hit, aimYaw = null) {
@@ -359,7 +371,8 @@ export function createMiningController({
     const def = blockDef(hit.blockId);
     const validation = validateMiningTarget(hit, { checkReach: false });
     if (!validation.ok) {
-      onStatus(validation.reason);
+      if (validation.code === "foundation-protected") notifyProtectedTarget(hit);
+      else onStatus(validation.reason);
       return null;
     }
 
