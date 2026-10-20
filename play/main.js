@@ -946,7 +946,11 @@ async function boot() {
     getPendingCount: () => (mining?.pendingCount() ?? 0) + (placement?.pendingCount() ?? 0),
     getChainSnapshot: chainSnapshot,
     getAvatarEquipment: currentAvatarEquipment,
-    onBackpackPanelOpened: () => smelting?.showInventory?.(),
+    onBackpackPanelOpened: () => {
+      smelting?.showInventory?.();
+      inventory?.refresh();
+      void chainBackpack?.refresh({ force: true, quiet: false });
+    },
     onBackpackPanelClosed: () => {
       smelting?.closePanel?.();
       inventory?.clearSelection?.({ silent: true });
@@ -1300,6 +1304,7 @@ async function boot() {
         chainPlayer?.applyMiningResult?.(pending.chainResult);
         forgetMiningHit(pending);
         chainSession?.handleConfirmedMine(pending);
+        effects?.emitConfirmedBlockFracture?.(pending);
         void buildingController?.applyConfirmedDemolition?.(pending);
         void refreshBuildingAfterDemolition();
         void chainPlayer?.refresh?.({ force: true, quiet: true });
@@ -2193,10 +2198,6 @@ function openBackpackPanel() {
     return;
   }
   playUi?.openBackpackPanel();
-  inventory?.refresh();
-  chainBackpack?.refresh({ quiet: false }).then((result) => {
-    if (result?.ok) renderGameUi();
-  });
 }
 
 function chainBackpackAnimationTarget() {
@@ -2221,6 +2222,9 @@ function refreshPdaBackpackAfterAction(pending) {
     && chainResult.backpackPreviousUpdatedSlot !== undefined && chainBackpack?.refreshAfterMutation
       ? chainBackpack.refreshAfterMutation({
           previousUpdatedSlot: chainResult.backpackPreviousUpdatedSlot,
+          minimumUpdatedSlot: pending.chainConfirmation?.executionSlot,
+          previousResources: chainResult.backpackPreviousResources,
+          storedRewards: chainResult.storedRewards,
         })
     : chainBackpack?.refresh({ force: true, quiet: true });
   const refreshes = [backpackRefresh];

@@ -292,6 +292,7 @@ test("five inventory categories separate physical stacks, blank contracts, and r
       maxChunkX: 4,
     };
     const portfolio = {
+      known: true,
       loading: false,
       error: "",
       blankContract: contract,
@@ -351,6 +352,12 @@ test("five inventory categories separate physical stacks, blank contracts, and r
     assert.equal(backpackGrid.children.filter((cell) => cell.classList.contains("empty")).length, 4);
     assert.equal(backpackGrid.children[0].dataset.backpackItemCategory, "resources");
     assert.equal(backpackMeta.children[1].textContent, "2 / 5 slots · 2 items", "filtering must not alter physical capacity usage");
+
+    categoryButtons[4].emit("click");
+    ui.closePanel();
+    ui.openPanel();
+    assert.equal(ui.activeCategory(), "backpack", "reopening must expose resources instead of retaining a deed-only filter");
+    assert.equal(backpackGrid.children.some(cell => cell.dataset.backpackItemCategory === "resources"), true);
   } finally {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;

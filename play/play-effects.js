@@ -1,3 +1,5 @@
+import { buildingResourceBlockId } from "../chunk.js/construction/building-resource.js";
+
 const WATER_SPLASH_EMIT_MS = 88;
 const WATER_SPLASH_MIN_MOVE = 0.10;
 
@@ -29,11 +31,13 @@ export function createPlayEffects({
 
   function emitConfirmedBlockFracture(pending) {
     const source = Array.isArray(pending?.blocks) && pending.blocks.length ? pending.blocks : [pending];
+    const building = pending?.miningKind === "building-demolition";
     const blocks = source.map((block) => ({
       worldX: Math.trunc(Number(block?.worldX ?? block?.x)),
       worldY: Math.trunc(Number(block?.worldY ?? block?.y)),
       worldZ: Math.trunc(Number(block?.worldZ ?? block?.z)),
-      blockId: Math.trunc(Number(block?.blockId)),
+      blockId: building ? buildingResourceBlockId(Math.trunc(Number(block?.materialId || block?.blockId))) : Math.trunc(Number(block?.blockId)),
+      ...(building ? { materialId: Math.trunc(Number(block?.materialId || block?.blockId)) } : {}),
     })).filter((block) => [block.worldX, block.worldY, block.worldZ, block.blockId].every(Number.isFinite) && block.blockId > 0);
     if (!blocks.length) return false;
     return getRenderer()?.emitVoxelParticles?.("fracture", { blocks }) ?? false;

@@ -1,4 +1,5 @@
 import { isStarterAxeModelBytes } from "../src/data/starterTools.js";
+import { snapshotBackpackBlockQuantities } from "../src/chain/backpackCapacity.js";
 import { DEFAULT_CHUNK_SIZE, blockDef } from "/chunk.js/play.js";
 import {
   deriveSmeltingMaterialProperties,
@@ -42,6 +43,7 @@ export function createPlayChainBackpackSync({
   };
   let requestSerial = 0;
   let loadedBackpack = null;
+  let readCompletion = Promise.resolve();
 
   return {
     refresh,
@@ -95,6 +97,7 @@ export function createPlayChainBackpackSync({
     if (state.loading) return { ok: false, reason: "already-loading" };
     if (!force && now - state.lastSyncAt < CHAIN_BACKPACK_SYNC_INTERVAL_MS) return { ok: false, reason: "cooldown" };
     const requestId = ++requestSerial;
+    const finishRead = beginRead();
     state.loading = true;
     try {
       const module = await loadPlayChainModule();
@@ -121,6 +124,7 @@ export function createPlayChainBackpackSync({
       const backpack = await loadBackpack(module, status.backpack);
       if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
       const applied = applyBackpack(backpack, status.backpack.publicKey);
+      if (applied.ok === false) return applied;
       if (!quiet) onStatus(`Synced chain backpack PDA: ${applied.usedSlots}/${state.capacity || 50} slots.`);
       return { ok: true, backpack, ...applied };
     } catch (error) {
@@ -128,35 +132,41 @@ export function createPlayChainBackpackSync({
       return fail(readableError(error), quiet);
     } finally {
       if (requestId === requestSerial) state.loading = false;
+      finishRead();
     }
   }
 
-  async function refreshAfterMutation({ previousUpdatedSlot = "", minimumItemCount = null } = {}) {
+  async function refreshAfterMutation({ previousUpdatedSlot = "", minimumUpdatedSlot = "", minimumItemCount = null,
+    previousResources = null, storedRewards = null } = {}) {
     const wallet = String(getWalletAddress() || "");
     const backpackAddress = state.backpackAddress;
     if (!wallet || !backpackAddress) return refresh({ force: true, quiet: true });
     const previousSlot = parseSlot(previousUpdatedSlot);
-    const minimumCount = Number.isFinite(Number(minimumItemCount)) ? Math.max(0, Math.trunc(Number(minimumItemCount))) : null;
+    const minimumSlot = parseSlot(minimumUpdatedSlot);
+    const minimumCount = minimumItemCount !== null && Number.isFinite(Number(minimumItemCount))
+      ? Math.max(0, Math.trunc(Number(minimumItemCount))) : null;
+    const expectedResources = expectedRewardQuantities(previousResources, storedRewards);
     let lastResult = null;
     for (const delay of MUTATION_REFRESH_DELAYS_MS) {
       if (delay) await sleep(delay);
       if (wallet !== String(getWalletAddress() || "") || backpackAddress !== state.backpackAddress) {
         return { ok: false, reason: "stale-wallet-request" };
       }
-      if (state.loading) continue;
-      lastResult = await refreshKnownBackpack(wallet, backpackAddress);
+      while (state.loading) await readCompletion;
+      if (wallet !== String(getWalletAddress() || "") || backpackAddress !== state.backpackAddress) {
+        return { ok: false, reason: "stale-wallet-request" };
+      }
+      lastResult = await refreshKnownBackpack(wallet, backpackAddress, { previousSlot, minimumSlot, minimumCount, expectedResources });
       if (!lastResult?.ok) continue;
-      const visibleSlot = parseSlot(lastResult.backpack?.updatedSlot);
-      const slotAdvanced = previousSlot === null || (visibleSlot !== null && visibleSlot > previousSlot);
-      const countVisible = minimumCount === null || Number(lastResult.backpack?.itemCount) >= minimumCount;
-      if (slotAdvanced && countVisible) return lastResult;
+      return lastResult;
     }
     state.lastSyncAt = 0;
     return { ...(lastResult ?? {}), ok: false, reason: "mutation-not-visible-yet", stale: true };
   }
 
-  async function refreshKnownBackpack(wallet, backpackAddress) {
+  async function refreshKnownBackpack(wallet, backpackAddress, { previousSlot, minimumSlot, minimumCount, expectedResources }) {
     const requestId = ++requestSerial;
+    const finishRead = beginRead();
     state.loading = true;
     try {
       const module = await loadPlayChainModule();
@@ -166,17 +176,41 @@ export function createPlayChainBackpackSync({
       if (!backpack?.publicKey || String(backpack.owner || "") !== wallet) {
         return { ok: false, reason: "backpack-owner-mismatch" };
       }
+      const visibleSlot = parseSlot(backpack.updatedSlot);
+      const slotVisible = minimumSlot !== null ? visibleSlot !== null && visibleSlot >= minimumSlot
+        : previousSlot === null || (visibleSlot !== null && (visibleSlot > previousSlot
+          || (expectedResources.size > 0 && visibleSlot === previousSlot)));
+      const actualResources = new Map(snapshotBackpackBlockQuantities(backpack).map(entry => [entry.identity, entry.quantity]));
+      const rewardsVisible = [...expectedResources].every(([key, count]) => (actualResources.get(key) || 0) >= count);
+      if (!slotVisible || !rewardsVisible || (minimumCount !== null && Number(backpack.itemCount) < minimumCount)) {
+        return { ok: false, reason: "mutation-not-visible-yet", stale: true };
+      }
       const applied = applyBackpack(backpack, backpackAddress);
       return { ok: true, backpack, ...applied };
     } catch (error) {
+      if (!isCurrentRequest(requestId, wallet)) return { ok: false, reason: "stale-wallet-request" };
       state.lastError = readableError(error);
       return { ok: false, reason: state.lastError };
     } finally {
       if (requestId === requestSerial) state.loading = false;
+      finishRead();
     }
   }
 
+  function beginRead() {
+    let finish;
+    readCompletion = new Promise(resolve => { finish = resolve; });
+    return finish;
+  }
+
   function applyBackpack(backpack, fallbackAddress = "") {
+    const address = String(backpack.publicKey || fallbackAddress || "");
+    const visibleSlot = parseSlot(backpack.updatedSlot);
+    const currentSlot = parseSlot(state.updatedSlot);
+    if (state.backpackAddress === address && visibleSlot !== null && currentSlot !== null && visibleSlot < currentSlot) {
+      state.lastSyncAt = 0;
+      return { ok: false, reason: "stale-backpack-slot", stale: true };
+    }
     loadedBackpack = backpack;
     const chainSlots = chainSlotsFromBackpack(backpack, { chunkSize, resolveSurfaceDecoration });
     const capacity = Math.max(0, Math.trunc(Number(backpack.capacity) || 0));
@@ -511,6 +545,19 @@ function parseSlot(value) {
   } catch {
     return null;
   }
+}
+
+function expectedRewardQuantities(previousResources, storedRewards) {
+  const expected = new Map();
+  if (!Array.isArray(previousResources) || !Array.isArray(storedRewards)) return expected;
+  const previous = new Map(previousResources.map(entry => [String(entry.identity), Math.max(0, Number(entry.quantity) || 0)]));
+  for (const reward of storedRewards) {
+    const blockId = Math.trunc(Number(reward?.blockId) || 0);
+    if (blockId <= 0) continue;
+    const key = `${blockId}:${Math.trunc(Number(reward.metadata) || 0) >>> 0}`;
+    expected.set(key, (expected.get(key) ?? previous.get(key) ?? 0) + Math.max(1, Math.trunc(Number(reward.count) || 1)));
+  }
+  return expected;
 }
 
 function sleep(ms) {

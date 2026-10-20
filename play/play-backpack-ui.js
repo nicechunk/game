@@ -354,6 +354,7 @@ export function createPlayBackpackUi({
   }
 
   function openPanel() {
+    activeCategory = DEFAULT_CATEGORY;
     if (elements.backpackPanel) elements.backpackPanel.hidden = false;
     render({ force: true });
     const portfolio = gameState.getLandContractPortfolio?.();

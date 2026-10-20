@@ -39,6 +39,19 @@ assert.deepEqual(calls[0].options.blocks, [
   { worldX: 4, worldY: 3, worldZ: 5, blockId: 28 },
 ]);
 
+// A building material uses the NCM atlas, independently of its recovered item.
+assert.equal(effects.emitConfirmedBlockFracture({
+  miningKind: "building-demolition",
+  blocks: [{ worldX: 9, worldY: 102, worldZ: -4, blockId: 55, materialId: 55 }],
+}), true);
+assert.deepEqual(calls[1].options.blocks, [{ worldX: 9, worldY: 102, worldZ: -4, blockId: 22, materialId: 55 }]);
+
+assert.equal(effects.emitConfirmedBlockFracture({
+  miningKind: "building-demolition",
+  blocks: [{ worldX: 10, worldY: 102, worldZ: -4, blockId: 64 }],
+}), true);
+assert.deepEqual(calls[2].options.blocks, [{ worldX: 10, worldY: 102, worldZ: -4, blockId: 3, materialId: 64 }]);
+
 effects.update(1000, 1 / 60);
 assert.equal(typeof collisionOptions?.groundHeightAt, "function");
 assert.equal(collisionOptions.groundHeightAt(4.5, 5.5, 2.08, 1.92), 2);
