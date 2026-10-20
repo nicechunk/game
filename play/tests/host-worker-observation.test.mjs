@@ -15,7 +15,7 @@ for (const failWorker of [false, true]) test(failWorker ? "an actual Worker star
     const parts = []; for await (const part of request) parts.push(part);
     const body = JSON.parse(Buffer.concat(parts));
     response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify({ result: { context: { slot: 777 }, value: body.params[0].map(() => null) } }));
+    response.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { context: { slot: 777 }, value: body.params[0].map(() => null) } }));
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const chunks = new ChunkManager({ worldSeed: "nicechunk-mainnet-001", minY: -32, height: 353, viewDistance: 1, useWorkers: false });

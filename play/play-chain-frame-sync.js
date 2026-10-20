@@ -75,16 +75,18 @@ export function createPlayChainFrameSync({
   function updateChunkDeltasForFrame(now, { moving = false, frameIntervalMs = null, deadline = Infinity } = {}) {
     const chainChunkDeltas = getChainChunkDeltas();
     if (!chainChunkDeltas) return;
+    chainChunkDeltas.updateInterest?.();
     const observedInterval = frameIntervalMs ?? (lastChunkApplyAt === null ? undefined : now - lastChunkApplyAt);
     lastChunkApplyAt = now;
     const budget = getChunkSnapshotApplyBudget({ moving, frameIntervalMs: observedInterval });
     budget.budgetMs = Math.max(0, Math.min(budget.budgetMs, deadline - performance.now()));
     budget.deadline = deadline;
-    chainChunkDeltas.applyQueuedDeltas?.(budget);
+    const applied = chainChunkDeltas.applyQueuedDeltas?.(budget);
     const syncInterval = moving ? FRAME_CHAIN_CHUNK_DELTA_MOVING_SYNC_MS : FRAME_CHAIN_CHUNK_DELTA_SYNC_MS;
-    if (now - lastChunkDeltaAt < syncInterval) return;
+    if (now - lastChunkDeltaAt < syncInterval) return applied;
     lastChunkDeltaAt = now;
     chainChunkDeltas.requestSync({ reason: "frame", quiet: true });
+    return applied;
   }
 
   function handleWalletSessionChanged() {

@@ -1,5 +1,7 @@
 import { chunkId, worldToChunk } from "/chunk.js/play.js";
 import { decodeChunkAccountBatch, validateDecodedChunkAccountBatch } from "./play-chain-chunk-codec.js";
+import { decodeVerifiedChunkPairs, validateWorkerChunkPair, chunkPairWorkSnapshot } from "./play-chain-chunk-pair.js";
+import { createChunkPairCache } from "./play-chain-pair-cache.js";
 import { canonicalChunkWorkSnapshot } from "./play-chain-chunk-canonical.js";
 import { fetchChunkAccountBatch } from "./play-chain-rpc-batch.js";
 import { runChunkBatchPool, optionalContextSlot, pushChunkSnapshotHeap, popChunkSnapshotHeap, rebuildChunkSnapshotHeap, yieldChunkSyncTask } from "./play-chain-batch-scheduler.js";
@@ -45,6 +47,7 @@ export function createPlayChainChunkDeltaSync({
   persistentScopeHint = null,
   now = () => Date.now(),
   freshnessTtlMs = CHUNK_FRESHNESS_TTL_MS,
+  rpcEncoding = "base64",
 } = {}) {
   const chunkBatchSize = Math.max(1, Math.min(50, Math.trunc(Number(batchSize) || DEFAULT_BATCH_SIZE)));
   const state = {
@@ -99,11 +102,14 @@ export function createPlayChainChunkDeltaSync({
     persistentCacheHits: 0,
     persistentCacheApplied: 0,
     unchangedSnapshotCount: 0,
+    lastWorkerPairWork: null, rpcWorkerPairTokens: new Set(), endpointEpoch: 1, interestKey: "", interestEpoch: 0, scheduledSync: null,
+    metrics: { rpcCalls: 0, fullCalls: 0, conditionalCalls: 0, targetedRepairCalls: 0, responseJsonBytes: 0, requestJsonBytes: 0, decodedAccountBytes: 0, fullAccountCount: 0, unchangedAccountCount: 0, absentAccountCount: 0 },
+    retryAtById: new Map(), retryFailuresById: new Map(), fullRepairIds: new Set(), globalRpcBackoffUntil: 0,
   };
   const normalizedScopeHint = normalizePersistentScopeHint(persistentScopeHint);
   if (normalizedScopeHint) {
     state.persistentCacheScope = buildPersistentCacheScope({
-      programId: normalizedScopeHint.programId,
+      programId: normalizedScopeHint.programId, globalConfig: normalizedScopeHint.globalConfig, seed: normalizedScopeHint.seed, placedSeed: normalizedScopeHint.placedSeed,
       cluster: normalizedScopeHint.cluster,
       chunks,
     });
@@ -112,7 +118,12 @@ export function createPlayChainChunkDeltaSync({
     getScope: () => state.persistentCacheScope || "unconfigured",
   });
 
+  const pairCache = durableCache.pairs || createChunkPairCache({ getScope: () => state.persistentCacheScope, openDatabase: async () => null, now });
+
   return {
+    updateInterest,
+    ensurePresentation,
+    pendingPresentationCount: () => state.pendingSnapshotById.size,
     requestSync,
     syncLoadedChunks,
     preloadPersistentCache,
@@ -159,6 +170,9 @@ export function createPlayChainChunkDeltaSync({
       maxApplySliceMs: state.maxApplySliceMs,
       preparedEntries: state.preparedEntries,
       canonicalWork: canonicalChunkWorkSnapshot(),
+      workerPairWork: state.lastWorkerPairWork, pairWork: chunkPairWorkSnapshot(), pairCache: pairCache.snapshot(),
+      rpcMetrics: { ...state.metrics, availableWireBytes: null },
+      interestEpoch: state.interestEpoch, endpointEpoch: state.endpointEpoch,
       maxConcurrentRequests: RPC_BATCH_CONCURRENCY,
       maxBatchesPerSync: MAX_RPC_BATCHES_PER_SYNC,
       preparationEntriesPerBatchStep: 64,
@@ -191,6 +205,7 @@ export function createPlayChainChunkDeltaSync({
     state.persistentWriteById.clear();
     if (clearRenderDeltas) chunks?.clearChainDeltas?.();
     if (clearPersistent && persistentScope) {
+      void pairCache.clearScope(persistentScope);
       const previousClear = state.persistentClearPromise;
       const clearing = Promise.resolve(previousClear)
         .catch(() => {})
@@ -226,6 +241,7 @@ export function createPlayChainChunkDeltaSync({
   function invalidateChunk(idOrChunk) {
     const id = typeof idOrChunk === "string" ? idOrChunk : chunkId(idOrChunk?.chunkX ?? 0, idOrChunk?.chunkZ ?? 0);
     state.syncedChunkIds.delete(id);
+    state.retryAtById.delete(id); state.retryFailuresById.delete(id);
     state.verifiedAtById.delete(id);
     supersedePendingSnapshot(id);
     // Do not turn local optimistic or unobserved confirmed geometry into a
@@ -256,7 +272,7 @@ export function createPlayChainChunkDeltaSync({
         if (syncEpoch !== state.syncEpoch) return { ok: false, reason: "cache-warm-superseded" };
         const connection = module.getNicechunkConnection?.();
         if (!connection) return { ok: false, reason: "chunk-pda-rpc-unavailable" };
-        configurePersistentCacheScope(module, connection);
+        await configureAuthorityScope(module, connection);
         const targets = collectLoadedChunkTargets();
         const result = await hydratePersistentSnapshots(targets, { syncEpoch });
         state.lastReason = reason;
@@ -272,28 +288,30 @@ export function createPlayChainChunkDeltaSync({
     return state.persistentCacheWarmPromise;
   }
 
-  function requestSync({ force = false, reason = "auto", quiet = true } = {}) {
+  function requestSync({ force = false, reason = "auto", quiet = true, urgent = false } = {}) {
     if (!chunks) return Promise.resolve({ ok: false, reason: "chunks-unavailable" });
     if (!chainPdaReadEnabled()) return Promise.resolve({ ok: false, reason: "chunk-pda-read-disabled" });
     const contextKey = `${chunks.centerChunkX ?? 0}:${chunks.centerChunkZ ?? 0}:${chunks.viewDistance ?? chunks.viewDistanceChunks ?? ""}`;
-    if (state.syncContextKey && state.syncContextKey !== contextKey) cancelActiveSync("view-change");
+    // Moving interest does not revoke authority or overlapping in-flight pairs.
+    if (state.syncContextKey !== contextKey) state.interestEpoch++;
     state.syncContextKey = contextKey;
     if (force) invalidateFreshness({ reason });
-    if (state.loading) {
+    if (state.loading || state.scheduledSync) {
       state.queued = true;
       state.queuedForce ||= force;
       return Promise.resolve({ ok: false, reason: "already-loading" });
     }
     const now = performance.now();
-    if (!force && state.lastError && now - state.lastSyncAt < ERROR_RETRY_MS) {
+    if (!force && state.globalRpcBackoffUntil > Date.now()) {
       state.queued = true;
       return Promise.resolve({ ok: false, reason: "error-backoff" });
     }
-    if (!force && now - state.lastSyncAt < SYNC_COOLDOWN_MS) {
+    if (!force && !urgent && now - state.lastSyncAt < SYNC_COOLDOWN_MS) {
       state.queued = true;
       return Promise.resolve({ ok: false, reason: "cooldown" });
     }
-    return defer(() => syncLoadedChunks({ force, reason, quiet }));
+    state.scheduledSync = defer(() => { state.scheduledSync = null; return syncLoadedChunks({ force, reason, quiet }); });
+    return state.scheduledSync;
   }
 
   async function syncLoadedChunks({ force = false, reason = "manual", quiet = true } = {}) {
@@ -354,19 +372,22 @@ export function createPlayChainChunkDeltaSync({
       }
 
       const rpcEndpoint = String(connection?.rpcEndpoint || connection?._rpcEndpoint || "");
-      if (state.lastRpcEndpoint && state.lastRpcEndpoint !== rpcEndpoint) state.lastRpcContextSlot = null;
+      if (state.lastRpcEndpoint && state.lastRpcEndpoint !== rpcEndpoint) { state.lastRpcContextSlot = null; state.endpointEpoch++; }
       state.lastRpcEndpoint = rpcEndpoint;
-      configurePersistentCacheScope(module, connection);
-      if (state.persistentCacheWarmPromise) await state.persistentCacheWarmPromise;
-      if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
-      await hydratePersistentSnapshots(targets, { syncEpoch });
+      await configureAuthorityScope(module, connection);
+      // Disk latency must not hold up a cold, visible network read.
+      void hydratePersistentSnapshots(targets, { syncEpoch });
       if (syncEpoch !== state.syncEpoch) return supersededSyncResult();
       minimumContextSlot = state.lastRpcContextSlot;
       expectedOwner = String(module.getChunkBrokenPdaDerivationConfig?.()?.programId || "");
       expectedGlobalConfig = String(module.getChunkBrokenPdaDerivationConfig?.()?.globalConfig || "");
       observedContextSlot = minimumContextSlot;
 
-      const batches = chunkArray(targets, chunkBatchSize);
+      for (const target of targets) target.baseline = state.fullRepairIds.has(target.id) ? null : pairCache.peek(target);
+      const cold = targets.filter(target => !target.baseline), warm = targets.filter(target => target.baseline);
+      state.metrics.targetedRepairCalls += targets.filter(target => state.fullRepairIds.has(target.id)).length;
+      const batches = [...chunkArray(cold.filter(target => snapshotServiceTier(target) === 0), Math.min(8, chunkBatchSize)),
+        ...chunkArray(cold.filter(target => snapshotServiceTier(target) !== 0), chunkBatchSize), ...chunkArray(warm, chunkBatchSize)];
       batchCount = batches.length;
       if (!quiet) appendEvent(`Chunk PDA sync: ${targets.length} chunks in ${batchCount} RPC batches of ${chunkBatchSize}.`);
 
@@ -374,9 +395,14 @@ export function createPlayChainChunkDeltaSync({
       const consume = async (batchResult, batchIndex) => {
         if (syncEpoch !== state.syncEpoch || controller.signal.aborted || consumed.has(batchIndex)) return;
         consumed.add(batchIndex);
-        state.totalRpcCalls += 1;
+        for (const record of batchResult?.pairs ?? []) state.rpcWorkerPairTokens.add(record.pairToken);
+        while (state.rpcWorkerPairTokens.size > 2048) state.rpcWorkerPairTokens.delete(state.rpcWorkerPairTokens.values().next().value);
+        if (batchResult?.pairWork) state.lastWorkerPairWork = batchResult.pairWork;
+        state.totalRpcCalls += batchResult?.metrics?.rpcCalls ?? 1;
+        for (const key of Object.keys(state.metrics)) state.metrics[key] += batchResult?.metrics?.[key] || 0;
         if (!batchResult?.ok) {
           failedBatchCount += 1;
+          if (batchResult?.httpStatus === 429 || /timed out|HTTP 5/.test(batchResult?.error || "")) state.globalRpcBackoffUntil = Date.now() + ERROR_RETRY_MS;
           firstBatchError ||= readableError(batchResult?.error || "chunk PDA batch failed");
           return;
         }
@@ -395,11 +421,11 @@ export function createPlayChainChunkDeltaSync({
           fetchBatch: async ({ batch }) => {
             const pubkeys = await derivePubkeysForBatch(batch, deriveChunkBrokenPda, deriveChunkPlacedPda);
             if (controller.signal.aborted) return { ok: false, error: "cancelled" };
-            if (rpcEndpoint && typeof fetch === "function") return fetchChunkAccountBatch({ rpcUrl: rpcEndpoint, pubkeys: pubkeys.map((key) => key?.toBase58?.() ?? String(key)), requestId: state.rpcWorkerTaskSerial++, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot: minimumContextSlot, signal: controller.signal });
+            if (rpcEndpoint && typeof fetch === "function") return fetchChunkAccountBatch({ ...batchReadOptions(batch), encoding: "base64", endpointEpoch: state.endpointEpoch, rpcUrl: rpcEndpoint, pubkeys: pubkeys.map((key) => key?.toBase58?.() ?? String(key)), requestId: state.rpcWorkerTaskSerial++, timeoutMs: RPC_BATCH_TIMEOUT_MS, signal: controller.signal });
             // In-process/custom embedders may expose only the SDK interface.
             // Production HTTP fallback uses the same abortable transport as Worker.
             const result = await withTimeout(fetchMultipleAccountsWithContext(connection, pubkeys, minimumContextSlot), RPC_BATCH_TIMEOUT_MS, "chunk PDA RPC batch timed out");
-            return { ok: true, ...result };
+            return { ok: true, ...result, pubkeys: pubkeys.map(key => key?.toBase58?.() ?? String(key)) };
           },
           onResult: async (result, index) => consume(result, remaining[index].batchIndex),
         });
@@ -480,14 +506,50 @@ export function createPlayChainChunkDeltaSync({
       }
       const decodeOptions = { chunkSize: chunks.chunkSize || 16, minY: chunks.minY,
         contextSlot: slot, expectedOwner, globalConfig: expectedGlobalConfig, signal: controller.signal };
-      const decodedBatch = metadata.decoded
+      let decodedBatch;
+      if (metadata.pairs || metadata.observations) {
+        const options = { ...decodeOptions, scope: state.persistentCacheScope, observedAt: verifiedAt,
+          readStartedAt: metadata.readStartedAt ?? verifiedAt, changedSinceSlot: metadata.changedSinceSlot,
+          baselines: Object.fromEntries(batch.map(target => [target.id, target.baseline])) };
+        const decoded = metadata.pairs ? { pairs: [], errors: metadata.pairErrors || [] }
+          : await decodeVerifiedChunkPairs(batch, metadata.observations, options);
+        if (metadata.pairs && (metadata.pairs.length + decoded.errors.length !== batch.length
+          || new Set([...metadata.pairs, ...decoded.errors].map(record => record?.id)).size !== batch.length
+          || [...metadata.pairs, ...decoded.errors].some(record => !batch.some(target => target.id === record?.id)))) throw new Error("Invalid Worker pair envelope.");
+        if (metadata.pairs) for (const record of metadata.pairs) {
+          const target = batch.find(target => target.id === record.id);
+          if (!target) throw new Error("Worker returned an unsolicited chunk pair.");
+          const baseline = target.baseline;
+          const pubkeys = baseline ? [baseline.broken.pubkey, baseline.placed.pubkey] : [record.broken?.pubkey, record.placed?.pubkey];
+          try { decoded.pairs.push(await validateWorkerChunkPair(record, target, { ...options, baseline, pubkeys })); }
+          catch { decoded.errors.push({ id: target.id, error: "Worker chunk pair validation failed." }); }
+        }
+        decodedBatch = { snapshots: [], errors: decoded.errors };
+        if (syncEpoch !== state.syncEpoch) return false;
+        for (const pair of decoded.pairs) {
+          const current = pairCache.peek(pair);
+          if (current && current.knownAtSlot > pair.knownAtSlot) continue;
+          pairCache.put([pair]); // Publish both components and their watermark atomically, before meshing.
+          state.verifiedAtById.set(pair.id, pair.authoritativeObservedAt);
+          state.retryAtById.delete(pair.id); state.retryFailuresById.delete(pair.id); state.fullRepairIds.delete(pair.id);
+          decodedBatch.snapshots.push({ ...pair.canonical, id: pair.id, contextSlot: pair.knownAtSlot,
+            pairToken: pair.pairToken, pairValidatedAt: performance.now() });
+        }
+        for (const error of decoded.errors) {
+          const failures = Math.min(5, (state.retryFailuresById.get(error.id) || 0) + 1);
+          state.retryFailuresById.set(error.id, failures);
+          state.retryAtById.set(error.id, now() + Math.min(15000, 1000 * 2 ** (failures - 1))); state.fullRepairIds.add(error.id);
+        }
+      } else decodedBatch = metadata.decoded
         ? await validateDecodedChunkAccountBatch(batch, metadata.decoded, decodeOptions)
         : await decodeChunkAccountBatch(batch, infos, decodeOptions);
       if (syncEpoch !== state.syncEpoch) return false;
       for (const decodedSnapshot of decodedBatch.snapshots) {
         const snapshot = { ...decodedSnapshot, source: "rpc", snapshotCommitment: metadata.commitment || "finalized", readStartedAt: metadata.readStartedAt ?? verifiedAt, verifiedAt, syncEpoch };
         const requested = batch.find((target) => target.id === snapshot.id);
-        if (requested?.instance && requested.instance !== chunks?.chunks?.get?.(snapshot.id)) continue;
+        // A completed authoritative pair remains useful even if its old instance left.
+        // Presentation always targets the current instance.
+        if (requested && !chunks?.chunks?.has?.(snapshot.id)) { storeSnapshotCache(snapshot); continue; }
         const loaded = chunks?.chunks?.get?.(snapshot.id);
         const cached = state.snapshotCache.get(snapshot.id);
         if (cached && sameCanonicalChunkSnapshot(cached, snapshot)) {
@@ -499,6 +561,8 @@ export function createPlayChainChunkDeltaSync({
             readStartedAt: snapshot.readStartedAt,
           });
           if (acknowledged) {
+            chunks.ensureChainPresentation?.(snapshot.id);
+            notePresentation(loaded, snapshot);
             const refreshed = storeSnapshotCache({
               ...cached,
               ...snapshot,
@@ -528,6 +592,7 @@ export function createPlayChainChunkDeltaSync({
   function collectTargetChunks({ force = false } = {}) {
     const manager = chunks;
     const result = [];
+    for (const id of state.retryAtById.keys()) if (!manager?.chunks?.has?.(id)) { state.retryAtById.delete(id); state.retryFailuresById.delete(id); state.fullRepairIds.delete(id); }
     for (const id of state.verifiedAtById.keys()) if (!manager?.chunks?.has?.(id)) { state.verifiedAtById.delete(id); state.syncedChunkIds.delete(id); }
     for (const chunk of manager?.chunks?.values?.() ?? []) {
       if (!chunk) continue;
@@ -536,12 +601,13 @@ export function createPlayChainChunkDeltaSync({
       if (!force && cached && !cached.needsRefresh && chunk.chainRevision === 0 && chunk.chainSnapshotToken !== cached.token) {
         queueChainSnapshot({ ...cached, source: "memory", expectedChainRevision: 0 }, { updateCache: false });
         state.syncedChunkIds.add(chunk.id);
-        continue;
+        if (!freshnessExpired(chunk)) continue;
       }
       if (!force && state.syncedChunkIds.has(chunk.id)) {
         if (chunk.chainSnapshotToken && (!cached || chunk.chainSnapshotToken === cached.token && !cached.needsRefresh) && !freshnessExpired(chunk)) continue;
         state.syncedChunkIds.delete(chunk.id);
       }
+      if (!force && (state.retryAtById.get(chunk.id) || 0) > now()) continue;
       result.push({
         id: chunk.id,
         chunkX: chunk.chunkX,
@@ -728,6 +794,7 @@ export function createPlayChainChunkDeltaSync({
         state.syncedChunkIds.add(snapshot.id);
         if (snapshot.source === "rpc") state.verifiedAtById.set(snapshot.id, snapshot.verifiedAt);
         if (snapshot.source === "persistent") state.persistentCacheApplied++;
+        notePresentation(loaded, snapshot);
         if (result.retainedUnobserved > 0) laggingSnapshots++;
         if (result.changed) changedChunks++;
       }
@@ -743,6 +810,14 @@ export function createPlayChainChunkDeltaSync({
     if (changedChunks) onChanged();
     if (staleSnapshots || laggingSnapshots) requestSync({ reason: staleSnapshots ? "stale-snapshot" : "rpc-lag", quiet: true });
     return { applied, appliedSnapshots, changedChunks, staleSnapshots, laggingSnapshots, preparedEntries, pending: state.pendingDeltaCount, pendingSnapshots: pendingSnapshotCount(), elapsedMs };
+  }
+
+  function notePresentation(chunk, snapshot) {
+    for (const section of chunk?.renderSections?.values?.() ?? []) {
+      section.presentationRequest = { pairToken: snapshot.pairToken, pairValidatedAt: snapshot.pairValidatedAt ?? null,
+        snapshotApplied: performance.now(), dataRevision: section.dataRevision, firstDrawSubmitted: null,
+        interestEntered: chunk.interestEnteredAt ?? null, source: snapshot.source };
+    }
   }
 
   function snapshotOptions(snapshot) {
@@ -833,19 +908,38 @@ export function createPlayChainChunkDeltaSync({
     if (state.persistentClearPromise) await state.persistentClearPromise;
     if (syncEpoch !== state.syncEpoch) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
     const missing = (targets ?? []).filter((target) => !state.snapshotCache.has(target.id));
+    void pairCache.get(missing, { chunkSize: chunks.chunkSize || 16, minY: chunks.minY,
+      expectedOwner: state.authorityConfig?.programId || normalizedScopeHint?.programId,
+      onPair: pair => {
+        if (syncEpoch !== state.syncEpoch || state.snapshotCache.has(pair.id) || state.pendingSnapshotById.has(pair.id)) return;
+        state.verifiedAtById.set(pair.id, pair.authoritativeObservedAt);
+        const loaded = chunks.chunks.get(pair.id);
+        if (!loaded) return;
+        const snapshot = { ...pair.canonical, id: pair.id, contextSlot: pair.knownAtSlot, verifiedAt: pair.authoritativeObservedAt,
+          token: state.snapshotSerial++, source: "persistent", syncEpoch, instance: loaded, expectedChainRevision: loaded.chainRevision ?? 0 };
+        storeSnapshotCache(snapshot, { needsRefresh: true }); queueChainSnapshot(snapshot, { updateCache: false });
+      } });
     const queuedIds = new Set();
     const enqueue = async (cachedSnapshot) => {
-      if (syncEpoch !== state.syncEpoch || queuedIds.has(cachedSnapshot.id)) return;
+      if (syncEpoch !== state.syncEpoch || queuedIds.has(cachedSnapshot.id) || state.snapshotCache.has(cachedSnapshot.id) || state.pendingSnapshotById.has(cachedSnapshot.id)) return;
       queuedIds.add(cachedSnapshot.id);
       const loaded = chunks?.chunks?.get?.(cachedSnapshot.id);
       const canonical = await canonicalizeChunkSnapshotAsync(cachedSnapshot, { chunkSize: chunks.chunkSize || 16 });
-      if (syncEpoch !== state.syncEpoch) return;
+      if (syncEpoch !== state.syncEpoch || state.snapshotCache.has(cachedSnapshot.id) || state.pendingSnapshotById.has(cachedSnapshot.id)) return;
       const snapshot = { ...canonical, token: state.snapshotSerial++, source: "persistent", syncEpoch, instance: loaded, verifiedAt: null, expectedChainRevision: loaded?.chainRevision ?? 0 };
       storeSnapshotCache(snapshot, { needsRefresh: true });
       queueChainSnapshot(snapshot, { updateCache: false });
       state.syncedChunkIds.delete(snapshot.id);
     };
     const snapshots = await durableCache.getVerifiedSnapshots?.(missing, { chunkSize: chunks.chunkSize || 16, onSnapshot: enqueue }) ?? [];
+    const legacyScope = legacyPreviewScope();
+    if (legacyScope && syncEpoch === state.syncEpoch) {
+      // The reviewed v0.1.95 deployment has a fixed core/global PDA. Old merged
+      // rows are visual previews only; they never enter the component cache.
+      const legacyTargets = missing.filter(target => !state.snapshotCache.has(target.id) && !state.pendingSnapshotById.has(target.id));
+      const legacy = await durableCache.getVerifiedSnapshots?.(legacyTargets, { chunkSize: chunks.chunkSize || 16, readScope: legacyScope, onSnapshot: enqueue }) ?? [];
+      snapshots.push(...legacy);
+    }
     if (syncEpoch !== state.syncEpoch) return { cacheHits: 0, appliedSnapshots: 0, changedChunks: 0 };
     // Embedders may implement the pre-streaming cache interface.
     for (const cachedSnapshot of snapshots) await enqueue(cachedSnapshot);
@@ -853,10 +947,23 @@ export function createPlayChainChunkDeltaSync({
     return { cacheHits: snapshots.length, appliedSnapshots: 0, changedChunks: 0, queuedSnapshots: snapshots.length };
   }
 
+  function legacyPreviewScope() {
+    const config = state.authorityConfig;
+    if (state.genesis !== "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"
+      || config?.globalConfig !== "46bTKGThh96ChxJEmcKz6GvudGi3d7YDiAFtVhKb2Y5f"
+      || config.programId !== DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT.programId
+      || config.seed !== "chunk-broken" || config.placedSeed !== "chunk-placed") return null;
+    return ["chunk-cache-v3", "solana-devnet", config.programId, String(chunks?.worldSeed ?? chunks?.config?.worldSeed ?? "unknown"),
+      Math.trunc(Number(chunks?.generationVersion) || 0), Math.trunc(Number(chunks?.resourceRuleVersion) || 0),
+      Math.trunc(Number(chunks?.chunkSize) || 16), Math.trunc(Number(chunks?.minY) || 0), Math.trunc(Number(chunks?.height) || 0)]
+      .map(value => encodeURIComponent(String(value))).join("|");
+  }
+
   function configurePersistentCacheScope(module, connection) {
     const pdaConfig = module?.getChunkBrokenPdaDerivationConfig?.();
+    state.authorityConfig = pdaConfig;
     const nextScope = buildPersistentCacheScope({
-      programId: pdaConfig?.programId,
+      programId: pdaConfig?.programId, globalConfig: pdaConfig?.globalConfig, seed: pdaConfig?.seed, placedSeed: pdaConfig?.placedSeed, genesis: state.genesis,
       cluster: normalizedScopeHint?.cluster || rpcClusterIdentity(String(connection?.rpcEndpoint || connection?._rpcEndpoint || "")),
       rpcEndpoint: String(connection?.rpcEndpoint || connection?._rpcEndpoint || ""),
       chunks,
@@ -884,6 +991,7 @@ export function createPlayChainChunkDeltaSync({
 
   function queuePersistentWrite(snapshot) {
     if (!snapshot?.id || !state.persistentCacheScope) return;
+    if (durableCache.pairs && pairCache.peek(snapshot)) return;
     const canonical = canonicalizeSnapshot(snapshot);
     state.persistentWriteById.set(canonical.id, { ...canonical, verifiedAt: snapshot.verifiedAt });
     if (state.persistentWriteTimer) return;
@@ -914,9 +1022,55 @@ export function createPlayChainChunkDeltaSync({
       const timer = setTimeout(() => disableRpcWorker(new Error("chunk PDA RPC worker timed out")), RPC_WORKER_TASK_TIMEOUT_MS * Math.ceil(batches.length / RPC_BATCH_CONCURRENCY));
       state.rpcWorkerRequests.set(taskId, { resolve, reject, timer, onBatch, syncEpoch, pending: new Set() });
       try {
-        worker.postMessage({ type: "fetchChunkPdas", taskId, syncEpoch, concurrency: RPC_BATCH_CONCURRENCY, pdaConfig, rpcUrl, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot, chunkSize: chunks.chunkSize || 16, minY: chunks.minY, batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))) });
+        worker.postMessage({ type: "fetchChunkPdas", taskId, syncEpoch, concurrency: RPC_BATCH_CONCURRENCY, pdaConfig, rpcUrl, timeoutMs: RPC_BATCH_TIMEOUT_MS, minContextSlot, scope: state.persistentCacheScope, endpointEpoch: state.endpointEpoch, encoding: rpcEncoding,
+          baselines: Object.fromEntries(batches.flat().filter(chunk => chunk.baseline).map(chunk => [chunk.id, state.rpcWorkerPairTokens.has(chunk.baseline.pairToken) ? { pairToken: chunk.baseline.pairToken } : chunk.baseline])),
+          batchReads: batches.map(batchReadOptions),
+          batchEncodings: batches.map(batch => batch.some(chunk => state.fullRepairIds.has(chunk.id)) ? "base64" : rpcEncoding), chunkSize: chunks.chunkSize || 16, minY: chunks.minY, batches: batches.map((batch) => batch.map((chunk) => ({ chunkX: chunk.chunkX, chunkZ: chunk.chunkZ }))) });
       } catch (error) { disableRpcWorker(error); }
     });
+  }
+
+  function batchReadOptions(batch) {
+    const baselines = batch.map(target => target.baseline);
+    const slots = baselines.filter(Boolean).map(pair => pair.knownAtSlot);
+    return { changedSinceSlot: slots.length === batch.length ? Math.min(...slots) : null,
+      minContextSlot: Math.max(state.lastRpcContextSlot || 0, ...slots) || null };
+  }
+
+  function ensurePresentation(id) {
+    const chunk = chunks?.chunks?.get?.(id), cached = state.snapshotCache.get(id);
+    if (!chunk) return false;
+    if (cached && chunk.chainSnapshotToken !== cached.token && !state.pendingSnapshotById.has(id)) {
+      queueChainSnapshot({ ...cached, source: "memory", expectedChainRevision: chunk.chainRevision ?? 0 }, { updateCache: false });
+    }
+    chunks.ensureChainPresentation?.(id);
+    return true;
+  }
+
+  function updateInterest() {
+    const key = [chunks?.centerChunkX, chunks?.centerChunkZ, chunks?.viewDistance, chunks?.chunks?.size, chunks?.interestRevision].join(":");
+    if (key === state.interestKey) return false;
+    state.interestKey = key; state.interestEpoch++;
+    for (const chunk of chunks?.chunks?.values?.() ?? []) { chunk.interestEnteredAt ??= performance.now(); ensurePresentation(chunk.id); }
+    void preloadPersistentCache({ reason: "interest-cache" });
+    void requestSync({ reason: "interest", urgent: true });
+    return true;
+  }
+
+  async function configureAuthorityScope(module, connection) {
+    const epoch = state.syncEpoch;
+    const identityKey = JSON.stringify([connection.rpcEndpoint || connection._rpcEndpoint || "", module.getChunkBrokenPdaDerivationConfig?.()]);
+    state.identityTarget = identityKey;
+    if (typeof connection.getGenesisHash === "function") {
+      const endpoint = String(connection.rpcEndpoint || connection._rpcEndpoint || "");
+      if (state.genesisEndpoint !== endpoint) {
+        const genesis = await withTimeout(connection.getGenesisHash(), RPC_BATCH_TIMEOUT_MS, "chain identity lookup timed out");
+        if (epoch !== state.syncEpoch || identityKey !== state.identityTarget) throw new Error("Chain identity observation superseded.");
+        if (typeof genesis !== "string" || genesis.length < 20) throw new Error("Invalid chain identity.");
+        state.genesis = genesis; state.genesisEndpoint = endpoint;
+      }
+    }
+    return configurePersistentCacheScope(module, connection);
   }
 
   function ensureRpcWorker() {
@@ -953,6 +1107,7 @@ export function createPlayChainChunkDeltaSync({
 
   function disableRpcWorker(error) {
     state.rpcWorkerDisabled = true;
+    state.rpcWorkerPairTokens.clear();
     state.rpcWorker?.terminate?.();
     state.rpcWorker = null;
     for (const request of state.rpcWorkerRequests.values()) {
@@ -963,13 +1118,15 @@ export function createPlayChainChunkDeltaSync({
   }
 }
 
-function buildPersistentCacheScope({ programId, cluster, rpcEndpoint, chunks } = {}) {
+function buildPersistentCacheScope({ programId, cluster, rpcEndpoint, chunks, globalConfig = "", seed = "chunk-broken", placedSeed = "chunk-placed", genesis = "" } = {}) {
   const normalizedProgramId = String(programId || "").trim();
   if (!normalizedProgramId) throw new Error("Chunk PDA cache scope is unavailable.");
   const worldSeed = String(chunks?.worldSeed ?? chunks?.config?.worldSeed ?? "unknown");
   return [
-    "chunk-cache-v3",
-    normalizeClusterIdentity(cluster) || rpcClusterIdentity(rpcEndpoint),
+    "chunk-cache-v4-lossless",
+    genesis || "unverified:" + (normalizeClusterIdentity(cluster) || rpcClusterIdentity(rpcEndpoint)),
+    globalConfig, seed, placedSeed, "NCBK1:NCPB1",
+    genesis ? "verified-genesis" : normalizeClusterIdentity(cluster) || rpcClusterIdentity(rpcEndpoint),
     normalizedProgramId,
     worldSeed,
     Math.trunc(Number(chunks?.generationVersion) || 0),
@@ -983,7 +1140,7 @@ function buildPersistentCacheScope({ programId, cluster, rpcEndpoint, chunks } =
 function normalizePersistentScopeHint(value) {
   const programId = String(value?.programId || "").trim();
   const cluster = normalizeClusterIdentity(value?.cluster);
-  return programId && cluster ? { programId, cluster } : null;
+  return programId && cluster ? { programId, cluster, globalConfig: String(value.globalConfig || ""), seed: value.seed, placedSeed: value.placedSeed } : null;
 }
 
 function normalizeClusterIdentity(value) {
@@ -1002,9 +1159,9 @@ function rpcClusterIdentity(endpoint) {
   try {
     const url = new URL(text);
     if (["127.0.0.1", "localhost", "::1"].includes(url.hostname)) return `solana-local:${url.port || "8899"}`;
-    return `solana-rpc:${url.host}${url.pathname.replace(/\/+$/, "")}`;
+    return `solana-rpc-unverified:${url.host}`;
   } catch {
-    return `solana-rpc:${text || "unknown"}`;
+    return "solana-rpc-unverified:unknown";
   }
 }
 
@@ -1092,6 +1249,11 @@ function chainPdaReadEnabled() {
   } catch {
     return true;
   }
+}
+
+export function getChainChunkRpcEncoding() {
+  try { return globalThis.localStorage?.getItem("nicechunk.chunkRpcEncoding") === "base64+zstd" ? "base64+zstd" : "base64"; }
+  catch { return "base64"; }
 }
 
 export function isChainChunkPdaReadEnabled() {

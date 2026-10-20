@@ -107,7 +107,7 @@ test("real Worker preserves malformed-input parity and handles the production pe
     const batch = body.id % 100;
     const infos = mode === "cases" ? matrix[batch] : body.params[0].map((_key, index) => account(index % 2 ? "placed" : "broken", 64));
     response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify({ result: { context: { slot: 321 + batch }, value: infos.map(info => info ? {
+    response.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { context: { slot: 321 + batch }, value: infos.map(info => info ? {
       owner: info.owner, executable: info.executable, data: [Buffer.from(info.data).toString("base64"), "base64"],
     } : null) } })); active--;
   });
@@ -129,7 +129,9 @@ test("real Worker preserves malformed-input parity and handles the production pe
       const batch = task.batches[message.batchIndex], contextSlot = 321 + message.batchIndex;
       const fallback = await decodeChunkAccountBatch(batch, matrix[message.batchIndex], { ...options, contextSlot });
       const restored = await validateDecodedChunkAccountBatch(batch, message.result.decoded, { ...options, contextSlot });
-      assert.deepEqual(restored, { snapshots: fallback.snapshots, errors: fallback.errors });
+      assert.deepEqual(restored.snapshots, fallback.snapshots);
+      assert.deepEqual(restored.errors.map(item => item.id), fallback.errors.map(item => item.id));
+      assert.ok(restored.errors.every(item => item.error.length > 0), "strict transport rejects malformed envelopes before account decoding");
       assert.equal(message.result.commitment, "finalized"); assert.ok(message.result.observedAt >= message.result.readStartedAt);
       assert.equal(message.result.infos, undefined, "account byte arrays are not copied back to the main thread");
       for (const record of message.result.decoded.snapshots) assert.ok(record.packedDeltas instanceof Int32Array);

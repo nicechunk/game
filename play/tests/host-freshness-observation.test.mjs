@@ -68,7 +68,7 @@ for (const transport of ["main", "worker"]) {
             workerInstances.push(this.worker);
             this.worker.on("message", (message) => {
               if (message.type === "test-ready") return;
-              if (message.type === "chunkPdaBatchFetched" && message.result.ok) delayDecode(message.result.decoded.snapshots[0], "packedDeltas");
+              if (message.type === "chunkPdaBatchFetched" && message.result.ok) delayDecode(message.result.pairs[0], "unchanged");
               this.onmessage?.({ data: message });
             });
             this.worker.on("error", (error) => this.onerror?.({ message: error.message, preventDefault() {} }));

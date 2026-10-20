@@ -17,6 +17,7 @@ export async function decodeChunkAccountBatch(batch, infos, options = {}) {
     try {
       const packedDeltas = [], pair = [];
       for (const [kind, account] of [["broken", infos[index * 2]], ["placed", infos[index * 2 + 1]]]) {
+        if (account === undefined || account !== null && typeof account !== "object") throw new Error("Missing chunk account observation.");
         const bytes = account?.data instanceof Uint8Array ? account.data : new Uint8Array(account?.data || []);
         const descriptor = describeAccount(account, bytes, kind);
         validateAccountDescriptor(descriptor, kind, options);
@@ -98,7 +99,7 @@ function authorityKey(options) {
     Number.isFinite(options.minY) ? options.minY : null]);
 }
 
-function describeAccount(account, bytes, kind) {
+export function describeAccount(account, bytes, kind) {
   const present = Boolean(account), hasData = bytes.length > 0;
   return { present, hasData, owner: String(account?.owner?.toBase58?.() ?? account?.owner ?? ""), executable: Boolean(account?.executable),
     byteLength: bytes.length, magic: hasData ? String.fromCharCode(...bytes.subarray(0, 4)) : "",
@@ -106,14 +107,14 @@ function describeAccount(account, bytes, kind) {
     capacity: hasData ? readU16(bytes, 8) : 0, minY: hasData ? readI16(bytes, 10) : 0 };
 }
 
-function validateAccountDescriptor(record, kind, options) {
+export function validateAccountDescriptor(record, kind, options) {
   const label = kind === "broken" ? "ChunkBroken" : "ChunkPlaced", format = FORMATS[kind];
   if (!record || typeof record.present !== "boolean" || typeof record.hasData !== "boolean"
     || typeof record.owner !== "string" || typeof record.executable !== "boolean") throw new Error(`Invalid ${label} account descriptor.`);
   if (record.present && options.expectedOwner && record.owner !== options.expectedOwner) throw new Error(`${label} account owner does not match the active chunk program.`);
   if (record.executable) throw new Error(`${label} account cannot be executable.`);
   if (!record.hasData) {
-    if (record.byteLength !== 0 || record.count !== 0 || record.capacity !== 0 || record.magic !== "") throw new Error(`Invalid empty ${label} account.`);
+    if (record.present || record.byteLength !== 0 || record.count !== 0 || record.capacity !== 0 || record.magic !== "") throw new Error(`Invalid empty ${label} account.`);
     return;
   }
   if (!record.present || record.magic !== format.magic || record.version !== 1) throw new Error(`Invalid ${label} account magic or version.`);

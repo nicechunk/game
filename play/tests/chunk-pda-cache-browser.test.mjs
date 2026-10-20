@@ -118,7 +118,7 @@ test("persistent chunk cache renders first and unchanged PDA snapshots avoid rep
       const sync = createPlayChainChunkDeltaSync({
         chunks,
         persistentCache: cache,
-        persistentScopeHint: { cluster: "devnet", programId: "ChunkProgram111" },
+        persistentScopeHint: { cluster: "devnet", programId: "ChunkProgram111", globalConfig: "GlobalConfig111" },
         loadChainModule: async () => {
           chainModuleLoads += 1;
           return chainModule;

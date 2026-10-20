@@ -1,3 +1,5 @@
+import { decodeVerifiedChunkPairs, compactVerifiedChunkPair, restoreVerifiedChunkPair, chunkPairWorkSnapshot } from "./play-chain-chunk-pair.js";
+const pairs = new Map(); let pairBytes = 0;
 import { decodeChunkAccountBatch } from "./play-chain-chunk-codec.js";
 import { canonicalChunkWorkSnapshot } from "./play-chain-chunk-canonical.js";
 import { createChunkPdaDeriver } from "./play-solana-pda-lite.js";
@@ -33,8 +35,37 @@ self.onmessage = async (event) => {
             await deriveCachedPda("placed", derivers.placed, chunk.chunkX, chunk.chunkZ),
           ]);
         }
-        const result = await fetchChunkAccountBatch({ rpcUrl: task.rpcUrl, pubkeys: pubkeyPairs.flat(), requestId: task.taskId * 100 + batchIndex, timeoutMs: task.timeoutMs, minContextSlot: task.minContextSlot, signal });
-        if (result.ok && !signal.aborted) {
+        const baselines = {};
+        for (let index = 0; index < batch.length; index++) {
+          const chunk = batch[index], id = chunk.chunkX + "," + chunk.chunkZ, incoming = task.baselines?.[id];
+          let baseline = pairs.get(incoming?.pairToken);
+          if (!baseline && incoming?.broken) {
+            try { baseline = await restoreVerifiedChunkPair(incoming, { ...chunk, pubkeys: pubkeyPairs[index], scope: task.scope,
+              expectedOwner: task.pdaConfig.programId, minY: task.minY, chunkSize: task.chunkSize || 16 }); } catch { /* Cold read repairs a lost Worker baseline in one RTT. */ }
+          }
+          if (baseline) baselines[id] = baseline;
+        }
+        const slots = Object.values(baselines).map(pair => pair.knownAtSlot);
+        const readOptions = { minContextSlot: Math.max(task.minContextSlot || 0, ...slots) || null,
+          changedSinceSlot: slots.length === batch.length ? Math.min(...slots) : null };
+        const result = await fetchChunkAccountBatch({ ...readOptions, encoding: task.batchEncodings?.[batchIndex] || task.encoding, endpointEpoch: task.endpointEpoch, rpcUrl: task.rpcUrl, pubkeys: pubkeyPairs.flat(), requestId: task.taskId * 100 + batchIndex, timeoutMs: task.timeoutMs, signal });
+        if (result.ok && !signal.aborted && task.scope) {
+          const decoded = await decodeVerifiedChunkPairs(batch, result.observations, { baselines, scope: task.scope,
+            chunkSize: task.chunkSize || 16, minY: task.minY, expectedOwner: task.pdaConfig.programId,
+            contextSlot: result.contextSlot, changedSinceSlot: result.changedSinceSlot,
+            readStartedAt: result.readStartedAt, observedAt: result.observedAt, signal });
+          result.pairs = decoded.pairs.map(pair => {
+            if (!pairs.has(pair.pairToken)) pairBytes += pair.byteLength;
+            pairs.delete(pair.pairToken); pairs.set(pair.pairToken, pair);
+            return compactVerifiedChunkPair(pair, baselines[pair.id]);
+          });
+          while (pairBytes > 64 * 1024 * 1024 || pairs.size > 2048) {
+            const key = pairs.keys().next().value; pairBytes -= pairs.get(key).byteLength; pairs.delete(key);
+          }
+          result.pairErrors = decoded.errors;
+          result.pairWork = chunkPairWorkSnapshot();
+          delete result.infos; delete result.observations;
+        } else if (result.ok && !signal.aborted) {
           result.decoded = await decodeChunkAccountBatch(batch, result.infos, {
             chunkSize: task.chunkSize || 16, minY: task.minY, contextSlot: result.contextSlot,
             expectedOwner: task.pdaConfig.programId, globalConfig: task.pdaConfig.globalConfig,
@@ -48,6 +79,7 @@ self.onmessage = async (event) => {
       onResult: (result, batchIndex) => {
         const transfer = [];
         for (const record of result.decoded?.snapshots ?? []) transfer.push(record.packedDeltas.buffer);
+        for (const record of result.pairs ?? []) if (record.canonical?.packedDeltas?.buffer) transfer.push(record.canonical.packedDeltas.buffer);
         self.postMessage({ type: "chunkPdaBatchFetched", taskId: task.taskId, syncEpoch: task.syncEpoch, batchIndex, result }, transfer);
       },
     });

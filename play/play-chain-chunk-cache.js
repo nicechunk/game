@@ -1,8 +1,9 @@
 const DB_NAME = "nicechunk-chain-chunk-cache";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SNAPSHOT_STORE = "snapshots";
 const CACHE_SCHEMA = "chain-chunk-snapshot-v2-pure-rpc";
 import { canonicalizeChunkSnapshotAsync } from "./play-chain-chunk-canonical.js";
+import { createChunkPairCache } from "./play-chain-pair-cache.js";
 export { canonicalizeChunkSnapshot, canonicalizeChunkSnapshotAsync, prepareCanonicalChunkSnapshot, sameCanonicalChunkSnapshot } from "./play-chain-chunk-canonical.js";
 const DEFAULT_MAX_RECORDS = 4096;
 const DEFAULT_MAX_DELTAS = 262_144;
@@ -14,6 +15,7 @@ export function createPlayChainChunkCache({
   getScope = () => "default",
   indexedDBFactory = globalThis.indexedDB,
   memoryStore = memorySnapshots,
+  pairMemoryStore = undefined,
   maxRecords = DEFAULT_MAX_RECORDS,
   maxDeltas = DEFAULT_MAX_DELTAS,
   maxAgeMs = DEFAULT_MAX_AGE_MS,
@@ -25,6 +27,7 @@ export function createPlayChainChunkCache({
   let reads = 0;
   let hits = 0;
   let writes = 0;
+  const pairs = createChunkPairCache({ getScope: scope, openDatabase, now, memoryStore: pairMemoryStore });
 
   return {
     getVerifiedSnapshots,
@@ -32,10 +35,11 @@ export function createPlayChainChunkCache({
     clearScope,
     prune,
     snapshot,
+    pairs,
   };
 
-  async function getVerifiedSnapshots(targets = [], { chunkSize = 16, onSnapshot = null } = {}) {
-    const activeScope = scope();
+  async function getVerifiedSnapshots(targets = [], { chunkSize = 16, onSnapshot = null, readScope = null } = {}) {
+    const activeScope = readScope ? normalizeScope(readScope) : scope();
     const normalizedTargets = uniqueTargets(targets);
     if (!normalizedTargets.length) return [];
     reads += normalizedTargets.length;
@@ -130,6 +134,7 @@ export function createPlayChainChunkCache({
 
   async function clearScope(scopeValue = scope()) {
     const normalizedScope = normalizeScope(scopeValue);
+    await pairs.clearScope(normalizedScope);
     for (const [key, value] of memoryStore) {
       if (value?.scope === normalizedScope) memoryStore.delete(key);
     }
@@ -177,6 +182,7 @@ export function createPlayChainChunkCache({
       writes,
       lastError,
       memoryRecords: memoryStore.size,
+      pairs: pairs.snapshot(),
     };
   }
 
@@ -231,6 +237,7 @@ export function createPlayChainChunkCache({
       }
       request.onupgradeneeded = () => {
         const database = request.result;
+        if (!database.objectStoreNames.contains("account-pairs")) database.createObjectStore("account-pairs", { keyPath: "key" });
         if (!database.objectStoreNames.contains(SNAPSHOT_STORE)) {
           const store = database.createObjectStore(SNAPSHOT_STORE, { keyPath: "key" });
           store.createIndex("scope", "scope", { unique: false });
