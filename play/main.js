@@ -1297,6 +1297,7 @@ async function boot() {
     },
     onConfirm: (pending) => {
       if (pending.miningKind === "building-demolition") {
+        chainPlayer?.applyMiningResult?.(pending.chainResult);
         forgetMiningHit(pending);
         chainSession?.handleConfirmedMine(pending);
         void buildingController?.applyConfirmedDemolition?.(pending);

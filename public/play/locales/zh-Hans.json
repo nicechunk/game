@@ -1372,7 +1372,7 @@
       "operationDenied": "该区域为契约区域，没有操作权限。",
       "demolitionTitle": "拆除建筑",
       "demolitionPending": "正在拆除该建筑块，等待链上确认。",
-      "demolitionConfirmed": "建筑块已拆除。调试模式下不扣除、也不返还资源。"
+      "demolitionConfirmed": "建筑方块已拆除，材料已存入背包。"
     },
     "onboarding": {
       "features": {

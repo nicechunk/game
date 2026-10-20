@@ -5,6 +5,8 @@ import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
 import { STARTER_AXE_RECIPE_ID } from "../data/starterTools.js";
 import { encodeMiningToolReference, miningDurabilityFromTransaction, waterCollectionFromTransaction } from "./miningDurability.js";
 import { analyzeForgeContainer } from "../../chunk.js/forge/forge-container.js";
+import { buildingResourceBlockId } from "../../chunk.js/construction/building-resource.js";
+import { decodeNcm3, expandBlueprint } from "../../chunk.js/ncm/blueprint-codec.js";
 import { WATER_BLOCK_ID, WATER_RESOURCE_ID, WATER_UNIT_ML } from "../data/waterCollection.js";
 import {
   createAssociatedTokenAccountInstruction,
@@ -833,7 +835,8 @@ async function loadBuildingDamageSections(foundation, manifest, conn) {
   return sections;
 }
 
-export function createBuildingDemolitionInstruction({ authority, owner, target, miningTool, context = gameContext }) {
+export function createBuildingDemolitionInstruction({ authority, owner, target, miningTool, backpack, shardCount, context = gameContext }) {
+  if (!backpack || !Number.isInteger(shardCount) || shardCount < 1 || shardCount > 8) throw Error("Building demolition requires a backpack and authenticated NCM shards.");
   const tool = encodeMiningToolReference(miningTool);
   const { foundationId, revision, x, y, z } = target ?? {};
   if (![x, y, z].every(v => Number.isInteger(v) && v >= 0 && v <= 255)) throw Error("Invalid building voxel coordinates.");
@@ -852,10 +855,16 @@ export function createBuildingDemolitionInstruction({ authority, owner, target, 
     { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: owner, isSigner: false, isWritable: false },
     { pubkey: equipment, isSigner: false, isWritable: true }, { pubkey: playerProgramId, isSigner: false, isWritable: false },
+    { pubkey: PublicKey.findProgramAddressSync([Buffer.from("building-reward-v1"), deriveGlobalConfigPda().toBuffer()], context.buildingProgramId)[0], isSigner: false, isWritable: false },
+    { pubkey: new PublicKey(backpack), isSigner: false, isWritable: true },
+    { pubkey: deriveMaterialPhysicsPda(context.backpackProgramId)[0], isSigner: false, isWritable: false },
+    { pubkey: context.backpackProgramId, isSigner: false, isWritable: false },
+    ...Array.from({ length: shardCount }, (_, index) => ({ pubkey: deriveBuildingShardPdaForContext(foundationId, revision, index, context)[0], isSigner: false, isWritable: false })),
   ] });
 }
 
-export async function recordBuildingBreakOnChain(target, { miningTool } = {}) {
+export async function recordBuildingBreakOnChain(target, options = {}) {
+  const { miningTool } = options;
   if (!isNicechunkChainSyncEnabled()) return { submitted: false, reason: "chain-sync-disabled" };
   const provider = await connectedWalletProvider();
   if (!provider) return { submitted: false, reason: "wallet-unavailable" };
@@ -867,11 +876,28 @@ export async function recordBuildingBreakOnChain(target, { miningTool } = {}) {
   const manifest = await loadBuildingManifestForRevision(conn, foundation, target.revision, context);
   if (!manifest || manifest.status !== "active") return { submitted: false, reason: "building-manifest-unavailable" };
   if (target.x >= manifest.sizeX || target.y >= manifest.sizeY || target.z >= manifest.sizeZ) throw Error("Building target is outside its manifest.");
+  const backpack = await loadAuthoritativeMiningBackpack(provider.publicKey, conn, options);
+  if (!backpack?.publicKey) return { submitted: false, reason: "no-backpack" };
+  const source = await readCompleteBuilding(foundation, conn);
+  let blockId = 0;
+  for (const box of expandBlueprint(decodeNcm3(source.code))) {
+    if (target.x >= box.x && target.x < box.x + box.w && target.y >= box.y && target.y < box.y + box.h && target.z >= box.z && target.z < box.z + box.d) blockId = box.material;
+  }
+  if (!blockId) return { submitted: false, reason: "building-voxel-empty" };
+  const turn = manifest.quarterTurns, width = turn % 2 ? manifest.sizeZ : manifest.sizeX, depth = turn % 2 ? manifest.sizeX : manifest.sizeZ;
+  const rx = turn === 1 ? manifest.sizeZ - 1 - target.z : turn === 2 ? manifest.sizeX - 1 - target.x : turn === 3 ? target.z : target.x;
+  const rz = turn === 1 ? target.x : turn === 2 ? manifest.sizeZ - 1 - target.z : turn === 3 ? manifest.sizeX - 1 - target.x : target.z;
+  const { resourceIdForBlock } = await import("../world/blocks.js");
+  const resourceBlockId = buildingResourceBlockId(blockId);
+  const reward = { blockId: resourceBlockId, resourceId: resourceIdForBlock(resourceBlockId), count: 1,
+    worldX: foundation.minX + Math.floor((foundation.width - width) / 2) + manifest.offsetX + rx,
+    worldY: foundation.surfaceY + target.y,
+    worldZ: foundation.minZ + Math.floor((foundation.depth - depth) / 2) + manifest.offsetZ + rz };
   const session = await getOrCreateGameplaySession(provider);
-  const instruction = createBuildingDemolitionInstruction({ authority: session.keypair.publicKey, owner: provider.publicKey, target, miningTool, context });
+  const instruction = createBuildingDemolitionInstruction({ authority: session.keypair.publicKey, owner: provider.publicKey, target, miningTool, backpack: backpack.publicKey, shardCount: manifest.shardCount, context });
   const account = await conn.getAccountInfo(instruction.keys[5].pubkey, "confirmed");
   await fundBuildingUploadSession(provider, session.keypair.publicKey, account?.data?.length ? [] : [80 + manifest.sizeY * 32], conn);
-  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), instruction);
+  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }), instruction);
   const signature = await signAndSendKeypairTransaction(session.keypair, transaction, conn);
   // Reconcile from authoritative accounts. Failure to read a receipt never turns
   // an already confirmed demolition into a second charge or a failed transaction.
@@ -881,7 +907,9 @@ export async function recordBuildingBreakOnChain(target, { miningTool } = {}) {
     const fresh = (await loadBuildSitesByIds([target.foundationId], conn))[0];
     if (fresh?.activeRevision === target.revision) building = await readCompleteBuilding(fresh, conn);
   } catch { /* The regular foundation sync retries authoritative reads. */ }
-  return { submitted: true, signature, demolition: { ...target }, building, storedRewardCount: 0,
+  return { submitted: true, signature, demolition: { ...target }, building, storedRewardCount: 1, storedRewards: [reward],
+    backpack: backpack.publicKey.toBase58(), ...miningBackpackSnapshot(backpack),
+    ...(await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, miningTool, conn)),
     minedBlockCount: 1, debugBuildingDemolition: true };
 }
 

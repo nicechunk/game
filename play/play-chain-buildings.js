@@ -34,7 +34,10 @@ export function createPlayChainBuildingSync({
     if(context===desiredKey)return;
     desiredKey=context;desiredList=foundationsForCurrentView();desired.clear();
     for(const foundation of desiredList)desired.set(foundationIdentity(foundation.owner,foundation.foundationId),{foundation,key:foundationRenderKey(foundation)});
-    for(const [id,item]of ready)if(desired.get(id)?.key!==item.key){ready.delete(id);publishPending=true;}
+    // A changed manifest invalidates the payload but must not briefly publish
+    // an empty scene while its authenticated replacement is loading.
+    for(const [id,item]of ready)if(!desired.has(id)
+      || foundationGeometryKey(desired.get(id).foundation)!==foundationGeometryKey(item.foundation)){ready.delete(id);publishPending=true;}
     for(const [id,item]of queued)if(desired.get(id)?.key!==item.key)queued.delete(id);
     if(publishPending)scheduleApplication();
   }
@@ -296,6 +299,12 @@ function foundationRenderKey(foundation) {
     Math.max(0, Math.trunc(Number(foundation?.activeRevision) || 0)),
     String(foundation?.contentHash || "").trim().toLowerCase(),
   ].join(":");
+}
+
+function foundationGeometryKey(foundation) {
+  return JSON.stringify([foundation?.owner,foundation?.foundationId,foundation?.programId,foundation?.globalConfig,
+    foundation?.activeRevision,foundation?.contentHash,foundation?.minX,foundation?.minZ,foundation?.surfaceY,
+    foundation?.width,foundation?.depth,foundation?.buildingQuarterTurns,foundation?.buildingOffsetX,foundation?.buildingOffsetZ]);
 }
 
 function foundationIdentity(owner, foundationId) {

@@ -1372,7 +1372,7 @@
       "operationDenied": "この区域は土地契約で保護されており、操作する権限がありません。",
       "demolitionTitle": "建築物の解体",
       "demolitionPending": "建築ブロックを撤去しています。チェーン上の確認を待っています。",
-      "demolitionConfirmed": "建築ブロックを撤去しました。デバッグモードでは資源の消費や返却はありません。"
+      "demolitionConfirmed": "建築ブロックを解体し、素材をバックパックに収納しました。"
     },
     "onboarding": {
       "features": {

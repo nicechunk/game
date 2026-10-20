@@ -1372,7 +1372,7 @@
       "operationDenied": "이 구역은 토지 계약으로 보호되어 있어 수정할 권한이 없습니다.",
       "demolitionTitle": "건물 철거",
       "demolitionPending": "건물 블록을 제거하고 있습니다. 체인 확인을 기다리는 중입니다.",
-      "demolitionConfirmed": "건물 블록이 제거되었습니다. 디버그 모드에서는 자원을 소비하거나 반환하지 않습니다."
+      "demolitionConfirmed": "건축 블록을 철거하고 재료를 배낭에 보관했습니다."
     },
     "onboarding": {
       "features": {

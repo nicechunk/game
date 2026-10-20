@@ -10,6 +10,14 @@ export function reconcilePendingMineWithChainResult(pending, chainResult) {
     pending.pendingDeltas = [];
     return { changed: true, droppedCount: 0, confirmedCount: 0 };
   }
+  if (pending.miningKind === "building-demolition") {
+    const rewards = normalizeStoredRewards(chainResult?.storedRewards, pending.blocks ?? [pending]);
+    pending.rewardBlocks = rewards;
+    pending.rewardGroups = rewardGroupsForBlocks(rewards);
+    pending.storedRewardCount = rewards.reduce((sum, reward) => sum + Math.max(1, Number(reward.count) || 1), 0);
+    pending.pendingDeltas = [];
+    return { changed: true, droppedCount: 0, confirmedCount: 1 };
+  }
 
   const originalBlocks = Array.isArray(pending.blocks) && pending.blocks.length ? pending.blocks : [pending];
   const previousCount = Math.max(1, Math.trunc(Number(pending.minedBlockCount) || originalBlocks.length || 1));

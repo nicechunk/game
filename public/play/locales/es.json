@@ -1372,7 +1372,7 @@
       "operationDenied": "Esta zona está protegida por un contrato de terreno. No tienes permiso para modificarla.",
       "demolitionTitle": "Demolición del edificio",
       "demolitionPending": "Eliminando este bloque del edificio; esperando confirmación en cadena.",
-      "demolitionConfirmed": "Bloque eliminado. Modo de depuración: no se consumen ni devuelven recursos."
+      "demolitionConfirmed": "Bloque del edificio retirado; el material está en tu mochila."
     },
     "onboarding": {
       "features": {

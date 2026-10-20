@@ -1372,7 +1372,7 @@
       "operationDenied": "This area is protected by a land contract. You do not have permission to modify it.",
       "demolitionTitle": "Building demolition",
       "demolitionPending": "Removing this building block; awaiting chain confirmation.",
-      "demolitionConfirmed": "Building block removed. Debug mode: no resources consumed or returned."
+      "demolitionConfirmed": "Building block removed; its material is stored in your backpack."
     },
     "onboarding": {
       "features": {

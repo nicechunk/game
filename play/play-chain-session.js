@@ -629,10 +629,11 @@ export function createPlayChainSession({
       kind: "building", state: eventState, eventId: pending.txId,
       title: ui("main.land.demolitionTitle", "Building demolition"),
       detail: eventState === "confirmed" && signature
-        ? ui("main.land.demolitionConfirmed", "Building block removed. Debug mode: no resources consumed or returned.")
+        ? ui("main.land.demolitionConfirmed", "Building block removed; its material is stored in your backpack.")
         : eventState === "error" ? `Chain proof rejected${reason ? ` · ${reason}` : ""}`
           : ui("main.land.demolitionPending", "Removing this building block; awaiting chain confirmation."),
-      resource: null, flyToBackpack: false, holdUntilResolved: eventState === "pending",
+      resource: eventState === "confirmed" && pending?.storedRewardCount > 0 ? { resourceId: pending.rewardGroups?.[0]?.resourceId || 0, blockId: pending.rewardGroups?.[0]?.blockId || pending.blockId, count: pending.storedRewardCount } : null,
+      flyToBackpack: eventState === "confirmed" && pending?.storedRewardCount > 0, holdUntilResolved: eventState === "pending",
     };
     const lossyRewards = Boolean(pending?.lossyRewards || pending?.chainResult?.lossyRewards);
     const groups = Array.isArray(pending?.rewardGroups) && pending.rewardGroups.length

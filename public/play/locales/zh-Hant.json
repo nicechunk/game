@@ -1372,7 +1372,7 @@
       "operationDenied": "該區域為契約區域，沒有操作權限。",
       "demolitionTitle": "拆除建築",
       "demolitionPending": "正在拆除該建築塊，等待鏈上確認。",
-      "demolitionConfirmed": "建築塊已拆除。偵錯模式下不扣除、也不返還資源。"
+      "demolitionConfirmed": "建築方塊已拆除，材料已存入背包。"
     },
     "onboarding": {
       "features": {

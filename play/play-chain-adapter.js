@@ -101,7 +101,7 @@ export function createPlayChainAdapter({
     const module = await loadPlayChainModule();
     if (pending.miningKind === "building-demolition") {
       if (typeof module.recordBuildingBreakOnChain !== "function") return skipped("record-building-break-unavailable");
-      return normalizeChainResult(await module.recordBuildingBreakOnChain(pending.buildingTarget, { miningTool: pending.miningTool }), module);
+      return normalizeChainResult(await module.recordBuildingBreakOnChain(pending.buildingTarget, { ...backpackOptions, miningTool: pending.miningTool }), module);
     }
     if (pending.miningKind === "water-collection") {
       if (typeof module.recordWaterCollectionOnChain !== "function") return skipped("record-water-unavailable");

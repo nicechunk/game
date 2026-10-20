@@ -105,7 +105,7 @@ test("SDK demolition uses the exact revision, tool identity and section PDA", ()
   const authority = Keypair.generate().publicKey;
   const miningTool = { kind: "equipment", equipmentSlot: 2, itemPda: String(Keypair.generate().publicKey) };
   const target = { foundationId, revision: 3, x: 255, y: 255, z: 255 };
-  const ix = createBuildingDemolitionInstruction({ authority, owner, target, miningTool });
+  const ix = createBuildingDemolitionInstruction({ authority, owner, target, miningTool, backpack: owner, shardCount: 1 });
   assert.equal(ix.data.length, 49); assert.equal(ix.data[0], 7);
   assert.equal(ix.data.readBigUInt64LE(1), BigInt(foundationId)); assert.equal(ix.data.readUInt32LE(9), 3);
   assert.deepEqual([...ix.data.subarray(13, 17)], [255, 255, 255, 2]);
@@ -117,5 +117,5 @@ test("SDK demolition uses the exact revision, tool identity and section PDA", ()
   const args = { foundationId, revision: 3, sectionX: 15, sectionZ: 15, sizeY: 256 };
   assert.equal(decodeBuildingDamage(data, args).bitmap.at(-1), 128);
   assert.throws(() => decodeBuildingDamage(data, { ...args, revision: 4 }));
-  assert.throws(() => createBuildingDemolitionInstruction({ authority, owner, target: { ...target, y: 256 }, miningTool }));
+  assert.throws(() => createBuildingDemolitionInstruction({ authority, owner, target: { ...target, y: 256 }, miningTool, backpack: owner, shardCount: 1 }));
 });

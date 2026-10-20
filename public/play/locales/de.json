@@ -1372,7 +1372,7 @@
       "operationDenied": "Dieses Gebiet ist durch einen Landvertrag geschützt. Du hast keine Berechtigung, es zu verändern.",
       "demolitionTitle": "Gebäude abreißen",
       "demolitionPending": "Dieser Gebäudeblock wird entfernt; warte auf die Blockchain-Bestätigung.",
-      "demolitionConfirmed": "Gebäudeblock entfernt. Debugmodus: keine Ressourcen verbraucht oder zurückgegeben."
+      "demolitionConfirmed": "Gebäudeblock entfernt; das Material wurde im Rucksack verstaut."
     },
     "onboarding": {
       "features": {

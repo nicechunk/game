@@ -368,7 +368,9 @@ export function createBuildingController({
       if(existing?.fingerprint===fingerprint){
         chainBuildings.set(foundation.id,{...existing,record:{...record,code:existing.building.canonicalCode},foundation});reused++;continue;
       }
-      if(existing){chainBuildings.delete(foundation.id);changed=true;}
+      // Keep the last complete mesh, collision and targeting data while its
+      // replacement is built. A Worker completion commits all three together.
+      if(existing&&!sameBuildingPlacement(existing,record,foundation)){chainBuildings.delete(foundation.id);changed=true;}
       const cached=takeChainMesh(fingerprint);
       if(cached){chainBuildings.set(foundation.id,{...cached,record:{...record,code:cached.building.canonicalCode},foundation,placement:cached.placement?{...cached.placement,foundation}:cached.placement});reused++;changed=true;continue;}
       const pending=chainJobs.get(foundation.id);
@@ -397,7 +399,7 @@ export function createBuildingController({
         markChainRenderChanged();return {ok:true};
       }).catch(error=>{
         if(!isCurrent())return {stale:true};
-        chainBuildings.delete(foundation.id);markChainRenderChanged();
+        // A failed replacement must not flash a hole through a loaded building.
         if(error?.code!=="building-mesh-aborted")console.warn("[NiceChunk Building Decode]",foundation.id,error);
         return {ok:false,error};
       }).finally(()=>{if(chainJobs.get(foundation.id)===job)chainJobs.delete(foundation.id);meshingChain=chainJobs.size>0;});
@@ -692,6 +694,13 @@ function chainBuildingFingerprint(record, foundation) {
     Math.max(0, Math.trunc(Number(foundation?.width) || 0)),
     Math.max(0, Math.trunc(Number(foundation?.depth) || 0)),
   ]);
+}
+
+function sameBuildingPlacement(existing, record, foundation) {
+  const prior=existing.record,land=existing.foundation;
+  return prior.revision===record.revision&&prior.code===record.code&&prior.contentHash===record.contentHash
+    && prior.quarterTurns===record.quarterTurns&&prior.offsetX===record.offsetX&&prior.offsetZ===record.offsetZ
+    && ['owner','minX','minZ','surfaceY','width','depth','programId','globalConfig'].every(key=>land[key]===foundation[key]);
 }
 
 function normalizeBuildingOffset(value) {

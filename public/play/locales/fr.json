@@ -1372,7 +1372,7 @@
       "operationDenied": "Cette zone est protégée par un contrat foncier. Vous ne pouvez pas la modifier.",
       "demolitionTitle": "Démolition du bâtiment",
       "demolitionPending": "Suppression de ce bloc ; en attente de confirmation sur la chaîne.",
-      "demolitionConfirmed": "Bloc supprimé. Mode de débogage : aucune ressource consommée ou restituée."
+      "demolitionConfirmed": "Bloc du bâtiment retiré ; son matériau est dans votre sac à dos."
     },
     "onboarding": {
       "features": {
