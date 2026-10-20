@@ -1064,7 +1064,12 @@ export function createPlayChainChunkDeltaSync({
     if (typeof connection.getGenesisHash === "function") {
       const endpoint = String(connection.rpcEndpoint || connection._rpcEndpoint || "");
       if (state.genesisEndpoint !== endpoint) {
-        const genesis = await withTimeout(connection.getGenesisHash(), RPC_BATCH_TIMEOUT_MS, "chain identity lookup timed out");
+        let genesis;
+        try { genesis = await withTimeout(connection.getGenesisHash(), RPC_BATCH_TIMEOUT_MS, "chain identity lookup timed out"); }
+        catch (error) {
+          if (/429|503|504/.test(String(error?.message || ""))) state.globalRpcBackoffUntil = Date.now() + ERROR_RETRY_MS;
+          throw new Error("Chain identity lookup failed.");
+        }
         if (epoch !== state.syncEpoch || identityKey !== state.identityTarget) throw new Error("Chain identity observation superseded.");
         if (typeof genesis !== "string" || genesis.length < 20) throw new Error("Invalid chain identity.");
         state.genesis = genesis; state.genesisEndpoint = endpoint;
@@ -1239,7 +1244,7 @@ function withTimeout(promise, timeoutMs, message) {
 }
 
 function readableError(error) {
-  const message = String(error?.message || error || "unknown error");
+  const message = String(error?.message || error || "unknown error").replace(/https?:\/\/[^\s"'<>]+/gi, "[endpoint]");
   return message.length > 160 ? `${message.slice(0, 157)}...` : message;
 }
 
