@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.98 — 2026-10-20
+
+- Resolve one world-config snapshot for each bulk-mining selection, preventing
+  a cold 640-block action from issuing 640 simultaneous config RPC reads.
+- Keep building submission bound to the selected owned land record after
+  preview meshing. Geometry-only Worker results no longer lose the land owner
+  and foundation ID, and confirmation rechecks the current owned selection.
+
 ## 0.1.97 — 2026-10-20
 
 - Make the right-side event log expandable by mouse, touch, or keyboard. Keep

@@ -234,6 +234,9 @@ export function createBuildingController({
       parsed = result.building;
       previewPlacement = {
         ...result.placement,
+        // Mesh results contain geometry only. Keep the selected on-chain land
+        // record as the source of its owner and foundation identifier.
+        foundation,
         fitsFoundation: result.placement?.fitsFoundation !== false,
       };
       previewChunks = (result.chunks ?? []).map((chunk) => ({
@@ -282,11 +285,14 @@ export function createBuildingController({
         text("main.land.buildingDoesNotFit", "The building extends outside this foundation. Adjust X/Z or enlarge the foundation; the building will not be scaled."),
       );
     }
+    const foundation = currentFoundation();
+    if (!foundation || foundation.id !== previewPlacement.foundation?.id) {
+      return fail("foundation-not-found", text("main.land.noFoundation", "Create a foundation before importing a building."));
+    }
     submitting = true;
     lastError = "";
     onChanged(snapshot());
     try {
-      const foundation = previewPlacement.foundation;
       const result = await submitBuilding({
         owner: foundation.owner,
         foundationId: foundation.foundationId,

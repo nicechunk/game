@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createBuildingController } from "../building-controller.js";
+import { createBuildingMeshWorkerClient } from "../../chunk.js/construction/building-mesh-client.js";
 
 const OWNER = "wallet-owner";
 const FOUNDATIONS = Object.freeze([
@@ -9,6 +10,33 @@ const FOUNDATIONS = Object.freeze([
   foundation("202", 20),
   foundation("999", 40),
 ]);
+
+test("real preview meshing retains the selected land identity for building submission", async () => {
+  const submissions = [];
+  const client = createBuildingMeshWorkerClient({ useWorker: false });
+  const controller = controllerFor({
+    createMeshClient: () => client,
+    submitBuilding: async (payload) => {
+      submissions.push(payload);
+      return { submitted: true, signature: "test-signature" };
+    },
+  });
+  try {
+    controller.activate();
+    controller.selectFoundation(`${OWNER}:202`);
+    const code = "NCM3:" + Buffer.from([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]).toString("base64url");
+    controller.setCode(code);
+    const preview = await controller.preview();
+    assert.equal(preview.ok, true);
+    const result = await controller.confirm();
+    assert.equal(result.submitted, true);
+    assert.equal(submissions.length, 1);
+    assert.equal(submissions[0].foundationId, "202");
+    assert.equal(submissions[0].owner, OWNER);
+    assert.equal(submissions[0].foundation, `${OWNER}:202`);
+    assert.equal(submissions[0].code, code);
+  } finally { client.dispose(); }
+});
 
 test("building editor exposes every owned land foundation without a Blueprint", () => {
   const controller = controllerFor();

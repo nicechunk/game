@@ -3634,7 +3634,10 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
     }
     if (!candidates.length) return { submitted: false, reason: "bulk-mining-empty" };
 
-    const canonicalBlocks = await Promise.all(candidates.map((block) => resolveCanonicalMinedBlock(block)));
+    // One action must use one world snapshot. Resolve a cold config before
+    // mapping the selection so 640 blocks cannot fan out into 640 RPC reads.
+    const canonicalConfig = loadCachedGlobalConfig() ?? await loadGlobalConfig({ useCache: true });
+    const canonicalBlocks = await Promise.all(candidates.map((block) => resolveCanonicalMinedBlock(block, canonicalConfig)));
     if (canonicalBlocks.some((block) => !isCanonicalMineableBlockId(block.blockId))) {
       return { submitted: false, reason: "bulk-mining-unmineable-block" };
     }
@@ -5770,8 +5773,8 @@ export function isTreeTrunkBlockId(blockId) {
   return Number(blockId) === WorldMapBlock.Trunk || Number(blockId) === WorldMapBlock.PineTrunk;
 }
 
-async function resolveCanonicalMinedBlock(block) {
-  const config = loadCachedGlobalConfig() ?? await loadGlobalConfig({ useCache: true });
+async function resolveCanonicalMinedBlock(block, suppliedConfig = null) {
+  const config = suppliedConfig ?? loadCachedGlobalConfig() ?? await loadGlobalConfig({ useCache: true });
   const [{ canonicalBlockIdAt }, { resourceIdForBlock }] = await Promise.all([
     import("../world/canonicalResource.js"),
     import("../world/blocks.js"),
