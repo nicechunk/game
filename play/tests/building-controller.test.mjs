@@ -11,6 +11,42 @@ const FOUNDATIONS = Object.freeze([
   foundation("999", 40),
 ]);
 
+test("equipped deeds scope building edits to exactly one owned parcel and invalidate stale previews", async () => {
+  let equippedId = "202";
+  let records = FOUNDATIONS.map((entry) => ({ ...entry }));
+  let version = 1;
+  const submissions = [];
+  const client = createBuildingMeshWorkerClient({ useWorker: false });
+  const controller = createBuildingController({
+    index: { list: () => records, version: () => version },
+    getWalletAddress: () => OWNER,
+    getEquippedFoundationId: () => equippedId,
+    isConstructionModeActive: () => true,
+    submitBuilding: async (payload) => { submissions.push(payload); return { submitted: true }; },
+    createMeshClient: () => client,
+  });
+  try {
+    controller.activate();
+    assert.deepEqual(controller.foundations().map((f) => f.foundationId), ["202"]);
+    assert.equal(controller.selectFoundation(`${OWNER}:101`).ok, false);
+    controller.setMode("foundation");
+    assert.equal(controller.snapshot().mode, "building", "an equipped deed cannot register new land");
+    controller.setCode("NCM3:" + Buffer.from([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]).toString("base64url"));
+    assert.equal((await controller.preview()).ok, true);
+    equippedId = "101";
+    assert.equal(controller.snapshot().selectedFoundation.foundationId, "101", "selection changes even without an index revision");
+    assert.equal((await controller.confirm()).submitted, false, "a preview for the former deed must not be submitted");
+    assert.equal((await controller.preview()).ok, true);
+    assert.equal((await controller.confirm()).submitted, true);
+    assert.equal(submissions[0].foundationId, "101");
+    records = records.filter((f) => f.foundationId !== "101"); version++;
+    assert.equal(controller.snapshot().selectedFoundation, null, "lost ownership cannot fall back to any other parcel");
+    equippedId = "";
+    assert.equal(controller.snapshot().mode, "foundation", "unused contracts open registration even if other parcels exist");
+    assert.equal(controller.snapshot().foundationBound, false);
+  } finally { client.dispose(); }
+});
+
 test("real preview meshing retains the selected land identity for building submission", async () => {
   const submissions = [];
   const client = createBuildingMeshWorkerClient({ useWorker: false });

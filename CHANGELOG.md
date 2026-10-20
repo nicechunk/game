@@ -1,3 +1,9 @@
+## 0.1.100 - 2026-10-20
+
+- Resolve bulk selections against authoritative placed records before natural generation. Reclaim placed resources in bounded batches using their recorded volume, equipped-tool settlement, permissions and existing partial/unknown-result safeguards.
+- Show only unused contracts in one stack. Separate land deeds, equip each by its stable parcel ID, and bind building edits to that owned parcel. Invalidate a deed on confirmed ownership loss and prevent stale previews from targeting another parcel.
+- Preserve deployed water support, performance, rendering quality, expandable logs and protected-land notices. Rename the land inventory category in all nine locales.
+
 # Changelog
 
 ## 0.1.98 — 2026-10-20

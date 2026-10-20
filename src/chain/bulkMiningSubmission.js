@@ -1,4 +1,7 @@
 export const BULK_MINING_BATCH_SIZE = 2;
+// Eight same-chunk reclaim instructions, including the skills baseline and
+// equipped-tool accounts, fit within the 1232-byte transaction packet.
+export const BULK_MINING_PLACED_BATCH_SIZE = 8;
 export const BULK_MINING_MAX_SELECTION_BLOCKS = 640;
 export const BULK_MINING_RANGE_MODE_DEBUG = 1;
 export const BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY = 2;
@@ -14,6 +17,20 @@ export const BULK_MINING_RANGE_NON_DEEP_COLUMN_WORK = 80_000;
 export const BULK_MINING_RANGE_MAX_COMPUTE_SPLIT_DEPTH = 4;
 const BULK_MINING_RANGE_HEADER_BYTES = 15;
 const SUPPORT_COLLAPSE_ANCHOR_BYTES = 10;
+
+// Callers must resolve placed flags from authoritative ChunkPlaced accounts.
+// Placed blocks carry recorded volume and must never enter a natural range.
+export function partitionBulkMiningOperations(blocks, options = {}) {
+  const targets = Array.isArray(blocks) ? blocks : [];
+  return [
+    ...partitionBulkMiningRanges(targets.filter((block) => !block.placed), options)
+      .map((range) => ({ ...range, kind: "natural" })),
+    ...partitionBulkMiningBlocks(targets.filter((block) => block.placed), {
+      chunkSize: options.chunkSize,
+      batchSize: BULK_MINING_PLACED_BATCH_SIZE,
+    }).map((batch) => ({ ...batch, kind: "placed" })),
+  ];
+}
 
 export function partitionBulkMiningRanges(blocks, {
   chunkSize = 16,
@@ -357,7 +374,7 @@ function splitRangeForComputeRetry(range) {
   const midpoint = Math.max(1, Math.floor(blocks.length / 2));
   return [blocks.slice(0, midpoint), blocks.slice(midpoint)]
     .filter((group) => group.length)
-    .map((group) => createRange(range.chunkX, range.chunkZ, group));
+    .map((group) => ({ ...range, ...createRange(range.chunkX, range.chunkZ, group) }));
 }
 
 function bitsRequiredForPalette(paletteSize) {

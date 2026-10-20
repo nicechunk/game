@@ -31,13 +31,13 @@ export function createLandContractInventoryItem(balance = {}) {
     reservedBlankLandContracts: balance.reserved,
     marketUser: balance.marketUser,
   });
-  if (!normalized.known || normalized.total <= 0) return null;
+  if (!normalized.known || (normalized.available ?? 0) <= 0) return null;
   return Object.freeze({
     id: LAND_CONTRACT_INVENTORY_ID,
     itemId: LAND_CONTRACT_ITEM_ID,
     kind: "contract",
     label: "Blank Land Contract",
-    count: normalized.total,
+    count: normalized.available,
     availableCount: Math.max(0, normalized.available ?? 0),
     reservedCount: Math.max(0, normalized.reserved ?? 0),
     source: "market-user",

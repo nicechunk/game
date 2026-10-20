@@ -352,7 +352,7 @@ test("backpack categories render stacked contracts and independent registered la
 
       const categoryButtons = page.locator("#backpackCategories [data-backpack-category]");
       assert.equal(await categoryButtons.count(), 5);
-      assert.deepEqual(await categoryButtons.locator("span").allTextContents(), ["Backpack", "Resources", "Items", "Contracts", "Land"]);
+      assert.deepEqual(await categoryButtons.locator("span").allTextContents(), ["Backpack", "Resources", "Items", "Contracts", "Land deeds"]);
       assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 51, `${viewport.width}px: the virtual blank contract should sit beside 50 physical capacity cells`);
       assert.equal(await page.locator("#backpackGrid .backpack-slot[data-backpack-slot]").count(), 2);
       assert.equal(await page.locator("#backpackGrid .backpack-slot.empty").count(), 48);
@@ -364,7 +364,7 @@ test("backpack categories render stacked contracts and independent registered la
       assert.equal(await contractsCategory.getAttribute("aria-pressed"), "true");
       assert.equal(await page.locator("#backpackGrid .backpack-slot").count(), 1);
       const blankContract = page.locator("#backpackGrid [data-inventory-virtual-item='market-user-blank-land-contract']");
-      assert.equal(await blankContract.locator(".backpack-slot-count").textContent(), "3");
+      assert.equal(await blankContract.locator(".backpack-slot-count").textContent(), "2");
       await blankContract.press("Space");
       assert.match(await page.locator("#backpackDetail").textContent(), /Blank Land Contract/);
 
@@ -381,7 +381,7 @@ test("backpack categories render stacked contracts and independent registered la
       );
       await registered.press("Space");
       const detailText = await page.locator("#backpackDetail").textContent();
-      assert.match(detailText, /Land Contract #42/);
+      assert.match(detailText, /Land Deed #42/);
       assert.match(detailText, /\(-2, 3\).*\(-1, 3\)/s);
       assert.match(detailText, /X -32…-1 · Z 48…63/);
       assert.match(detailText, /32 × 16 blocks/);

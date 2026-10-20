@@ -149,7 +149,8 @@ export function createPlayBackpackUi({
 
   function virtualBackpackCell(contract) {
     const registered = contract.kind === "registered_land_contract";
-    const equipment = !registered ? gameState.getLandContractEquipment?.() ?? null : null;
+    const equipment = registered ? gameState.getLandDeedEquipment?.(contract.foundationId) ?? null
+      : gameState.getLandContractEquipment?.() ?? null;
     const cell = document.createElement("button");
     cell.type = "button";
     cell.className = `backpack-slot backpack-virtual-slot ${registered ? "registered-land-slot" : "blank-contract-slot"}`;
@@ -159,7 +160,7 @@ export function createPlayBackpackUi({
     cell.dataset.backpackItemCategory = registered ? "land" : "contracts";
     cell.dataset.equipped = equipment ? "true" : "false";
     const titleText = registered
-      ? ui("main.backpack.registeredContractTitle", "Land Contract #{id}", { id: contract.foundationId })
+      ? ui("main.backpack.registeredContractTitle", "Land Deed #{id}", { id: contract.foundationId })
       : ui("main.market.blankLandContract", "Blank Land Contract");
     cell.setAttribute("aria-label", registered
       ? ui("main.backpack.registeredContractAria", "{title}, {count} chunks, from Chunk {minX}, {minZ} to {maxX}, {maxZ}", {
@@ -184,6 +185,12 @@ export function createPlayBackpackUi({
     title.className = "backpack-slot-name";
     title.textContent = titleText;
     cell.append(icon, title);
+    if (registered) {
+      const range = document.createElement("small");
+      range.className = "backpack-deed-range";
+      range.textContent = `(${contract.minChunkX}, ${contract.minChunkZ}) → (${contract.maxChunkX}, ${contract.maxChunkZ})`;
+      cell.append(range);
+    }
     if (!registered) {
       const count = document.createElement("span");
       count.className = "backpack-slot-count";

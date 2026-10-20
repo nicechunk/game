@@ -7,6 +7,10 @@ export function createPlayItemName({
   translate,
 } = {}) {
   return (item = {}) => {
+    if (item.kind === "registered_land_contract") {
+      const template = safeTranslation(translate, "main.backpack.registeredContractTitle") || "Land Deed #{id}";
+      return template.replace("{id}", String(item.foundationId ?? ""));
+    }
     if (isLandContractItem(item)) {
       return safeTranslation(translate, "main.market.blankLandContract") || "Blank Land Contract";
     }

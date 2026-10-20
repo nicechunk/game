@@ -43,6 +43,7 @@ import {
   BULK_MINING_RANGE_MODE_SUPPORT_COLLAPSE,
   BULK_MINING_RANGE_MODE_SUPPORT_PRIMARY,
   encodeBulkMiningRangePayload,
+  partitionBulkMiningOperations,
   partitionBulkMiningRanges,
   submitBulkMiningRanges,
 } from "./bulkMiningSubmission.js";
@@ -3428,7 +3429,11 @@ export async function loadPlacedBlockAt(block, conn = getNicechunkConnection()) 
   const placed = deltas.find((entry) => (
     entry.x === coordinate.x && entry.y === coordinate.y && entry.z === coordinate.z
   ));
-  return placed ? {
+  return placed ? placedMiningBlock(placed) : null;
+}
+
+function placedMiningBlock(placed) {
+  return {
     x: placed.x,
     y: placed.y,
     z: placed.z,
@@ -3437,7 +3442,39 @@ export async function loadPlacedBlockAt(block, conn = getNicechunkConnection()) 
     type: renderTypeForBlockId(placed.blockId),
     volumeMm3: placed.volumeMm3,
     placed: true,
-  } : null;
+  };
+}
+
+export async function loadBulkMiningTargets(blocks, conn = getNicechunkConnection()) {
+  const coordinates = blocks.map((block) => normalizeWorldBlock(block, "bulk mining block"));
+  const chunks = dedupeChunks(coordinates.map((block) => ({
+    chunkX: blockChunkX(block.x), chunkZ: blockChunkZ(block.z),
+  })));
+  // Read each involved chunk once with bounded RPC batching. A cached terrain
+  // snapshot or a caller's placed flag cannot authorize the reclaim path.
+  const accounts = await getMultipleAccountsInfoBatched(conn, chunks.map((chunk) => (
+    deriveChunkPlacedPdaForContext(chunk.chunkX, chunk.chunkZ, gameContext)[0]
+  )));
+  const placedByKey = new Map();
+  chunks.forEach((chunk, index) => {
+    const account = accounts[index];
+    if (!account) return;
+    validateChunkStateAccount(account, "ChunkPlaced");
+    for (const placed of decodeChunkPlacedDeltas(account.data, chunk.chunkX, chunk.chunkZ, minBuildY)) {
+      const target = placedMiningBlock(placed);
+      placedByKey.set(target.key, target);
+    }
+  });
+  const natural = coordinates.filter((block) => !placedByKey.has(minedBlockKey(block)));
+  // One natural selection shares one cold world-config read. All-placed
+  // selections need no world generator at all, including placement in air.
+  const config = natural.length
+    ? loadCachedGlobalConfig() ?? await loadGlobalConfig({ useCache: true })
+    : null;
+  return Promise.all(coordinates.map((block) => (
+    placedByKey.get(minedBlockKey(block))
+      ?? resolveCanonicalMinedBlock({ ...block, placed: false }, config)
+  )));
 }
 
 async function minePlacedBlockOnChain({ provider, connection: conn, block, equippedBackpack, options }) {
@@ -3636,19 +3673,16 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
     }
     if (!candidates.length) return { submitted: false, reason: "bulk-mining-empty" };
 
-    // One action must use one world snapshot. Resolve a cold config before
-    // mapping the selection so 640 blocks cannot fan out into 640 RPC reads.
-    const canonicalConfig = loadCachedGlobalConfig() ?? await loadGlobalConfig({ useCache: true });
-    const canonicalBlocks = await Promise.all(candidates.map((block) => resolveCanonicalMinedBlock(block, canonicalConfig)));
-    if (canonicalBlocks.some((block) => !isCanonicalMineableBlockId(block.blockId))) {
+    const conn = getNicechunkConnection();
+    const targets = await loadBulkMiningTargets(candidates, conn);
+    if (targets.some((block) => !block.placed && !isCanonicalMineableBlockId(block.blockId))) {
       return { submitted: false, reason: "bulk-mining-unmineable-block" };
     }
-    const ranges = partitionBulkMiningRanges(canonicalBlocks, {
+    const operations = partitionBulkMiningOperations(targets, {
       chunkSize,
     });
-    if (!ranges.length) return { submitted: false, reason: "bulk-mining-empty" };
+    if (!operations.length) return { submitted: false, reason: "bulk-mining-empty" };
 
-    const conn = getNicechunkConnection();
     const equippedBackpack = await loadAuthoritativeMiningBackpack(provider.publicKey, conn, options);
     if (!equippedBackpack?.publicKey) return { submitted: false, reason: "no-backpack" };
 
@@ -3665,17 +3699,16 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
       ruleIndexes: precisionGatheringRuleIndexes,
       connection: conn,
     });
-    const outcome = await submitBulkMiningRanges(ranges, async (range) => {
+    const outcome = await submitBulkMiningRanges(operations, async (operation) => {
       const tx = new Transaction();
       tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: miningComputeUnitLimit }));
       if (baselineInstruction) tx.add(baselineInstruction);
-      tx.add(createRangeMineWithRewardsInstruction({
+      tx.add(...createBulkMiningOperationInstructions({
         authority: session.keypair.publicKey,
-        range,
+        operation,
         owner: provider.publicKey,
         backpack: equippedBackpack.publicKey,
         actionId: miningActionId,
-        mode: BULK_MINING_RANGE_MODE_DEBUG,
         miningTool: options?.miningTool,
         context,
       }));
@@ -3687,7 +3720,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
           derivePlayerProfilePda(provider.publicKey)[0],
           equippedBackpack.publicKey,
         ],
-        miningCoordinate: { x: range.minX, y: range.minY, z: range.minZ },
+        miningCoordinate: operation.blocks[0],
       }));
       const signature = await signAndSendKeypairTransaction(session.keypair, tx, conn);
       baselineInstruction = null;
@@ -3736,7 +3769,7 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
       failedBulkBlocks,
       partialBulkMine: failedBulkBlocks.length > 0,
       retriedBatchCount: outcome.retryErrors.length,
-      batchCount: ranges.length,
+      batchCount: operations.length,
       playerPositionSaved: false,
       programId: context.chunkProgramId.toBase58(),
     };
@@ -3744,6 +3777,18 @@ export async function recordBulkMineOnChain(blocks, options = {}) {
     reportRpcError(error, "bulk-mine");
     throw error;
   }
+}
+
+export function createBulkMiningOperationInstructions({ operation, ...options }) {
+  if (operation.kind === "placed") {
+    return operation.blocks.map((block) => createMinePlacedBlockWithRewardsInstruction({
+      ...options, block, expectedBlockId: block.blockId,
+    }));
+  }
+  if (operation.kind !== "natural") throw new Error("Invalid bulk mining operation kind.");
+  return [createRangeMineWithRewardsInstruction({
+    ...options, range: operation, mode: BULK_MINING_RANGE_MODE_DEBUG,
+  })];
 }
 
 export async function recordSupportCollapseOnChain(block, options = {}) {

@@ -971,7 +971,7 @@ export function createInventoryController({
       variant: "registered",
     }));
     const title = detailTitle(
-      ui("main.backpack.registeredContractTitle", "Land Contract #{id}", { id: contract.foundationId }),
+      ui("main.backpack.registeredContractTitle", "Land Deed #{id}", { id: contract.foundationId }),
       ui("main.backpack.registeredContractSubtitle", "{count} Chunk units · BuildSite PDA", {
         count: contract.landContractCount,
       }),
@@ -1015,7 +1015,26 @@ export function createInventoryController({
       "main.backpack.contractTradeReady",
       "The contract keeps a stable on-chain ID so a future market transfer can reference this exact parcel.",
     );
-    detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, note);
+    const equipment = gameState.getLandDeedEquipment?.(contract.foundationId);
+    const actions = document.createElement("div");
+    actions.className = "backpack-detail-actions land-contract-actions";
+    const equip = detailAction(ui("main.backpack.manageDeed", "Equip and manage this land"), "primary", () => {
+      const result = gameState.equipLandDeedToHotbar?.(contract.foundationId);
+      renderGameUi();
+      refresh();
+      onStatus(result?.ok
+        ? ui("main.backpack.deedEquippedStatus", "Land deed #{id} equipped in slot {slot}. Editing is bound to this parcel.", { id: contract.foundationId, slot: result.index + 1 })
+        : ui(result?.reason === "land-deed-hotbar-full" ? "main.backpack.deedHotbarFull" : "main.backpack.deedUnavailable",
+          result?.reason === "land-deed-hotbar-full" ? "Free a hotbar slot before equipping this deed." : "This deed is not available for management."));
+    });
+    equip.disabled = contract.status !== "active";
+    actions.append(equip);
+    if (equipment) actions.append(detailAction(ui("main.backpack.unequipDeed", "Unequip deed"), "", () => {
+      gameState.clearHotbarSlot(equipment.index);
+      renderGameUi();
+      refresh();
+    }));
+    detail.replaceChildren(kicker, preview, title, tags, description, rowWrap, note, actions);
   }
 
   function virtualContractItem(id) {

@@ -1185,6 +1185,7 @@ async function boot() {
   buildingController = createBuildingController({
     index: foundationIndex,
     getWalletAddress: () => chainSession?.snapshot()?.walletAddress || "",
+    getEquippedFoundationId: () => gameState.getSelectedLandDeedSlot?.()?.slot.foundationId ?? "",
     getPlayerPosition: playerWorldFloat,
     isConstructionModeActive: () => constructionModeActive,
     submitBuilding: (payload) => buildingSync?.create?.(payload),
@@ -1838,7 +1839,7 @@ function ensureLandConstruction() {
 }
 
 function dispatchLandConstructionAction(action, ...args) {
-  if ((action === "open" || action === "toggle") && !gameState.getSelectedLandContractSlot?.()) return null;
+  if ((action === "open" || action === "toggle") && !selectedConstructionSlot()) return null;
   if (landConstruction) return landConstruction.actions?.[action]?.(...args);
   return ensureLandConstruction().then((construction) => (
     construction?.actions?.[action]?.(...args) ?? construction?.[action]?.(...args) ?? null
@@ -1874,7 +1875,7 @@ async function refreshLandContractPortfolio() {
 }
 
 function handleHotbarSelectionChange() {
-  const selected = gameState.getSelectedLandContractSlot?.() ?? null;
+  const selected = selectedConstructionSlot();
   if (!selected) {
     if (constructionModeActive) landConstruction?.close?.();
     return;
@@ -1885,11 +1886,17 @@ function handleHotbarSelectionChange() {
   market?.closePanel?.({ restoreBackpack: false });
   const expectedOwner = gameState.ownerAddress;
   const expectedIndex = selected.index;
+  const expectedIdentity = `${selected.slot.itemId}:${selected.slot.foundationId ?? ""}`;
   void ensureLandConstruction().then((construction) => {
-    const current = gameState.getSelectedLandContractSlot?.();
-    if (!construction || gameState.ownerAddress !== expectedOwner || current?.index !== expectedIndex) return;
+    const current = selectedConstructionSlot();
+    if (!construction || gameState.ownerAddress !== expectedOwner || current?.index !== expectedIndex
+      || `${current.slot.itemId}:${current.slot.foundationId ?? ""}` !== expectedIdentity) return;
     construction.open?.();
   });
+}
+
+function selectedConstructionSlot() {
+  return gameState.getSelectedLandDeedSlot?.() ?? gameState.getSelectedLandContractSlot?.() ?? null;
 }
 
 function renderGameUi() {

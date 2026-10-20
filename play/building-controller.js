@@ -10,6 +10,7 @@ const DEFAULT_CHAIN_MESH_CACHE_BYTES = 48 * 1024 * 1024;
 export function createBuildingController({
   index,
   getWalletAddress = () => "",
+  getEquippedFoundationId = null,
   getPlayerPosition = () => [0, 0, 0],
   isConstructionModeActive = () => false,
   submitBuilding = async () => ({ submitted: false, reason: "chain-unavailable" }),
@@ -100,6 +101,7 @@ export function createBuildingController({
 
   function setMode(nextMode) {
     const normalized = nextMode === "building" ? "building" : "foundation";
+    if (normalized === "foundation" && typeof getEquippedFoundationId === "function" && getEquippedFoundationId()) return snapshot();
     const hasFoundation = Boolean(currentFoundation());
     if (normalized === "building" && !hasFoundation) {
       lastError = text("main.land.noFoundation", "Create a foundation before importing a building.");
@@ -121,9 +123,11 @@ export function createBuildingController({
     const wallet = String(getWalletAddress() || "");
     if (!wallet) return [];
     const version=typeof index?.version==="function"?index.version():null;
-    if(version!==null&&ownedCache?.wallet===wallet&&ownedCache.version===version)return ownedCache.records;
-    const records=(index?.list?.()??[]).filter(foundation=>foundation.owner===wallet&&foundation.status!=="removed");
-    if(version!==null)ownedCache={wallet,version,records};
+    const equippedId = typeof getEquippedFoundationId === "function" ? String(getEquippedFoundationId() || "") : null;
+    if(version!==null&&ownedCache?.wallet===wallet&&ownedCache.version===version&&ownedCache.equippedId===equippedId)return ownedCache.records;
+    const records=(index?.list?.()??[]).filter(foundation=>foundation.owner===wallet&&foundation.status!=="removed"
+      && (equippedId === null || foundation.status === "active" && String(foundation.foundationId) === equippedId));
+    if(version!==null)ownedCache={wallet,version,equippedId,records};
     return records;
   }
 
@@ -565,6 +569,7 @@ export function createBuildingController({
     return {
       active,
       foundationBound: Boolean(foundation),
+      registrationAllowed: typeof getEquippedFoundationId !== "function" || !getEquippedFoundationId(),
       mode,
       foundations,
       selectedFoundationId: foundation?.id ?? "",
@@ -611,7 +616,8 @@ export function createBuildingController({
     const foundations = ownedFoundations();
     const foundation = foundations.find((entry) => entry.id === selectedFoundationId) ?? foundations[0] ?? null;
     selectedFoundationId = foundation?.id ?? "";
-    const requiredMode = foundation && !modeExplicit ? "building" : foundation ? mode : "foundation";
+    const boundDeed = typeof getEquippedFoundationId === "function" && getEquippedFoundationId();
+    const requiredMode = foundation && (boundDeed || !modeExplicit) ? "building" : foundation ? mode : "foundation";
     if (mode === requiredMode) return;
     mode = requiredMode;
     clearPreview();

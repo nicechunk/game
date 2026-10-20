@@ -5251,6 +5251,44 @@ body {
   width: 100%;
 }
 
+.backpack-deed-range {
+  display: block;
+  max-width: 100%;
+  color: #214d6b;
+  font-size: 0.58rem;
+  overflow-wrap: anywhere;
+}
+
+.backpack-slot.registered-land-slot {
+  min-height: 142px;
+  aspect-ratio: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.backpack-grid[data-backpack-category="land"] {
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+}
+
+.registered-land-slot .backpack-slot-equipped {
+  position: static;
+  flex-shrink: 0;
+}
+
+.registered-land-slot .backpack-slot-name {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  clip: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.63rem;
+}
+
 .backpack-slot-name {
   position: absolute;
   width: 1px;

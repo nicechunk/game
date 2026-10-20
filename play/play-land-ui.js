@@ -119,6 +119,7 @@ export function createPlayLandUi({
       active,
       mode,
       foundationBound,
+      building.registrationAllowed,
       foundation.chunksX,
       foundation.chunksZ,
       foundation.requiredContracts,
@@ -166,7 +167,7 @@ export function createPlayLandUi({
     for (const button of elements?.landModeButtons ?? []) {
       const selected = button.dataset.landMode === mode;
       const buildingTab = button.dataset.landMode === "building";
-      button.disabled = buildingTab && !foundationBound;
+      button.disabled = buildingTab ? !foundationBound : building.registrationAllowed === false;
       button.classList.toggle("active", selected);
       button.setAttribute("aria-selected", selected ? "true" : "false");
     }

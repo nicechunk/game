@@ -73,7 +73,7 @@ export function createPlayHotbarUi({
     const icon = document.createElement("span");
     icon.className = "hotbar-icon";
     if (view.isLandContract) {
-      icon.append(createLandContractIconElement({ size: 40 }));
+      icon.append(createLandContractIconElement({ size: 40, variant: view.visibleSlot?.kind === "registered_land_contract" ? "registered" : "blank" }));
     } else if (view.renderedItem) {
       icon.append(createVoxelItemIconCanvas(view.renderedItem, { size: 42 }));
     } else {

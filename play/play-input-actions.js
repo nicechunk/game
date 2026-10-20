@@ -131,7 +131,7 @@ export function createPlayInputActions({
     const bulkMining = getBulkMining();
     if (bulkMining?.isEnabled?.()) return bulkMining.selectAtHit?.(getBulkMiningHit());
     if (isConstructionModeActive()) return getConstruction()?.selectAtHit?.(getConstructionHit());
-    if (gameState?.getSelectedLandContractSlot?.()) return getConstruction()?.open?.();
+    if (gameState?.getSelectedLandContractSlot?.() || gameState?.getSelectedLandDeedSlot?.()) return getConstruction()?.open?.();
     const forged = gameState?.getSelectedForgedSlot?.();
     if (forged) {
       const interaction = gameState?.getForgedInteraction?.(forged.slot);

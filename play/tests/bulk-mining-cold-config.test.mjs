@@ -15,10 +15,15 @@ test("a cold 640-block bulk action reads world config once within a finite RPC a
   data.writeUInt16LE(16, 259); data.writeUInt16LE(16, 261); data.writeInt16LE(-32, 263);
   data.writeInt16LE(320, 265); data.writeInt16LE(240, 267); data.writeInt16LE(96, 269);
   const globalAddress = deriveGlobalConfigPda().toBase58();
-  let configReads = 0, active = 0, peak = 0, broadcasts = 0;
+  let configReads = 0, placedReads = 0, active = 0, peak = 0, broadcasts = 0;
   globalThis.fetch = async (_url, init) => {
     const request = JSON.parse(init.body);
     if (request.method === "sendTransaction") broadcasts++;
+    if (request.method === "getMultipleAccounts") {
+      placedReads++;
+      assert.equal(request.params[0].length, 1, "one placed-state account per unique chunk");
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { context: { slot: 100 }, value: request.params[0].map(() => null) } }), { status: 200 });
+    }
     assert.equal(request.method, "getAccountInfo");
     let value = null;
     if (request.params[0] === globalAddress) {
@@ -36,6 +41,7 @@ test("a cold 640-block bulk action reads world config once within a finite RPC a
     const result = await recordBulkMineOnChain(blocks, { mode: "debug", backpackAddress: backpack.toBase58() });
     assert.equal(result.reason, "no-backpack");
     assert.equal(configReads, 1, "all selected blocks share one world config snapshot");
+    assert.equal(placedReads, 1, "the selection must not read placed state once per block");
     assert.equal(peak, 1);
     assert.equal(broadcasts, 0);
   } finally {

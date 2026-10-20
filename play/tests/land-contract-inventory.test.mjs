@@ -29,7 +29,7 @@ test("MarketUser land contracts project into inventory without consuming backpac
     assert.equal(synced.changed, true);
     assert.equal(contract.id, LAND_CONTRACT_INVENTORY_ID);
     assert.equal(contract.itemId, LAND_CONTRACT_ITEM_ID);
-    assert.equal(contract.count, 5);
+    assert.equal(contract.count, 3);
     assert.equal(contract.availableCount, 3);
     assert.equal(contract.reservedCount, 2);
     assert.equal(contract.backpackSlotsUsed, 0);
@@ -48,7 +48,7 @@ test("MarketUser land contracts project into inventory without consuming backpac
   });
 });
 
-test("reserved contracts remain visible but are removed from the usable hotbar", () => {
+test("reserved contracts leave the unused stack and usable hotbar", () => {
   withLocalStorage(() => {
     const selections = [];
     const state = createPlayGameState({
@@ -69,7 +69,7 @@ test("reserved contracts remain visible but are removed from the usable hotbar",
       reservedBlankLandContracts: 1,
       marketUser: "MarketUserReserved111111111111111111111111",
     });
-    assert.equal(state.getLandContractInventoryItem()?.count, 1);
+    assert.equal(state.getLandContractInventoryItem(), null);
     assert.equal(state.hotbarSlots[2], null);
     assert.equal(state.getSelectedLandContractSlot(), null);
     assert.equal(selections.at(-1)?.reason, "contract-balance-empty");
@@ -84,7 +84,7 @@ test("reserved contracts remain visible but are removed from the usable hotbar",
     assert.equal(cleared.removed, false);
     assert.equal(state.getLandContractInventoryItem(), null);
     assert.equal(state.hotbarSlots.some((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID), false);
-    assert.equal(state.selectedHotbarSlot, 0);
+    assert.equal(state.selectedHotbarSlot, 2, "consuming a contract preserves the now-empty selected slot");
   });
 });
 
@@ -179,6 +179,55 @@ test("a land contract needs a genuinely empty local hotbar slot", () => {
     assert.equal(result.ok, false);
     assert.match(result.reason, /No available hotbar slot/);
     assert.equal(state.hotbarSlots[1].itemId, "resource_block");
+  });
+});
+
+test("each owned deed equips independently and keeps its exact identity across restoration", () => {
+  withLocalStorage(() => {
+    const mutations = [];
+    const owner = "DeedOwner";
+    const state = createPlayGameState({ ownerAddress: owner, onEquipmentChange: (change) => mutations.push(change) });
+    const deeds = ["9007199254740997", "18446744073709551001"].map((foundationId, i) => ({
+      owner, foundationId, minX: i * 32, minZ: -16, width: 16, depth: 16, status: "active", sourcePda: `site-${foundationId}`,
+    }));
+    state.syncRegisteredLandContracts(deeds);
+    assert(state.equipLandDeedToHotbar(deeds[0].foundationId, 1).ok);
+    assert(state.equipLandDeedToHotbar(deeds[1].foundationId, 2).ok);
+    assert.equal(state.getSelectedLandDeedSlot().slot.foundationId, deeds[1].foundationId);
+    assert.equal(state.equipLandDeedToHotbar(deeds[0].foundationId, 3).index, 1, "same deed is not duplicated");
+    assert.equal(state.getSelectedLandDeedSlot().slot.foundationId, deeds[0].foundationId);
+    assert.equal(state.getHotbarEquipmentChainReference(1), null);
+    assert.deepEqual(mutations, [], "management shortcuts do not transfer physical equipment custody");
+    const restored = createPlayGameState({ ownerAddress: owner });
+    assert.equal(restored.hotbarSlots[1].foundationId, deeds[0].foundationId);
+    assert.equal(restored.hotbarSlots[2].foundationId, deeds[1].foundationId);
+    assert.equal(restored.getSelectedLandDeedSlot(), null, "cached shortcuts do not establish ownership");
+    restored.syncRegisteredLandContracts(deeds);
+    restored.selectHotbarSlot(2);
+    assert.equal(restored.getSelectedLandDeedSlot().slot.foundationId, deeds[1].foundationId);
+    restored.setOwnerAddress("AnotherWallet");
+    assert.equal(restored.getSelectedLandDeedSlot(), null);
+    assert(!restored.hotbarSlots.some((slot) => slot?.kind === "registered_land_contract"));
+  });
+});
+
+test("a transferred deed is removed after confirmed refresh without falling back to another parcel", () => {
+  withLocalStorage(() => {
+    const owner = "DeedOwner";
+    const state = createPlayGameState({ ownerAddress: owner });
+    const deeds = [1, 2].map((id) => ({ owner, foundationId: String(id), minX: id * 16, minZ: 0, width: 16, depth: 16, status: "active" }));
+    state.syncRegisteredLandContracts(deeds);
+    state.equipLandDeedToHotbar("1", 0);
+    state.equipLandDeedToHotbar("2", 2);
+    state.syncRegisteredLandContracts(deeds, { status: "error", error: "RPC unavailable" });
+    assert(state.getLandDeedEquipment("2"), "temporary RPC failure does not erase deeds");
+    state.syncRegisteredLandContracts([deeds[0], { ...deeds[1], owner: "NewOwner" }]);
+    assert.equal(state.getLandDeedEquipment("2"), null);
+    assert.equal(state.getSelectedLandDeedSlot(), null);
+    assert.notEqual(state.selectedHotbarSlot, 0, "losing a deed must not select another deed, even in the first slot");
+    assert.equal(state.equipLandDeedToHotbar("2").ok, false);
+    state.syncRegisteredLandContracts([{ ...deeds[0], status: "indexing" }]);
+    assert.equal(state.equipLandDeedToHotbar("1").ok, false, "incomplete registration is not editable");
   });
 });
 

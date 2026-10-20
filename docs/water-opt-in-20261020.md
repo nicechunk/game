@@ -1,40 +1,21 @@
-# 可选采水属性与发布记录
+# Optional water collection, deployed in Play 0.1.99
 
-## 规则
+Water collection is an optional forge property, disabled by default. Ordinary forging requests 320,000 CU and does not certify container geometry. Water-enabled forging requests 1,400,000 CU and a 256 KiB heap, certifying the immutable final model in the same atomic creation instruction. Leaks, missing bottoms, invalid grips, excessive complexity and exhausted compute reject creation and roll back materials, items and counters. Oversized packets are rejected without separating creation and certification. Independent certification remains available for existing items.
 
-- 锻造台属性面板新增“可选属性 → 采水”，默认不勾选。清空或导入新造型时恢复关闭，草稿保存自己的选择。
-- 未勾选：不运行承水腔预览，也不运行链上容积认证；沿用 Backpack 指令 8，容量为 0、不显示容积。
-- 勾选：本地预览最终提交字节的容积。Backpack 新指令 22 将腔体种子与已验证锻造输入提交，合约从真实不可变模型计算并保存容量，客户端不能指定容量。
-- 创建与认证处于同一指令、同一笔交易。漏孔、缺底、无握持、复杂度超限、CU 耗尽均拒绝创建，材料、物品和锻造计数随交易回滚。不再拆成“先创建、后认证”，包体超限也直接失败。
-- 普通锻造请求 320,000 CU；采水锻造请求 1,400,000 CU、256 KiB heap。超过预算直接失败，没有分阶段计算或降级创建。
-- 背包、装备和市场继续读取合约认证容量；没有容量不显示。旧版独立认证指令保留，普通创建不会自动调用。
+Backpack, equipment and market displays use contract-certified whole-mL capacity. Natural water (block 17) remains in the world. Each completed cycle returns one resource-8 unit, exactly 1000 mL and 1000 g; contacts per cycle are ceil(1000 / capacityMl). Overflow is discarded and the next cycle starts at zero. The contract atomically settles the corresponding durability and strictly stores one water unit. Session, identity, replay and inventory capacity checks remain authoritative. Water collection gives no mining or Skills progress.
 
-## 保留的取水规则
+## Previous release evidence
 
-普通自然水块 block 17 可重复取水，水块不消失。每份资源 ID 8 为 1000 mL、1000 g。每轮接触次数为 `ceil(1000 / 认证容量mL)`；满一份后丢弃超出的量，重新累计，不保存链上余量。完成一轮时一笔交易原子扣除对应次数的耐久并入账一份水。防重、背包满载回滚、会话和装备身份验证保留；不获得采矿或 Skills 进度。
+The previous task recorded 120 native contract checks, 53 targeted client/engine checks, four browser model cases, and 110 local LiteSVM transactions against the released ELF. Simulations used public account snapshots with signature verification disabled and did not broadcast diagnostic transactions. This inherited evidence is not a test executed for the subsequent bulk-mining or deed release.
 
-## 本轮验证
-
-- 120 项原生合约测试、53 项针对性客户端/引擎检查通过。
-- 浏览器验证可选项默认关闭、开关控制容量、正常杯体及侧漏/缺底/无握持四种造型，以及适配层向 SDK 传递开关。
-- 本次部署 ELF 通过 110 笔本地 SBF 交易：18 笔开关及回滚、2 笔完整复杂造型创建、90 笔取水回归。LiteSVM 使用实际 ELF 与历史公开账户，关闭交易签名校验；这些本地测试不广播公网交易。
-- 同一复杂造型普通创建为 68,466 CU；开启采水达到 1,400,000 CU 后失败，材料和新物品回滚。
-- Game 和锻造台生产构建、各仓库 `git diff --check` 通过。
-
-| 同一个造型：锻造 + Skills 同步 | 普通 CU | 采水 CU |
+| Forge and Skills example | Ordinary CU | Water-enabled CU |
 | --- | ---: | ---: |
-| 组件杯 | 66,730 | 272,640 |
-| 实际工作台小杯 | 72,736 | 284,201 |
-| 面片杯 | 73,372 | 390,451 |
+| Component cup | 66,730 | 272,640 |
+| Workbench small cup | 72,736 | 284,201 |
+| Appearance cup | 73,372 | 390,451 |
 
-以上数值来自最终 Game ELF，采用 `opt-level=z` 降低包体和部署临时租金需求；使用现有部署钱包资金，无国库转账。样例使用已存在的 Skills 账户，不代表首次创建或任意形状的最坏成本。
+These examples use an existing Skills account and are not worst-case limits. One complex geometry consumed the entire water budget and rolled back. Final ELF compilation used opt-level=z. The release used existing deployment-wallet funding without a treasury transfer.
 
-## 几何边界
+Geometry supports the +Y orientation and one selected cavity, integer 1/2048 m boundaries, at most 63 coordinates per axis and fewer than 65,535 cells. General bent-neck and multiple-opening topology remains limited. Soft cloth is not certified as a rigid shell. Eight and twelve connected-basin stress cases exceeded budget and were rejected. Existing material input policy was preserved.
 
-仍使用 +Y 姿态和选定的一个承水腔，2048/m 精度；每轴最多 63 坐标点、总单元少于 65535。复杂多口、弯颈及一般拓扑尚未完整支持。软布不作为刚性容器，完整人物握持碰撞仍属于原有客户端规则。本轮最终 ELF 对 8/12 连通承水腔压力样例超过预算，直接拒绝；没有把超预算视为认证成功。原有投料政策不变，不能把模型编码体积检查称为新增的实际投料体积上限。属性面板浏览器验证不代替完整 3D 渲染回归。
-
-## 发布与源码
-
-官网先后更新至 0.1.97 和 0.1.98，最终发布版本为 0.1.99，发布从其对应 Game/引擎源码合入本次改动，保留后续性能、渲染和日志修复。实际发布源码位于 `/workspace/water-opt-in-20261020/game` 和 `/workspace/water-opt-in-20261020/forging`；合约源码为 `/workspace/Nicechunk/nicechunk-programs`。原工作目录仍保留改动，相关文件未提交或推送 GitHub。
-
-发布和公网核验以 `/workspace/water-opt-in-20261020/final-verification.json`、`deployment/*-deployment.json`、`public-verification.json` 和 `live-browser.json` 的最终记录为准。网络为 Devnet，不能将配置中的 mainnet 产品名称当成 Mainnet 部署。
+The original release source and evidence are in `/workspace/water-opt-in-20261020`. Deployed program, public-file and browser records from that task are the authority for its release; product naming in mainnet.json does not change its Devnet network. The next release preserves this deployed runtime in an isolated Git snapshot.

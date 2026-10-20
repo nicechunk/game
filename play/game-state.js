@@ -12,6 +12,7 @@ import {
 import { resourceIdForBlock } from "../src/world/blocks.js";
 import {
   LAND_CONTRACT_ITEM_ID,
+  REGISTERED_LAND_CONTRACT_ITEM_ID,
   createLandContractPortfolio,
   createLandContractInventoryItem,
   isLandContractItem,
@@ -252,7 +253,9 @@ export function createPlayGameState({
       const before = cloneHotbarSlot(this.hotbarSlots[safeIndex]);
       const wasSelected = this.selectedHotbarSlot === safeIndex;
       this.hotbarSlots[safeIndex] = null;
-      if (wasSelected) this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
+      if (wasSelected && before?.itemId !== REGISTERED_LAND_CONTRACT_ITEM_ID) {
+        this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
+      }
       this.saveHotbarSlots();
       notifyEquipmentChanges([equipmentMutationChange(safeIndex, before, null)]);
       if (wasSelected) notifyHotbarSelectionChange("cleared");
@@ -297,10 +300,39 @@ export function createPlayGameState({
       this.registeredLandContracts = next;
       this.registeredLandContractStatus = nextStatus;
       this.registeredLandContractError = nextError;
-      return { changed, contracts: next.slice(), status: nextStatus, error: nextError };
+      // Reconcile shortcuts only after an authoritative owned-land refresh.
+      // A failed request must not erase deeds or select a different parcel.
+      let hotbarChanged = false;
+      let selectedRemoved = false;
+      if (nextStatus === "ready") {
+        for (let index = 0; index < this.hotbarSlots.length; index += 1) {
+          const slot = this.hotbarSlots[index];
+          if (slot?.itemId !== REGISTERED_LAND_CONTRACT_ITEM_ID) continue;
+          const deed = next.find((item) => item.foundationId === slot.foundationId && item.owner === owner && item.status === "active");
+          const replacement = deed ? { ...deed } : null;
+          if (JSON.stringify(slot) !== JSON.stringify(replacement)) {
+            this.hotbarSlots[index] = replacement;
+            hotbarChanged = true;
+            selectedRemoved ||= !replacement && this.selectedHotbarSlot === index;
+          }
+        }
+        if (hotbarChanged) this.saveHotbarSlots();
+        if (selectedRemoved) {
+          // Leave the now-empty selected slot active; another equipped deed
+          // must never become the editing target as a side effect of removal.
+          notifyHotbarSelectionChange("deed-no-longer-owned");
+        }
+      }
+      return { changed: changed || hotbarChanged, hotbarChanged, contracts: next.slice(), status: nextStatus, error: nextError };
     },
     getLandContractEquipment() {
       const index = this.hotbarSlots.findIndex((slot) => slot?.itemId === LAND_CONTRACT_ITEM_ID);
+      return index >= 0 ? { index, slot: this.hotbarSlots[index] } : null;
+    },
+    getLandDeedEquipment(foundationId) {
+      const id = String(foundationId ?? "");
+      const index = this.hotbarSlots.findIndex((slot) => slot?.itemId === REGISTERED_LAND_CONTRACT_ITEM_ID
+        && slot.foundationId === id && slot.owner === this.ownerAddress);
       return index >= 0 ? { index, slot: this.hotbarSlots[index] } : null;
     },
     syncLandContractBalance(snapshot = {}) {
@@ -328,7 +360,6 @@ export function createPlayGameState({
           hotbarChanged = true;
         }
       }
-      if (selectedRemoved) this.selectedHotbarSlot = preferredHotbarIndex(this.hotbarSlots);
       if (hotbarChanged) this.saveHotbarSlots();
       if (selectedRemoved) notifyHotbarSelectionChange("contract-balance-empty");
       return {
@@ -469,6 +500,13 @@ export function createPlayGameState({
       if (slot?.itemId !== LAND_CONTRACT_ITEM_ID || !this.landContractBalance.known || (this.landContractBalance.available ?? 0) <= 0) return null;
       return { slot, index: this.selectedHotbarSlot };
     },
+    getSelectedLandDeedSlot() {
+      const slot = this.hotbarSlots[this.selectedHotbarSlot];
+      if (slot?.itemId !== REGISTERED_LAND_CONTRACT_ITEM_ID || slot.owner !== this.ownerAddress) return null;
+      const deed = this.registeredLandContracts.find((item) => item.foundationId === slot.foundationId
+        && item.owner === this.ownerAddress && item.status === "active");
+      return deed ? { slot: deed, index: this.selectedHotbarSlot } : null;
+    },
     getForgedInteraction(slot) {
       return forgedItemInteraction(slot);
     },
@@ -539,6 +577,21 @@ export function createPlayGameState({
       this.saveHotbarSlots();
       notifyHotbarSelectionChange("contract-equipped");
       return { ok: true, index, slot: equipped };
+    },
+    equipLandDeedToHotbar(foundationId, targetIndex = this.selectedHotbarSlot) {
+      const deed = this.registeredLandContracts.find((item) => item.foundationId === String(foundationId ?? "")
+        && item.owner === this.ownerAddress && item.status === "active");
+      if (!deed) return { ok: false, reason: "land-deed-unavailable" };
+      const existing = this.getLandDeedEquipment(deed.foundationId);
+      const preferred = clampInt(targetIndex, 0, this.hotbarSlots.length - 1);
+      const index = existing?.index ?? (this.canModifyHotbarSlot(preferred) && !this.hotbarSlots[preferred]
+        ? preferred : this.hotbarSlots.findIndex((slot, i) => i > 0 && this.canModifyHotbarSlot(i) && !slot));
+      if (index < 0) return { ok: false, reason: "land-deed-hotbar-full" };
+      this.hotbarSlots[index] = { ...deed };
+      this.selectedHotbarSlot = index;
+      this.saveHotbarSlots();
+      notifyHotbarSelectionChange("deed-equipped");
+      return { ok: true, index, slot: this.hotbarSlots[index], alreadyEquipped: Boolean(existing) };
     },
     hotbarTargetIndex(preferredIndex = this.selectedHotbarSlot) {
       const preferred = clampInt(preferredIndex, 0, this.hotbarSlots.length - 1);
@@ -703,6 +756,7 @@ export function createPlayHotbarItems() {
     forged_item: { kind: "forged", itemId: FORGED_ITEM_ID, label: "Forged Tool", maxDurability: DEFAULT_FORGED_DURABILITY },
     resource_block: { kind: "resource", itemId: "resource_block", label: "Block", action: "placeBlock" },
     [LAND_CONTRACT_ITEM_ID]: { kind: "contract", itemId: LAND_CONTRACT_ITEM_ID, label: "Blank Land Contract", action: "openLandConstruction" },
+    [REGISTERED_LAND_CONTRACT_ITEM_ID]: { kind: "registered_land_contract", itemId: REGISTERED_LAND_CONTRACT_ITEM_ID, label: "Land Deed", action: "openLandConstruction" },
     backpack: { kind: "backpack", itemId: "backpack", label: "Backpack" },
   });
 }
@@ -794,6 +848,7 @@ function removeDuplicateBackpackShortcuts(slots) {
 }
 
 function backpackShortcutIdentity(slot) {
+  if (slot?.itemId === REGISTERED_LAND_CONTRACT_ITEM_ID) return `deed:${slot.owner}:${slot.foundationId}`;
   if (isLandContractItem(slot)) return `contract:${LAND_CONTRACT_ITEM_ID}`;
   if (slot?.kind === "resource") {
     const sourceId = String(slot.id || "").trim();
@@ -809,6 +864,7 @@ function resolveBackpackSlot(slots, slotOrId) {
 }
 
 function hotbarShortcutIdentity(slot) {
+  if (slot?.itemId === REGISTERED_LAND_CONTRACT_ITEM_ID) return `deed:${slot.owner}:${slot.foundationId}`;
   if (slot?.itemId === LAND_CONTRACT_ITEM_ID) return `contract:${LAND_CONTRACT_ITEM_ID}`;
   if (slot?.itemId === "resource_block") {
     const sourceId = String(slot.backpackSlotId || "").trim();
@@ -896,6 +952,10 @@ function normalizeHotbarSlot(slot, { ownerAddress = "" } = {}) {
   // Retire the synthetic grant, including copies restored from browser storage.
   // Actual crafted tools are represented by FORGED_ITEM_ID and keep their PDA.
   if (slot.itemId === "iron_pickaxe") return null;
+  if (slot.itemId === REGISTERED_LAND_CONTRACT_ITEM_ID) {
+    const deed = normalizeRegisteredLandContract(slot);
+    return deed && deed.owner === ownerAddress && deed.status === "active" ? { ...deed } : null;
+  }
   if (slot.itemId === FORGED_ITEM_ID) {
     const normalized = normalizeForgedHotbarSlot(slot, {
       defaultDurability: DEFAULT_FORGED_DURABILITY,
