@@ -263,6 +263,12 @@ test("native validated pair reaches an actual revision draw, then unchanged rest
       }
       try {
         const first = await readAndDraw(), mesh = section.mesh, before = sync.snapshot();
+        const uploadedBeforeResident = renderer.resourceLedger.snapshot().uploadBytes;
+        const resident = await readAndDraw();
+        const residentExtraUploadBytes = renderer.resourceLedger.snapshot().uploadBytes - uploadedBeforeResident;
+        if (section.mesh !== mesh || renderer.resourceLedger.snapshot().uploadBytes !== uploadedBeforeResident
+          || sync.snapshot().pairWork.componentDecodeCount !== before.pairWork.componentDecodeCount
+          || sync.snapshot().canonicalWork.canonicalizations !== before.canonicalWork.canonicalizations) throw new Error("Resident unchanged performed extra decode/canonical/mesh/GPU transfer");
         renderer.removeChunk(chunk.id);
         const evicted = await readAndDraw(), afterEviction = sync.snapshot();
         if (section.mesh !== mesh || afterEviction.pairWork.componentDecodeCount !== before.pairWork.componentDecodeCount
@@ -277,10 +283,10 @@ test("native validated pair reaches an actual revision draw, then unchanged rest
         const context = await readAndDraw(), afterContext = sync.snapshot();
         if (section.mesh !== mesh || afterContext.pairWork.componentDecodeCount !== before.pairWork.componentDecodeCount) throw new Error("Context restoration invalidated pure account content");
         renderer.dispose(); chunks.dispose();
-        return { first, evicted, context, calls, contextGeneration: renderer.contextGeneration, resourcesAfterDispose: renderer.resourceLedger.snapshot() };
+        return { first, resident, residentExtraUploadBytes, evicted, context, calls, contextGeneration: renderer.contextGeneration, resourcesAfterDispose: renderer.resourceLedger.snapshot() };
       } finally { sync.cancelActiveSync(); window.fetch = savedFetch; window.Worker = savedWorker; renderer.dispose(); chunks.dispose(); }
     });
-    assert.equal(result.calls, 3); assert.ok(result.first.pairToFirstDrawMs >= 0);
+    assert.equal(result.calls, 4); assert.ok(result.first.pairToFirstDrawMs >= 0);
     assert.equal(result.resourcesAfterDispose.bufferBytes, 0); assert.equal(result.resourcesAfterDispose.textureBytes, 0);
     evidence.nativeAuthority = result; await save();
   } finally { await browser.close(); }
