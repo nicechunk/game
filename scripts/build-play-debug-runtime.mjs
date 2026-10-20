@@ -339,7 +339,7 @@ if (outputRoot === defaultOutputRoot && staticSiteManifest) {
 }
 await normalizePermissions(outputRoot);
 
-await cp(resolve(playSource, "vendor/fzstd.LICENSE"), resolve(runtimeRoot, "fzstd.LICENSE.txt"));
+await writeFile(resolve(runtimeRoot, "assets/fzstd-LICENSE.js"), "/*\n" + await readFile(resolve(playSource, "vendor/fzstd.LICENSE"), "utf8") + "\n*/\n");
 const runtimeFiles = await collectFiles(runtimeRoot);
 console.log(JSON.stringify({
   version,
