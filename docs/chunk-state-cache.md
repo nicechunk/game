@@ -1,57 +1,57 @@
-# 普通 chunk 账户缓存与显示调度（0.1.96）
+# Finalized ordinary chunk caching and presentation (0.1.96)
 
-## 范围
+## Scope and authority
 
-普通 `chunk-broken`/`chunk-placed` PDA 的 finalized 读取。保留两个独立无损账户组件，包括被 Placed 覆盖的 Broken 坐标、Placed volume、完整分配空间、owner/executable 与布局描述。组件 SHA-256 和 pair token 不包含观察时间或 slot；渲染投影另行去重。它们是缓存完整性标识，不能证明链上最新状态。
+This path reads ordinary `chunk-broken` and `chunk-placed` PDAs at finalized commitment. It retains independent lossless account bodies, including Broken coordinates hidden by Placed, Placed volume, unused allocated bytes, owner/executable and validated layout descriptors. Component SHA-256 and pair tokens exclude slot and observation time. Rendering uses a separate canonical projection. These hashes check cached content integrity; they do not prove current chain state.
 
-不改合约、PDA、租金、交易权限、confirmed 交易预检或 pending/confirmed 保护层。天然装饰拾取的 surface-picked 账户仍由原有同步路径处理。
+Contracts, PDA seeds, rent, transaction permissions, confirmed transaction preflight, pending actions and confirmed protection layers are unchanged. Natural decoration `surface-picked` accounts remain on their separate existing synchronization path.
 
-## 请求与水位
+## Reads and watermarks
 
-- 每批最多 100 账户 / 50 对；全局当前同步池最多 4 个并发批次。
-- 冷近场使用最多 8 对的小批，背景和 warm 批最多 50 对。冷读可能增加请求数，目标是提前交付近场结果。
-- 完整基底存在时，条件阈值取批内各 pair `knownAtSlot` 的最小值，inclusive；`minContextSlot` 独立保持所需最低水位。绝不把全局最新 slot 当作所有 pair 的条件阈值。
-- 捕获不可变的两侧组件与 token。full/unchanged/null 混合后验证完整 pair，再原子发布内存和该 pair 水位。错误保留旧显示，只修复对应 pair。
-- 严格 null 才是 absent。明确、无矛盾的 `{status:"unchanged"}` 才能复用捕获基底。先前 absent 却收到 unchanged 会定向全量修复。
-- 有效 context、数组长度、JSON-RPC id、账户顺序、owner、executable、布局、容量、坐标、重复记录、volume 和编码均检查。
-- 双 unchanged 不重新解码、计算正文摘要、排序、规范化、重建或上传；仍检查显示是否需要恢复。
+- At most 100 accounts / 50 pairs per batch and four concurrent RPC batches.
+- Cold near batches contain at most eight pairs; background and warm batches can contain 50. This can increase cold request counts to deliver nearby data sooner.
+- Conditional thresholds use the minimum captured pair watermark, inclusively. `minContextSlot` independently enforces the required read floor. A global maximum slot is never used as every pair's conditional baseline.
+- A request captures immutable components and their token. Mixed full/unchanged/null results produce one verified pair before content and its actual watermark publish atomically.
+- Only strict null means absent. Only an explicit, unambiguous `{status:"unchanged"}` permits captured-baseline reuse. An unchanged result following an absent component requires targeted full repair.
+- Validation covers JSON-RPC identity, context, length/order, owner, executable, layout, capacity, coordinates, duplicate records, volume and encoding. An error preserves existing geometry and only retries its affected pair.
+- Double unchanged skips component decoding, body hashing, sorting, canonicalization, meshing and upload. Presentation recovery remains a separate check.
 
-## Endpoint 能力与配置
+## Endpoint capabilities and optional compression
 
-默认编码为 base64。`changedSinceSlot` 按 endpoint/config epoch 探测，只有实际 unchanged 才确认支持。忽略参数返回 full 的 RPC 直接消费本次结果；明确不支持时有界回退。429/超时不视为不支持；429/服务端错误按全局退避，其余账户错误按 pair 使用 1–15 秒退避，提示事件可精确失效。
+Base64 is the default. Conditional support is cached per endpoint/configuration epoch and confirmed only by an actual unchanged response. A server that ignores the extension and returns full is consumed directly without a second read. Explicit unsupported-parameter errors receive bounded fallback. A timeout or 429 is not evidence of unsupported capability. Congestion uses global backoff; invalid pairs use 1-15 second local backoff. Precise hint events invalidate only the relevant pair.
 
-可选 Zstd：在现有客户端配置存储设置 `nicechunk.chunkRpcEncoding = "base64+zstd"`，刷新后启用；移除此项恢复默认。不改变 RPC URL/API key 来源。生产主线程 fallback 继续用 base64，压缩在 PDA Worker 中解码。只有 full 账户加载解码器；unchanged/null 不加载。输出最多 18,448 B，独立窗口上限 8 MiB，输入和 block/frame 数量有界，禁止截断/拼接帧。实际 public RPC 的小账户也可能声明 2 MiB 窗口。fzstd 0.1.1 的原始 MIT 许可保存在 `play/vendor/fzstd.LICENSE` 并随 runtime 分发。
+Optional Zstd is enabled by setting `nicechunk.chunkRpcEncoding` to `base64+zstd` in the existing client configuration storage and refreshing. Removing that entry restores the default. RPC URL and API keys still come from the existing configuration. Production main-thread fallback requests base64; compressed decoding runs in the PDA Worker. Only full accounts load the decoder. Output is limited to 18,448 bytes, independently of the maximum 8 MiB frame window, bounded compressed input and frame/block counts. Truncated and concatenated frames are rejected. Actual public RPC small-account frames can declare a 2 MiB window. fzstd 0.1.1's original MIT notice is in `play/vendor/fzstd.LICENSE` and is included in the runtime package.
 
-Zstd 与 conditional 能力独立管理；无效压缩数据保持旧世界，定向修复使用 base64。压缩与条件读取都不自动降低 RPC 次数、费用或 PDA 成本。
+Encoding and conditional capabilities are independent. Invalid compressed content keeps the old world and targeted repair requests base64. Neither compression nor conditional responses inherently reduces RPC calls, credits, transaction fees or PDA costs.
 
-## 持久缓存、迁移与内存
+## Durable cache and memory
 
-IndexedDB 保留原 snapshots store，并升级到 DB v2，新增 `account-pairs` store。每个记录一次事务存储两侧组件、投影、token 和水位。事务或 quota 失败不撤销已验证内存内容。未变 metadata 至多每 30 秒持久更新，同 key 写入合并；后台写入队列也有数量和 bytes 上限。
+IndexedDB upgrades to DB v2, retaining `snapshots` and adding `account-pairs`. One transaction writes both components, their projection, token and watermark. Transaction/quota failure does not undo a verified memory publication. Same-key writes coalesce; unchanged metadata writes are limited to once per 30 seconds. Pending persistence also has entry and byte limits.
 
-pair 内存和 Worker 缓存各最多 2,048 项 / 64 MiB 准入计费；持久缓存最多两倍。TypedArray bytes 精确计数，JS 记录与对象使用保守计费，非浏览器实际 heap 测量。LRU 和在途捕获引用分开；逐出不破坏已经捕获的基底。跨 Worker 只转移新建的紧凑投影副本，缓存唯一 raw buffer 不 transfer。Worker 失去 token 时一次 full 冷读恢复，不拼接未知组件。
+Main memory and Worker pair caches each allow at most 2,048 entries / 64 MiB of admission charges; disk allows twice those limits. Typed-array bytes are exact; JS records and objects use conservative charges rather than measured browser heap sizes. LRU eviction does not destroy captured in-flight references. Only newly allocated compact projection arrays transfer across the Worker boundary; unique cached raw buffers do not detach. A Worker that has lost a token performs one full read instead of mixing unknown components.
 
-scope 包含实测 genesis、program、globalConfig、派生 seeds、账户格式、世界/生成规则/尺寸。相同链更换 provider 不混用迟到请求。真实 chain identity 验证可增加首次启动的一次 bootstrap 读取。慢 IDB 不阻塞必要近场 RPC；因此冷启动时磁盘恢复和 full 读取可能并行。
+Scope includes observed genesis, program, globalConfig, derivation seeds, account format, world/generation/rules and dimensions. A provider switch on the same verified chain can reuse content, while obsolete requests cannot publish into a new authority epoch. Initial chain identity verification may add one bootstrap read. Slow disk never gates necessary nearby RPC, so cold full reads can race disk recovery.
 
-旧 v2 合并快照不能充当增量基底。已核对 0.1.95 固定 Devnet genesis/program/global PDA/seeds 的旧 namespace 可作预览，再以 full pair 惰性升级；无法确认 namespace 的旧记录保留但不展示。
+Old merged v2 snapshots cannot serve as lossless incremental baselines. After matching the reviewed 0.1.95 Devnet genesis/program/global PDA/seeds, their old namespace can supply a visual preview followed by lazy full-pair upgrade. Unconfirmed old namespaces remain stored but are not shown.
 
-## 显示、事件与预算
+## Interest, progress and presentation
 
-兴趣变化立即恢复内存/异步磁盘并调度读取。正常移动不会撤销交叠区域请求；权威/endpoint 切换仍取消旧 epoch。Guardian/本地操作仅提供精确失效提示，不能刷新权威观察时间。现有近/中/远 finalized 复验窗口保持 15/45/120 秒；页面恢复、重连触发补读。无新增全世界扫描或无限账户订阅。
+Interest changes immediately restore hot memory, start asynchronous disk recovery and schedule required reads. Normal movement retains overlapping requests. Authority and endpoint changes still cancel old epochs. Guardian and local events are invalidation hints, not finalized proofs. Existing 15/45/120 second near/middle/far authoritative checks remain. Resume and reconnect trigger catch-up. This does not add whole-program scans or unbounded subscriptions.
 
-host 每帧只给一个轮转阶段预留至多 0.8ms：快照、建筑、网格、上传各获得服务。保留共享软预算，低层收到过期 deadline 仍不工作。真实 GPU 等待/context lost 单独记录；不使用 gl.finish。不可分割的单次提交仍可能超出软 slice，真实设备 p95/p99 需要另验。
+One rotating host stage per frame receives at most 0.8ms of reserved service: snapshot, building, mesh or upload. The shared soft allowance remains; low-level expired deadlines still do no work. Real GPU waits/context loss are counted separately, without gl.finish. An indivisible operation can exceed a soft slice; hardware frame percentiles require separate acceptance.
 
-Worker terminal 和预期包收齐并校验后释放计算槽；发布队列仍按 revision/顺序消费。24 个 ready job 或 64 MiB 排队几何触发调度回压，已经计算中的有限任务可在其后完成。计算失败不能丢弃同 Worker 先前已完成的待发布几何。
+Once terminal and all expected Worker packets validate, the computing slot is released while revision-checked publication continues. Twenty-four ready jobs or 64 MiB queued geometry apply dispatch backpressure, in addition to the finite already-computing tasks. A later computing failure cannot discard that Worker's earlier complete publication data.
 
-常见不透明普通方块可使用有界、完整材质的小网格反馈：最多 32 个 action / 64 个 CPU 模型；正式 section 匹配 revision 的 GPU handle 就绪后交接。旧 action 回滚不删除后来 action；不透明洞穴移除及邻接面仍由 section mesher 正确重建。复杂/透明资源和仙人掌继续使用完整原有模型路径，不能用通用方块占位。该快路径保留 staging/fence/context 校验，不承诺软件 GPU 下 1–2 帧达标。
+Common ordinary opaque blocks use bounded fully textured local feedback: at most 32 actions / 64 CPU prototypes. They hand off only when the official section's matching revision has a validated GPU handle. Rollback removes only its own action. Removal, cave walls and exposed neighboring faces remain the section mesher's responsibility. Complex/transparent resources and cactus use their complete existing model path, without generic placeholder cubes. The feedback path preserves staging, fences and context checks; it does not guarantee a one-to-two-frame software-GPU result.
 
-`presentationRequest.firstDrawSubmitted` 只在实际绘制目标 revision 的几何后记录，包含 pairValidated→firstDraw 和 interestEnter→firstDraw。它是 GPU draw submission，屏幕呈现及认证实机体验需另验。
+`presentationRequest.firstDrawSubmitted` is recorded only after an actual draw of the target geometry revision. It includes pairValidated-to-firstDraw and interestEnter-to-firstDraw timing. GPU submission is distinct from screen presentation and authenticated device acceptance.
 
-## 回归与重跑
+## Verification
 
-- `npm run check`：游戏全套（完整 Guardian companion 检查需设置现有两个二进制环境变量）。
-- `cd chunk.js && npm run check`：引擎全套与浏览器产物检查。
-- 新专项：`chunk-incremental-pairs.test.mjs`、`chunk-service-progress.test.mjs`、`chunk-incremental-browser.test.mjs`。
-- 浏览器专项使用 `NICECHUNK_TEST_SOFTWARE_GL=1 node --import ./scripts/test-browser-setup.mjs --test --test-concurrency=1 play/tests/chunk-incremental-browser.test.mjs`。可用 `NICECHUNK_INCREMENTAL_EVIDENCE` 指定结果目录。
-- 工作区交付脚本另含真实有限只读样本、ABBA 成对账户回放、实际发布 Worker 和公开文件哈希核验；测试桩、软件 GL 和真实网络数据分开报告。
+- `npm run check` runs the Game suite. Existing Guardian companion tests require their two binary environment variables.
+- `cd chunk.js && npm run check` runs the Engine suite and browser artifact checks.
+- New cases: `chunk-incremental-pairs.test.mjs`, `chunk-service-progress.test.mjs` and `chunk-incremental-browser.test.mjs`.
+- Browser cases can run with `NICECHUNK_TEST_SOFTWARE_GL=1 node --import ./scripts/test-browser-setup.mjs --test --test-concurrency=1 play/tests/chunk-incremental-browser.test.mjs`. `NICECHUNK_INCREMENTAL_EVIDENCE` selects an evidence directory.
+- Delivery workspace scripts retain finite real read-only samples, paired ABBA account replays, actual published Worker execution and public file hashes. Simulations, software GL and real network reads are reported separately.
 
-可选共享 hash/ETag 服务未启用；A/B 路径独立工作，不依赖 Guardian 改造或新合约。
+The optional shared hash/ETag service is not enabled. These paths operate without Guardian reconstruction, new contracts or such a service.
