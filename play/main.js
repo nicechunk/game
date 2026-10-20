@@ -39,6 +39,7 @@ import { createPlayChainBackpackSync } from "./play-chain-backpack.js";
 import { createPlayBackpackCreation } from "./play-backpack-creation.js";
 import {
   createPlayChainChunkDeltaSync,
+  getChainChunkRpcEncoding,
   DEFAULT_CHAIN_CHUNK_CACHE_SCOPE_HINT,
   isChainChunkPdaReadEnabled,
   setChainChunkPdaReadEnabled,
@@ -63,7 +64,8 @@ import { createSupportCollapseMiningPlanner } from "./support-collapse-plan.js";
 import { createPlayEffects } from "./play-effects.js";
 import { createPlayRenderBudget } from "./play-render-budget.js";
 import { createPlayFrameProbe } from "./play-frame-probe.js";
-import { createFrameWorkBudget, remainingFrameWorkMs } from "./play-frame-work-budget.js";
+import { createLocalPlacementFeedback } from "./play-local-placement-feedback.js";
+import { createFrameServiceScheduler, remainingFrameWorkMs } from "./play-frame-work-budget.js";
 import { createPlayHud } from "./play-hud.js";
 import { createPlayInputActions } from "./play-input-actions.js";
 import { createPlayPlayerSession } from "./play-player-session.js";
@@ -503,6 +505,7 @@ let forgedPlacement = null;
 let chainBackpack = null;
 let backpackCreation = null;
 let chainChunkDeltas = null;
+const localPlacementFeedback = createLocalPlacementFeedback({ getChunks: () => chunks, getRenderer: () => renderer });
 let chainPlayer = null;
 let chainSession = null;
 let chainFrameSync = null;
@@ -994,6 +997,7 @@ async function boot() {
     translate: translateWithFallback,
   });
   chainChunkDeltas = createPlayChainChunkDeltaSync({
+    rpcEncoding: getChainChunkRpcEncoding(),
     chunks,
     onChanged: () => {
       renderGameUi();
@@ -1313,7 +1317,7 @@ async function boot() {
     isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     onStatus: setStatus,
     onChanged: renderGameUi,
-    onPlacementStart: (pending) => avatarSession?.startPlacementAction(pending),
+    onPlacementStart: (pending) => { localPlacementFeedback.enqueue(pending); avatarSession?.startPlacementAction(pending); },
     onPending: (pending) => {
       lastWorldDeltaKind = "place";
       chainSession?.handlePendingPlace(pending, {
@@ -1326,6 +1330,7 @@ async function boot() {
         },
         deferToAuthorityTx: (txId) => {
           const pending = placement?.deferToAuthorityTx?.(txId);
+          localPlacementFeedback.remove(txId);
           if (pending) {
             chainChunkDeltas?.invalidateChunkForWorld(pending.worldX, pending.worldZ);
             chainChunkDeltas?.requestSync({ reason: "place-unknown-recovery", quiet: true });
@@ -1341,7 +1346,7 @@ async function boot() {
       chainChunkDeltas?.invalidateChunkForWorld(pending.worldX, pending.worldZ);
       chainChunkDeltas?.requestSync({ reason: "place-confirm", quiet: true });
     },
-    onRollback: (pending) => chainSession?.handleRollbackPlace(pending),
+    onRollback: (pending) => { localPlacementFeedback.remove(pending.txId); chainSession?.handleRollbackPlace(pending); },
     translate: translateWithFallback,
   });
   forgedPlacement = createForgedItemPlacementController({
@@ -1530,6 +1535,8 @@ function endFrameProbe(probe) {
   frameProbeLogger.end(probe);
 }
 
+const streamingService = createFrameServiceScheduler();
+
 function frame(now) {
   const frameProbe = beginFrameProbe(now);
   requestAnimationFrame(frame);
@@ -1547,7 +1554,7 @@ function frame(now) {
   markFrameProbe(frameProbe, "build-limit");
   applyPlayerPhysics(dt);
   markFrameProbe(frameProbe, "physics");
-  const streamingBudget = createFrameWorkBudget({ rawFrameIntervalMs: frameProbe.rawFrameIntervalMs,
+  const streamingBudget = streamingService.beginFrame({ rawFrameIntervalMs: frameProbe.rawFrameIntervalMs,
     startedAt: frameProbe.startedAt });
   mining?.update(now);
   playerSession?.savePlayerPosition(now);
@@ -1569,25 +1576,33 @@ function frame(now) {
   markFrameProbe(frameProbe, "chain-backpack");
   chainFrameSync?.updatePlayerForFrame(now);
   markFrameProbe(frameProbe, "chain-player");
-  chainFrameSync?.updateChunkDeltasForFrame(now, { moving: movingNow,
-    frameIntervalMs: frameProbe.rawFrameIntervalMs, deadline: streamingBudget.deadline });
+  const chainApplyStats = chainFrameSync?.updateChunkDeltasForFrame(now, { moving: movingNow,
+    frameIntervalMs: frameProbe.rawFrameIntervalMs, deadline: streamingBudget.deadlineFor("snapshot") });
+  streamingService.noteService({ lane: "snapshot", backlog: chainChunkDeltas?.pendingPresentationCount?.() > 0, progressed: (chainApplyStats?.preparedEntries || 0) + (chainApplyStats?.appliedSnapshots || 0) > 0 });
   markFrameProbe(frameProbe, "chain-deltas");
   foundationSync?.updateForFrame(now);
   markFrameProbe(frameProbe, "foundation-sync");
   buildingSync?.updateForFrame(now);
-  buildingSync?.applyQueuedBuildings?.({ deadline: streamingBudget.deadline,
-    budgetMs: remainingFrameWorkMs(streamingBudget.deadline, 1), maxBuildings: 2 });
+  const buildingDeadline = streamingBudget.deadlineFor("building");
+  const buildingApplyStats = buildingSync?.applyQueuedBuildings?.({ deadline: buildingDeadline,
+    budgetMs: remainingFrameWorkMs(buildingDeadline, 1), maxBuildings: 2 });
+  streamingService.noteService({ lane: "building", backlog: buildingApplyStats?.pending > 0, progressed: buildingApplyStats?.appliedBuildings > 0 });
   markFrameProbe(frameProbe, "building-sync");
   updateChunkLoadingForFrame(now);
   markFrameProbe(frameProbe, "chunk-load");
-  chunks.rebuildDirtyChunks(remainingFrameWorkMs(streamingBudget.deadline, meshBudgetMs), { deadline: streamingBudget.deadline });
+  const meshDeadline = streamingBudget.deadlineFor("mesh");
+  const progressiveBefore = chunks.progressiveSectionsCommitted;
+  const rebuiltChunks = chunks.rebuildDirtyChunks(remainingFrameWorkMs(meshDeadline, meshBudgetMs), { deadline: meshDeadline });
+  streamingService.noteService({ lane: "mesh", backlog: chunks.buildQueue.length > 0 || chunks.inFlightBuilds.size > 0,
+    progressed: rebuiltChunks.length > 0 || chunks.progressiveSectionsCommitted > progressiveBefore, blocked: chunks.inFlightBuilds.size > 0 && ![...chunks.inFlightBuilds.values()].some(task => task.pendingProgress?.size) });
   markFrameProbe(frameProbe, "chunk-rebuild");
   pruneGpuChunksForFrame(now);
   markFrameProbe(frameProbe, "gpu-prune");
   const renderFrameReady = renderer.canPrepareFrame();
   const terrainVisibleChunks = renderFrameReady ? chunks.getVisibleChunks(camera) : [];
   const visibleBuildingChunks = renderFrameReady ? buildingChunksInView() : [];
-  const visibleChunks = terrainVisibleChunks.concat(visibleBuildingChunks);
+  const localPlacementChunks = renderFrameReady ? localPlacementFeedback.collect() : [];
+  const visibleChunks = terrainVisibleChunks.concat(visibleBuildingChunks, localPlacementChunks);
   renderBudget?.noteWorldVisible?.(terrainVisibleChunks.length > 0);
   if (terrainVisibleChunks.length) chunks.setContinuousBuildDispatch?.(true);
   if (terrainVisibleChunks.length) {
@@ -1606,8 +1621,11 @@ function frame(now) {
     allowBackgroundUploads: renderBudget?.allowBackgroundUploads?.(now) ?? !movingNow,
     backgroundUploadBudget: renderBudget?.frameBackgroundUploadBudget?.(now),
     prefetchFocus: chunkPrefetchFocus,
-    deadline: streamingBudget.deadline,
+    deadline: streamingBudget.deadlineFor("upload"),
   }) : { uploaded: 0, pendingUploads: renderer.pendingUploadSince.size, frameDeferred: true };
+  streamingService.noteService({ lane: "upload", backlog: renderer.pendingUploadSince.size > 0, progressed: uploadStats.uploaded > 0 || uploadStats.uploadedBytes > 0, blocked: !renderFrameReady || uploadStats.validationPending > 0 });
+  const remainingPlacements = new Set(localPlacementFeedback.collect().map(chunk => chunk.id));
+  for (let index = visibleChunks.length - 1; index >= 0; index--) if (visibleChunks[index].localPlacement && !remainingPlacements.has(visibleChunks[index].id)) visibleChunks.splice(index, 1);
   markFrameProbe(frameProbe, "gpu-upload");
   updateActionHitForFrame(now);
   markFrameProbe(frameProbe, "action-hit");
@@ -2009,6 +2027,8 @@ function chainSnapshot() {
     ...session,
     chainBackpack: chainBackpack?.snapshot?.() ?? null,
     chainChunkDeltas: chainChunkDeltas?.snapshot?.() ?? null,
+    streamingService: streamingService.snapshot(),
+    localPlacementFeedback: localPlacementFeedback.snapshot(),
     chainPlayer: playerSnapshot,
     playerSkillXp: playerSnapshot?.skillXp ?? null,
     playerSkillLevels: playerSnapshot?.skillLevels ?? null,
@@ -2344,7 +2364,8 @@ function updateViewEnvironment(now) {
 }
 
 function removeUnloadedGpuChunks() {
-  const buildingIds = buildingController?.liveChunkIds?.() ?? new Set();
+  const buildingIds = new Set(buildingController?.liveChunkIds?.() ?? []);
+  for (const id of localPlacementFeedback.ids()) buildingIds.add(id);
   prunePlayRenderChunks(renderer,chunks.chunks,buildingIds);
 }
 
