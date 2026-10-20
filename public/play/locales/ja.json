@@ -1369,7 +1369,10 @@
       "selectCorner": "プレビューを動かし、反対側のチャンク角を選択してください。",
       "alreadyLocked": "範囲は固定済みです。別の範囲を選ぶ前にクリアしてください。",
       "chunkProtected": "この Chunk は土地契約で保護されているため変更できません。",
-      "operationDenied": "この区域は土地契約で保護されており、操作する権限がありません。"
+      "operationDenied": "この区域は土地契約で保護されており、操作する権限がありません。",
+      "demolitionTitle": "建築物の解体",
+      "demolitionPending": "建築ブロックを撤去しています。チェーン上の確認を待っています。",
+      "demolitionConfirmed": "建築ブロックを撤去しました。デバッグモードでは資源の消費や返却はありません。"
     },
     "onboarding": {
       "features": {

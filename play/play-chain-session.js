@@ -625,6 +625,15 @@ export function createPlayChainSession({
   }
 
   function miningEventOptions(pending, eventState, { signature = "", reason = "", phase = eventState } = {}) {
+    if (pending?.miningKind === "building-demolition") return {
+      kind: "building", state: eventState, eventId: pending.txId,
+      title: ui("main.land.demolitionTitle", "Building demolition"),
+      detail: eventState === "confirmed" && signature
+        ? ui("main.land.demolitionConfirmed", "Building block removed. Debug mode: no resources consumed or returned.")
+        : eventState === "error" ? `Chain proof rejected${reason ? ` · ${reason}` : ""}`
+          : ui("main.land.demolitionPending", "Removing this building block; awaiting chain confirmation."),
+      resource: null, flyToBackpack: false, holdUntilResolved: eventState === "pending",
+    };
     const lossyRewards = Boolean(pending?.lossyRewards || pending?.chainResult?.lossyRewards);
     const groups = Array.isArray(pending?.rewardGroups) && pending.rewardGroups.length
       ? pending.rewardGroups

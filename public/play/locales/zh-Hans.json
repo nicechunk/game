@@ -1369,7 +1369,10 @@
       "selectCorner": "移动预览范围，再选择对角区块完成锁定。",
       "alreadyLocked": "选区已经锁定，请先清除再选择其他范围。",
       "chunkProtected": "该 Chunk 受契约保护，无法修改。",
-      "operationDenied": "该区域为契约区域，没有操作权限。"
+      "operationDenied": "该区域为契约区域，没有操作权限。",
+      "demolitionTitle": "拆除建筑",
+      "demolitionPending": "正在拆除该建筑块，等待链上确认。",
+      "demolitionConfirmed": "建筑块已拆除。调试模式下不扣除、也不返还资源。"
     },
     "onboarding": {
       "features": {

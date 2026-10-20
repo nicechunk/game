@@ -797,6 +797,94 @@ export function deriveBuildingShardPda(foundationId, revision, shardIndex) {
   return deriveBuildingShardPdaForProgram(foundationId, revision, shardIndex, buildingProgramId);
 }
 
+export function deriveBuildingDamagePda(foundationId, revision, sectionX, sectionZ, programId = gameContext.buildingProgramId) {
+  if (![sectionX, sectionZ].every(v => Number.isInteger(v) && v >= 0 && v < 16)) throw Error("Invalid building damage section.");
+  return PublicKey.findProgramAddressSync([Buffer.from("building-damage-v1"), deriveGlobalConfigPda().toBuffer(),
+    foundationIdBuffer(foundationId), revisionBuffer(revision), Buffer.from([sectionX, sectionZ])], programId);
+}
+
+export function decodeBuildingDamage(input, { foundationId, revision, sectionX, sectionZ, sizeY } = {}) {
+  const data = Buffer.from(input ?? []);
+  if (!Number.isInteger(sizeY) || sizeY < 1 || sizeY > 256 || data.length !== 80 + sizeY * 32
+      || data.subarray(0, 8).toString("ascii") !== "NCKBDM01" || data[8] !== 1
+      || data[10] !== sectionX || data[11] !== sectionZ || data.readUInt16LE(12) !== sizeY
+      || !data.subarray(16, 48).equals(deriveGlobalConfigPda().toBuffer())
+      || data.readBigUInt64LE(48) !== BigInt(foundationId) || data.readUInt32LE(56) !== revision) throw Error("Invalid building damage account.");
+  return { sectionX, sectionZ, sizeY, bitmap: Uint8Array.from(data.subarray(80)), updatedSlot: data.readBigUInt64LE(64).toString() };
+}
+
+async function loadBuildingDamageSections(foundation, manifest, conn) {
+  if (!manifest.hasDamage) return [];
+  const program = buildingProgramForFoundation(foundation, gameContext), descriptors = [];
+  for (let sectionX = 0; sectionX < Math.ceil(manifest.sizeX / 16); sectionX++) {
+    for (let sectionZ = 0; sectionZ < Math.ceil(manifest.sizeZ / 16); sectionZ++) {
+      descriptors.push({ foundationId: foundation.foundationId, revision: manifest.revision, sectionX, sectionZ, sizeY: manifest.sizeY });
+    }
+  }
+  const addresses = descriptors.map(d => deriveBuildingDamagePda(d.foundationId, d.revision, d.sectionX, d.sectionZ, program)[0]);
+  const infos = await getMultipleAccountsInfoBatched(conn, addresses, 100), sections = [];
+  for (let i = 0; i < infos.length; i++) {
+    const account = infos[i];
+    if (!account || !account.data?.length && account.owner?.equals?.(SystemProgram.programId)) continue;
+    if (!account.owner?.equals?.(program) || account.executable) throw Error("Invalid building damage owner.");
+    sections.push(decodeBuildingDamage(account.data, descriptors[i]));
+  }
+  if (!sections.length) throw Error("Building demolition state is unavailable.");
+  return sections;
+}
+
+export function createBuildingDemolitionInstruction({ authority, owner, target, miningTool, context = gameContext }) {
+  const tool = encodeMiningToolReference(miningTool);
+  const { foundationId, revision, x, y, z } = target ?? {};
+  if (![x, y, z].every(v => Number.isInteger(v) && v >= 0 && v <= 255)) throw Error("Invalid building voxel coordinates.");
+  const data = Buffer.alloc(49); data[0] = 7;
+  data.writeBigUInt64LE(BigInt(foundationId), 1); data.writeUInt32LE(normalizeBuildingRevision(revision), 9);
+  data.set([x, y, z, tool[0]], 13); new PublicKey(miningTool.itemPda).toBuffer().copy(data, 17);
+  const [profile] = derivePlayerProfilePda(owner), [session] = derivePlayerSessionPda(owner, authority);
+  const [site] = deriveBuildSitePdaForContext(foundationId, context);
+  const [manifest] = deriveBuildingManifestPdaForContext(foundationId, revision, context);
+  const [damage] = deriveBuildingDamagePda(foundationId, revision, Math.floor(x / 16), Math.floor(z / 16), context.buildingProgramId);
+  const [equipment] = derivePlayerEquipmentPda(owner);
+  return new TransactionInstruction({ programId: context.buildingProgramId, data, keys: [
+    { pubkey: authority, isSigner: true, isWritable: true }, { pubkey: profile, isSigner: false, isWritable: false },
+    { pubkey: session, isSigner: false, isWritable: false }, { pubkey: site, isSigner: false, isWritable: true },
+    { pubkey: manifest, isSigner: false, isWritable: true }, { pubkey: damage, isSigner: false, isWritable: true },
+    { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: owner, isSigner: false, isWritable: false },
+    { pubkey: equipment, isSigner: false, isWritable: true }, { pubkey: playerProgramId, isSigner: false, isWritable: false },
+  ] });
+}
+
+export async function recordBuildingBreakOnChain(target, { miningTool } = {}) {
+  if (!isNicechunkChainSyncEnabled()) return { submitted: false, reason: "chain-sync-disabled" };
+  const provider = await connectedWalletProvider();
+  if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+  const conn = getNicechunkConnection(), context = gameContext;
+  const foundation = (await loadBuildSitesByIds([target.foundationId], conn))[0];
+  if (!foundation || foundation.status !== "active" || foundation.owner !== provider.publicKey.toBase58()
+      || target.owner !== foundation.owner) return { submitted: false, reason: "foundation-owner-mismatch" };
+  if (foundation.activeRevision !== target.revision) return { submitted: false, reason: "building-revision-changed" };
+  const manifest = await loadBuildingManifestForRevision(conn, foundation, target.revision, context);
+  if (!manifest || manifest.status !== "active") return { submitted: false, reason: "building-manifest-unavailable" };
+  if (target.x >= manifest.sizeX || target.y >= manifest.sizeY || target.z >= manifest.sizeZ) throw Error("Building target is outside its manifest.");
+  const session = await getOrCreateGameplaySession(provider);
+  const instruction = createBuildingDemolitionInstruction({ authority: session.keypair.publicKey, owner: provider.publicKey, target, miningTool, context });
+  const account = await conn.getAccountInfo(instruction.keys[5].pubkey, "confirmed");
+  await fundBuildingUploadSession(provider, session.keypair.publicKey, account?.data?.length ? [] : [80 + manifest.sizeY * 32], conn);
+  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), instruction);
+  const signature = await signAndSendKeypairTransaction(session.keypair, transaction, conn);
+  // Reconcile from authoritative accounts. Failure to read a receipt never turns
+  // an already confirmed demolition into a second charge or a failed transaction.
+  verifiedManifestCache.clear(); buildingPayloadCache.clear();
+  let building = null;
+  try {
+    const fresh = (await loadBuildSitesByIds([target.foundationId], conn))[0];
+    if (fresh?.activeRevision === target.revision) building = await readCompleteBuilding(fresh, conn);
+  } catch { /* The regular foundation sync retries authoritative reads. */ }
+  return { submitted: true, signature, demolition: { ...target }, building, storedRewardCount: 0,
+    minedBlockCount: 1, debugBuildingDemolition: true };
+}
+
 function deriveResourceDropTablePdaForProgram(programId = chunkProgramId) {
   return PublicKey.findProgramAddressSync(
     [Buffer.from(resourceDropTableSeed), deriveGlobalConfigPda().toBuffer()],
@@ -2297,13 +2385,15 @@ async function attachActiveBuildingHashes(foundations, conn, onError = null) {
     return manifest ? { ...foundation, contentHash: manifest.expectedHash.toString("hex"),
       buildingQuarterTurns: manifest.quarterTurns, buildingOffsetX: manifest.offsetX, buildingOffsetZ: manifest.offsetZ,
       buildingManifestPda: manifest.address,
+      buildingHasDamage: manifest.hasDamage, buildingDamageVersion: manifest.damageVersion,
+      buildingDamageSlot: manifest.updatedSlot,
     } : Number(foundation.activeRevision) > 0 ? { ...foundation, buildingVerificationFailed: true } : foundation;
   });
 }
 
 function cachedBuildingManifest(foundation,conn) {
   const cached=verifiedManifestCache.get(buildingCacheKey(foundation,conn)), expected=String(foundation.contentHash || "").toLowerCase();
-  return cached && Date.now()-cached.observedAt<60000 && (!expected || expected===cached.manifest.expectedHash.toString("hex")) ? cached.manifest : null;
+  return cached && cached.siteUpdatedSlot === String(foundation.updatedSlot ?? "0") && Date.now()-cached.observedAt<10000 && (!expected || expected===cached.manifest.expectedHash.toString("hex")) ? cached.manifest : null;
 }
 function verifyBuildingManifest(foundation,account,address) {
   const program=buildingProgramForFoundation(foundation,gameContext), expected=String(foundation.contentHash || "").toLowerCase();
@@ -2314,7 +2404,7 @@ function verifyBuildingManifest(foundation,account,address) {
   return manifest;
 }
 function rememberBuildingManifest(foundation,manifest,observedAt,conn) {
-  const key=buildingCacheKey(foundation,conn);verifiedManifestCache.delete(key);verifiedManifestCache.set(key,{manifest,observedAt});
+  const key=buildingCacheKey(foundation,conn);verifiedManifestCache.delete(key);verifiedManifestCache.set(key,{manifest,observedAt,siteUpdatedSlot:String(foundation.updatedSlot ?? "0")});
   while(verifiedManifestCache.size>256) verifiedManifestCache.delete(verifiedManifestCache.keys().next().value);
 }
 async function readVerifiedBuildingManifest(foundation,conn) {
@@ -2391,7 +2481,9 @@ async function readCompleteBuilding(foundation,conn) {
     foundationId:foundation.foundationId,foundation:foundation.id,revision:foundation.activeRevision,
     quarterTurns:manifest.quarterTurns,offsetX:manifest.offsetX,offsetZ:manifest.offsetZ,
     code:`NCM3:${base64UrlEncode(payload)}`,contentHash:digestHex,payloadBytes:payload.length,
-    manifestPda:manifest.address,programId:program.toBase58(),globalConfig:manifest.globalConfig,updatedSlot:manifest.updatedSlot};
+    manifestPda:manifest.address,programId:program.toBase58(),globalConfig:manifest.globalConfig,updatedSlot:manifest.updatedSlot,
+    hasDamage:manifest.hasDamage,damageVersion:manifest.damageVersion,
+    damageSections:await loadBuildingDamageSections(foundation,manifest,conn)};
   cacheBuildingPayload(buildingCacheKey(foundation,conn),building);
   return building;
 }
@@ -2597,6 +2689,8 @@ export function decodeBuildingManifest(input, address = "") {
     sizeZ,
     createdSlot: data.readBigUInt64LE(136).toString(),
     updatedSlot: data.readBigUInt64LE(144).toString(),
+    hasDamage: data[13] === 1,
+    damageVersion: data.readUInt16LE(134),
     offsetX: data.readInt32LE(152),
     offsetZ: data.readInt32LE(156),
   };
@@ -3030,7 +3124,7 @@ export async function createBuildingOnChain(input = {}) {
         foundation.activeRevision,
         context,
       );
-      if (buildingManifestMatchesPayload(active, {
+      if (!active.hasDamage && buildingManifestMatchesPayload(active, {
         payload,
         expectedHash,
         quarterTurns,
@@ -7853,7 +7947,7 @@ function cachedDiscoveryPda(key,derive) {
 }
 
 function buildingCacheKey(foundation,conn=null) {
-  return `${discoveryRpcNamespace(conn)}:${deriveGlobalConfigPda()}:${buildingProgramForFoundation(foundation,gameContext)}:${String(foundation?.owner || "")}:${String(foundation?.foundationId ?? "0")}:${Math.max(0,Math.trunc(Number(foundation?.activeRevision)||0))}`;
+  return `${discoveryRpcNamespace(conn)}:${deriveGlobalConfigPda()}:${buildingProgramForFoundation(foundation,gameContext)}:${String(foundation?.owner || "")}:${String(foundation?.foundationId ?? "0")}:${Math.max(0,Math.trunc(Number(foundation?.activeRevision)||0))}:${foundation.updatedSlot ?? "0"}:${foundation.buildingDamageVersion ?? ""}`;
 }
 
 function buildingProgramForFoundation(foundation, context = gameContext) {

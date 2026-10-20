@@ -75,6 +75,7 @@ export function createPlayChainBuildingSync({
     queued.set(id,{building,foundation,key,epoch:requestEpoch});scheduleApplication();return true;
   }
   async function verifyCache(building,foundation){
+    if (foundation?.buildingHasDamage || building?.hasDamage) return false;
     if(!building||typeof building!=="object"||!buildingMatchesFoundation(building,foundation))return false;
     const key=foundationRenderKey(foundation),cached=cacheChecks.get(building);
     if(cached?.key===key&&cached.code===building.code)return true;
@@ -222,6 +223,9 @@ export function buildingMatchesFoundation(building, foundation) {
     && (foundation?.buildingQuarterTurns == null || Number(building?.quarterTurns ?? 0) === foundation.buildingQuarterTurns)
     && (foundation?.buildingOffsetX == null || Number(building?.offsetX ?? 0) === foundation.buildingOffsetX)
     && (foundation?.buildingOffsetZ == null || Number(building?.offsetZ ?? 0) === foundation.buildingOffsetZ)
+    && (foundation?.buildingHasDamage == null || Boolean(building?.hasDamage) === foundation.buildingHasDamage)
+    && (foundation?.buildingDamageVersion == null || Number(building?.damageVersion ?? 0) === foundation.buildingDamageVersion)
+    && (foundation?.buildingDamageSlot == null || String(building?.updatedSlot ?? "0") === String(foundation.buildingDamageSlot))
     && Number(building?.revision) === Number(foundation?.activeRevision)
     && /^[0-9a-f]{64}$/.test(fullHash)
     && /^[0-9a-f]{64}$/.test(expectedHash)
@@ -269,6 +273,7 @@ function buildingsRenderKey(buildings = [], foundations = []) {
       Math.max(-0x80000000, Math.min(0x7fffffff, Math.trunc(Number(building?.offsetX) || 0))),
       Math.max(-0x80000000, Math.min(0x7fffffff, Math.trunc(Number(building?.offsetZ) || 0))),
       String(building?.contentHash || "").trim().toLowerCase(),
+      building?.hasDamage === true, building?.damageVersion ?? 0, String(building?.updatedSlot ?? "0"),
     ].join(":");
   }).sort().join("|");
 }
@@ -282,6 +287,7 @@ function foundationRenderKey(foundation) {
     foundation?.buildingOffsetX ?? "",
     foundation?.buildingOffsetZ ?? "",
     String(foundation?.buildingManifestPda || ""),
+    foundation?.buildingHasDamage === true, foundation?.buildingDamageVersion ?? 0, String(foundation?.buildingDamageSlot ?? "0"),
     Math.trunc(Number(foundation?.minX) || 0),
     Math.trunc(Number(foundation?.minZ) || 0),
     Math.trunc(Number(foundation?.surfaceY) || 0),

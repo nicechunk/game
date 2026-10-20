@@ -45,6 +45,7 @@ export function createPlayBuildingCache({
     const values = [];
     for (const entry of entries) {
       const normalized = normalizeRecord(entry?.record);
+      if (entry?.record?.buildingHasDamage || entry?.building?.hasDamage) continue;
       if (!normalized.activeRevision || isZeroHash(normalized.contentHash)) continue;
       values.push({
         key: buildingCacheKey(cacheScope, normalized),

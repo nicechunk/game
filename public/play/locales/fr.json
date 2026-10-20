@@ -1369,7 +1369,10 @@
       "selectCorner": "Déplacez l’aperçu puis choisissez le coin opposé du chunk.",
       "alreadyLocked": "La zone est verrouillée. Effacez-la avant d’en choisir une autre.",
       "chunkProtected": "Ce Chunk est protégé par un contrat foncier et ne peut pas être modifié.",
-      "operationDenied": "Cette zone est protégée par un contrat foncier. Vous ne pouvez pas la modifier."
+      "operationDenied": "Cette zone est protégée par un contrat foncier. Vous ne pouvez pas la modifier.",
+      "demolitionTitle": "Démolition du bâtiment",
+      "demolitionPending": "Suppression de ce bloc ; en attente de confirmation sur la chaîne.",
+      "demolitionConfirmed": "Bloc supprimé. Mode de débogage : aucune ressource consommée ou restituée."
     },
     "onboarding": {
       "features": {

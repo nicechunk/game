@@ -1369,7 +1369,10 @@
       "selectCorner": "Mueve la vista previa y selecciona la esquina opuesta del chunk.",
       "alreadyLocked": "El área está fijada. Bórrala antes de seleccionar otra.",
       "chunkProtected": "Este Chunk está protegido por un contrato de terreno y no se puede modificar.",
-      "operationDenied": "Esta zona está protegida por un contrato de terreno. No tienes permiso para modificarla."
+      "operationDenied": "Esta zona está protegida por un contrato de terreno. No tienes permiso para modificarla.",
+      "demolitionTitle": "Demolición del edificio",
+      "demolitionPending": "Eliminando este bloque del edificio; esperando confirmación en cadena.",
+      "demolitionConfirmed": "Bloque eliminado. Modo de depuración: no se consumen ni devuelven recursos."
     },
     "onboarding": {
       "features": {

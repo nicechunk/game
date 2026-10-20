@@ -1369,7 +1369,10 @@
       "selectCorner": "Move the preview, then select the opposite Chunk corner.",
       "alreadyLocked": "The area is locked. Clear it before selecting another area.",
       "chunkProtected": "This Chunk is protected by a land contract and cannot be modified.",
-      "operationDenied": "This area is protected by a land contract. You do not have permission to modify it."
+      "operationDenied": "This area is protected by a land contract. You do not have permission to modify it.",
+      "demolitionTitle": "Building demolition",
+      "demolitionPending": "Removing this building block; awaiting chain confirmation.",
+      "demolitionConfirmed": "Building block removed. Debug mode: no resources consumed or returned."
     },
     "onboarding": {
       "features": {

@@ -10,6 +10,7 @@ export function createMiningController({
   gameState,
   chunks,
   getHit,
+  getTargetBlock = (hit) => chunks.getBlockAtWorld(hit.worldX, hit.worldY, hit.worldZ),
   getPlayerBounds = () => null,
   getToolCollisionFrame = null,
   getToolTargetingSolution = null,
@@ -66,14 +67,14 @@ export function createMiningController({
       return null;
     }
 
-    const water = rayHit?.blockId === WATER_BLOCK_ID;
+    const water = !rayHit?.buildingTarget && rayHit?.blockId === WATER_BLOCK_ID;
     if (water && pendingTx.some((entry) => entry.miningKind === "water-collection")) return null;
     const selectedTool = water ? selectedContainer() : gameState.getSelectedToolSlot();
     if (water && !selectedTool) {
       onStatus(translate("main.water.containerRequired", "Equip a container with certified capacity and remaining durability to collect water."));
       return null;
     }
-    const barePlan = !selectedTool ? getBareHandPlan(rayHit) : null;
+    const barePlan = !selectedTool && !rayHit?.buildingTarget ? getBareHandPlan(rayHit) : null;
     const miningTool = barePlan ? { kind: "bare-hands", action: barePlan.kind === "surface-pebble" ? "pick-pebble" : "gather" } : miningToolReference(selectedTool?.slot);
     if (!miningTool) {
       onStatus("With empty hands, collect surface pebbles or strike natural leaves. Craft a stone axe in Smelting, or buy a tool at the market.");
@@ -89,7 +90,7 @@ export function createMiningController({
     const targeting = targetSelection.targeting ?? null;
     onTargetSelected(cloneHit(targetHit), targeting ? { ...targeting } : null);
 
-    const def = blockDef(targetHit.blockId);
+    const def = definitionForHit(targetHit);
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
     const miningPlan = water ? { kind: "water-collection", requiredDamage: waterCollectionHits(selectedTool.slot.waterCapacityMl), blocks: [targetHit] }
       : barePlan || miningPlanForHit(targetHit, def);
@@ -305,7 +306,8 @@ export function createMiningController({
     if (checkReach && typeof getToolTargetingSolution !== "function" && !isHitInMiningReach(hit)) {
       return { ok: false, reason: "Target block is out of mining reach." };
     }
-    const def = blockDef(hit.blockId);
+    const def = definitionForHit(hit);
+    if (hit.buildingTarget) return { ok: true };
     if (hit.blockId === WATER_BLOCK_ID) return { ok: Boolean(selectedContainer()), reason: "A certified container is required." };
     if (hit.blockId === blockAirId || isFluidBlock(hit.blockId) || !isMineableBlock(hit.blockId) || !def.hardness) {
       return { ok: false, reason: `Target ${def.name} is not a mineable solid block.` };
@@ -366,7 +368,7 @@ export function createMiningController({
 
   function applyMiningDamage(swing, hitResult) {
     const hit = swing.hit;
-    const currentBlockId = chunks.getBlockAtWorld(hit.worldX, hit.worldY, hit.worldZ);
+    const currentBlockId = getTargetBlock(hit);
     if (currentBlockId !== swing.blockId) {
       onStatus(`Mining target changed before impact at ${hit.worldX}, ${hit.worldY}, ${hit.worldZ}.`);
       return null;
@@ -378,7 +380,7 @@ export function createMiningController({
       onStatus("Mining tool is no longer usable.");
       return null;
     }
-    const def = blockDef(hit.blockId);
+    const def = definitionForHit(hit);
     const validation = validateMiningTarget(hit, { checkReach: false });
     if (!validation.ok) {
       if (validation.code === "foundation-protected") notifyProtectedTarget(hit);
@@ -436,13 +438,13 @@ export function createMiningController({
     const volumeMilliLiters = Math.max(1, Math.floor(1000 * yieldBps / 10000));
     const planBlocks = currentPlanBlocks(swing, hit);
     const plannedRewardBlocks = swing.miningPlan?.rewardBlocks?.length ? swing.miningPlan.rewardBlocks : planBlocks;
-    const rewardGroups = rewardGroupsForBlocks(uniqueMiningBlocks(swing.miningPlan?.kind === "surface-pebble" ? plannedRewardBlocks : [hit, ...plannedRewardBlocks]), {
+    const rewardGroups = hit.buildingTarget ? [] : rewardGroupsForBlocks(uniqueMiningBlocks(swing.miningPlan?.kind === "surface-pebble" ? plannedRewardBlocks : [hit, ...plannedRewardBlocks]), {
       yieldBps,
       volumeMilliLiters,
     });
 
     blockDamage.delete(key);
-    const pendingDeltas = swing.miningPlan?.kind === "surface-pebble" ? [] : planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
+    const pendingDeltas = hit.buildingTarget || swing.miningPlan?.kind === "surface-pebble" ? [] : planBlocks.map((block) => ({ worldX: block.worldX, worldY: block.worldY, worldZ: block.worldZ, blockId: blockAirId }));
     const pending = {
       txId,
       worldX: hit.worldX,
@@ -451,6 +453,7 @@ export function createMiningController({
       blockId: hit.blockId,
       resourceId,
       miningKind: swing.miningPlan?.kind || "single-block",
+      ...(hit.buildingTarget ? { buildingTarget: { ...hit.buildingTarget } } : {}),
       ...(swing.miningPlan?.surfaceDecoration ? { surfaceDecoration: { ...swing.miningPlan.surfaceDecoration } } : {}),
       minedBlockCount: planBlocks.length,
       blocks: planBlocks.map((block) => ({ ...block })),
@@ -489,7 +492,7 @@ export function createMiningController({
       return null;
     }
     const { txId } = pending;
-    if (pending.miningKind !== "water-collection") {
+    if (!["water-collection", "building-demolition"].includes(pending.miningKind)) {
     chunks.applyPendingDelta(pending.pendingDeltas ?? pending.blocks?.map((block) => ({
       worldX: block.worldX,
       worldY: block.worldY,
@@ -513,7 +516,7 @@ export function createMiningController({
     const index = pendingTx.findIndex((entry) => entry.txId === txId);
     if (index < 0) return null;
     const pending = pendingTx.splice(index, 1)[0];
-    chunks.rollbackPendingDelta(txId);
+    if (pending.miningKind !== "building-demolition") chunks.rollbackPendingDelta(txId);
     // Removing speculative geometry is not a rollback of the chain transaction.
     // Reward/equipment state is restored by authoritative PDA refreshes.
     onChanged();
@@ -636,6 +639,7 @@ export function createMiningController({
   }
 
   function miningPlanForHit(hit, def = blockDef(hit.blockId)) {
+    if (hit.buildingTarget) return { kind: "building-demolition", blocks: [normalizeMiningBlock(hit)], rewardBlocks: [], requiredDamage: Math.min(8, Math.max(1, def.hardness || defaultRequiredDamage)) };
     const fallback = {
       kind: "single-block",
       blocks: [normalizeMiningBlock(hit)],
@@ -658,6 +662,12 @@ export function createMiningController({
       blockedLimit: Math.max(0, Math.trunc(Number(external.blockedLimit) || 0)),
       requiredDamage: fallback.requiredDamage,
     };
+  }
+
+  function definitionForHit(hit) {
+    const definition = blockDef(hit.blockId);
+    if (!hit.buildingTarget) return definition;
+    return { ...definition, resourceId: 0, hardness: definition?.hardness > 0 && definition.hardness < 65535 ? definition.hardness : defaultRequiredDamage };
   }
 }
 
@@ -707,6 +717,7 @@ function normalizeMiningBlock(block) {
   if (![worldX, worldY, worldZ, blockId].every(Number.isFinite)) return null;
   return {
     hit: true,
+    ...(block.buildingTarget ? { buildingTarget: { ...block.buildingTarget } } : {}),
     worldX,
     worldY,
     worldZ,
@@ -757,6 +768,7 @@ function copyToolBoxes(boxes, target = null) {
 function cloneHit(hit) {
   return {
     hit: true,
+    ...(hit.buildingTarget ? { buildingTarget: { ...hit.buildingTarget } } : {}),
     worldX: Math.trunc(hit.worldX),
     worldY: Math.trunc(hit.worldY),
     worldZ: Math.trunc(hit.worldZ),
@@ -774,7 +786,8 @@ function cloneHit(hit) {
 }
 
 function damageKey(hit) {
-  return `${Math.trunc(hit.worldX)},${Math.trunc(hit.worldY)},${Math.trunc(hit.worldZ)}`;
+  const building = hit.buildingTarget;
+  return `${building ? `building:${building.owner}:${building.foundationId}:${building.revision}:` : ""}${Math.trunc(hit.worldX)},${Math.trunc(hit.worldY)},${Math.trunc(hit.worldZ)}`;
 }
 
 function clamp01(value) {

@@ -1228,6 +1228,11 @@ async function boot() {
     gameState,
     chunks,
     getHit: getMiningActionHit,
+    getTargetBlock: (hit) => {
+      if (!hit.buildingTarget) return chunks.getBlockAtWorld(hit.worldX, hit.worldY, hit.worldZ);
+      const current = buildingController?.getMiningTargetAtWorld(hit.worldX, hit.worldY, hit.worldZ);
+      return JSON.stringify(current?.buildingTarget) === JSON.stringify(hit.buildingTarget) ? current.blockId : BLOCK_ID.air;
+    },
     getPlayerBounds,
     getToolCollisionFrame: currentToolCollisionFrame,
     getToolTargetingSolution: currentToolTargetingSolution,
@@ -1248,7 +1253,9 @@ async function boot() {
       }
       backpackCreation?.open({ ...detail, source: "mining" });
     },
-    isBlockProtected: (block) => foundationIndex.isBlockProtected(block, gameState.ownerAddress),
+    isBlockProtected: (block) => block.buildingTarget
+      ? block.buildingTarget.owner !== gameState.ownerAddress
+      : foundationIndex.isBlockProtected(block, gameState.ownerAddress),
     translate: translateWithFallback,
     onStatus: setStatus,
     onChanged: renderGameUi,
@@ -1269,7 +1276,7 @@ async function boot() {
           blockId: pending.blockId,
         },
       }));
-      if (["surface-pebble", "water-collection"].includes(pending.miningKind)) { /* no terrain edit */ }
+      if (["surface-pebble", "water-collection", "building-demolition"].includes(pending.miningKind)) { /* no terrain edit */ }
       else if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
       else guardian?.sendDig(pending, 1);
       chainSession?.handlePendingMine(pending, {
@@ -1277,6 +1284,7 @@ async function boot() {
         deferToAuthorityTx: (txId) => {
           const pending = mining?.deferToAuthorityTx?.(txId);
           if (pending) {
+            if (pending.miningKind === "building-demolition") void refreshBuildingAfterDemolition();
             invalidateMiningChunks(pending);
             chainChunkDeltas?.requestSync({ reason: "mine-unknown-recovery", quiet: true });
             void refreshPdaBackpackAfterAction(pending).catch(() => null);
@@ -1288,6 +1296,15 @@ async function boot() {
       });
     },
     onConfirm: (pending) => {
+      if (pending.miningKind === "building-demolition") {
+        forgetMiningHit(pending);
+        chainSession?.handleConfirmedMine(pending);
+        void buildingController?.applyConfirmedDemolition?.(pending);
+        void refreshBuildingAfterDemolition();
+        void chainPlayer?.refresh?.({ force: true, quiet: true });
+        refreshPdaBackpackAfterAction(pending);
+        return;
+      }
       chainPlayer?.applyMiningResult?.(pending.chainResult);
       forgetMiningHit(pending);
       if (!["surface-pebble", "water-collection"].includes(pending.miningKind)) effects?.emitConfirmedBlockFracture?.(pending);
@@ -1306,6 +1323,7 @@ async function boot() {
       requestChainPlayerPositionSaveForResourceMine(pending);
     },
     onRollback: (pending) => {
+      if (pending.miningKind === "building-demolition") void refreshBuildingAfterDemolition();
       forgetMiningHit(pending);
       chainSession?.handleRollbackMine(pending);
     },
@@ -1792,6 +1810,13 @@ function getActionHit() {
   const hit = actionHit?.getActionHit() ?? { hit: false };
   lastHit = actionHit?.currentHit() ?? lastHit;
   return hit;
+}
+
+async function refreshBuildingAfterDemolition() {
+  try {
+    await foundationSync?.refresh?.({ force: true, quiet: true });
+    await buildingSync?.refresh?.({ force: true, quiet: true });
+  } catch { /* Regular authoritative sync retries without replaying the action. */ }
 }
 
 function ensureLandConstruction() {

@@ -1369,7 +1369,10 @@
       "selectCorner": "Bewege die Vorschau und wähle dann die gegenüberliegende Chunk-Ecke.",
       "alreadyLocked": "Der Bereich ist gesperrt. Lösche ihn vor einer neuen Auswahl.",
       "chunkProtected": "Dieser Chunk ist durch einen Landvertrag geschützt und kann nicht verändert werden.",
-      "operationDenied": "Dieses Gebiet ist durch einen Landvertrag geschützt. Du hast keine Berechtigung, es zu verändern."
+      "operationDenied": "Dieses Gebiet ist durch einen Landvertrag geschützt. Du hast keine Berechtigung, es zu verändern.",
+      "demolitionTitle": "Gebäude abreißen",
+      "demolitionPending": "Dieser Gebäudeblock wird entfernt; warte auf die Blockchain-Bestätigung.",
+      "demolitionConfirmed": "Gebäudeblock entfernt. Debugmodus: keine Ressourcen verbraucht oder zurückgegeben."
     },
     "onboarding": {
       "features": {

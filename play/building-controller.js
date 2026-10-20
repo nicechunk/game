@@ -59,6 +59,7 @@ export function createBuildingController({
   let unindexedRenderChunks = [];
   let collisionChunksByColumn = new Map();
   let collisionGeometryKey = "";
+  let miningEntryByChunk = new WeakMap();
 
   return {
     activate,
@@ -83,6 +84,8 @@ export function createBuildingController({
     renderChunksInRange,
     hasCollisionAtWorld,
     collisionTopAtWorld,
+    getMiningTargetAtWorld,
+    applyConfirmedDemolition,
     liveChunkIds: () => new Set(renderChunkIds),
     snapshot,
   };
@@ -344,9 +347,15 @@ export function createBuildingController({
     const request=++chainRequest;
     const foundationByKey=new Map((index?.list?.()??[]).filter(f=>(!f.status||f.status==="active")&&f.hasActiveGeometry!==false).map(f=>[foundationKey(f.owner,f.foundationId),f]));
     const desired=new Map();
-    for(const record of records??[]){
+    for(const suppliedRecord of records??[]){
+      let record = suppliedRecord;
       const foundation=foundationByKey.get(foundationKey(record?.owner,record?.foundationId));
       if(!foundation||!record?.code)continue;
+      const current = chainBuildings.get(foundation.id)?.record;
+      if (current && current.revision === record.revision && current.hasDamage && (record.hasDamage !== true
+          || BigInt(record.updatedSlot ?? 0) < BigInt(current.updatedSlot ?? 0)
+          || String(record.updatedSlot) === String(current.updatedSlot)
+            && ((Number(record.damageVersion ?? 0) - Number(current.damageVersion ?? 0) + 65536) % 65536) > 32768)) record = current;
       desired.set(foundation.id,{record,foundation,fingerprint:chainBuildingFingerprint(record,foundation)});
     }
     chainDesired=desired;
@@ -377,7 +386,7 @@ export function createBuildingController({
       const isCurrent=()=>chainJobs.get(foundation.id)===job&&chainDesired.get(foundation.id)?.fingerprint===fingerprint;
       let task;
       try{task=meshClient.build({code:record.code,buildingId:record.id||`${foundation.id}:building`,foundation,
-        quarterTurns:record.quarterTurns,offsetX:normalizeBuildingOffset(record.offsetX),offsetZ:normalizeBuildingOffset(record.offsetZ),
+        quarterTurns:record.quarterTurns,offsetX:normalizeBuildingOffset(record.offsetX),offsetZ:normalizeBuildingOffset(record.offsetZ),damageSections:record.damageSections,
         placementId:record.id||`${foundation.id}:building`,chunkSize,revision:++revision},
         {signal:controller.signal,priority:-distanceSquared(foundation,player.x,player.z),scope:`chain:${foundation.id}:${fingerprint}`});}
       catch(error){task=Promise.reject(error);}
@@ -445,6 +454,38 @@ export function createBuildingController({
     return false;
   }
 
+  function getMiningTargetAtWorld(worldX, worldY, worldZ) {
+    const x = Math.floor(worldX), y = Math.floor(worldY), z = Math.floor(worldZ);
+    if (![x, y, z].every(Number.isSafeInteger)) return null;
+    const column = renderChunksByColumn.get(`${Math.floor(x / chunkSize)},${Math.floor(z / chunkSize)}`) ?? [];
+    for (const chunk of column) {
+      const entry = miningEntryByChunk.get(chunk);
+      if (!entry || !chunk.materialVoxels || y < chunk.minY || y >= chunk.minY + chunk.height) continue;
+      const cx = x - chunk.chunkX * chunkSize, cz = z - chunk.chunkZ * chunkSize;
+      const material = chunk.materialVoxels[((y - chunk.minY) * chunkSize + cz) * chunkSize + cx];
+      if (!material) continue;
+      const rx = x - entry.placement.origin.x, rz = z - entry.placement.origin.z;
+      const turn = entry.placement.quarterTurns, size = entry.building.size;
+      const localX = turn === 1 ? rz : turn === 2 ? size.x - 1 - rx : turn === 3 ? size.x - 1 - rz : rx;
+      const localZ = turn === 1 ? size.z - 1 - rx : turn === 2 ? size.z - 1 - rz : turn === 3 ? rx : rz;
+      return { blockId: material, materialId: material, resourceId: 0,
+        buildingTarget: { owner: entry.record.owner, foundationId: String(entry.record.foundationId),
+          revision: entry.record.revision, x: localX, y: y - entry.placement.origin.y, z: localZ } };
+    }
+    return null;
+  }
+
+  async function applyConfirmedDemolition(pending) {
+    const record = pending?.chainResult?.building;
+    if (!record) return;
+    const records = [...chainBuildings.values()].map(entry => entry.record);
+    const key = foundationKey(record.owner, record.foundationId);
+    const existing = records.findIndex(candidate => foundationKey(candidate.owner, candidate.foundationId) === key);
+    if (existing < 0 || records[existing].revision !== record.revision) return;
+    records[existing] = record;
+    await applyChainBuildings(records);
+  }
+
   function collisionTopAtWorld(worldX, worldZ, maxBlockY = Infinity) {
     const x = Math.floor(Number(worldX));
     const z = Math.floor(Number(worldZ));
@@ -461,7 +502,9 @@ export function createBuildingController({
   function rebuildRenderChunkCache() {
     renderGeometryRevision++;rangeCache=null;
     const result = [];
+    miningEntryByChunk = new WeakMap();
     for (const [foundationId, entry] of chainBuildings) {
+      for (const chunk of entry.chunks) miningEntryByChunk.set(chunk, entry);
       if (previewPlacement?.foundation?.id === foundationId) continue;
       result.push(...entry.chunks);
     }
@@ -642,6 +685,7 @@ function chainBuildingFingerprint(record, foundation) {
     normalizeBuildingOffset(record?.offsetX),
     normalizeBuildingOffset(record?.offsetZ),
     contentIdentity,
+    record?.hasDamage === true, record?.damageVersion ?? 0, String(record?.updatedSlot ?? "0"),
     Math.trunc(Number(foundation?.minX) || 0),
     Math.trunc(Number(foundation?.minZ) || 0),
     Math.trunc(Number(foundation?.surfaceY) || 0),
@@ -684,6 +728,7 @@ function chainMeshByteLength(entry) {
   let bytes = 0;
   for (const chunk of entry?.chunks ?? []) {
     bytes += chunk?.collisionMask?.byteLength || 0;
+    bytes += chunk?.materialVoxels?.byteLength || 0;
     for (const mesh of [chunk?.mesh, chunk?.visualMesh]) {
       bytes += mesh?.vertices?.byteLength || 0;
       bytes += mesh?.indices?.byteLength || 0;
