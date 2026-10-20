@@ -4,6 +4,7 @@ import {
   sweptAabbIntersection,
 } from "../chunk.js/physics/motion-collision.js";
 import { BULK_MINING_MAX_SELECTION_BLOCKS } from "./bulk-mining-controller.js";
+import { WATER_BLOCK_ID, waterCollectionHits } from "../src/data/waterCollection.js";
 
 export function createMiningController({
   gameState,
@@ -65,7 +66,13 @@ export function createMiningController({
       return null;
     }
 
-    const selectedTool = gameState.getSelectedToolSlot();
+    const water = rayHit?.blockId === WATER_BLOCK_ID;
+    if (water && pendingTx.some((entry) => entry.miningKind === "water-collection")) return null;
+    const selectedTool = water ? selectedContainer() : gameState.getSelectedToolSlot();
+    if (water && !selectedTool) {
+      onStatus(translate("main.water.containerRequired", "Equip a container with certified capacity and remaining durability to collect water."));
+      return null;
+    }
     const barePlan = !selectedTool ? getBareHandPlan(rayHit) : null;
     const miningTool = barePlan ? { kind: "bare-hands", action: barePlan.kind === "surface-pebble" ? "pick-pebble" : "gather" } : miningToolReference(selectedTool?.slot);
     if (!miningTool) {
@@ -84,7 +91,8 @@ export function createMiningController({
 
     const def = blockDef(targetHit.blockId);
     const resourceId = Number.isFinite(targetHit.resourceId) ? targetHit.resourceId : def.resourceId;
-    const miningPlan = barePlan || miningPlanForHit(targetHit, def);
+    const miningPlan = water ? { kind: "water-collection", requiredDamage: waterCollectionHits(selectedTool.slot.waterCapacityMl), blocks: [targetHit] }
+      : barePlan || miningPlanForHit(targetHit, def);
     if (miningPlan.blockedReason) {
       const key = miningPlan.blockedReason === "chunk-limit"
         ? "main.supportCollapse.chunkLimit"
@@ -298,6 +306,7 @@ export function createMiningController({
       return { ok: false, reason: "Target block is out of mining reach." };
     }
     const def = blockDef(hit.blockId);
+    if (hit.blockId === WATER_BLOCK_ID) return { ok: Boolean(selectedContainer()), reason: "A certified container is required." };
     if (hit.blockId === blockAirId || isFluidBlock(hit.blockId) || !isMineableBlock(hit.blockId) || !def.hardness) {
       return { ok: false, reason: `Target ${def.name} is not a mineable solid block.` };
     }
@@ -364,7 +373,8 @@ export function createMiningController({
     }
     if (isBlockPending(hit)) return null;
     const selectedTool = gameState.hotbarSlots[swing.selectedToolIndex];
-    if (swing.miningTool?.kind !== "bare-hands" && !gameState.isUsableMiningToolSlot?.(selectedTool)) {
+    const water = swing.miningPlan?.kind === "water-collection";
+    if (swing.miningTool?.kind !== "bare-hands" && !(water ? selectedContainer()?.slot === selectedTool : gameState.isUsableMiningToolSlot?.(selectedTool))) {
       onStatus("Mining tool is no longer usable.");
       return null;
     }
@@ -381,6 +391,23 @@ export function createMiningController({
     prunePartialDamage(now, key);
     const tool = swing.miningTool?.kind === "bare-hands" ? (!gameState.getSelectedToolSlot() ? swing.miningTool : null) : miningToolReference(selectedTool);
     if (JSON.stringify(tool) !== JSON.stringify(swing.miningTool)) return null;
+    if (water) {
+      // Count physical contacts locally; the completed litre and the entire
+      // capacity-derived durability cost settle atomically in one transaction.
+      const progress = partialDamageState(`water:${JSON.stringify(tool)}`, now, JSON.stringify(tool));
+      progress.damage += 1; progress.lastTouchedAt = now;
+      onDamage({ hit: cloneHit(hit), damage: progress.damage, requiredDamage: swing.requiredDamage, ...hitResult });
+      if (progress.damage < swing.requiredDamage) { onChanged(); return progress; }
+      blockDamage.delete(`water:${JSON.stringify(tool)}`);
+      const pending = { txId: `local-pending-${txSerial++}`, ...normalizeMiningBlock(hit),
+        miningKind: "water-collection", miningTool: { ...tool }, toolSlotIndex: swing.selectedToolIndex,
+        requiredDamage: swing.requiredDamage, minedBlockCount: 0, blocks: [{ ...hit }], pendingDeltas: [],
+        rewardGroups: [], rewardBlocks: [], gatheringYieldBps: 0, resourceVolumeMilliLiters: 1000,
+        swingStartedAt: swing.startedAt, swingImpactAt: performance.now() };
+      pendingTx.push(pending);
+      onPending(pending); onChanged();
+      return pending;
+    }
     const damageState = partialDamageState(key, now, JSON.stringify(tool));
     const nextDamage = damageState.damage + 1;
     const requiredDamage = Math.max(1, swing.requiredDamage || requiredDamageForBlock(hit.blockId, def));
@@ -462,6 +489,7 @@ export function createMiningController({
       return null;
     }
     const { txId } = pending;
+    if (pending.miningKind !== "water-collection") {
     chunks.applyPendingDelta(pending.pendingDeltas ?? pending.blocks?.map((block) => ({
       worldX: block.worldX,
       worldY: block.worldY,
@@ -469,10 +497,11 @@ export function createMiningController({
       blockId: blockAirId,
     })) ?? [], txId);
     chunks.confirmPendingDelta(txId, confirmation ?? pending.chainConfirmation ?? {});
+    }
     if (pending.miningKind === "surface-pebble") onSurfacePicked(pending);
     pendingTx.splice(index, 1);
     const confirmedItems = (pending.rewardGroups ?? []).reduce((sum, group) => sum + Math.max(0, Math.trunc(group.count || 0)), 0);
-    gameState.playerProfile.confirmedMines += Math.max(1, Math.trunc(pending.minedBlockCount || 1));
+    if (pending.miningKind !== "water-collection") gameState.playerProfile.confirmedMines += Math.max(1, Math.trunc(pending.minedBlockCount || 1));
     gameState.playerProfile.resourcesCollected += confirmedItems;
     gameState.savePlayerProfile();
     onConfirm(pending);
@@ -505,8 +534,10 @@ export function createMiningController({
       onStatus("No pending delta to rollback.");
       return null;
     }
-    gameState.playerProfile.rolledBackMines += 1;
-    gameState.playerProfile.minedBlocks = Math.max(0, gameState.playerProfile.minedBlocks - Math.max(1, Math.trunc(pending.minedBlockCount || 1)));
+    if (pending.miningKind !== "water-collection") {
+      gameState.playerProfile.rolledBackMines += 1;
+      gameState.playerProfile.minedBlocks = Math.max(0, gameState.playerProfile.minedBlocks - Math.max(1, Math.trunc(pending.minedBlockCount || 1)));
+    }
     gameState.savePlayerProfile();
     onRollback(pending);
     onChanged();
@@ -553,6 +584,13 @@ export function createMiningController({
       const blocks = pending.blocks?.length ? pending.blocks : [pending];
       return blocks.some((block) => damageKey(block) === key);
     });
+  }
+
+  function selectedContainer() {
+    const index = gameState.selectedHotbarSlot;
+    const slot = gameState.hotbarSlots[index];
+    return miningToolReference(slot) && waterCollectionHits(slot.waterCapacityMl) > 0
+      && Number(slot.durabilityCurrent ?? slot.durability) >= waterCollectionHits(slot.waterCapacityMl) ? { index, slot } : null;
   }
 
   function requiredDamageForBlock(blockId, def = blockDef(blockId)) {

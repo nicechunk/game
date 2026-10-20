@@ -99,6 +99,13 @@ export function createPlayChainAdapter({
       return normalizeChainResult(result, module);
     }
     const module = await loadPlayChainModule();
+    if (pending.miningKind === "water-collection") {
+      if (typeof module.recordWaterCollectionOnChain !== "function") return skipped("record-water-unavailable");
+      const result = await module.recordWaterCollectionOnChain(block, {
+        ...mineOptions, playerPosition: playerPositionProof(getPlayerPosition), actionId: pending.waterActionId,
+      });
+      return normalizeChainResult(result, module);
+    }
     if (isSupportCollapse) {
       if (typeof module.recordSupportCollapseOnChain !== "function") return skipped("record-support-collapse-unavailable");
       const result = await module.recordSupportCollapseOnChain(block, {

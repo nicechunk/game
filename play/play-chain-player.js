@@ -751,6 +751,7 @@ function stateSignature(state) {
         itemId: slot.backpackSlot?.itemId,
         itemCode: slot.backpackSlot?.itemCode,
         metadata: slot.backpackSlot?.metadata,
+        waterCapacityMl: slot.backpackSlot?.waterCapacityMl,
         modelByteLength: slot.modelBytes?.length || 0,
       })),
     } : null,

@@ -19,7 +19,8 @@ export function encodeMiningToolReference(tool) {
 }
 
 export function decodeMiningDurabilityReceipt(bytes) {
-  const data = Buffer.from(bytes);
+  let data = Buffer.from(bytes);
+  if (data.length === 85 && data.subarray(0, 8).toString("ascii") === "NCKWAT01") data = data.subarray(28);
   if (data.length !== 57 || data.subarray(0, 8).toString("ascii") !== "NCKDUR01") return null;
   const tool = data[8];
   const durabilityCurrent = data.readUInt32LE(9);
@@ -34,6 +35,32 @@ export function decodeMiningDurabilityReceipt(bytes) {
     durabilityMax,
     updatedSlot: data.readBigUInt64LE(17).toString(),
   };
+}
+
+export function waterCollectionFromTransaction(transaction, programId, tool, actionId) {
+  if (!transaction?.meta || transaction.meta.err) return null;
+  for (const encoded of returnCandidates(transaction, programId).reverse()) {
+    if (typeof encoded !== "string") continue;
+    const data = Buffer.from(encoded, "base64");
+    if (data.length !== 85 || data.subarray(0, 8).toString("ascii") !== "NCKWAT01") continue;
+    const durability = decodeMiningDurabilityReceipt(data);
+    if (!durability || durability.equipmentSlot !== tool?.equipmentSlot || durability.itemPda !== tool?.itemPda
+        || data.readBigUInt64LE(8) !== BigInt(actionId)) continue;
+    const waterRemainderMl = data.readUInt32LE(16), waterCapacityMl = data.readUInt32LE(20), waterUnits = data.readUInt32LE(24);
+    if (!waterCapacityMl || waterRemainderMl >= 1000 || waterUnits > 1 || waterUnits && waterRemainderMl !== 0) continue;
+    return { waterRemainderMl, waterCapacityMl, waterRequiredHits: Math.ceil((1000 - waterRemainderMl) / waterCapacityMl), waterUnits, miningDurability: durability };
+  }
+  return null;
+}
+
+function returnCandidates(transaction, programId) {
+  const issuer = String(programId), candidates = [];
+  if (String(transaction.meta.returnData?.programId) === issuer) candidates.push(transaction.meta.returnData.data?.[0]);
+  const prefix = `Program return: ${issuer} `;
+  for (const line of transaction.meta.logMessages ?? []) {
+    if (line.startsWith(prefix)) candidates.push(line.slice(prefix.length));
+  }
+  return candidates;
 }
 
 export function miningDurabilityFromTransaction(transaction, programId, tool) {
@@ -54,7 +81,7 @@ export function miningDurabilityFromTransaction(transaction, programId, tool) {
     if (typeof encoded !== "string") continue;
     const data = Buffer.from(encoded, "base64");
     const receipt = decodeMiningDurabilityReceipt(data);
-    if (receipt && data[8] === expected[0] && receipt.itemPda === new PublicKey(tool.itemPda).toBase58()) {
+    if (receipt && receipt.equipmentSlot === expected[0] && receipt.itemPda === new PublicKey(tool.itemPda).toBase58()) {
       return receipt;
     }
   }

@@ -246,7 +246,8 @@
         "stack": "Stack",
         "resourceId": "Resource ID",
         "local": "Local",
-        "hotbarSlot": "Hotbar slot"
+        "hotbarSlot": "Hotbar slot",
+        "waterCapacity": "Fassungsvermögen"
       },
       "skills": {
         "precisionGathering": {
@@ -1728,6 +1729,10 @@
       "collapse": "Protokoll schließen",
       "history": "Letzte Einträge (bis zu 300)",
       "empty": "Noch keine Einträge."
+    },
+    "water": {
+      "containerRequired": "Equip a container with certified capacity and remaining durability to collect water.",
+      "progress": "Collected {units} × 1000 mL"
     }
   },
   "resourceSimulator": {

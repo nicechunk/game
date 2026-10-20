@@ -2131,6 +2131,7 @@ export function marketItemSnapshotFromChainListing(listing) {
     volumeMm3: Math.max(0, Math.trunc(Number(sourceSlot.volumeMm3) || 0)),
     massGrams: normalizeMarketMassGrams(sourceSlot.massGrams),
     metadata: Math.trunc(Number(sourceSlot.metadata) || 0) >>> 0,
+    waterCapacityMl: Math.max(0, Math.trunc(Number(sourceSlot.waterCapacityMl) || 0)),
   };
 
   if (sourceSlot.kind === "item" || Number(sourceSlot.kindCode) === 2) {
@@ -2218,6 +2219,9 @@ export function marketItemDetailRows(slot, {
   }
   if (Number.isFinite(Number(slot.volumeMm3)) && Number(slot.volumeMm3) > 0) {
     rows.push(marketDetailRow("volume", ui("main.market.volumeLabel", "Volume"), formatVolumeCm3(slot.volumeMm3)));
+  }
+  if (Number(slot.waterCapacityMl) > 0) {
+    rows.push(marketDetailRow("water-capacity", ui("main.profile.equipment.waterCapacity", "Capacity"), `${slot.waterCapacityMl} mL`));
   }
 
   if (slot.kind === "resource") {

@@ -1,4 +1,6 @@
 export function backpackSlotMeta(slot) {
+  if (slot.resourceId === 8 && slot.blockId === 17 && slot.kind === "resource") return `${slot.count} × 1000 mL`;
+  if (slot.kind === "forged" && Number(slot.waterCapacityMl)>0) return `${slot.count} · ${slot.waterCapacityMl} mL`;
   if (slot.kind === "smelted_material") {
     const quality = Number.isFinite(slot.quality) ? ` · Q${slot.quality}` : "";
     const proof = slot.proofHash ? ` · ${slot.proofHash}` : "";

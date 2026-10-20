@@ -659,6 +659,7 @@ export function createPlayProfileUi({
     if (!slot) return [];
     if (slot.itemId === "forged_item") {
       return [
+        ...(Number(slot.waterCapacityMl)>0 ? [[ui("main.profile.equipment.waterCapacity", "Capacity"), `${slot.waterCapacityMl} mL`]] : []),
         [ui("main.profile.equipment.collision", "Collision"), ui("main.profile.equipment.physicalSweep", "Physical sweep")],
         [ui("main.profile.equipment.miningHits", "Mining hits"), "3"],
         [ui("main.profile.equipment.proof", "Proof"), ui("main.profile.equipment.coordinateProof", "Coordinate")],

@@ -2,6 +2,14 @@ export function reconcilePendingMineWithChainResult(pending, chainResult) {
   if (!pending) {
     return { changed: false, droppedCount: 0, confirmedCount: 0 };
   }
+  if (pending.miningKind === "water-collection") {
+    const count = Math.max(0, Math.trunc(Number(chainResult?.waterUnits) || 0));
+    pending.rewardGroups = count ? [{ blockId: 17, resourceId: 8, count }] : [];
+    pending.storedRewardCount = count;
+    pending.minedBlockCount = 0;
+    pending.pendingDeltas = [];
+    return { changed: true, droppedCount: 0, confirmedCount: 0 };
+  }
 
   const originalBlocks = Array.isArray(pending.blocks) && pending.blocks.length ? pending.blocks : [pending];
   const previousCount = Math.max(1, Math.trunc(Number(pending.minedBlockCount) || originalBlocks.length || 1));

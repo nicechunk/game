@@ -246,7 +246,8 @@
         "stack": "數量",
         "resourceId": "資源 ID",
         "local": "本地",
-        "hotbarSlot": "快捷栏槽位"
+        "hotbarSlot": "快捷栏槽位",
+        "waterCapacity": "容積"
       },
       "skills": {
         "precisionGathering": {
@@ -1728,6 +1729,10 @@
       "collapse": "收起日誌",
       "history": "近期日誌（最多 300 條）",
       "empty": "暫無日誌。"
+    },
+    "water": {
+      "containerRequired": "请装备具有链上认证容积且仍有耐久的容器。",
+      "progress": "已取水{units}份（每份1000ml）"
     }
   },
   "resourceSimulator": {

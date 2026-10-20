@@ -3,7 +3,9 @@ import { createStreamingWorkPool, mapStreaming } from "./streamingWork.js";
 import bs58 from "bs58";
 import { resolvePlacementBackpackSlotIndex } from "./placementSource.js";
 import { STARTER_AXE_RECIPE_ID } from "../data/starterTools.js";
-import { encodeMiningToolReference, miningDurabilityFromTransaction } from "./miningDurability.js";
+import { encodeMiningToolReference, miningDurabilityFromTransaction, waterCollectionFromTransaction } from "./miningDurability.js";
+import { analyzeForgeContainer } from "../../chunk.js/forge/forge-container.js";
+import { WATER_BLOCK_ID, WATER_RESOURCE_ID, WATER_UNIT_ML } from "../data/waterCollection.js";
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
@@ -4023,6 +4025,7 @@ export async function getEquippedBackpackStatus({ prompt = false } = {}) {
 export async function forgeEquipmentOnChain({
   code,
   materialInputs = [],
+  waterCollection = false,
 } = {}) {
   const provider = await connectedWalletProvider({ prompt: true });
   if (!provider) return { submitted: false, reason: "wallet-unavailable" };
@@ -4092,26 +4095,41 @@ export async function forgeEquipmentOnChain({
     ruleIndexes: forgingRuleIndexes,
     connection: conn,
   });
-  const tx = new Transaction();
-  tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 320_000 }));
-  if (baselineInstruction) tx.add(baselineInstruction);
-  tx.add(createForgeEquipmentVerifiedInstruction({
+  const wantsWater = waterCollection === true;
+  const container = wantsWater ? analyzeForgeContainer(rawCodeBytes) : null;
+  if (wantsWater && (!container.valid || container.capacityMl < 1)) {
+    return { submitted: false, reason: "no-water-capacity" };
+  }
+  const forgeInstruction = createForgeEquipmentVerifiedInstruction({
     owner: provider.publicKey,
     backpack,
     itemId,
     codeBytes: rawCodeBytes,
     inputIndexes,
+    waterCollection: wantsWater,
+    containerSeedIndex: container?.seedIndex,
     context: gameContext,
-  }));
-  tx.add(createSyncPlayerSkillsInstruction({
+  });
+  const syncInstruction = createSyncPlayerSkillsInstruction({
     payer: provider.publicKey,
     owner: provider.publicKey,
     sourceAccounts: [
       playerProfile,
       backpack,
     ],
-  }));
+  });
+  const tx = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: wantsWater ? 1_400_000 : 320_000 }));
+  if (wantsWater) tx.add(ComputeBudgetProgram.requestHeapFrame({ bytes: 256 * 1024 }));
+  if (baselineInstruction) tx.add(baselineInstruction);
+  tx.add(forgeInstruction, syncInstruction);
+  // Never split water creation and certification into separate transactions.
+  assertAtomicSupportCollapseTransactionFits(tx, { feePayer: provider.publicKey });
   const signature = await signAndSendWalletTransaction(provider, tx, conn);
+  let waterCapacityMl = 0;
+  if (wantsWater) {
+    const account = await conn.getAccountInfo(forgedItem, "confirmed").catch(() => null);
+    if (account?.owner.equals(gameContext.backpackProgramId)) waterCapacityMl = decodeForgedItem(account.data).waterCapacityMl;
+  }
   return {
     submitted: true,
     signature,
@@ -4119,6 +4137,8 @@ export async function forgeEquipmentOnChain({
     backpack: backpack.toBase58(),
     itemId: itemId.toString(),
     itemPda: forgedItem.toBase58(),
+    waterCapacityMl,
+    waterCollection: wantsWater,
     designHash,
     byteLength: codeBytes.length,
     consumedIndexes: inputIndexes,
@@ -4314,6 +4334,7 @@ export async function fetchPlayerEquipmentForOwner(ownerAddress = null) {
   if (!account?.data?.length || !account.owner.equals(playerProgramId)) return null;
   const decoded = decodePlayerEquipment(account.data);
   if (decoded.owner !== owner.toBase58()) return null;
+  await hydrateForgedItemSlots(decoded.slots.map((slot) => slot.backpackSlot).filter(Boolean),getNicechunkConnection(),"equipment-capacity");
   return {
     ...decoded,
     publicKey: playerEquipment.toBase58(),
@@ -6043,6 +6064,8 @@ export function decodeForgedItem(input) {
     designHash,
     codeLength,
     codeBytes,
+    waterCapacityMl: (data.readUInt16LE(94) >> 12) === 1 ? data.readUInt32LE(90) : 0,
+    containerSeedIndex: (data.readUInt16LE(94) >> 12) === 1 ? data.readUInt16LE(94) & 0xfff : null,
     createdSlot: data.readBigUInt64LE(forgedItemCreatedSlotOffset).toString(),
     createdAt: data.readBigInt64LE(forgedItemCreatedAtOffset).toString(),
   };
@@ -6097,6 +6120,8 @@ async function hydrateForgedItemSlots(slots, conn, reportScope) {
     }
     slot.forgedItem = forgedItem;
     slot.modelBytes = Array.from(forgedItem.codeBytes);
+    slot.waterCapacityMl = forgedItem.waterCapacityMl;
+    slot.containerSeedIndex = forgedItem.containerSeedIndex;
   }
   return slots;
 }
@@ -6739,7 +6764,7 @@ function createAppendInviteRegistrationInstruction({
   });
 }
 
-function createUpdatePlayerPositionInstruction({ authority, playerProfile, position }) {
+export function createUpdatePlayerPositionInstruction({ authority, playerProfile, position, session = null }) {
   const normalized = normalizePlayerPositionForChain(position);
   const data = Buffer.alloc(13);
   data.writeUInt8(1, 0);
@@ -6752,6 +6777,7 @@ function createUpdatePlayerPositionInstruction({ authority, playerProfile, posit
       { pubkey: authority, isSigner: true, isWritable: false },
       { pubkey: playerProfile, isSigner: false, isWritable: true },
       { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
+      ...(session ? [{ pubkey: session, isSigner: false, isWritable: false }] : []),
     ],
     data,
   });
@@ -7220,6 +7246,7 @@ export async function loadConfirmedMiningEquipmentResult(signature, owner, tool,
       }
       if (equipment?.data?.length && equipment.owner.equals(playerProgramId)) {
         const decoded = decodePlayerEquipment(equipment.data);
+        await hydrateForgedItemSlots(decoded.slots.map((slot) => slot.backpackSlot).filter(Boolean),conn,"mining-equipment-capacity");
         if (decoded.owner === owner.toBase58()) result.playerEquipmentAfter = { ...decoded,
           publicKey: equipmentKey.toBase58(), programId: playerProgramId.toBase58() };
       }
@@ -7951,6 +7978,8 @@ export function createForgeEquipmentVerifiedInstruction({
   itemId,
   codeBytes,
   inputIndexes = [],
+  waterCollection = false,
+  containerSeedIndex,
   context = gameContext,
 }) {
   const indexes = normalizeBackpackIndexes(inputIndexes);
@@ -7970,6 +7999,14 @@ export function createForgeEquipmentVerifiedInstruction({
   data.writeUInt8(indexes.length, 11);
   Buffer.from(canonicalBytes).copy(data, 12);
   indexes.forEach((index, offset) => data.writeUInt8(index, 12 + canonicalBytes.length + offset));
+  let instructionData = data;
+  if (waterCollection === true) {
+    if (!Number.isInteger(containerSeedIndex) || containerSeedIndex < 0 || containerSeedIndex > 0xfff) throw new Error("Invalid container cavity seed.");
+    instructionData = Buffer.alloc(data.length + 2);
+    instructionData[0] = 22;
+    instructionData.writeUInt16LE(containerSeedIndex, 1);
+    data.subarray(1).copy(instructionData, 3);
+  }
   return new TransactionInstruction({
     programId: context.backpackProgramId,
     keys: [
@@ -7981,8 +8018,170 @@ export function createForgeEquipmentVerifiedInstruction({
       { pubkey: playerSkills, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: contextInstructionData(context, gameNamespaceBackpack, data),
+    data: contextInstructionData(context, gameNamespaceBackpack, instructionData),
   });
+}
+
+export function createCertifyForgeContainerInstruction({ owner, item, seedIndex, context = gameContext }) {
+  if (!Number.isInteger(seedIndex) || seedIndex < 0 || seedIndex > 0xfff) throw new Error("Invalid container cavity seed.");
+  const payload = Buffer.alloc(3); payload[0] = 20; payload.writeUInt16LE(seedIndex, 1);
+  return new TransactionInstruction({ programId: context.backpackProgramId,
+    keys: [{ pubkey: owner, isSigner: true, isWritable: true }, { pubkey: item, isSigner: false, isWritable: true }],
+    data: contextInstructionData(context, gameNamespaceBackpack, payload) });
+}
+
+export async function certifyForgedContainerOnChain({ itemPda } = {}) {
+  const provider = await connectedWalletProvider({ prompt: true });
+  if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+  const conn = getNicechunkConnection(), item = new PublicKey(itemPda);
+  const account = await conn.getAccountInfo(item, "confirmed");
+  if (!account?.owner.equals(gameContext.backpackProgramId)) return { submitted: false, reason: "invalid-container" };
+  const decoded = decodeForgedItem(account.data);
+  if (!deriveForgedItemPda(new PublicKey(decoded.creator), decoded.itemId, gameContext.backpackProgramId)[0].equals(item)) throw new Error("Invalid forged item identity.");
+  if (decoded.waterCapacityMl > 0) return { submitted: false, alreadyCertified: true, waterCapacityMl: decoded.waterCapacityMl };
+  const candidate = analyzeForgeContainer(decoded.codeBytes);
+  if (!candidate.valid || candidate.capacityMl < 1) return { submitted: false, reason: "no-water-capacity" };
+  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+    ComputeBudgetProgram.requestHeapFrame({ bytes: 256 * 1024 }),
+    createCertifyForgeContainerInstruction({ owner: provider.publicKey, item, seedIndex: candidate.seedIndex }));
+  const signature = await signAndSendWalletTransaction(provider, transaction, conn);
+  const after = await conn.getAccountInfo(item, "confirmed");
+  return { submitted: true, signature, waterCapacityMl: decodeForgedItem(after.data).waterCapacityMl };
+}
+
+export function deriveWaterCollectionPda(owner, context = gameContext) {
+  return PublicKey.findProgramAddressSync([Buffer.from("water-collection-v1"), deriveGlobalConfigPda().toBuffer(),
+    (typeof owner === "string" ? new PublicKey(owner) : owner).toBuffer()], context.chunkProgramId);
+}
+
+export async function fetchWaterCollectionStatus(owner, conn = getNicechunkConnection()) {
+  const key = typeof owner === "string" ? new PublicKey(owner) : owner;
+  const [address] = deriveWaterCollectionPda(key);
+  const account = await conn.getAccountInfo(address, "confirmed");
+  if (!account?.data?.length) return { lastActionId: "0", lastChargedHits: 0, itemPda: "" };
+  const data = Buffer.from(account.data);
+  if (!account.owner.equals(gameContext.chunkProgramId) || data.length !== 128 || data.subarray(0, 8).toString("ascii") !== "NCKWTR01"
+      || !data.subarray(12, 44).equals(key.toBuffer()) || !data.subarray(44, 76).equals(deriveGlobalConfigPda().toBuffer())) throw new Error("Invalid water progress account.");
+  return { lastActionId: data.readBigUInt64LE(76).toString(), lastChargedHits: data.readUInt32LE(124), itemPda: new PublicKey(data.subarray(92, 124)).toBase58() };
+}
+
+// Persist the public signature before sending. A transport timeout or reload
+// cannot silently turn an unresolved contact into a new durability charge.
+const pendingWaterContacts = new Map();
+function waterContactJournal(owner, value) {
+  const key = `nicechunk.waterContact.v1.${gameContext.chunkProgramId}.${owner}`;
+  if (value !== undefined) {
+    if (value) pendingWaterContacts.set(key, value); else pendingWaterContacts.delete(key);
+    try { if (value) localStorage.setItem(key, JSON.stringify(value)); else localStorage.removeItem(key); } catch { /* Memory also guards this session. */ }
+    return value;
+  }
+  try { return pendingWaterContacts.get(key) || JSON.parse(localStorage.getItem(key) || "null"); } catch { return pendingWaterContacts.get(key) || null; }
+}
+
+async function sendWaterContact(transaction, session, owner, actionId, conn) {
+  const latest = await conn.getLatestBlockhash("confirmed");
+  transaction.feePayer = session.keypair.publicKey;
+  transaction.recentBlockhash = latest.blockhash;
+  transaction.lastValidBlockHeight = latest.lastValidBlockHeight;
+  transaction.sign(session.keypair);
+  const signature = bs58.encode(transaction.signature);
+  waterContactJournal(owner, { signature, actionId: String(actionId), lastValidBlockHeight: latest.lastValidBlockHeight });
+  try {
+    await sendRawTransactionWithLogs(conn, transaction.serialize(), "water-contact");
+    await confirmSubmittedTransaction(conn, { signature, ...latest }, "confirmed");
+    waterContactJournal(owner, null);
+    return signature;
+  } catch (error) {
+    const status = await fetchNicechunkTransactionConfirmation(signature, conn).catch(() => null);
+    if (status?.state === "confirmed") { waterContactJournal(owner, null); return signature; }
+    if (error?.name === "TransactionStatusError" || error?.name === "SendTransactionError" && !/already processed|timed? ?out|transport/i.test(String(error.message))) {
+      waterContactJournal(owner, null);
+    } else {
+      error.signature = signature; error.nicechunkSubmissionUncertain = true;
+    }
+    throw error;
+  }
+}
+
+export function createCollectWaterInstruction({ authority, owner, backpack, item, equipmentSlot, block, actionId, context = gameContext }) {
+  if (!Number.isInteger(equipmentSlot) || equipmentSlot < 0 || equipmentSlot >= 9 || BigInt(actionId) <= 0n) throw new Error("Invalid water collection action.");
+  const target = normalizeWorldBlock(block, "water target"), x = blockChunkX(target.x), z = blockChunkZ(target.z);
+  const payload = Buffer.alloc(22); payload[0] = 24; payload.writeBigUInt64LE(BigInt(actionId), 1);
+  payload.writeInt32LE(target.x, 9); payload.writeInt16LE(target.y, 13); payload.writeInt32LE(target.z, 15);
+  payload.writeUInt16LE(WATER_BLOCK_ID, 19); payload[21] = equipmentSlot;
+  return new TransactionInstruction({ programId: context.chunkProgramId, keys: [
+    { pubkey: authority, isSigner: true, isWritable: true },
+    { pubkey: derivePlayerProfilePda(owner)[0], isSigner: false, isWritable: true },
+    { pubkey: derivePlayerSessionPda(owner, authority)[0], isSigner: false, isWritable: false },
+    { pubkey: deriveWaterCollectionPda(owner, context)[0], isSigner: false, isWritable: true },
+    { pubkey: deriveGlobalConfigPda(), isSigner: false, isWritable: false },
+    { pubkey: deriveChunkBrokenPdaForContext(x, z, context)[0], isSigner: false, isWritable: false },
+    { pubkey: deriveChunkPlacedPdaForContext(x, z, context)[0], isSigner: false, isWritable: false },
+    { pubkey: deriveFoundationChunkPdaForContext(x, z, context)[0], isSigner: false, isWritable: false },
+    { pubkey: derivePlayerEquipmentPda(owner)[0], isSigner: false, isWritable: true },
+    { pubkey: typeof item === "string" ? new PublicKey(item) : item, isSigner: false, isWritable: false },
+    { pubkey: backpack, isSigner: false, isWritable: true },
+    { pubkey: deriveMaterialPhysicsPda(context.backpackProgramId)[0], isSigner: false, isWritable: false },
+    { pubkey: playerProgramId, isSigner: false, isWritable: false },
+    { pubkey: context.backpackProgramId, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data: contextInstructionData(context, gameNamespaceChunk, payload) });
+}
+
+export async function recordWaterCollectionOnChain(block, options = {}) {
+  const provider = await connectedWalletProvider();
+  if (!provider) return { submitted: false, reason: "wallet-unavailable" };
+  const tool = options.miningTool;
+  if (tool?.kind !== "equipment" || !tool.itemPda) return { submitted: false, reason: "invalid-container" };
+  const conn = getNicechunkConnection(), target = normalizeWorldBlock(block, "water target");
+  const unresolved = waterContactJournal(provider.publicKey);
+  if (unresolved) {
+    const status = await fetchNicechunkTransactionConfirmation(unresolved.signature, conn);
+    if (status.state === "unknown") {
+      const progress = await fetchWaterCollectionStatus(provider.publicKey, conn);
+      const expired = await conn.getBlockHeight("confirmed") > unresolved.lastValidBlockHeight;
+      if (BigInt(progress.lastActionId) < BigInt(unresolved.actionId) && !expired) {
+        const error = new Error("Previous water contact is awaiting confirmation.");
+        error.signature = unresolved.signature; error.nicechunkSubmissionUncertain = true; throw error;
+      }
+      // Expiry plus a second historical status read is necessary before a new action.
+      if (BigInt(progress.lastActionId) < BigInt(unresolved.actionId)) {
+        const final = await fetchNicechunkTransactionConfirmation(unresolved.signature, conn);
+        if (final.state === "unknown" && !expired) throw new Error("Water confirmation unavailable.");
+      }
+    }
+    waterContactJournal(provider.publicKey, null);
+  }
+  const backpack = await loadAuthoritativeMiningBackpack(provider.publicKey, conn, options);
+  if (!backpack?.publicKey) return { submitted: false, reason: "no-backpack" };
+  const session = await getOrCreateGameplaySession(provider);
+  const progress = await fetchWaterCollectionStatus(provider.publicKey, conn);
+  const candidateId = BigInt(options.actionId ?? createMiningActionId());
+  const actionId = candidateId > BigInt(progress.lastActionId) ? candidateId : BigInt(progress.lastActionId) + 1n;
+  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
+  let playerPositionSaved = maybeAddPlayerPositionUpdateInstruction(transaction, { provider, session, position: options.playerPosition });
+  if (!playerPositionSaved && options.playerPosition) {
+    transaction.add(createUpdatePlayerPositionInstruction({ authority: session.keypair.publicKey,
+      playerProfile: derivePlayerProfilePda(provider.publicKey)[0], position: options.playerPosition,
+      session: derivePlayerSessionPda(provider.publicKey, session.keypair.publicKey)[0] }));
+    playerPositionSaved = true;
+  }
+  transaction.add(createCollectWaterInstruction({ authority: session.keypair.publicKey, owner: provider.publicKey,
+    backpack: backpack.publicKey, item: tool.itemPda, equipmentSlot: tool.equipmentSlot, block: target, actionId }));
+  const signature = await sendWaterContact(transaction, session, provider.publicKey, actionId, conn);
+  const tx = await conn.getTransaction(signature, { commitment: "confirmed", maxSupportedTransactionVersion: 0 }).catch(() => null);
+  const waterReceipt = waterCollectionFromTransaction(tx, gameContext.chunkProgramId.toBase58(), tool, actionId);
+  const equipmentResult = await loadConfirmedMiningEquipmentResult(signature, provider.publicKey, tool, conn);
+  const equipped = equipmentResult.playerEquipmentAfter?.slots?.find((entry) => entry.slot === tool.equipmentSlot && entry.backpackSlot?.itemPda === tool.itemPda);
+  if (waterReceipt && equipped) equipped.backpackSlot.waterCapacityMl = waterReceipt.waterCapacityMl;
+  return { submitted: true, signature, miningKind: "water-collection", playerPositionSaved,
+    ...equipmentResult,
+    ...waterReceipt,
+    waterReceiptPending: !waterReceipt,
+    backpack: backpack.publicKey.toBase58(), waterVolumeMl: (waterReceipt?.waterUnits || 0) * WATER_UNIT_ML, actionId: String(actionId),
+    lossyRewards: true, storedRewardCount: waterReceipt?.waterUnits || 0,
+    storedRewards: waterReceipt?.waterUnits ? [{ blockId: WATER_BLOCK_ID, resourceId: WATER_RESOURCE_ID, count: waterReceipt.waterUnits }] : [],
+    programId: gameContext.chunkProgramId.toBase58() };
 }
 
 function encodeBackpackPackedY(worldY, blockId) {

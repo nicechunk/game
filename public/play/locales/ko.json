@@ -246,7 +246,8 @@
         "stack": "Stack",
         "resourceId": "Resource ID",
         "local": "Local",
-        "hotbarSlot": "Hotbar slot"
+        "hotbarSlot": "Hotbar slot",
+        "waterCapacity": "용량"
       },
       "skills": {
         "precisionGathering": {
@@ -1728,6 +1729,10 @@
       "collapse": "로그 접기",
       "history": "최근 로그 (최대 300개)",
       "empty": "아직 로그가 없습니다."
+    },
+    "water": {
+      "containerRequired": "Equip a container with certified capacity and remaining durability to collect water.",
+      "progress": "Collected {units} × 1000 mL"
     }
   },
   "resourceSimulator": {

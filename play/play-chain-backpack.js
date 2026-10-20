@@ -423,6 +423,8 @@ function chainItemSlot(slot, index, address) {
     itemCode,
     itemPda: String(slot.itemPda || ""),
     bytes: forged && Array.isArray(slot.modelBytes) ? [...slot.modelBytes] : null,
+    waterCapacityMl: Math.max(0, Math.trunc(Number(slot.waterCapacityMl) || 0)),
+    containerSeedIndex: Number.isInteger(slot.containerSeedIndex) ? slot.containerSeedIndex : null,
     volumeMm3: Math.max(0, Math.trunc(Number(slot.volumeMm3) || 0)),
     massGrams: normalizeSlotMassGrams(slot.massGrams),
     durabilityCurrent: Math.max(0, Math.trunc(Number(slot.durabilityCurrent) || 0)),

@@ -50,6 +50,8 @@ export function normalizeForgedHotbarSlot(slot, { defaultDurability = 999, owner
     savedAt: Number(hydrated.savedAt) || Date.now(),
     durability: clampInt(hydrated.durability ?? hydrated.durabilityCurrent ?? maxDurability, 0, maxDurability),
     maxDurability,
+    waterCapacityMl: clampInt(hydrated.waterCapacityMl, 0, 0xffffffff),
+    containerSeedIndex: Number.isInteger(hydrated.containerSeedIndex) ? hydrated.containerSeedIndex & 0xfff : null,
   };
 }
 

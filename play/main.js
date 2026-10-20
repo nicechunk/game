@@ -1268,7 +1268,7 @@ async function boot() {
           blockId: pending.blockId,
         },
       }));
-      if (pending.miningKind === "surface-pebble") { /* no terrain edit */ }
+      if (["surface-pebble", "water-collection"].includes(pending.miningKind)) { /* no terrain edit */ }
       else if (pending.blocks?.length > 1) guardian?.sendDigBatch?.(pending.blocks, 1);
       else guardian?.sendDig(pending, 1);
       chainSession?.handlePendingMine(pending, {
@@ -1289,11 +1289,18 @@ async function boot() {
     onConfirm: (pending) => {
       chainPlayer?.applyMiningResult?.(pending.chainResult);
       forgetMiningHit(pending);
-      if (pending.miningKind !== "surface-pebble") effects?.emitConfirmedBlockFracture?.(pending);
-      if (pending.miningKind !== "surface-pebble") guardian?.sendConfirmedMine(pending);
+      if (!["surface-pebble", "water-collection"].includes(pending.miningKind)) effects?.emitConfirmedBlockFracture?.(pending);
+      if (!["surface-pebble", "water-collection"].includes(pending.miningKind)) guardian?.sendConfirmedMine(pending);
       chainSession?.handleConfirmedMine(pending);
-      invalidateMiningChunks(pending);
-      chainChunkDeltas?.requestSync({ reason: "mine-confirm", quiet: true });
+      if (pending.miningKind !== "water-collection") {
+        invalidateMiningChunks(pending);
+        chainChunkDeltas?.requestSync({ reason: "mine-confirm", quiet: true });
+      } else if (pending.chainResult?.waterRequiredHits) {
+        setStatus(translateWithFallback("main.water.progress", "Water collected: {units} × 1000 mL; remainder: {remainder} mL", {
+          units: pending.chainResult.waterUnits,
+          remainder: pending.chainResult.waterRemainderMl,
+        }));
+      }
       refreshPdaBackpackAfterAction(pending);
       requestChainPlayerPositionSaveForResourceMine(pending);
     },

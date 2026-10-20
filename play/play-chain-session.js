@@ -582,6 +582,7 @@ export function createPlayChainSession({
   }
 
   function miningProofLabel(pending) {
+    if (pending?.miningKind === "water-collection") return "Water collection";
     const count = Math.max(1, Math.trunc(Number(pending?.minedBlockCount) || 1));
     if (pending?.miningKind === "tree-fell" && count > 1) return `Tree-fell proof (${count} blocks)`;
     if (pending?.miningKind === "support-collapse" && count > 1) return `Support-collapse proof (${count} blocks)`;
@@ -797,7 +798,7 @@ export function createPlayChainSession({
             { phase: "local-confirmed" },
           );
         }
-        if (action === "mine") {
+        if (action === "mine" && pending.miningKind !== "water-collection") {
           void Promise.resolve(refreshPlayerProgress({ force: true, quiet: true })).catch(() => null);
         }
         render();
